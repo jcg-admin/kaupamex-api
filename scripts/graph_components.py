@@ -83,7 +83,6 @@ def strongly_connected_components(nodes, edges):
     return output
 
 
-
 def cyclic_components(nodes, edges):
     """Solo los componentes de mas de un nodo — los ciclos reales.
 
@@ -91,7 +90,4 @@ def cyclic_components(nodes, edges):
     a si mismo, y ese caso se comprueba explicitamente en vez de suponerlo.
     """
     components = strongly_connected_components(nodes, edges)
-    return [c for c in components
-            if len(c) > 1 or c[0] in edges.get(c[0], ())]
-
-
+    return [c for c in components if len(c) > 1 or c[0] in edges.get(c[0], ())]

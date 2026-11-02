@@ -47,8 +47,10 @@ def _show_discount(self):
     razón. Es divergencia de mecanismo —el recordset frente a la instancia—,
     no símbolo omitido: las dos guardas dejan de poder fallar.
     """
-    return (type(self)._is_discount_feature_enabled()
-            and self.compute_price == COMPUTE_PERCENTAGE)
+    return (
+        type(self)._is_discount_feature_enabled()
+        and self.compute_price == COMPUTE_PERCENTAGE
+    )
 
 
 def apply_sale_pricelist_item_extensions():
@@ -57,10 +59,12 @@ def apply_sale_pricelist_item_extensions():
     La invoca ``SaleConfig.ready()``.
     """
     extend_model(
-        'product', 'ProductPricelistItem',
+        'product',
+        'ProductPricelistItem',
         metodos={
-            '_is_discount_feature_enabled':
-                classmethod(_is_discount_feature_enabled),
+            '_is_discount_feature_enabled': classmethod(
+                _is_discount_feature_enabled
+            ),
             '_show_discount': _show_discount,
         },
     )

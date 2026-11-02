@@ -11,6 +11,7 @@ app_label se registra en ``MULTIDB_CONTROL_PLANE_APPS`` (mismo patrón que
 servicio ``BaseGeocoder`` en ``models/base_geocoder.py`` — no un
 ``models.Model``, fiel a que Odoo tampoco le da persistencia propia.
 """
+
 import importlib
 
 from django.apps import AppConfig

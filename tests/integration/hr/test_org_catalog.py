@@ -11,6 +11,7 @@ Invariante de jerarquía (DIS-04): un departamento no puede ser su propio padre
 ni cerrar un ciclo (``DEPARTMENT_CYCLE``) — el helper vive ahora en
 ``addons.base`` (D-4).
 """
+
 import pytest
 from django.core.exceptions import ValidationError
 
@@ -22,11 +23,14 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def company():
-    mxn, _ = ResCurrency.objects.get_or_create(name='MXN', defaults={'symbol': '$'})
+    mxn, _ = ResCurrency.objects.get_or_create(
+        name='MXN', defaults={'symbol': '$'}
+    )
     return ResCompany.create_company('Acme', currency=mxn, code='acme')
 
 
 # --- HrDepartment -----------------------------------------------------------
+
 
 def test_department_with_company(company):
     d = HrDepartment.objects.create(name='Ventas', company=company)
@@ -46,7 +50,8 @@ def test_department_without_company():
 def test_department_subhierarchy(company):
     ventas = HrDepartment.objects.create(name='Ventas', company=company)
     online = HrDepartment.objects.create(
-        name='Ventas Online', parent=ventas, company=company)
+        name='Ventas Online', parent=ventas, company=company
+    )
     assert online.parent_id == ventas.pk
     assert list(ventas.children.all()) == [online]
 
@@ -60,6 +65,7 @@ def test_department_no_self_cycle(company):
 
 
 # --- HrJob ------------------------------------------------------------------
+
 
 def test_job_department_is_optional(company):
     j = HrJob.objects.create(name='Analista')

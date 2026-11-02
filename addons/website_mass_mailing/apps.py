@@ -8,6 +8,7 @@ class WebsiteMassMailingConfig(AppConfig):
     Addon **sin modelos**: sólo expone la superficie HTTP pública
     (subscribe / confirm / unsubscribe) sobre los modelos de ``mass_mailing``.
     """
+
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'addons.website_mass_mailing'
     label = 'website_mass_mailing'

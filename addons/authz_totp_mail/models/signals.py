@@ -10,6 +10,7 @@ El correo va directo por ``dispatch_email`` (texto fiel al de la
 referencia); el template QWeb ``mail.account_security_alert`` con su
 ``suggest_2fa`` pertenece a la capa de presentación de Odoo y no se porta.
 """
+
 import logging
 from collections import defaultdict
 
@@ -35,8 +36,9 @@ def _notify(user, subject, content):
     dispatch_email(subject, content, None, [user.login])
 
 
-@receiver(pre_save, sender=TotpSecret,
-          dispatch_uid='authz_totp_mail_activation')
+@receiver(
+    pre_save, sender=TotpSecret, dispatch_uid='authz_totp_mail_activation'
+)
 def notify_totp_activated(sender, instance, **kwargs):
     """Transición ``confirmed`` False→True = 2FA activado."""
     if not instance.confirmed:
@@ -53,8 +55,9 @@ def notify_totp_activated(sender, instance, **kwargs):
         )
 
 
-@receiver(post_delete, sender=TotpSecret,
-          dispatch_uid='authz_totp_mail_deactivation')
+@receiver(
+    post_delete, sender=TotpSecret, dispatch_uid='authz_totp_mail_deactivation'
+)
 def notify_totp_deactivated(sender, instance, **kwargs):
     """Borrado de un secreto confirmado = 2FA desactivado."""
     if instance.confirmed:
@@ -121,8 +124,10 @@ def _flush_still_registered(conn):
     La forma de cada entrada es ``(set(savepoint_ids), func, robust)``
     (``:732``), así que basta comparar la función.
     """
-    return any(func is _flush_removed_devices
-               for _sids, func, _robust in conn.run_on_commit)
+    return any(
+        func is _flush_removed_devices
+        for _sids, func, _robust in conn.run_on_commit
+    )
 
 
 def _batch_of_the_transaction():
@@ -168,8 +173,11 @@ def _flush_removed_devices():
         )
 
 
-@receiver(pre_delete, sender=AuthTotpDevice,
-          dispatch_uid='authz_totp_mail_device_removed')
+@receiver(
+    pre_delete,
+    sender=AuthTotpDevice,
+    dispatch_uid='authz_totp_mail_device_removed',
+)
 def notify_device_removed(sender, instance, **kwargs):
     """≙ ``unlink`` (``auth_totp_device.py:12-23``) — recoge, no despacha.
 

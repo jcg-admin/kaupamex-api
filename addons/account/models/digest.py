@@ -82,6 +82,7 @@ Divergencias declaradas — de forma, no de alcance
 es un método de instancia sobre el usuario — misma firma que
 ``self.env.user.has_group(...)`` de la referencia. Se porta verbatim.
 """
+
 import fields
 from django.db.models import Sum
 
@@ -105,7 +106,8 @@ def _assert_invoicing_user():
     user = get_current_user()
     if not (user is not None and user.has_group(GROUP_ACCOUNT_INVOICE)):
         raise AccessError(
-            _("Do not have access, skip this data for user's digest email"))
+            _("Do not have access, skip this data for user's digest email")
+        )
 
 
 def _compute_kpi_account_total_revenue_value(self, start, end):
@@ -124,17 +126,13 @@ def _compute_kpi_account_total_revenue_value(self, start, end):
     _assert_invoicing_user()
     company = self.company_id or get_current_company()
     companies = [company.pk] if company is not None else []
-    total = (
-        AccountMoveLine.objects
-        .filter(
-            company_id__in=companies,
-            move__date__gt=start,
-            move__date__lte=end,
-            account__internal_group='income',
-            move__state='posted',
-        )
-        .aggregate(total=Sum('balance'))['total']
-    )
+    total = AccountMoveLine.objects.filter(
+        company_id__in=companies,
+        move__date__gt=start,
+        move__date__lte=end,
+        account__internal_group='income',
+        move__state='posted',
+    ).aggregate(total=Sum('balance'))['total']
     return -(total or 0)
 
 
@@ -164,24 +162,33 @@ def apply_account_extensions():
     correo en silencio.
     """
     extend_model(
-        'digest', 'DigestDigest',
+        'digest',
+        'DigestDigest',
         campos={
             'kpi_account_total_revenue': fields.Boolean(
-                default=False, verbose_name='Ingresos',
-                help_text='Muestra el KPI de ingreso total del período en '
-                          'el digest (Odoo kpi_account_total_revenue).',
+                default=False,
+                verbose_name='Ingresos',
+                help_text=(
+                    'Muestra el KPI de ingreso total del período en '
+                    'el digest (Odoo kpi_account_total_revenue).'
+                ),
             ),
             'kpi_account_total_revenue_value': fields.Monetary(
-                store=False, null=True, blank=True,
+                store=False,
+                null=True,
+                blank=True,
                 verbose_name='Ingreso total del período (valor)',
-                help_text='Odoo kpi_account_total_revenue_value — compute '
-                          'sin store; lo sirve '
-                          '_compute_kpi_account_total_revenue_value.',
+                help_text=(
+                    'Odoo kpi_account_total_revenue_value — compute '
+                    'sin store; lo sirve '
+                    '_compute_kpi_account_total_revenue_value.'
+                ),
             ),
         },
         metodos={
-            '_compute_kpi_account_total_revenue_value':
-                _compute_kpi_account_total_revenue_value,
+            '_compute_kpi_account_total_revenue_value': (
+                _compute_kpi_account_total_revenue_value
+            ),
         },
         overrides={
             '_compute_kpis_actions': _compute_kpis_actions,

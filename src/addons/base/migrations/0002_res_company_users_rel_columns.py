@@ -12,6 +12,7 @@ y vuelve como ``CreateModel``. Medido antes de aplicar: la tabla tenía
 **0 filas** (``SELECT COUNT(*)`` sobre ``kaupamex_core_qa``), así que no hay
 membresías que preservar — hoy nadie las escribe todavía.
 """
+
 import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models

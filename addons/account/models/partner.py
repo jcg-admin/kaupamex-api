@@ -77,6 +77,7 @@ que ``account_analytic_account.py`` ya declara (no-op documentado).
 ``_run_vat_checks``/validación de VAT europeo (VIES) — bloqueado: sin
 librería de validación de VAT ni servicio VIES en este árbol.
 """
+
 from decimal import Decimal
 
 import fields
@@ -109,6 +110,7 @@ AUTOPOST_BILLS_CHOICES = [
 # Compute-only — funciones, no columnas (≙ odoo19c: partner.py:513-624)
 # --------------------------------------------------------------------
 
+
 def credit(partner):
     """≙ ``_credit_debit_get`` (mitad ``credit``, ``odoo19c: partner.py:514``).
 
@@ -120,7 +122,8 @@ def credit(partner):
     publicadas — mide "facturado", no "pendiente de cobro".
     """
     invoices = AccountMove.objects.filter(
-        partner=partner, move_type='out_invoice', state='posted')
+        partner=partner, move_type='out_invoice', state='posted'
+    )
     return sum((i.amount_total for i in invoices), Decimal('0.00'))
 
 
@@ -128,7 +131,8 @@ def total_invoiced(partner):
     """≙ ``_invoice_total`` (``odoo19c: partner.py:539``). Portable: suma
     de facturas de cliente publicadas del socio."""
     invoices = AccountMove.objects.filter(
-        partner=partner, move_type='out_invoice', state='posted')
+        partner=partner, move_type='out_invoice', state='posted'
+    )
     return sum((i.amount_total for i in invoices), Decimal('0.00'))
 
 
@@ -139,7 +143,9 @@ def account_move_count(partner):
 
 def supplier_invoice_count(partner):
     """≙ ``_compute_supplier_invoice_count`` (``odoo19c: partner.py:567``)."""
-    return AccountMove.objects.filter(partner=partner, move_type='in_invoice').count()
+    return AccountMove.objects.filter(
+        partner=partner, move_type='in_invoice'
+    ).count()
 
 
 # ``fiscal_country_codes`` NO se cuelga aquí — su hogar ya existía:
@@ -162,6 +168,7 @@ def invoice_ids(partner):
 # apply_account_extensions
 # --------------------------------------------------------------------
 
+
 def apply_account_extensions():
     """Cuelga la mitad contable sobre ``res.partner`` — ≙ ``_inherit``.
 
@@ -169,82 +176,231 @@ def apply_account_extensions():
     estado que el resto de archivos de este pase.
     """
     # --- FKs company_dependent → FK simple ---------------------------
-    _add_if_absent(ResPartner, 'property_account_payable_id', fields.Many2one(
-        'account.AccountAccount', null=True, blank=True,
-        on_delete=dj_models.PROTECT, related_name='payable_partners',
-        help_text='Cuenta por pagar de este socio (Odoo '
-                  'property_account_payable_id).'))
-    _add_if_absent(ResPartner, 'property_account_receivable_id', fields.Many2one(
-        'account.AccountAccount', null=True, blank=True,
-        on_delete=dj_models.PROTECT, related_name='receivable_partners',
-        help_text='Cuenta por cobrar de este socio (Odoo '
-                  'property_account_receivable_id).'))
-    _add_if_absent(ResPartner, 'property_account_position_id', fields.Many2one(
-        'account.AccountFiscalPosition', null=True, blank=True,
-        on_delete=dj_models.SET_NULL, related_name='partners',
-        help_text='Posición fiscal por defecto de este socio (Odoo '
-                  'property_account_position_id).'))
-    _add_if_absent(ResPartner, 'property_payment_term_id', fields.Many2one(
-        'account.AccountPaymentTerm', null=True, blank=True,
-        on_delete=dj_models.SET_NULL, related_name='customer_partners',
-        help_text='Plazo de pago de venta de este socio (Odoo '
-                  'property_payment_term_id).'))
-    _add_if_absent(ResPartner, 'property_supplier_payment_term_id', fields.Many2one(
-        'account.AccountPaymentTerm', null=True, blank=True,
-        on_delete=dj_models.SET_NULL, related_name='supplier_partners',
-        help_text='Plazo de pago de compra de este socio (Odoo '
-                  'property_supplier_payment_term_id).'))
-    _add_if_absent(ResPartner, 'property_outbound_payment_method_line_id', fields.Many2one(
-        'account.AccountPaymentMethodLine', null=True, blank=True,
-        on_delete=dj_models.SET_NULL, related_name='outbound_partners',
-        help_text='Método de pago saliente preferido (Odoo '
-                  'property_outbound_payment_method_line_id).'))
-    _add_if_absent(ResPartner, 'property_inbound_payment_method_line_id', fields.Many2one(
-        'account.AccountPaymentMethodLine', null=True, blank=True,
-        on_delete=dj_models.SET_NULL, related_name='inbound_partners',
-        help_text='Método de pago entrante preferido (Odoo '
-                  'property_inbound_payment_method_line_id).'))
-    _add_if_absent(ResPartner, 'invoice_template_pdf_report_id', fields.Many2one(
-        'base.IrActionsReport', null=True, blank=True,
-        on_delete=dj_models.SET_NULL, related_name='+',
-        help_text='Plantilla PDF de factura preferida de este socio (Odoo '
-                  'invoice_template_pdf_report_id).'))
+    _add_if_absent(
+        ResPartner,
+        'property_account_payable_id',
+        fields.Many2one(
+            'account.AccountAccount',
+            null=True,
+            blank=True,
+            on_delete=dj_models.PROTECT,
+            related_name='payable_partners',
+            help_text=(
+                'Cuenta por pagar de este socio (Odoo '
+                'property_account_payable_id).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResPartner,
+        'property_account_receivable_id',
+        fields.Many2one(
+            'account.AccountAccount',
+            null=True,
+            blank=True,
+            on_delete=dj_models.PROTECT,
+            related_name='receivable_partners',
+            help_text=(
+                'Cuenta por cobrar de este socio (Odoo '
+                'property_account_receivable_id).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResPartner,
+        'property_account_position_id',
+        fields.Many2one(
+            'account.AccountFiscalPosition',
+            null=True,
+            blank=True,
+            on_delete=dj_models.SET_NULL,
+            related_name='partners',
+            help_text=(
+                'Posición fiscal por defecto de este socio (Odoo '
+                'property_account_position_id).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResPartner,
+        'property_payment_term_id',
+        fields.Many2one(
+            'account.AccountPaymentTerm',
+            null=True,
+            blank=True,
+            on_delete=dj_models.SET_NULL,
+            related_name='customer_partners',
+            help_text=(
+                'Plazo de pago de venta de este socio (Odoo '
+                'property_payment_term_id).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResPartner,
+        'property_supplier_payment_term_id',
+        fields.Many2one(
+            'account.AccountPaymentTerm',
+            null=True,
+            blank=True,
+            on_delete=dj_models.SET_NULL,
+            related_name='supplier_partners',
+            help_text=(
+                'Plazo de pago de compra de este socio (Odoo '
+                'property_supplier_payment_term_id).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResPartner,
+        'property_outbound_payment_method_line_id',
+        fields.Many2one(
+            'account.AccountPaymentMethodLine',
+            null=True,
+            blank=True,
+            on_delete=dj_models.SET_NULL,
+            related_name='outbound_partners',
+            help_text=(
+                'Método de pago saliente preferido (Odoo '
+                'property_outbound_payment_method_line_id).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResPartner,
+        'property_inbound_payment_method_line_id',
+        fields.Many2one(
+            'account.AccountPaymentMethodLine',
+            null=True,
+            blank=True,
+            on_delete=dj_models.SET_NULL,
+            related_name='inbound_partners',
+            help_text=(
+                'Método de pago entrante preferido (Odoo '
+                'property_inbound_payment_method_line_id).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResPartner,
+        'invoice_template_pdf_report_id',
+        fields.Many2one(
+            'base.IrActionsReport',
+            null=True,
+            blank=True,
+            on_delete=dj_models.SET_NULL,
+            related_name='+',
+            help_text=(
+                'Plantilla PDF de factura preferida de este socio (Odoo '
+                'invoice_template_pdf_report_id).'
+            ),
+        ),
+    )
 
     # --- escalares company_dependent → sin variación por empresa -----
-    _add_if_absent(ResPartner, 'credit_limit', fields.Float(
-        default=0.0,
-        help_text='Límite de crédito (Odoo credit_limit; sin variación '
-                  'por empresa, ver docstring del módulo).'))
-    _add_if_absent(ResPartner, 'use_partner_credit_limit', fields.Boolean(
-        default=False, help_text='Odoo use_partner_credit_limit.'))
-    _add_if_absent(ResPartner, 'show_credit_limit', fields.Boolean(
-        default=False, help_text='Odoo show_credit_limit.'))
-    _add_if_absent(ResPartner, 'trust', fields.Selection(
-        max_length=16, blank=True, default='',
-        choices=[('good', 'buen pagador'), ('normal', 'normal'), ('bad', 'mal pagador')],
-        help_text='Grado de confianza en este deudor (Odoo trust).'))
-    _add_if_absent(ResPartner, 'ignore_abnormal_invoice_date', fields.Boolean(
-        default=False, help_text='Odoo ignore_abnormal_invoice_date.'))
-    _add_if_absent(ResPartner, 'ignore_abnormal_invoice_amount', fields.Boolean(
-        default=False, help_text='Odoo ignore_abnormal_invoice_amount.'))
-    _add_if_absent(ResPartner, 'invoice_sending_method', fields.Selection(
-        max_length=16, blank=True, default='',
-        choices=INVOICE_SENDING_METHODS,
-        help_text='Método de envío de factura preferido (Odoo '
-                  'invoice_sending_method).'))
-    _add_if_absent(ResPartner, 'invoice_edi_format_store', fields.Char(
-        max_length=64, blank=True, default='',
-        help_text='Formato EDI de factura preferido (Odoo '
-                  'invoice_edi_format_store).'))
-    _add_if_absent(ResPartner, 'supplier_rank', fields.Integer(
-        default=0, help_text='Odoo supplier_rank.'))
-    _add_if_absent(ResPartner, 'customer_rank', fields.Integer(
-        default=0, help_text='Odoo customer_rank.'))
-    _add_if_absent(ResPartner, 'autopost_bills', fields.Selection(
-        max_length=16, blank=True, default='',
-        choices=AUTOPOST_BILLS_CHOICES,
-        help_text='Auto-publicación de facturas de proveedor recurrentes '
-                  '(Odoo autopost_bills).'))
+    _add_if_absent(
+        ResPartner,
+        'credit_limit',
+        fields.Float(
+            default=0.0,
+            help_text=(
+                'Límite de crédito (Odoo credit_limit; sin variación '
+                'por empresa, ver docstring del módulo).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResPartner,
+        'use_partner_credit_limit',
+        fields.Boolean(
+            default=False, help_text='Odoo use_partner_credit_limit.'
+        ),
+    )
+    _add_if_absent(
+        ResPartner,
+        'show_credit_limit',
+        fields.Boolean(default=False, help_text='Odoo show_credit_limit.'),
+    )
+    _add_if_absent(
+        ResPartner,
+        'trust',
+        fields.Selection(
+            max_length=16,
+            blank=True,
+            default='',
+            choices=[
+                ('good', 'buen pagador'),
+                ('normal', 'normal'),
+                ('bad', 'mal pagador'),
+            ],
+            help_text='Grado de confianza en este deudor (Odoo trust).',
+        ),
+    )
+    _add_if_absent(
+        ResPartner,
+        'ignore_abnormal_invoice_date',
+        fields.Boolean(
+            default=False, help_text='Odoo ignore_abnormal_invoice_date.'
+        ),
+    )
+    _add_if_absent(
+        ResPartner,
+        'ignore_abnormal_invoice_amount',
+        fields.Boolean(
+            default=False, help_text='Odoo ignore_abnormal_invoice_amount.'
+        ),
+    )
+    _add_if_absent(
+        ResPartner,
+        'invoice_sending_method',
+        fields.Selection(
+            max_length=16,
+            blank=True,
+            default='',
+            choices=INVOICE_SENDING_METHODS,
+            help_text=(
+                'Método de envío de factura preferido (Odoo '
+                'invoice_sending_method).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResPartner,
+        'invoice_edi_format_store',
+        fields.Char(
+            max_length=64,
+            blank=True,
+            default='',
+            help_text=(
+                'Formato EDI de factura preferido (Odoo '
+                'invoice_edi_format_store).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResPartner,
+        'supplier_rank',
+        fields.Integer(default=0, help_text='Odoo supplier_rank.'),
+    )
+    _add_if_absent(
+        ResPartner,
+        'customer_rank',
+        fields.Integer(default=0, help_text='Odoo customer_rank.'),
+    )
+    _add_if_absent(
+        ResPartner,
+        'autopost_bills',
+        fields.Selection(
+            max_length=16,
+            blank=True,
+            default='',
+            choices=AUTOPOST_BILLS_CHOICES,
+            help_text=(
+                'Auto-publicación de facturas de proveedor recurrentes '
+                '(Odoo autopost_bills).'
+            ),
+        ),
+    )
 
     # --- bloqueados, con su pieza nombrada en el docstring ------------
     # ref_company_ids / contract_ids: ver docstring del módulo — no se

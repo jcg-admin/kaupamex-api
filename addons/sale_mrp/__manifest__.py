@@ -13,7 +13,7 @@
     # este recorte porta es pedido→producción, sin pasar por el albarán.
     'depends': [
         'base',  # ResCompany
-        'mrp',   # MrpProduction — lo que el pedido lanza
+        'mrp',  # MrpProduction — lo que el pedido lanza
         'sale',  # SaleOrder — el disparador
     ],
     'author': 'Odoo S.A.',

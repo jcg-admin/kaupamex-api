@@ -128,6 +128,7 @@ este stack para un error de negocio que la vista traduce a 400 es
 ``addons/purchase/models/purchase_order.py:90`` ya usa. El mensaje se conserva
 con sus cuatro variables.
 """
+
 from django.core.exceptions import ValidationError
 
 from addons.stock.models.stock_location import USAGE_INVENTORY, USAGE_SUPPLIER
@@ -179,12 +180,15 @@ def _get_outgoing_incoming_moves(self):
     outgoing_moves, incoming_moves = [], []
 
     for move in self.move_ids.all():
-        if (move.state == 'cancel'
-                or move.location_dest_usage == USAGE_INVENTORY
-                or self.product_id != move.product):
+        if (
+            move.state == 'cancel'
+            or move.location_dest_usage == USAGE_INVENTORY
+            or self.product_id != move.product
+        ):
             continue
         if move._is_purchase_return() and (
-                move.to_refund or not move.origin_returned_move):
+            move.to_refund or not move.origin_returned_move
+        ):
             outgoing_moves.append(move)
         elif move.location_dest.usage != USAGE_SUPPLIER:
             if not move.origin_returned_move or move.to_refund:
@@ -202,7 +206,9 @@ def _update_move_date_deadline(self, new_date):
     """
     pending_moves = list(self.move_ids.exclude(state__in=('done', 'cancel')))
     if not pending_moves:
-        pending_moves = list(self.move_dest_ids.exclude(state__in=('done', 'cancel')))
+        pending_moves = list(
+            self.move_dest_ids.exclude(state__in=('done', 'cancel'))
+        )
     for move in pending_moves:
         move.date_deadline = new_date
         move.save(update_fields=['date_deadline', 'updated_at'])
@@ -223,19 +229,25 @@ def _check_orderpoint_picking_type(self):
     warehouse_loc = warehouse.view_location if warehouse is not None else None
 
     destination_loc = self.move_dest_ids.first()
-    dest_loc = destination_loc.location if destination_loc is not None else None
+    dest_loc = (
+        destination_loc.location if destination_loc is not None else None
+    )
     if dest_loc is None and self.orderpoint_id:
         dest_loc = self.orderpoint.location
 
-    if (warehouse_loc is not None and dest_loc is not None
-            and dest_loc.warehouse_id
-            and warehouse_loc.parent_path not in (dest_loc.parent_path or '')):
+    if (
+        warehouse_loc is not None
+        and dest_loc is not None
+        and dest_loc.warehouse_id
+        and warehouse_loc.parent_path not in (dest_loc.parent_path or '')
+    ):
         raise ValidationError(
             f'El almacén del tipo de operación ({picking_type}) es '
             f'incoherente con la ubicación ({dest_loc}) de la regla de '
             f'reabastecimiento ({self.orderpoint}) para el producto '
             f'{self.product_id}. Cambia el tipo de operación o cancela la '
-            f'solicitud de cotización.')
+            'solicitud de cotización.'
+        )
 
 
 def delete_cancelling_moves(self, *args, **kwargs):
@@ -279,35 +291,52 @@ def apply_purchase_stock_purchase_order_line_extensions():
     """Cuelga sobre ``purchase.PurchaseOrderLine`` lo que ``purchase_stock`` le
     añade — ≙ ``_inherit``."""
     extend_model(
-        'purchase', 'PurchaseOrderLine',
+        'purchase',
+        'PurchaseOrderLine',
         campos={
             'orderpoint': fields.Many2one(
-                'stock.StockWarehouseOrderpoint', null=True, blank=True,
-                on_delete=models.SET_NULL, db_index=True,
+                'stock.StockWarehouseOrderpoint',
+                null=True,
+                blank=True,
+                on_delete=models.SET_NULL,
+                db_index=True,
                 related_name='purchase_line_ids',
                 verbose_name='Regla de reabastecimiento',
-                help_text='Punto de pedido que generó esta línea '
-                          '(Odoo orderpoint_id).',
+                help_text=(
+                    'Punto de pedido que generó esta línea '
+                    '(Odoo orderpoint_id).'
+                ),
             ),
             'location_final': fields.Many2one(
-                'stock.StockLocation', null=True, blank=True,
+                'stock.StockLocation',
+                null=True,
+                blank=True,
                 on_delete=models.SET_NULL,
                 related_name='purchase_line_ids',
                 verbose_name='Ubicación del abastecimiento',
-                help_text='Ubicación final que pidió el abastecimiento; puede '
-                          'ser más profunda que el destino de la recepción '
-                          '(Odoo location_final_id).',
+                help_text=(
+                    'Ubicación final que pidió el abastecimiento; puede '
+                    'ser más profunda que el destino de la recepción '
+                    '(Odoo location_final_id).'
+                ),
             ),
             'product_description_variants': fields.Char(
-                max_length=255, blank=True, default='',
+                max_length=255,
+                blank=True,
+                default='',
                 verbose_name='Descripción personalizada',
-                help_text='Descripción que el abastecimiento añade a la línea '
-                          '(Odoo product_description_variants).',
+                help_text=(
+                    'Descripción que el abastecimiento añade a la línea '
+                    '(Odoo product_description_variants).'
+                ),
             ),
             'propagate_cancel': fields.Boolean(
-                default=True, verbose_name='Propagar cancelación',
-                help_text='Al cancelar la línea, ¿se cancelan también los '
-                          'movimientos que abastece? (Odoo propagate_cancel).',
+                default=True,
+                verbose_name='Propagar cancelación',
+                help_text=(
+                    'Al cancelar la línea, ¿se cancelan también los '
+                    'movimientos que abastece? (Odoo propagate_cancel).'
+                ),
             ),
         },
         propiedades={'is_storable': is_storable},

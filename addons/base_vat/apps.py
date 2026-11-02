@@ -29,7 +29,8 @@ class BaseVatConfig(AppConfig):
         company = importlib.import_module(f'{self.name}.models.res_company')
         country = importlib.import_module(f'{self.name}.models.res_country')
         settings = importlib.import_module(
-            f'{self.name}.models.res_config_settings')
+            f'{self.name}.models.res_config_settings'
+        )
         company.apply_base_vat_res_company_extensions()
         country.apply_base_vat_res_country_extensions()
         settings.apply_base_vat_res_config_settings_extensions()

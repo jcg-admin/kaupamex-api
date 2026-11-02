@@ -98,6 +98,7 @@ Porte símbolo por símbolo
      - no portado — arma la lista de ids de un botón de navegación del cliente
        web; y depende de ``so_line``.
 """
+
 from orm.model_classes import extend_model
 
 from .project_sale_line_employee_map import ProjectSaleLineEmployeeMap
@@ -128,7 +129,8 @@ def is_project_map_empty(self):
     if not self.project_id:
         return True
     return not ProjectSaleLineEmployeeMap.objects.filter(
-        project=self.project).exists()
+        project=self.project
+    ).exists()
 
 
 def apply_sale_timesheet_project_task_extensions():
@@ -140,7 +142,8 @@ def apply_sale_timesheet_project_task_extensions():
     porque el destino no declara ``_name``.
     """
     extend_model(
-        'project', 'ProjectTask',
+        'project',
+        'ProjectTask',
         propiedades={
             'pricing_type': pricing_type,
             'timesheet_product': timesheet_product,

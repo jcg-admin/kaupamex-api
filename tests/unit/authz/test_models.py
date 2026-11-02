@@ -4,13 +4,18 @@ Cubre integridad de las 7 entidades: catálogo Module/Capability, agrupación
 Role (M2M), grants directos + revocaciones con clave única (user, capability),
 y AuthzEvent append-only (DEC-07).
 """
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 
 from addons.authz.models import (
-    Capability, DirectEntitlement, EntitlementRevocation, Module,
-    Role, RoleAssignment,
+    Capability,
+    DirectEntitlement,
+    EntitlementRevocation,
+    Module,
+    Role,
+    RoleAssignment,
 )
 from addons.authz_audit.models import AuthzEvent
 
@@ -24,7 +29,9 @@ def _user(email='a@e.com', **kw):
 
 
 def _cap(code='orders.refund', **kw):
-    mod = kw.pop('module', None) or Module.objects.create(code='orders', name='Órdenes')
+    mod = kw.pop('module', None) or Module.objects.create(
+        code='orders', name='Órdenes'
+    )
     return Capability.objects.create(module=mod, code=code, name=code, **kw)
 
 
@@ -32,7 +39,9 @@ def test_capability_code_unique():
     _cap(code='orders.refund')
     with pytest.raises(IntegrityError):
         Module_ = Module.objects.create(code='other', name='Other')
-        Capability.objects.create(module=Module_, code='orders.refund', name='dup')
+        Capability.objects.create(
+            module=Module_, code='orders.refund', name='dup'
+        )
 
 
 def test_role_groups_capabilities():
@@ -68,11 +77,15 @@ def test_revocation_coexists_with_grant():
     DirectEntitlement.objects.create(user=u, capability=cap)
     EntitlementRevocation.objects.create(user=u, capability=cap, reason='baja')
     assert DirectEntitlement.objects.filter(user=u, capability=cap).exists()
-    assert EntitlementRevocation.objects.filter(user=u, capability=cap).exists()
+    assert EntitlementRevocation.objects.filter(
+        user=u, capability=cap
+    ).exists()
 
 
 def test_authz_event_is_append_only():
-    ev = AuthzEvent.objects.create(action=AuthzEvent.ACTION_DENY, capability_code='pos.cash_close')
+    ev = AuthzEvent.objects.create(
+        action=AuthzEvent.ACTION_DENY, capability_code='pos.cash_close'
+    )
     with pytest.raises(PermissionError):
         ev.reason = 'x'  # no-op attr; el guard salta en save()
         ev.save()

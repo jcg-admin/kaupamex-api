@@ -15,6 +15,7 @@ distinto de 1 — la base de pruebas no siembra idiomas, así que
 ``_current_week_start`` cae siempre a su respaldo. Ese camino queda cubierto
 por su propio caso, que fija el respaldo, no la lectura.
 """
+
 import datetime
 import zoneinfo
 
@@ -28,40 +29,51 @@ pytestmark = pytest.mark.unit
 
 MX = zoneinfo.ZoneInfo('America/Mexico_City')
 MADRID = zoneinfo.ZoneInfo('Europe/Madrid')
-A_DAY = datetime.date(2026, 8, 29)          # sábado
+A_DAY = datetime.date(2026, 8, 29)  # sábado
 AN_INSTANT = datetime.datetime(2026, 8, 29, 14, 37, 21, 500000)
 
 
 # -- start_of / end_of: los siete granos ------------------------------------
 
-@pytest.mark.parametrize(('granularity', 'expected'), [
-    ('year', datetime.date(2026, 1, 1)),
-    ('quarter', datetime.date(2026, 7, 1)),
-    ('month', datetime.date(2026, 8, 1)),
-    ('week', datetime.date(2026, 8, 24)),     # lunes de esa semana
-    ('day', datetime.date(2026, 8, 29)),
-])
+
+@pytest.mark.parametrize(
+    ('granularity', 'expected'),
+    [
+        ('year', datetime.date(2026, 1, 1)),
+        ('quarter', datetime.date(2026, 7, 1)),
+        ('month', datetime.date(2026, 8, 1)),
+        ('week', datetime.date(2026, 8, 24)),  # lunes de esa semana
+        ('day', datetime.date(2026, 8, 29)),
+    ],
+)
 def test_start_of_truncates_the_date_to_the_granularity(granularity, expected):
     assert du.start_of(A_DAY, granularity) == expected
 
 
-@pytest.mark.parametrize(('granularity', 'expected'), [
-    ('year', datetime.date(2026, 12, 31)),
-    ('quarter', datetime.date(2026, 9, 30)),
-    ('month', datetime.date(2026, 8, 31)),
-    ('week', datetime.date(2026, 8, 30)),     # domingo de esa semana
-    ('day', datetime.date(2026, 8, 29)),
-])
+@pytest.mark.parametrize(
+    ('granularity', 'expected'),
+    [
+        ('year', datetime.date(2026, 12, 31)),
+        ('quarter', datetime.date(2026, 9, 30)),
+        ('month', datetime.date(2026, 8, 31)),
+        ('week', datetime.date(2026, 8, 30)),  # domingo de esa semana
+        ('day', datetime.date(2026, 8, 29)),
+    ],
+)
 def test_end_of_extends_the_date_to_the_granularity(granularity, expected):
     assert du.end_of(A_DAY, granularity) == expected
 
 
 def test_start_of_hour_keeps_the_hour_and_clears_the_rest():
-    assert du.start_of(AN_INSTANT, 'hour') == datetime.datetime(2026, 8, 29, 14)
+    assert du.start_of(AN_INSTANT, 'hour') == datetime.datetime(
+        2026, 8, 29, 14
+    )
 
 
 def test_end_of_hour_reaches_the_last_microsecond():
-    assert du.end_of(AN_INSTANT, 'hour') == datetime.datetime(2026, 8, 29, 14, 59, 59, 999999)
+    assert du.end_of(AN_INSTANT, 'hour') == datetime.datetime(
+        2026, 8, 29, 14, 59, 59, 999999
+    )
 
 
 def test_start_of_rejects_an_unknown_granularity():
@@ -71,8 +83,12 @@ def test_start_of_rejects_an_unknown_granularity():
 
 # -- los recortes con nombre propio -----------------------------------------
 
+
 def test_get_month_returns_the_first_and_the_last():
-    assert du.get_month(A_DAY) == (datetime.date(2026, 8, 1), datetime.date(2026, 8, 31))
+    assert du.get_month(A_DAY) == (
+        datetime.date(2026, 8, 1),
+        datetime.date(2026, 8, 31),
+    )
 
 
 def test_get_quarter_number_counts_from_one():
@@ -80,20 +96,30 @@ def test_get_quarter_number_counts_from_one():
 
 
 def test_get_quarter_spans_the_three_months():
-    assert du.get_quarter(A_DAY) == (datetime.date(2026, 7, 1), datetime.date(2026, 9, 30))
+    assert du.get_quarter(A_DAY) == (
+        datetime.date(2026, 7, 1),
+        datetime.date(2026, 9, 30),
+    )
 
 
 def test_get_fiscal_year_closes_in_december_by_default():
-    assert du.get_fiscal_year(A_DAY) == (datetime.date(2026, 1, 1), datetime.date(2026, 12, 31))
+    assert du.get_fiscal_year(A_DAY) == (
+        datetime.date(2026, 1, 1),
+        datetime.date(2026, 12, 31),
+    )
 
 
 def test_get_fiscal_year_staggered_starts_the_previous_year():
-    # Cierre el 30 de junio: agosto de 2026 cae en el ejercicio 2026-07-01 → 2027-06-30.
+    # Cierre el 30 de junio: agosto de 2026 cae en el ejercicio
+    # 2026-07-01 → 2027-06-30.
     assert du.get_fiscal_year(A_DAY, day=30, month=6) == (
-        datetime.date(2026, 7, 1), datetime.date(2027, 6, 30))
+        datetime.date(2026, 7, 1),
+        datetime.date(2027, 6, 30),
+    )
 
 
 # -- aritmética -------------------------------------------------------------
+
 
 def test_get_timedelta_turns_the_granularity_into_a_relativedelta():
     # El resultado se SUMA directamente. ``add`` no sirve aqui: reenvia sus
@@ -109,30 +135,48 @@ def test_add_and_subtract_are_inverses():
 
 
 def test_date_range_walks_from_start_to_end_inclusive():
-    assert list(du.date_range(datetime.date(2026, 1, 1), datetime.date(2026, 4, 1))) == [
-        datetime.date(2026, 1, 1), datetime.date(2026, 2, 1),
-        datetime.date(2026, 3, 1), datetime.date(2026, 4, 1),
+    assert list(
+        du.date_range(datetime.date(2026, 1, 1), datetime.date(2026, 4, 1))
+    ) == [
+        datetime.date(2026, 1, 1),
+        datetime.date(2026, 2, 1),
+        datetime.date(2026, 3, 1),
+        datetime.date(2026, 4, 1),
     ]
 
 
 def test_date_range_rejects_a_null_step():
     with pytest.raises(ValueError, match='step is null'):
-        list(du.date_range(datetime.date(2026, 1, 1), datetime.date(2026, 4, 1),
-                           du.relativedelta()))
+        list(
+            du.date_range(
+                datetime.date(2026, 1, 1),
+                datetime.date(2026, 4, 1),
+                du.relativedelta(),
+            )
+        )
 
 
 def test_date_range_rejects_start_after_end():
     with pytest.raises(ValueError, match='start > end'):
-        list(du.date_range(datetime.date(2026, 4, 1), datetime.date(2026, 1, 1)))
+        list(
+            du.date_range(datetime.date(2026, 4, 1), datetime.date(2026, 1, 1))
+        )
 
 
 def test_sum_intervals_adds_up_in_hours():
-    morning = (datetime.datetime(2026, 1, 1, 9), datetime.datetime(2026, 1, 1, 13))
-    afternoon = (datetime.datetime(2026, 1, 1, 14), datetime.datetime(2026, 1, 1, 18))
+    morning = (
+        datetime.datetime(2026, 1, 1, 9),
+        datetime.datetime(2026, 1, 1, 13),
+    )
+    afternoon = (
+        datetime.datetime(2026, 1, 1, 14),
+        datetime.datetime(2026, 1, 1, 18),
+    )
     assert du.sum_intervals([morning, afternoon]) == 8.0
 
 
 # -- hora decimal -----------------------------------------------------------
+
 
 def test_float_to_time_splits_the_fraction_into_minutes():
     assert du.float_to_time(9.5) == datetime.time(9, 30)
@@ -147,6 +191,7 @@ def test_time_to_float_is_the_inverse_of_float_to_time():
 
 
 # -- husos: la adaptación de pytz a zoneinfo --------------------------------
+
 
 def test_localized_attaches_utc_to_the_naive():
     assert du.localized(AN_INSTANT).tzinfo is du.utc
@@ -164,15 +209,19 @@ def test_to_timezone_without_tz_returns_naive_utc():
 
 def test_to_timezone_converts_the_instant():
     in_utc = datetime.datetime(2026, 1, 1, 12, tzinfo=du.utc)
-    assert du.to_timezone(MX)(in_utc).hour == 6      # UTC-6 en enero
+    assert du.to_timezone(MX)(in_utc).hour == 6  # UTC-6 en enero
 
 
 def test_date_range_keeps_the_tz_of_the_start():
     # ≙ ``post_process = start.tzinfo.localize`` de la fuente, que aquí es
     # ``replace(tzinfo=...)`` porque un ``ZoneInfo`` ya es correcto por hora
     # de pared.
-    output = list(du.date_range(datetime.datetime(2026, 1, 1, tzinfo=MX),
-                                datetime.datetime(2026, 3, 1, tzinfo=MX)))
+    output = list(
+        du.date_range(
+            datetime.datetime(2026, 1, 1, tzinfo=MX),
+            datetime.datetime(2026, 3, 1, tzinfo=MX),
+        )
+    )
     assert [d.tzinfo for d in output] == [MX, MX, MX]
 
 
@@ -180,14 +229,22 @@ def test_date_range_rejects_two_different_timezones():
     # ≙ la comparación ``start.tzinfo.zone != end.tzinfo.zone``, que aquí es
     # :func:`_tz_key`.
     with pytest.raises(ValueError, match='inconsistent'):
-        list(du.date_range(datetime.datetime(2026, 1, 1, tzinfo=MX),
-                           datetime.datetime(2026, 3, 1, tzinfo=MADRID)))
+        list(
+            du.date_range(
+                datetime.datetime(2026, 1, 1, tzinfo=MX),
+                datetime.datetime(2026, 3, 1, tzinfo=MADRID),
+            )
+        )
 
 
 def test_date_range_rejects_mixing_naive_with_aware():
     with pytest.raises(ValueError, match='mismatch'):
-        list(du.date_range(datetime.datetime(2026, 1, 1),
-                           datetime.datetime(2026, 3, 1, tzinfo=du.utc)))
+        list(
+            du.date_range(
+                datetime.datetime(2026, 1, 1),
+                datetime.datetime(2026, 3, 1, tzinfo=du.utc),
+            )
+        )
 
 
 def test_tz_key_reads_the_iana_key():
@@ -201,26 +258,34 @@ def test_tz_key_falls_back_to_str_for_a_fixed_offset():
 
 # -- semana según el idioma (babel) -----------------------------------------
 
+
 def test_weeknumber_returns_year_and_week():
     assert du.weeknumber(babel.Locale.parse('es_MX'), A_DAY) == (2026, 35)
 
 
 def test_weekstart_goes_back_to_the_first_day_of_the_week():
-    assert du.weekstart(babel.Locale.parse('es_MX'), A_DAY) == datetime.date(2026, 8, 23)
+    assert du.weekstart(babel.Locale.parse('es_MX'), A_DAY) == datetime.date(
+        2026, 8, 23
+    )
 
 
 def test_weekend_moves_to_the_last_day_of_the_week():
-    assert du.weekend(babel.Locale.parse('es_MX'), A_DAY) == datetime.date(2026, 8, 29)
+    assert du.weekend(babel.Locale.parse('es_MX'), A_DAY) == datetime.date(
+        2026, 8, 29
+    )
 
 
 # -- parse_iso_date ---------------------------------------------------------
+
 
 def test_parse_iso_date_short_returns_date():
     assert du.parse_iso_date('2026-08-29') == A_DAY
 
 
 def test_parse_iso_date_long_returns_datetime():
-    assert du.parse_iso_date('2026-08-29T14:37:21') == datetime.datetime(2026, 8, 29, 14, 37, 21)
+    assert du.parse_iso_date('2026-08-29T14:37:21') == datetime.datetime(
+        2026, 8, 29, 14, 37, 21
+    )
 
 
 def test_parse_iso_date_rejects_an_explicit_timezone():
@@ -229,6 +294,7 @@ def test_parse_iso_date_rejects_an_explicit_timezone():
 
 
 # -- parse_date: los ocho ejemplos del docstring de la fuente ---------------
+
 
 def test_parse_date_delegates_to_iso_when_it_starts_with_digits():
     assert du.parse_date('2026-08-29') == A_DAY
@@ -251,7 +317,9 @@ def test_parse_date_today_returns_date_and_now_returns_datetime():
 
 def test_parse_date_adds_three_days():
     # "+3d" del docstring de la fuente.
-    assert du.parse_date('today +3d') - du.parse_date('today') == datetime.timedelta(days=3)
+    assert du.parse_date('today +3d') - du.parse_date(
+        'today'
+    ) == datetime.timedelta(days=3)
 
 
 def test_parse_date_subtracts_one_month():
@@ -276,8 +344,12 @@ def test_parse_date_pins_june():
     assert (pinned.month, pinned.day) == (6, min(hoy.day, 30))
     pinned_with_time = du.parse_date('now =6m')
     assert pinned_with_time.month == 6
-    assert (pinned_with_time.hour, pinned_with_time.minute,
-            pinned_with_time.second, pinned_with_time.microsecond) == (0, 0, 0, 0)
+    assert (
+        pinned_with_time.hour,
+        pinned_with_time.minute,
+        pinned_with_time.second,
+        pinned_with_time.microsecond,
+    ) == (0, 0, 0, 0)
 
 
 def test_pinning_a_month_clamps_a_day_that_does_not_fit():
@@ -299,14 +371,20 @@ def test_pinning_a_month_clamps_a_day_that_does_not_fit():
     assert agosto_31 + relativedelta(month=2) == datetime.date(2026, 2, 28)
     # uno que si cabe, como control positivo: sin el, el caso pasaria igual si
     # el recorte se aplicara a todos los dias por igual
-    assert datetime.date(2026, 8, 15) + relativedelta(month=6) == \
-        datetime.date(2026, 6, 15)
+    assert datetime.date(2026, 8, 15) + relativedelta(
+        month=6
+    ) == datetime.date(2026, 6, 15)
 
 
 def test_parse_date_pins_three_in_the_morning():
     # "=3H" del docstring: fija la hora y reinicia minutos y segundos.
     pinned = du.parse_date('now =3H')
-    assert (pinned.hour, pinned.minute, pinned.second, pinned.microsecond) == (3, 0, 0, 0)
+    assert (pinned.hour, pinned.minute, pinned.second, pinned.microsecond) == (
+        3,
+        0,
+        0,
+        0,
+    )
 
 
 def test_parse_date_pins_tuesday_of_the_week():
@@ -335,10 +413,13 @@ def test_parse_date_week_start_uses_the_monday_fallback():
 
 
 def test_parse_date_chains_several_terms():
-    assert du.parse_date('today =1d +1m') == du.parse_date('today =1d') + du.relativedelta(months=1)
+    assert du.parse_date('today =1d +1m') == du.parse_date(
+        'today =1d'
+    ) + du.relativedelta(months=1)
 
 
 # -- el usuario activo, que es la divergencia de firma ----------------------
+
 
 def test_current_timezone_falls_back_to_utc_without_an_active_user():
     # La firma de la fuente recibe ``env``; aquí el usuario sale de

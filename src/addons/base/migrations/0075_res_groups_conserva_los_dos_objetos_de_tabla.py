@@ -23,7 +23,10 @@ class Migration(migrations.Migration):
             constraint=models.UniqueConstraint(
                 fields=("privilege", "name"),
                 name="res_groups_name_uniq",
-                violation_error_message="El nombre del grupo tiene que ser único dentro de su privilegio.",
+                violation_error_message=(
+                    "El nombre del grupo tiene que ser único dentro de su"
+                    " privilegio."
+                ),
             ),
         ),
         migrations.AddConstraint(
@@ -31,7 +34,9 @@ class Migration(migrations.Migration):
             constraint=models.CheckConstraint(
                 condition=models.Q(("api_key_duration__gte", 0)),
                 name="res_groups_check_api_key_duration",
-                violation_error_message="La duración de la API key no puede ser negativa.",
+                violation_error_message=(
+                    "La duración de la API key no puede ser negativa."
+                ),
             ),
         ),
     ]

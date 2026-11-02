@@ -15,6 +15,7 @@ tiene ``urls.py`` y ``webhook_urls.py``.
 aquella tiene tres segmentos y ``products/<slug:slug>/`` sólo uno, así que
 Django nunca las confunde. El listado (``products/``) tampoco choca.
 """
+
 from django.urls import path
 
 from addons.website_sale.controllers.main import (
@@ -30,8 +31,11 @@ app_name = 'shop'
 urlpatterns = [
     path('products/', ProductListView.as_view(), name='product-list'),
     path('products/<slug:slug>/', product_detail, name='product-detail'),
-    path('products/<slug:slug>/related/', product_related,
-         name='product-related'),
+    path(
+        'products/<slug:slug>/related/',
+        product_related,
+        name='product-related',
+    ),
     path('categories/', CategoryTreeView.as_view(), name='category-tree'),
     path('catalogue/search/', catalogue_search, name='catalogue-search'),
 ]

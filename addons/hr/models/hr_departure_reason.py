@@ -34,6 +34,7 @@ No pueden borrarse (ver ``delete()``).
        símbolo cambia de mecanismo (``delete()`` ES el hook equivalente,
        no un método propio que ``delete()`` llame).
 """
+
 import fields
 import models
 from exceptions import UserError
@@ -72,14 +73,23 @@ class HrDepartureReason(TimeStampedModel):
 
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
     name = fields.Char(
-        'Motivo', required=True, translate=True,
+        'Motivo',
+        required=True,
+        translate=True,
         help='Nombre del motivo de baja (Odoo name).',
     )
     country = fields.Many2one(
-        'base.ResCountry', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_departure_reasons', default=_default_country,
+        'base.ResCountry',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_departure_reasons',
+        default=_default_country,
         verbose_name='País',
-        help_text='País de la compañía activa al crear el registro (Odoo country_id).',
+        help_text=(
+            'País de la compañía activa al crear el registro (Odoo'
+            ' country_id).'
+        ),
     )
 
     class Meta:
@@ -123,5 +133,6 @@ class HrDepartureReason(TimeStampedModel):
         maestros = {r.pk for r in self._get_default_departure_reasons()}
         if self.pk in maestros:
             raise UserError(
-                _('No se pueden borrar los motivos de baja por defecto.'))
+                _('No se pueden borrar los motivos de baja por defecto.')
+            )
         return super().delete(*args, **kwargs)

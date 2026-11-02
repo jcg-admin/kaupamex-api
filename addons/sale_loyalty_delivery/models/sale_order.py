@@ -28,6 +28,7 @@ Qué hace la fuente y qué aterriza:
 Behavior-only (precedente ``sale_stock_margin``): opera sobre los modelos
 existentes, sin tabla propia.
 """
+
 from decimal import Decimal
 
 from addons.loyalty.models.voucher import Voucher
@@ -67,6 +68,9 @@ def amount_total_with_free_shipping(order) -> Decimal:
     fuente sin materializarla.
     """
     coupon = getattr(order, 'coupon', None)
-    base = (coupon.amount_total_after_discount()
-            if coupon is not None else order.amount_total)
+    base = (
+        coupon.amount_total_after_discount()
+        if coupon is not None
+        else order.amount_total
+    )
     return base - free_shipping_discount(order)

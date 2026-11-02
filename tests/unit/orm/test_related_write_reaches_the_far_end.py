@@ -14,6 +14,7 @@ La conducta la fija ``Field._inverse_related`` (``odoo19c: fields.py:724``),
 que este árbol ya tiene portado verbatim sobre ``models.Field`` — pero un
 ``NonStored`` **no** es un ``models.Field``, así que nunca lo alcanzaba.
 """
+
 import pytest
 from django.apps import apps
 
@@ -24,15 +25,20 @@ from orm.fields_nonstored import NonStored
 @pytest.fixture
 def account(db):
     """Una cuenta con banco y titular — la cadena completa de ``res_bank``."""
+
     def base(name):
         return apps.get_model('base', name)
+
     country, _created = base('ResCountry').objects.get_or_create(
-        code='MX', defaults={'name': 'México'})
+        code='MX', defaults={'name': 'México'}
+    )
     bank = base('ResBank').objects.create(
-        name='Banco original', bic='ORIGMXMM', country=country)
+        name='Banco original', bic='ORIGMXMM', country=country
+    )
     partner = base('ResPartner').objects.create(name='Titular')
     return base('ResPartnerBank').objects.create(
-        acc_number='0123456789', partner=partner, bank=bank)
+        acc_number='0123456789', partner=partner, bank=bank
+    )
 
 
 class TestTheWriteReachesTheEndOfTheChain:
@@ -68,8 +74,9 @@ class TestTheWriteReachesTheEndOfTheChain:
         account.country_code = 'US'
 
         assert account.partner.country_id == original_country
-        assert account.country_code == 'US', (
-            'el valor en memoria sí se guarda — lo que no viaja es la cadena')
+        assert (
+            account.country_code == 'US'
+        ), 'el valor en memoria sí se guarda — lo que no viaja es la cadena'
 
 
 class TestTheGuardOfTheSource:
@@ -83,8 +90,10 @@ class TestTheGuardOfTheSource:
         renombrarlo — la escritura se queda en memoria hasta que la cuenta
         exista.
         """
+
         def base(name):
             return apps.get_model('base', name)
+
         bank = base('ResBank').objects.create(name='Banco intacto')
         unsaved = base('ResPartnerBank')(acc_number='999', bank=bank)
 
@@ -124,21 +133,27 @@ class TestTheRelationalShape:
            contrario y medía una conducta que Django no ofrece.
         """
         sibling = apps.get_model('base', 'ResPartnerBank').objects.create(
-            acc_number='555', partner=account.partner, bank=account.bank)
+            acc_number='555', partner=account.partner, bank=account.bank
+        )
         third = apps.get_model('base', 'ResPartnerBank').objects.create(
-            acc_number='777', partner=apps.get_model(
-                'base', 'ResPartner').objects.create(name='Otro titular'),
-            bank=account.bank)
+            acc_number='777',
+            partner=apps.get_model('base', 'ResPartner').objects.create(
+                name='Otro titular'
+            ),
+            bank=account.bank,
+        )
 
-        descriptor = fields.One2many(related='partner.bank_accounts',
-                                     readonly=False)
+        descriptor = fields.One2many(
+            related='partner.bank_accounts', readonly=False
+        )
         descriptor.name = 'bank_accounts_of_the_partner'
         assert isinstance(descriptor, NonStored)
 
         descriptor.__set__(account, [third])
 
-        assert account.partner.bank_accounts.count() == 3, (
-            'las dos que ya tenía más la que el inverso movió por .set()')
+        assert (
+            account.partner.bank_accounts.count() == 3
+        ), 'las dos que ya tenía más la que el inverso movió por .set()'
         third.refresh_from_db()
         assert third.partner_id == account.partner_id
         assert sibling.partner_id == account.partner_id
@@ -159,14 +174,19 @@ class TestResCompanyBankIds:
     def company(self, db):
         def base(name):
             return apps.get_model('base', name)
-        partner = base('ResPartner').objects.create(name='Titular de la empresa')
+
+        partner = base('ResPartner').objects.create(
+            name='Titular de la empresa'
+        )
         return base('ResCompany').objects.create(
-            name='Empresa de prueba', code='prueba', partner=partner)
+            name='Empresa de prueba', code='prueba', partner=partner
+        )
 
     def test_the_company_reads_the_accounts_of_its_partner(self, company):
         bank = apps.get_model('base', 'ResBank').objects.create(name='Banco')
         apps.get_model('base', 'ResPartnerBank').objects.create(
-            acc_number='111', partner=company.partner, bank=bank)
+            acc_number='111', partner=company.partner, bank=bank
+        )
 
         assert company.bank_ids.count() == 1
         assert company.bank_ids.first().acc_number == '111'
@@ -175,7 +195,9 @@ class TestResCompanyBankIds:
         """Sin ``store`` no hay columna, y por eso ``makemigrations --check``
         sigue limpio tras declararlo."""
         company_model = apps.get_model('base', 'ResCompany')
-        assert 'bank_ids' not in {f.name for f in company_model._meta.get_fields()}
+        assert 'bank_ids' not in {
+            f.name for f in company_model._meta.get_fields()
+        }
         assert isinstance(company_model.bank_ids, NonStored)
 
     def test_writing_from_the_company_reaches_the_partner(self, company):
@@ -184,8 +206,9 @@ class TestResCompanyBankIds:
         ejercer."""
         bank = apps.get_model('base', 'ResBank').objects.create(name='Banco')
         otro = apps.get_model('base', 'ResPartner').objects.create(name='Otro')
-        account_of_another = apps.get_model('base', 'ResPartnerBank').objects.create(
-            acc_number='222', partner=otro, bank=bank)
+        account_of_another = apps.get_model(
+            'base', 'ResPartnerBank'
+        ).objects.create(acc_number='222', partner=otro, bank=bank)
 
         company.bank_ids = [account_of_another]
 

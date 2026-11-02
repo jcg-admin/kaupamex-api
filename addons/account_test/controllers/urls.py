@@ -11,13 +11,15 @@ este módulo en ``config/urls.py``, p. ej.::
         ('addons.account_test.controllers.urls', 'account_test'),
         namespace='account_test_v2'))
 """
+
 from rest_framework.routers import DefaultRouter
 
 from addons.account_test.controllers.views import AccountingAssertTestViewSet
 
 router = DefaultRouter()
 router.register(
-    r'accounting-assert-tests', AccountingAssertTestViewSet,
+    r'accounting-assert-tests',
+    AccountingAssertTestViewSet,
     basename='accounting-assert-test',
 )
 

@@ -84,6 +84,7 @@ Métodos (9):
 ``_inherit`` lo expresa ``extend_model``; par de Django porque el destino no
 declara ``_name``.
 """
+
 from addons.hr.models.hr_version import HrVersion
 from orm.model_classes import extend_model
 
@@ -161,7 +162,10 @@ def _inverse_calendar_id(self):
     """≙ ``_inverse_calendar_id`` (``:54-57``) — escribir el calendario del
     recurso lo propaga al calendario del empleado."""
     employee = _first_employee(self)
-    if employee is not None and employee.resource_calendar_id != self.calendar_id:
+    if (
+        employee is not None
+        and employee.resource_calendar_id != self.calendar_id
+    ):
         employee.resource_calendar = self.calendar
         employee.save(update_fields=['resource_calendar'])
 
@@ -178,17 +182,21 @@ def _get_resource_without_contract(cls, resources):
         resource.pk: _first_employee(resource) for resource in resources
     }
     employee_ids = [
-        employee.pk for employee in employee_by_resource.values()
+        employee.pk
+        for employee in employee_by_resource.values()
         if employee is not None
     ]
     with_contract = set(
         HrVersion.objects.filter(
             employee_id__in=employee_ids,
             contract_date_start__isnull=False,
-        ).values_list('employee_id', flat=True).distinct(),
+        )
+        .values_list('employee_id', flat=True)
+        .distinct(),
     )
     return [
-        resource for resource in resources
+        resource
+        for resource in resources
         if employee_by_resource[resource.pk] is None
         or employee_by_resource[resource.pk].pk not in with_contract
     ]
@@ -198,13 +206,16 @@ def apply_hr_resource_extensions():
     """Cuelga sobre ``resource.resource`` lo que ``hr`` le añade — ≙
     ``_inherit``."""
     extend_model(
-        'resource', 'ResourceResource',
+        'resource',
+        'ResourceResource',
         metodos={
             '_compute_job_title': _compute_job_title,
             '_compute_department_id': _compute_department_id,
             '_compute_avatar_128': _compute_avatar_128,
             '_inverse_calendar_id': _inverse_calendar_id,
-            '_get_resource_without_contract': classmethod(_get_resource_without_contract),
+            '_get_resource_without_contract': classmethod(
+                _get_resource_without_contract
+            ),
         },
         propiedades={
             'job_title': job_title,

@@ -63,6 +63,7 @@ Si en el futuro un segundo consumidor necesita mas superficie de ``stdnum``
 correcto -- tarea **#402**, DESCONOCIDA hasta que ese segundo consumidor
 aparezca y alguien con permiso sobre ``pyproject.toml`` la declare.
 """
+
 import re
 from itertools import zip_longest
 
@@ -164,7 +165,10 @@ def format_structured_reference_iso(number):
     check_digits = _mod_97_10_calc_check_digits(f"{number}RF")
     return 'RF{} {}'.format(
         check_digits,
-        ' '.join(''.join(x) for x in zip_longest(*[iter(str(number))] * 4, fillvalue=''))
+        ' '.join(
+            ''.join(x)
+            for x in zip_longest(*[iter(str(number))] * 4, fillvalue='')
+        ),
     )
 
 
@@ -186,7 +190,9 @@ def is_valid_structured_reference_be(reference):
     """
     ref = sanitize_structured_reference(reference)
     be_ref = re.fullmatch(r'(\d{10})(\d{2})', ref)
-    return bool(be_ref) and int(be_ref.group(1)) % 97 == int(be_ref.group(2)) % 97
+    return (
+        bool(be_ref) and int(be_ref.group(1)) % 97 == int(be_ref.group(2)) % 97
+    )
 
 
 def is_valid_structured_reference_dk(reference):
@@ -215,7 +221,10 @@ def is_valid_structured_reference_fi(reference):
     fi_ref = re.fullmatch(r'(\d{1,19})(\d)', ref)
     if not fi_ref:
         return False
-    total = sum((7, 3, 1)[idx % 3] * int(val) for idx, val in enumerate(fi_ref.group(1)[::-1]))
+    total = sum(
+        (7, 3, 1)[idx % 3] * int(val)
+        for idx, val in enumerate(fi_ref.group(1)[::-1])
+    )
     check_digit = (10 - (total % 10)) % 10
     return check_digit == int(fi_ref.group(2))
 
@@ -311,7 +320,7 @@ def is_valid_structured_reference_si(reference):
     digits, given_check_digit = core[:-1], core[-1]
 
     weights = list(range(2, 14))
-    weights = weights[0:len(digits)]
+    weights = weights[0: len(digits)]
     weighted_sum = sum(int(d) * w for d, w in zip(reversed(digits), weights))
 
     expected_check_digit = 11 - (weighted_sum % 11)
@@ -331,14 +340,18 @@ def is_valid_structured_reference(reference):
     reference = sanitize_structured_reference(reference or '')
 
     return (
-        is_valid_structured_reference_be(reference) or
-        is_valid_structured_reference_dk(reference) or
-        is_valid_structured_reference_fi(reference) or
-        is_valid_structured_reference_no_se(reference) or
-        is_valid_structured_reference_si(reference) or
-        is_valid_structured_reference_nl(reference) or
-        is_valid_structured_reference_iso(reference)
-    ) if reference else False
+        (
+            is_valid_structured_reference_be(reference)
+            or is_valid_structured_reference_dk(reference)
+            or is_valid_structured_reference_fi(reference)
+            or is_valid_structured_reference_no_se(reference)
+            or is_valid_structured_reference_si(reference)
+            or is_valid_structured_reference_nl(reference)
+            or is_valid_structured_reference_iso(reference)
+        )
+        if reference
+        else False
+    )
 
 
 def is_valid_structured_reference_for_country(reference, country_code=''):

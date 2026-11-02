@@ -5,8 +5,9 @@
     'version': '1.0',
     'category': 'Sales/Sales',
     'summary': (
-        'Geocoder y GeoProvider: resuelve latitud/longitud de una dirección '
-        'contra un proveedor configurable, con el resultado en PartnerGeolocation'
+        'Geocoder y GeoProvider: resuelve latitud/longitud de una dirección'
+        ' contra un proveedor configurable, con el resultado en'
+        ' PartnerGeolocation'
     ),
     # `depends` MEDIDO contra los imports reales (`base` por ResPartner). La
     # referencia declara ['base_setup'] porque su clave de API vive en

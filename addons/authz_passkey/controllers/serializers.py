@@ -3,6 +3,7 @@
 ``credential_identifier``/``public_key``/``sign_count`` llevan
 ``groups='base.group_system'`` en la referencia: NO salen por la API.
 """
+
 from rest_framework import serializers
 
 from addons.authz_passkey.models import PasskeyKey

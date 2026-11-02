@@ -10,6 +10,7 @@ inspeccionar—, y ``django.core.cache`` es caché de aplicación (backend
 Adaptado de Odoo Community ``odoo/tools/lru.py`` (LGPL-3) — atribución y aviso
 de licencia preservados (DEC-KX-03).
 """
+
 import threading
 import typing
 from collections.abc import Iterable, Iterator, MutableMapping

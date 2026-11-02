@@ -33,15 +33,25 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre del tipo de servicio (Odoo name, translate=True en la referencia; i18n no portado).",
+                        help_text=(
+                            "Nombre del tipo de servicio (Odoo name,"
+                            " translate=True en la referencia; i18n no"
+                            " portado)."
+                        ),
                         max_length=150,
                     ),
                 ),
                 (
                     "category",
                     models.CharField(
-                        choices=[("contract", "Contrato"), ("service", "Servicio")],
-                        help_text="Si el tipo aplica a contratos, a servicios, o a ambos (Odoo category).",
+                        choices=[
+                            ("contract", "Contrato"),
+                            ("service", "Servicio"),
+                        ],
+                        help_text=(
+                            "Si el tipo aplica a contratos, a servicios, o a"
+                            " ambos (Odoo category)."
+                        ),
                         max_length=10,
                     ),
                 ),
@@ -69,14 +79,26 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 (
                     "name",
-                    models.CharField(help_text="Odoo name (required).", max_length=150),
+                    models.CharField(
+                        help_text="Odoo name (required).", max_length=150
+                    ),
                 ),
-                ("active", models.BooleanField(default=True, help_text="Odoo active.")),
+                (
+                    "active",
+                    models.BooleanField(
+                        default=True, help_text="Odoo active."
+                    ),
+                ),
                 (
                     "image_128",
                     models.ImageField(
                         blank=True,
-                        help_text="Logo de la marca, 128×128 (Odoo image_128, sin las otras reducciones del image.mixin — la referencia no hereda el mixin completo aquí, sólo declara este campo).",
+                        help_text=(
+                            "Logo de la marca, 128×128 (Odoo image_128, sin"
+                            " las otras reducciones del image.mixin — la"
+                            " referencia no hereda el mixin completo aquí,"
+                            " sólo declara este campo)."
+                        ),
                         null=True,
                         upload_to="fleet/brand_logos/",
                     ),
@@ -106,7 +128,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre del estado (Odoo name, translate=True en la referencia; i18n no portado).",
+                        help_text=(
+                            "Nombre del estado (Odoo name, translate=True en"
+                            " la referencia; i18n no portado)."
+                        ),
                         max_length=150,
                         unique=True,
                     ),
@@ -114,7 +139,8 @@ class Migration(migrations.Migration):
                 (
                     "sequence",
                     models.IntegerField(
-                        default=0, help_text="Orden del kanban (Odoo sequence)."
+                        default=0,
+                        help_text="Orden del kanban (Odoo sequence).",
                     ),
                 ),
                 (
@@ -152,7 +178,12 @@ class Migration(migrations.Migration):
                         blank=True, default="", help_text="Odoo description."
                     ),
                 ),
-                ("active", models.BooleanField(default=True, help_text="Odoo active.")),
+                (
+                    "active",
+                    models.BooleanField(
+                        default=True, help_text="Odoo active."
+                    ),
+                ),
                 (
                     "license_plate",
                     models.CharField(
@@ -174,7 +205,9 @@ class Migration(migrations.Migration):
                 (
                     "next_assignation_date",
                     models.DateField(
-                        blank=True, help_text="Odoo next_assignation_date.", null=True
+                        blank=True,
+                        help_text="Odoo next_assignation_date.",
+                        null=True,
                     ),
                 ),
                 (
@@ -196,7 +229,9 @@ class Migration(migrations.Migration):
                     "write_off_date",
                     models.DateField(
                         blank=True,
-                        help_text="Fecha de baja de placas (Odoo write_off_date).",
+                        help_text=(
+                            "Fecha de baja de placas (Odoo write_off_date)."
+                        ),
                         null=True,
                     ),
                 ),
@@ -236,7 +271,9 @@ class Migration(migrations.Migration):
                 (
                     "model_year",
                     models.IntegerField(
-                        blank=True, help_text="Odoo model_year (sync).", null=True
+                        blank=True,
+                        help_text="Odoo model_year (sync).",
+                        null=True,
                     ),
                 ),
                 (
@@ -258,7 +295,10 @@ class Migration(migrations.Migration):
                     "transmission",
                     models.CharField(
                         blank=True,
-                        choices=[("manual", "Manual"), ("automatic", "Automática")],
+                        choices=[
+                            ("manual", "Manual"),
+                            ("automatic", "Automática"),
+                        ],
                         help_text="Odoo transmission (sync).",
                         max_length=9,
                         null=True,
@@ -272,7 +312,10 @@ class Migration(migrations.Migration):
                             ("diesel", "Diésel"),
                             ("gasoline", "Gasolina"),
                             ("full_hybrid", "Híbrido completo"),
-                            ("plug_in_hybrid_diesel", "Híbrido enchufable (diésel)"),
+                            (
+                                "plug_in_hybrid_diesel",
+                                "Híbrido enchufable (diésel)",
+                            ),
                             (
                                 "plug_in_hybrid_gasoline",
                                 "Híbrido enchufable (gasolina)",
@@ -282,7 +325,9 @@ class Migration(migrations.Migration):
                             ("hydrogen", "Hidrógeno"),
                             ("electric", "Eléctrico"),
                         ],
-                        help_text="Odoo fuel_type (sync de default_fuel_type).",
+                        help_text=(
+                            "Odoo fuel_type (sync de default_fuel_type)."
+                        ),
                         max_length=23,
                         null=True,
                     ),
@@ -302,13 +347,17 @@ class Migration(migrations.Migration):
                 (
                     "horsepower",
                     models.FloatField(
-                        blank=True, help_text="Odoo horsepower (sync).", null=True
+                        blank=True,
+                        help_text="Odoo horsepower (sync).",
+                        null=True,
                     ),
                 ),
                 (
                     "horsepower_tax",
                     models.FloatField(
-                        blank=True, help_text="Odoo horsepower_tax (sync).", null=True
+                        blank=True,
+                        help_text="Odoo horsepower_tax (sync).",
+                        null=True,
                     ),
                 ),
                 (
@@ -323,7 +372,9 @@ class Migration(migrations.Migration):
                     "co2",
                     models.FloatField(
                         blank=True,
-                        help_text="Emisiones CO₂ (Odoo co2, sync de default_co2).",
+                        help_text=(
+                            "Emisiones CO₂ (Odoo co2, sync de default_co2)."
+                        ),
                         null=True,
                     ),
                 ),
@@ -340,7 +391,9 @@ class Migration(migrations.Migration):
                     "car_value",
                     models.FloatField(
                         blank=True,
-                        help_text="Valor de catálogo con IVA (Odoo car_value).",
+                        help_text=(
+                            "Valor de catálogo con IVA (Odoo car_value)."
+                        ),
                         null=True,
                     ),
                 ),
@@ -387,7 +440,8 @@ class Migration(migrations.Migration):
                 (
                     "electric_assistance",
                     models.BooleanField(
-                        default=False, help_text="Odoo electric_assistance (sync)."
+                        default=False,
+                        help_text="Odoo electric_assistance (sync).",
                     ),
                 ),
                 (
@@ -400,14 +454,21 @@ class Migration(migrations.Migration):
                     "vehicle_properties",
                     models.JSONField(
                         blank=True,
-                        help_text="Propiedades dinámicas del vehículo (Odoo vehicle_properties). Sin validación de esquema contra model.vehicle_properties_definition (deferido).",
+                        help_text=(
+                            "Propiedades dinámicas del vehículo (Odoo"
+                            " vehicle_properties). Sin validación de esquema"
+                            " contra model.vehicle_properties_definition"
+                            " (deferido)."
+                        ),
                         null=True,
                     ),
                 ),
                 (
                     "vehicle_range",
                     models.IntegerField(
-                        blank=True, help_text="Odoo vehicle_range (sync).", null=True
+                        blank=True,
+                        help_text="Odoo vehicle_range (sync).",
+                        null=True,
                     ),
                 ),
                 (
@@ -456,7 +517,12 @@ class Migration(migrations.Migration):
                     "manager",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Gestor de flota (Odoo manager_id). El ``domain=`` de la referencia (grupo fleet.fleet_group_user) no se porta — ver punto 5 del docstring del módulo.",
+                        help_text=(
+                            "Gestor de flota (Odoo manager_id). El ``domain=``"
+                            " de la referencia (grupo fleet.fleet_group_user)"
+                            " no se porta — ver punto 5 del docstring del"
+                            " módulo."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="fleet_vehicles_managed",
@@ -493,7 +559,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "date_end",
-                    models.DateField(blank=True, help_text="Odoo date_end.", null=True),
+                    models.DateField(
+                        blank=True, help_text="Odoo date_end.", null=True
+                    ),
                 ),
                 (
                     "driver",
@@ -548,10 +616,17 @@ class Migration(migrations.Migration):
                 (
                     "date",
                     models.DateField(
-                        blank=True, help_text="Fecha del gasto (Odoo date).", null=True
+                        blank=True,
+                        help_text="Fecha del gasto (Odoo date).",
+                        null=True,
                     ),
                 ),
-                ("active", models.BooleanField(default=True, help_text="Odoo active.")),
+                (
+                    "active",
+                    models.BooleanField(
+                        default=True, help_text="Odoo active."
+                    ),
+                ),
                 (
                     "start_date",
                     models.DateField(
@@ -564,14 +639,20 @@ class Migration(migrations.Migration):
                     "expiration_date",
                     models.DateField(
                         blank=True,
-                        help_text="Odoo expiration_date (default: un año después de start_date; ver next_year_date()).",
+                        help_text=(
+                            "Odoo expiration_date (default: un año después de"
+                            " start_date; ver next_year_date())."
+                        ),
                         null=True,
                     ),
                 ),
                 (
                     "ins_ref",
                     models.CharField(
-                        blank=True, default="", help_text="Odoo ins_ref.", max_length=64
+                        blank=True,
+                        default="",
+                        help_text="Odoo ins_ref.",
+                        max_length=64,
                     ),
                 ),
                 (
@@ -590,7 +671,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "notes",
-                    models.TextField(blank=True, default="", help_text="Odoo notes."),
+                    models.TextField(
+                        blank=True, default="", help_text="Odoo notes."
+                    ),
                 ),
                 (
                     "cost_generated",
@@ -632,7 +715,12 @@ class Migration(migrations.Migration):
                     "cost_subtype",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Tipo de costo (Odoo cost_subtype_id). El ``domain=[(category, =, contract)]`` de la referencia es un filtro de UI, no se porta como restricción de datos.",
+                        help_text=(
+                            "Tipo de costo (Odoo cost_subtype_id). El"
+                            " ``domain=[(category, =, contract)]`` de la"
+                            " referencia es un filtro de UI, no se porta como"
+                            " restricción de datos."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="contracts",
@@ -664,7 +752,11 @@ class Migration(migrations.Migration):
                     "user",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Responsable (Odoo user_id; el default desde vehicle.manager_id no se auto-aplica — ver sync_defaults).",
+                        help_text=(
+                            "Responsable (Odoo user_id; el default desde"
+                            " vehicle.manager_id no se auto-aplica — ver"
+                            " sync_defaults)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="fleet_contracts_responsible",
@@ -704,9 +796,16 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 (
                     "name",
-                    models.CharField(help_text="Odoo name (required).", max_length=150),
+                    models.CharField(
+                        help_text="Odoo name (required).", max_length=150
+                    ),
                 ),
-                ("active", models.BooleanField(default=True, help_text="Odoo active.")),
+                (
+                    "active",
+                    models.BooleanField(
+                        default=True, help_text="Odoo active."
+                    ),
+                ),
                 (
                     "vehicle_type",
                     models.CharField(
@@ -720,7 +819,10 @@ class Migration(migrations.Migration):
                     "transmission",
                     models.CharField(
                         blank=True,
-                        choices=[("manual", "Manual"), ("automatic", "Automática")],
+                        choices=[
+                            ("manual", "Manual"),
+                            ("automatic", "Automática"),
+                        ],
                         help_text="Odoo transmission.",
                         max_length=9,
                         null=True,
@@ -730,25 +832,37 @@ class Migration(migrations.Migration):
                     "model_year",
                     models.IntegerField(
                         blank=True,
-                        help_text="Año del modelo (Odoo model_year, Selection dinámico 1970..hoy → entero; ver docstring del módulo).",
+                        help_text=(
+                            "Año del modelo (Odoo model_year, Selection"
+                            " dinámico 1970..hoy → entero; ver docstring del"
+                            " módulo)."
+                        ),
                         null=True,
                     ),
                 ),
                 (
                     "color",
                     models.CharField(
-                        blank=True, default="", help_text="Odoo color.", max_length=50
+                        blank=True,
+                        default="",
+                        help_text="Odoo color.",
+                        max_length=50,
                     ),
                 ),
                 (
                     "seats",
-                    models.IntegerField(blank=True, help_text="Odoo seats.", null=True),
+                    models.IntegerField(
+                        blank=True, help_text="Odoo seats.", null=True
+                    ),
                 ),
                 (
                     "doors",
                     models.IntegerField(
                         blank=True,
-                        help_text="Número de puertas, incluidas cajuela y portón trasero si aplica (Odoo doors).",
+                        help_text=(
+                            "Número de puertas, incluidas cajuela y portón"
+                            " trasero si aplica (Odoo doors)."
+                        ),
                         null=True,
                     ),
                 ),
@@ -763,7 +877,9 @@ class Migration(migrations.Migration):
                     "default_co2",
                     models.FloatField(
                         blank=True,
-                        help_text="Emisiones CO₂ por defecto (Odoo default_co2).",
+                        help_text=(
+                            "Emisiones CO₂ por defecto (Odoo default_co2)."
+                        ),
                         null=True,
                     ),
                 ),
@@ -772,7 +888,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Norma de emisiones bajo la que se mide (Odoo co2_standard).",
+                        help_text=(
+                            "Norma de emisiones bajo la que se mide (Odoo"
+                            " co2_standard)."
+                        ),
                         max_length=150,
                     ),
                 ),
@@ -783,7 +902,10 @@ class Migration(migrations.Migration):
                             ("diesel", "Diésel"),
                             ("gasoline", "Gasolina"),
                             ("full_hybrid", "Híbrido completo"),
-                            ("plug_in_hybrid_diesel", "Híbrido enchufable (diésel)"),
+                            (
+                                "plug_in_hybrid_diesel",
+                                "Híbrido enchufable (diésel)",
+                            ),
                             (
                                 "plug_in_hybrid_gasoline",
                                 "Híbrido enchufable (gasolina)",
@@ -801,7 +923,9 @@ class Migration(migrations.Migration):
                 (
                     "power",
                     models.FloatField(
-                        blank=True, help_text="Potencia en kW (Odoo power).", null=True
+                        blank=True,
+                        help_text="Potencia en kW (Odoo power).",
+                        null=True,
                     ),
                 ),
                 (
@@ -838,7 +962,11 @@ class Migration(migrations.Migration):
                     "vehicle_properties_definition",
                     models.JSONField(
                         blank=True,
-                        help_text="Esquema de propiedades dinámicas del modelo (Odoo vehicle_properties_definition). Sin motor de validación de esquema (deferido).",
+                        help_text=(
+                            "Esquema de propiedades dinámicas del modelo (Odoo"
+                            " vehicle_properties_definition). Sin motor de"
+                            " validación de esquema (deferido)."
+                        ),
                         null=True,
                     ),
                 ),
@@ -914,7 +1042,10 @@ class Migration(migrations.Migration):
             name="brand",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo brand_id (related+store; ver sync_fields_from_model).",
+                help_text=(
+                    "Odoo brand_id (related+store; ver"
+                    " sync_fields_from_model)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="vehicles_by_brand",
@@ -938,13 +1069,16 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Odoo name (unique).", max_length=150, unique=True
+                        help_text="Odoo name (unique).",
+                        max_length=150,
+                        unique=True,
                     ),
                 ),
                 (
                     "sequence",
                     models.IntegerField(
-                        default=0, help_text="Orden en el kanban (Odoo sequence)."
+                        default=0,
+                        help_text="Orden en el kanban (Odoo sequence).",
                     ),
                 ),
             ],
@@ -977,7 +1111,10 @@ class Migration(migrations.Migration):
             name="category",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo category_id (related+store; ver sync_fields_from_model).",
+                help_text=(
+                    "Odoo category_id (related+store; ver"
+                    " sync_fields_from_model)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="vehicles",
@@ -1001,21 +1138,30 @@ class Migration(migrations.Migration):
                 (
                     "date",
                     models.DateField(
-                        blank=True, help_text="Odoo date (default hoy).", null=True
+                        blank=True,
+                        help_text="Odoo date (default hoy).",
+                        null=True,
                     ),
                 ),
                 (
                     "value",
                     models.FloatField(
                         default=0,
-                        help_text="Lectura del odómetro (Odoo value, aggregator=max).",
+                        help_text=(
+                            "Lectura del odómetro (Odoo value,"
+                            " aggregator=max)."
+                        ),
                     ),
                 ),
                 (
                     "driver",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Conductor al momento de la lectura (Odoo driver_id, compute+store — aquí sincronizado en save() si no viene dado).",
+                        help_text=(
+                            "Conductor al momento de la lectura (Odoo"
+                            " driver_id, compute+store — aquí sincronizado en"
+                            " save() si no viene dado)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="fleet_odometer_logs",
@@ -1053,7 +1199,12 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("active", models.BooleanField(default=True, help_text="Odoo active.")),
+                (
+                    "active",
+                    models.BooleanField(
+                        default=True, help_text="Odoo active."
+                    ),
+                ),
                 (
                     "amount",
                     models.DecimalField(
@@ -1076,7 +1227,9 @@ class Migration(migrations.Migration):
                 (
                     "date",
                     models.DateField(
-                        blank=True, help_text="Odoo date (default hoy).", null=True
+                        blank=True,
+                        help_text="Odoo date (default hoy).",
+                        null=True,
                     ),
                 ),
                 (
@@ -1090,7 +1243,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "notes",
-                    models.TextField(blank=True, default="", help_text="Odoo notes."),
+                    models.TextField(
+                        blank=True, default="", help_text="Odoo notes."
+                    ),
                 ),
                 (
                     "state",
@@ -1121,7 +1276,11 @@ class Migration(migrations.Migration):
                     "purchaser",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Conductor (Odoo purchaser_id, compute+store con default vehicle.driver_id — no auto-aplicado; ver sync_defaults).",
+                        help_text=(
+                            "Conductor (Odoo purchaser_id, compute+store con"
+                            " default vehicle.driver_id — no auto-aplicado;"
+                            " ver sync_defaults)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="fleet_service_logs_as_purchaser",
@@ -1161,7 +1320,12 @@ class Migration(migrations.Migration):
                     "odometer_log",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo odometer_id — lectura de odómetro al momento del servicio. Ver la property ``odometer`` para el atajo get/set fiel a ``_get_odometer``/``_set_odometer``.",
+                        help_text=(
+                            "Odoo odometer_id — lectura de odómetro al momento"
+                            " del servicio. Ver la property ``odometer`` para"
+                            " el atajo get/set fiel a"
+                            " ``_get_odometer``/``_set_odometer``."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="service_logs",
@@ -1180,7 +1344,10 @@ class Migration(migrations.Migration):
             name="state",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Estado del kanban (Odoo state_id). Sin default — ver punto 5 del docstring del módulo.",
+                help_text=(
+                    "Estado del kanban (Odoo state_id). Sin default — ver"
+                    " punto 5 del docstring del módulo."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="vehicles",
@@ -1204,7 +1371,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre de la etiqueta (Odoo name, translate=True en la referencia; i18n no portado).",
+                        help_text=(
+                            "Nombre de la etiqueta (Odoo name, translate=True"
+                            " en la referencia; i18n no portado)."
+                        ),
                         max_length=150,
                         unique=True,
                     ),

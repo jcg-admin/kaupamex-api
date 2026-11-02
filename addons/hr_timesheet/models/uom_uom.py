@@ -22,6 +22,7 @@ Símbolo (línea)                      Desenlace
                                       tampoco existe hoy sobre este modelo.
 ===================================  ====================================
 """
+
 import fields
 
 from addons.uom.models import Uom
@@ -38,8 +39,15 @@ def apply_hr_timesheet_uom_uom_extensions():
 
     La llama ``HrTimesheetConfig.ready()``.
     """
-    _add_if_absent(Uom, 'timesheet_widget', fields.Char(
-        blank=True, default='',
-        help_text='Odoo timesheet_widget. Widget del cliente web usado '
-                  'cuando esta unidad captura la hoja de horas.',
-    ))
+    _add_if_absent(
+        Uom,
+        'timesheet_widget',
+        fields.Char(
+            blank=True,
+            default='',
+            help_text=(
+                'Odoo timesheet_widget. Widget del cliente web usado '
+                'cuando esta unidad captura la hoja de horas.'
+            ),
+        ),
+    )

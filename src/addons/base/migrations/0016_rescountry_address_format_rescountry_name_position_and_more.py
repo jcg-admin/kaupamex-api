@@ -15,8 +15,14 @@ class Migration(migrations.Migration):
             name="address_format",
             field=models.TextField(
                 blank=True,
-                default="%(street)s\n%(street2)s\n%(city)s %(state_code)s %(zip)s\n%(country_name)s",
-                help_text="Plantilla con la que se compone una dirección de este país (Odoo address_format).",
+                default=(
+                    "%(street)s\n%(street2)s\n%(city)s %(state_code)s"
+                    " %(zip)s\n%(country_name)s"
+                ),
+                help_text=(
+                    "Plantilla con la que se compone una dirección de este"
+                    " país (Odoo address_format)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -28,7 +34,10 @@ class Migration(migrations.Migration):
                     ("after", "Después de la dirección"),
                 ],
                 default="before",
-                help_text="Dónde va el nombre del cliente respecto de la dirección (Odoo name_position).",
+                help_text=(
+                    "Dónde va el nombre del cliente respecto de la dirección"
+                    " (Odoo name_position)."
+                ),
                 max_length=8,
             ),
         ),
@@ -37,7 +46,10 @@ class Migration(migrations.Migration):
             name="state_required",
             field=models.BooleanField(
                 default=False,
-                help_text="El estado es obligatorio en una dirección de este país (Odoo state_required).",
+                help_text=(
+                    "El estado es obligatorio en una dirección de este país"
+                    " (Odoo state_required)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -46,7 +58,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Cómo se llama el identificador fiscal en este país — «RFC» en México, «NIF» en España (Odoo vat_label).",
+                help_text=(
+                    "Cómo se llama el identificador fiscal en este país —"
+                    " «RFC» en México, «NIF» en España (Odoo vat_label)."
+                ),
                 max_length=64,
             ),
         ),
@@ -55,7 +70,9 @@ class Migration(migrations.Migration):
             name="zip_required",
             field=models.BooleanField(
                 default=True,
-                help_text="El código postal es obligatorio (Odoo zip_required).",
+                help_text=(
+                    "El código postal es obligatorio (Odoo zip_required)."
+                ),
             ),
         ),
     ]

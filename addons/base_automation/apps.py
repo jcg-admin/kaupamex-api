@@ -1,4 +1,5 @@
 """AppConfig — addons.base_automation (Odoo base_automation)."""
+
 import importlib
 
 from django.apps import AppConfig
@@ -17,4 +18,6 @@ class BaseAutomationConfig(AppConfig):
         # - models/ir_actions_server.py: chain_method sobre IrActionsServer
         #   e IrCron (≙ los dos _inherit de la referencia).
         importlib.import_module('addons.base_automation.models.signals')
-        importlib.import_module('addons.base_automation.models.ir_actions_server')
+        importlib.import_module(
+            'addons.base_automation.models.ir_actions_server'
+        )

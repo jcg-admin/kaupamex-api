@@ -12,6 +12,7 @@ Depende de ``account`` (todo lo que extiende) y, transitivamente, de
 format`` existe vacío hasta que uno lo sea (ver ``models/
 account_edi_format.py``).
 """
+
 import importlib
 
 from django.apps import AppConfig

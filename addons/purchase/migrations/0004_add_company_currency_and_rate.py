@@ -19,7 +19,11 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="company_id",
-                help_text="Empresa dueña de la orden (Odoo company_id, required, default=env.company). NULL pre-backfill — mismo patrón que sale.order.company_id.",
+                help_text=(
+                    "Empresa dueña de la orden (Odoo company_id, required,"
+                    " default=env.company). NULL pre-backfill — mismo patrón"
+                    " que sale.order.company_id."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="purchase_orders",
@@ -32,7 +36,12 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="currency_id",
-                help_text="Odoo currency_id (compute, store=True, precompute, readonly=False, ondelete='restrict' ≙ PROTECT). Sale de la empresa — la rama del proveedor está degradada, ver docstring del módulo.",
+                help_text=(
+                    "Odoo currency_id (compute, store=True, precompute,"
+                    " readonly=False, ondelete='restrict' ≙ PROTECT). Sale de"
+                    " la empresa — la rama del proveedor está degradada, ver"
+                    " docstring del módulo."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="+",
@@ -45,7 +54,12 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 blank=True,
                 decimal_places=12,
-                help_text='Odoo currency_rate ("Currency Rate", compute, store=True, precompute, digits=0 en la fuente = precisión plena). Monetary/Decimal en vez de Float — ver docstring del módulo.',
+                help_text=(
+                    'Odoo currency_rate ("Currency Rate", compute, store=True,'
+                    ' precompute, digits=0 en la fuente = precisión plena).'
+                    ' Monetary/Decimal en vez de Float — ver docstring del'
+                    ' módulo.'
+                ),
                 max_digits=24,
                 null=True,
             ),
@@ -56,7 +70,11 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="company_id",
-                help_text='Odoo company_id (related="order_id.company_id", store=True, readonly=True) — columna sincronizada en save(), ver docstring del módulo.',
+                help_text=(
+                    'Odoo company_id (related="order_id.company_id",'
+                    ' store=True, readonly=True) — columna sincronizada en'
+                    ' save(), ver docstring del módulo.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="+",
@@ -70,7 +88,12 @@ class Migration(migrations.Migration):
                 blank=True,
                 decimal_places=2,
                 default=Decimal("0.00"),
-                help_text="Odoo price_total_cc (\"Company Subtotal\", compute, store=True, currency_field='company_currency_id' — sin receptor aquí, ver docstring del módulo). ``price_subtotal`` / ``order_id.currency_rate``.",
+                help_text=(
+                    "Odoo price_total_cc (\"Company Subtotal\", compute,"
+                    " store=True, currency_field='company_currency_id' — sin"
+                    " receptor aquí, ver docstring del módulo)."
+                    " ``price_subtotal`` / ``order_id.currency_rate``."
+                ),
                 max_digits=12,
                 null=True,
                 verbose_name="Subtotal en moneda de la empresa",

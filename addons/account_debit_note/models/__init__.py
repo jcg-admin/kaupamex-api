@@ -8,6 +8,7 @@ nada hoy (``account`` se carga antes por dependencia), pero se aparta del
 patrón que el resto del árbol usa para "colgar algo de un modelo ajeno"
 (ver el docstring de ese archivo).
 """
+
 from .account_journal import JournalDebitSequence
 from .account_move import AccountMoveDebitNote
 

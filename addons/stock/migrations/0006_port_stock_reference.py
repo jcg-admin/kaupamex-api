@@ -27,7 +27,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Referencia compartida (Odoo name, requerido y readonly).",
+                        help_text=(
+                            "Referencia compartida (Odoo name, requerido y"
+                            " readonly)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -36,7 +39,12 @@ class Migration(migrations.Migration):
                     models.ManyToManyField(
                         blank=True,
                         db_table="stock_reference_move_rel",
-                        help_text="Movimientos que comparten esta referencia (Odoo move_ids). El inverso es ``move.reference_ids``, el nombre que la referencia le da a la otra mitad del M2M.",
+                        help_text=(
+                            "Movimientos que comparten esta referencia (Odoo"
+                            " move_ids). El inverso es ``move.reference_ids``,"
+                            " el nombre que la referencia le da a la otra"
+                            " mitad del M2M."
+                        ),
                         related_name="reference_ids",
                         to="stock.stockmove",
                     ),

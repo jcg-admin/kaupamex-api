@@ -15,6 +15,7 @@ registradas o sin consentimiento.
 Ver los analisis de la iniciativa migrar-auth-sesion-cookie-httponly
 (gobernanza de cookies + consentimiento UI + LFPDPPP).
 """
+
 import json
 import logging
 from urllib.parse import unquote
@@ -96,7 +97,9 @@ class CookieGovernanceMiddleware:
                     del response.cookies[name]
                 continue
 
-            if _requires_consent(policy) and not consent.get(policy['category']):
+            if _requires_consent(policy) and not consent.get(
+                policy['category']
+            ):
                 self._audit(request, name, 'BLOCKED_NO_CONSENT')
                 if self.enforce:
                     del response.cookies[name]
@@ -109,5 +112,8 @@ class CookieGovernanceMiddleware:
     def _audit(self, request, name, verdict):
         logger.info(
             'cookie_governance verdict=%s cookie=%s path=%s enforce=%s',
-            verdict, name, request.path, self.enforce,
+            verdict,
+            name,
+            request.path,
+            self.enforce,
         )

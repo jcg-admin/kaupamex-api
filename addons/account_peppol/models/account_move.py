@@ -84,6 +84,7 @@ Divergencias declaradas
 3. **``self.env['account.move'].browse(ids).unlink()`` → ``delete()``** sobre
    el queryset, que es lo mismo.
 """
+
 import fields
 from addons.account.models.account_move import AccountMove
 from exceptions import UserError
@@ -112,16 +113,25 @@ def _campos():
     """Los dos campos que este addon cuelga sobre ``account.AccountMove``."""
     return {
         'peppol_message_uuid': fields.Char(
-            max_length=255, blank=True, default='',
+            max_length=255,
+            blank=True,
+            default='',
             verbose_name='ID de mensaje PEPPOL',
-            help_text='Identificador del mensaje en la red Peppol (Odoo '
-                      'peppol_message_uuid, copy=False).',
+            help_text=(
+                'Identificador del mensaje en la red Peppol (Odoo '
+                'peppol_message_uuid, copy=False).'
+            ),
         ),
         'peppol_move_state': fields.Selection(
-            max_length=16, choices=PEPPOL_MOVE_STATES, blank=True, default='',
+            max_length=16,
+            choices=PEPPOL_MOVE_STATES,
+            blank=True,
+            default='',
             verbose_name='Estado PEPPOL',
-            help_text='Estado del envío por Peppol (Odoo peppol_move_state, '
-                      'compute store=True, copy=False).',
+            help_text=(
+                'Estado del envío por Peppol (Odoo peppol_move_state, '
+                'compute store=True, copy=False).'
+            ),
         ),
     }
 
@@ -143,9 +153,11 @@ def action_cancel_peppol_documents(self):
     existe en este árbol (ver la tabla del módulo).
     """
     if self.peppol_is_sent:
-        raise UserError(_(
-            'No se puede cancelar un asiento que ya se envió a PEPPOL',
-        ))
+        raise UserError(
+            _(
+                'No se puede cancelar un asiento que ya se envió a PEPPOL',
+            )
+        )
     self.peppol_move_state = ''
     self.save(update_fields=['peppol_move_state'])
 
@@ -186,9 +198,14 @@ def apply_account_peppol_account_move_extensions():
 
     for name, function in (
         ('action_cancel_peppol_documents', action_cancel_peppol_documents),
-        ('action_peppol_cancel_and_remove_sequence',
-         action_peppol_cancel_and_remove_sequence),
-        ('action_peppol_reset_documents', classmethod(action_peppol_reset_documents)),
+        (
+            'action_peppol_cancel_and_remove_sequence',
+            action_peppol_cancel_and_remove_sequence,
+        ),
+        (
+            'action_peppol_reset_documents',
+            classmethod(action_peppol_reset_documents),
+        ),
     ):
         chain_method(AccountMove, name, function)
 

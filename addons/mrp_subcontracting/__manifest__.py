@@ -12,9 +12,9 @@
     # ORM resuelve `stock`/`stock_account` de forma transitiva. Aquí los
     # imports son de Python y explícitos.
     'depends': [
-        'base',           # ResPartner — el subcontratista
-        'mrp',            # MrpProduction, MrpBom — lo que este addon extiende
-        'stock',          # la ubicación del tercero y sus movimientos
+        'base',  # ResPartner — el subcontratista
+        'mrp',  # MrpProduction, MrpBom — lo que este addon extiende
+        'stock',  # la ubicación del tercero y sus movimientos
         'stock_account',  # la valoración del material entregado
     ],
     'author': 'Odoo S.A.',

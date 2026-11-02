@@ -26,6 +26,7 @@ responsable (``project/models/project_task.py``: ``assignee``, help_text
 empleado de ese único usuario, vía la propiedad ``employee_skill_ids`` que
 ``res_users.py`` de este mismo addon cuelga sobre ``res.users``.
 """
+
 from addons.hr_skills.models.hr_employee_skill import HrEmployeeSkill
 from orm.model_classes import extend_model
 
@@ -43,7 +44,8 @@ def apply_project_hr_skills_project_task_extensions():
     """Cuelga sobre ``project.task`` las habilidades del asignado — ≙
     ``_inherit``. Se invoca desde ``ProjectHrSkillsConfig.ready()``."""
     extend_model(
-        'project', 'ProjectTask',
+        'project',
+        'ProjectTask',
         propiedades={
             'user_skill_ids': user_skill_ids,
         },

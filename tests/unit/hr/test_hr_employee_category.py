@@ -3,6 +3,7 @@
 Adaptación fiel de Odoo hr/models/hr_employee_category.py
 (odoo-tools@622ddc2a, odoo19c:, LGPL-3).
 """
+
 import pytest
 from django.db import IntegrityError, transaction
 
@@ -19,8 +20,7 @@ class TestHrEmployeeCategoryColor:
         assert 1 <= category.color <= 11
 
     def test_an_explicit_color_is_respected(self):
-        category = HrEmployeeCategory.objects.create(
-            name='Directivo', color=4)
+        category = HrEmployeeCategory.objects.create(name='Directivo', color=4)
         assert category.color == 4
 
 

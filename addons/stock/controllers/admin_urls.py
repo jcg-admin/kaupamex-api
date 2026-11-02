@@ -8,6 +8,7 @@ Montado en ``config/urls.py``::
 Misma convención que ``website``/``rating``/``crm``: lo de back-office cuelga
 de ``api/v2/admin/`` y va en su propio módulo.
 """
+
 from django.urls import path
 
 from addons.stock.controllers.main import (

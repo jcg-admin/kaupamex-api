@@ -39,7 +39,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 choices=[("standard", "Standard"), ("no_gap", "No gap")],
                 default="standard",
-                help_text='Odoo implementation. "no_gap" garantiza que no falte ningún número; es más lento que "standard".',
+                help_text=(
+                    'Odoo implementation. "no_gap" garantiza que no falte'
+                    ' ningún número; es más lento que "standard".'
+                ),
                 max_length=16,
             ),
         ),
@@ -67,7 +70,9 @@ class Migration(migrations.Migration):
             name="padding",
             field=models.IntegerField(
                 default=0,
-                help_text='Odoo padding ("Sequence Size") — ceros a la izquierda.',
+                help_text=(
+                    'Odoo padding ("Sequence Size") — ceros a la izquierda.'
+                ),
             ),
         ),
         migrations.AlterField(
@@ -95,7 +100,9 @@ class Migration(migrations.Migration):
             name="use_date_range",
             field=models.BooleanField(
                 default=False,
-                help_text="Odoo use_date_range — subsecuencias por rango de fecha.",
+                help_text=(
+                    "Odoo use_date_range — subsecuencias por rango de fecha."
+                ),
             ),
         ),
         migrations.CreateModel(
@@ -110,12 +117,19 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("date_from", models.DateField(help_text='Odoo date_from ("From").')),
-                ("date_to", models.DateField(help_text='Odoo date_to ("To").')),
+                (
+                    "date_from",
+                    models.DateField(help_text='Odoo date_from ("From").'),
+                ),
+                (
+                    "date_to",
+                    models.DateField(help_text='Odoo date_to ("To").'),
+                ),
                 (
                     "number_next",
                     models.IntegerField(
-                        default=1, help_text='Odoo number_next ("Next Number").'
+                        default=1,
+                        help_text='Odoo number_next ("Next Number").',
                     ),
                 ),
                 (
@@ -137,7 +151,10 @@ class Migration(migrations.Migration):
                     models.UniqueConstraint(
                         fields=("sequence", "date_from", "date_to"),
                         name="unique_range_per_sequence",
-                        violation_error_message="No se pueden crear dos rangos de fecha iguales para la misma secuencia.",
+                        violation_error_message=(
+                            "No se pueden crear dos rangos de fecha iguales"
+                            " para la misma secuencia."
+                        ),
                     )
                 ],
             },

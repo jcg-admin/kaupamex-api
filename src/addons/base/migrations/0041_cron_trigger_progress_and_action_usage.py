@@ -7,7 +7,10 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("base", "0040_alter_irsequence_code_alter_irsequence_company_and_more"),
+        (
+            "base",
+            "0040_alter_irsequence_code_alter_irsequence_company_and_more",
+        ),
     ]
 
     operations = [
@@ -20,7 +23,10 @@ class Migration(migrations.Migration):
                     ("ir_cron", "Acción programada"),
                 ],
                 default="ir_actions_server",
-                help_text="Odoo usage. ir_cron cuando la accion respalda a una tarea programada.",
+                help_text=(
+                    "Odoo usage. ir_cron cuando la accion respalda a una tarea"
+                    " programada."
+                ),
                 max_length=20,
                 verbose_name="Uso",
             ),
@@ -30,7 +36,10 @@ class Migration(migrations.Migration):
             name="failure_count",
             field=models.IntegerField(
                 default=0,
-                help_text="Fallos consecutivos de este job. Se reinicia al tener exito (Odoo failure_count).",
+                help_text=(
+                    "Fallos consecutivos de este job. Se reinicia al tener"
+                    " exito (Odoo failure_count)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -38,7 +47,10 @@ class Migration(migrations.Migration):
             name="first_failure_date",
             field=models.DateTimeField(
                 blank=True,
-                help_text="Primera vez que el cron fallo. Se reinicia al tener exito (Odoo first_failure_date).",
+                help_text=(
+                    "Primera vez que el cron fallo. Se reinicia al tener exito"
+                    " (Odoo first_failure_date)."
+                ),
                 null=True,
             ),
         ),
@@ -58,27 +70,39 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 (
                     "remaining",
-                    models.IntegerField(default=0, help_text="Odoo remaining."),
+                    models.IntegerField(
+                        default=0, help_text="Odoo remaining."
+                    ),
                 ),
-                ("done", models.IntegerField(default=0, help_text="Odoo done.")),
+                (
+                    "done",
+                    models.IntegerField(default=0, help_text="Odoo done."),
+                ),
                 (
                     "deactivate",
                     models.BooleanField(
                         default=False,
-                        help_text="Desactivar el cron al terminar (Odoo deactivate).",
+                        help_text=(
+                            "Desactivar el cron al terminar (Odoo deactivate)."
+                        ),
                     ),
                 ),
                 (
                     "timed_out_counter",
                     models.IntegerField(
                         default=0,
-                        help_text="Veces consecutivas que la corrida se quedo sin tiempo (Odoo timed_out_counter).",
+                        help_text=(
+                            "Veces consecutivas que la corrida se quedo sin"
+                            " tiempo (Odoo timed_out_counter)."
+                        ),
                     ),
                 ),
                 (
                     "cron",
                     models.ForeignKey(
-                        help_text="Cron cuyo avance se registra (Odoo cron_id).",
+                        help_text=(
+                            "Cron cuyo avance se registra (Odoo cron_id)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="progress_ids",
                         to="base.ircron",
@@ -107,7 +131,10 @@ class Migration(migrations.Migration):
                     "call_at",
                     models.DateTimeField(
                         db_index=True,
-                        help_text="Momento en que el cron debe correr (Odoo call_at).",
+                        help_text=(
+                            "Momento en que el cron debe correr (Odoo"
+                            " call_at)."
+                        ),
                     ),
                 ),
                 (

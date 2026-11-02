@@ -6,7 +6,10 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("digest", "0007_alter_digestdigest_kpi_hr_recruitment_new_colleagues"),
+        (
+            "digest",
+            "0007_alter_digestdigest_kpi_hr_recruitment_new_colleagues",
+        ),
     ]
 
     operations = [
@@ -15,7 +18,9 @@ class Migration(migrations.Migration):
             name="kpi_hr_recruitment_new_colleagues",
             field=models.BooleanField(
                 default=False,
-                help_text='Odoo kpi_hr_recruitment_new_colleagues ("New Employees").',
+                help_text=(
+                    'Odoo kpi_hr_recruitment_new_colleagues ("New Employees").'
+                ),
                 verbose_name="Nuevos empleados",
             ),
         ),

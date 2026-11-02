@@ -47,6 +47,7 @@ vocabulario, así que aquí es una cadena sin validar. Es una divergencia
 declarada, no un olvido: el validador viviría en el descriptor, y añadirlo
 sería diseñar un mecanismo que ningún consumidor del árbol pide hoy.
 """
+
 from addons.base_sparse_field.models.fields import Serialized, Sparse
 from orm.models_transient import TransientModel
 
@@ -60,8 +61,11 @@ class SparseFieldsTest(TransientModel):
     float = Sparse('data', coerce=float, help_text='≙ fields.Float(...)')
     char = Sparse('data', coerce=str, help_text='≙ fields.Char(...)')
     selection = Sparse('data', coerce=str, help_text='≙ fields.Selection(...)')
-    partner = Sparse('data', relational_model='base.ResPartner',
-                     help_text='≙ fields.Many2one("res.partner", ...)')
+    partner = Sparse(
+        'data',
+        relational_model='base.ResPartner',
+        help_text='≙ fields.Many2one("res.partner", ...)',
+    )
 
     class Meta(TransientModel.Meta):
         app_label = 'base_sparse_field'

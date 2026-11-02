@@ -1,4 +1,5 @@
 """Specs de siembra del addon ``base``."""
+
 from addons.base.data.cron import sembrar_cron
 
 # El barrido de ``@api.autovacuum``, verbatim de

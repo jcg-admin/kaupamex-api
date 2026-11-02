@@ -10,6 +10,7 @@ otra.
 
 La definición vive en ``addons/sale_subscription/security/ir_rules.py``.
 """
+
 from django.db import migrations
 
 from addons.sale_subscription.security.ir_rules import seed_subscription_rules

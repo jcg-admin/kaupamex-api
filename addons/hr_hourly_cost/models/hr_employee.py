@@ -55,6 +55,7 @@ La firma de la referencia es::
   ``hr.employee`` adopta un chatter propio, se retoma ahí — no hay tarea
   registrada porque el mecanismo mismo no existe todavía en este árbol.
 """
+
 from decimal import Decimal
 
 import fields
@@ -79,11 +80,19 @@ def apply_hr_hourly_cost_extensions():
     La llama ``HrHourlyCostConfig.ready()``; los tests la invocan
     explícitamente (mismo criterio que ``account_fleet``).
     """
-    _add_if_absent(HrEmployee, 'hourly_cost', fields.Monetary(
-        max_digits=14, decimal_places=2, default=Decimal('0.00'),
-        help_text='Costo por hora del empleado (Odoo hourly_cost). Lo '
-                  'consume hr_timesheet para valorizar las horas '
-                  'registradas — HrEmployee.currency ya resuelve la moneda '
-                  '(divergencia de currency_field, ver docstring del '
-                  'módulo).',
-    ))
+    _add_if_absent(
+        HrEmployee,
+        'hourly_cost',
+        fields.Monetary(
+            max_digits=14,
+            decimal_places=2,
+            default=Decimal('0.00'),
+            help_text=(
+                'Costo por hora del empleado (Odoo hourly_cost). Lo '
+                'consume hr_timesheet para valorizar las horas '
+                'registradas — HrEmployee.currency ya resuelve la moneda '
+                '(divergencia de currency_field, ver docstring del '
+                'módulo).'
+            ),
+        ),
+    )

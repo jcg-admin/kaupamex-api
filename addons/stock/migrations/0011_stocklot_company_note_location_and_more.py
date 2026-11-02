@@ -17,7 +17,10 @@ class Migration(migrations.Migration):
             name="company",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Empresa (Odoo company_id). Almacenada con compute: la resuelve _compute_company_id desde la del producto.",
+                help_text=(
+                    "Empresa (Odoo company_id). Almacenada con compute: la"
+                    " resuelve _compute_company_id desde la del producto."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="stock_lots",
@@ -29,7 +32,12 @@ class Migration(migrations.Migration):
             name="location",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Ubicación única del lote (Odoo location_id). Almacenada con compute e inverse: se llena cuando todos los quants con cantidad positiva están en una sola ubicación, y al escribirla se reubican.",
+                help_text=(
+                    "Ubicación única del lote (Odoo location_id). Almacenada"
+                    " con compute e inverse: se llena cuando todos los quants"
+                    " con cantidad positiva están en una sola ubicación, y al"
+                    " escribirla se reubican."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="single_location_lots",
@@ -42,7 +50,10 @@ class Migration(migrations.Migration):
             field=models.JSONField(
                 blank=True,
                 default=dict,
-                help_text="Propiedades del lote (Odoo lot_properties). Su definición vive en ProductProduct.lot_properties_definition.",
+                help_text=(
+                    "Propiedades del lote (Odoo lot_properties). Su definición"
+                    " vive en ProductProduct.lot_properties_definition."
+                ),
                 null=True,
             ),
         ),
@@ -59,7 +70,10 @@ class Migration(migrations.Migration):
             model_name="stocklot",
             name="name",
             field=models.CharField(
-                help_text="Número de lote / serie (Odoo name). Único por producto; si llega vacío lo genera la secuencia del producto.",
+                help_text=(
+                    "Número de lote / serie (Odoo name). Único por producto;"
+                    " si llega vacío lo genera la secuencia del producto."
+                ),
                 max_length=120,
             ),
         ),
@@ -69,7 +83,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Referencia interna, para cuando difiere del número del fabricante (Odoo ref).",
+                help_text=(
+                    "Referencia interna, para cuando difiere del número del"
+                    " fabricante (Odoo ref)."
+                ),
                 max_length=120,
             ),
         ),

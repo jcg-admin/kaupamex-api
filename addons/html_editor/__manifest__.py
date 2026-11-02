@@ -1,7 +1,8 @@
 # Adaptado de Odoo Community `html_editor/__manifest__.py` (LGPL-3, odoo19c:) —
 # atribución y aviso de licencia preservados (DEC-KX-03). La licencia se leyó
 # del manifiesto de la fuente, no de la reputación del árbol:
-#   grep -oP "'license'\s*:\s*'\K[^']+" $ODOO19C/addons/html_editor/__manifest__.py
+# grep -oP "'license'\s*:\s*'\K[^']+"
+# $ODOO19C/addons/html_editor/__manifest__.py
 # Mecanismo que esa licencia habilita: copia + adaptación con atribución.
 {
     'name': 'HTML Editor',
@@ -12,11 +13,13 @@
         'el historial de revisiones de un campo HTML, los adjuntos de imagen '
         'y el canal de coedición'
     ),
-    'description': """
+    'description': (
+        """
 Html Editor
 ==========================
 This addon provides an extensible, maintainable editor.
-    """,
+    """
+    ),
     # `depends` MEDIDO contra los imports reales de este addon, y coincide con
     # el de la referencia (`['base', 'bus', 'web']`):
     #

@@ -12,7 +12,7 @@
     # `base`, explícito aquí porque el import es de Python.
     'depends': [
         'base',  # ResCompany, ResUsers
-        'crm',   # CrmLead — el origen
+        'crm',  # CrmLead — el origen
         'sale',  # SaleOrder — el destino
     ],
     'author': 'Odoo S.A.',

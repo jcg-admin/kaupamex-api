@@ -23,7 +23,11 @@ class Migration(migrations.Migration):
                     ("presence_undetermined", "Indeterminado"),
                 ],
                 default="",
-                help_text="BLOQUEADO por ``hr_presence_state`` — _compute_presence_icon deriva de ese campo, que queda en su default. Sucesor: tarea #21.",
+                help_text=(
+                    "BLOQUEADO por ``hr_presence_state`` —"
+                    " _compute_presence_icon deriva de ese campo, que queda en"
+                    " su default. Sucesor: tarea #21."
+                ),
                 max_length=28,
             ),
         ),
@@ -38,7 +42,12 @@ class Migration(migrations.Migration):
                     ("out_of_working_hour", "Fuera de horario"),
                 ],
                 default="out_of_working_hour",
-                help_text="BLOQUEADO por ``base.ResUsers.presence_ids`` — el cómputo (_compute_presence_state) necesita la presencia del usuario, infra bus no portada. El campo queda en su default. Sucesor: tarea #21.",
+                help_text=(
+                    "BLOQUEADO por ``base.ResUsers.presence_ids`` — el cómputo"
+                    " (_compute_presence_state) necesita la presencia del"
+                    " usuario, infra bus no portada. El campo queda en su"
+                    " default. Sucesor: tarea #21."
+                ),
                 max_length=20,
                 verbose_name="Estado de presencia",
             ),
@@ -48,7 +57,11 @@ class Migration(migrations.Migration):
             name="last_activity",
             field=models.DateField(
                 blank=True,
-                help_text="BLOQUEADO por ``base.ResUsers.presence_ids`` — el cómputo (_compute_last_activity) necesita la presencia del usuario, infra bus no portada. Sucesor: tarea #21.",
+                help_text=(
+                    "BLOQUEADO por ``base.ResUsers.presence_ids`` — el cómputo"
+                    " (_compute_last_activity) necesita la presencia del"
+                    " usuario, infra bus no portada. Sucesor: tarea #21."
+                ),
                 null=True,
                 verbose_name="Última actividad",
             ),
@@ -59,7 +72,11 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Odoo work_location_name — lo materializa _compute_work_location_name desde version.work_location al guardar (tarea #524).",
+                help_text=(
+                    "Odoo work_location_name — lo materializa"
+                    " _compute_work_location_name desde version.work_location"
+                    " al guardar (tarea #524)."
+                ),
                 max_length=150,
             ),
         ),
@@ -68,9 +85,17 @@ class Migration(migrations.Migration):
             name="work_location_type",
             field=models.CharField(
                 blank=True,
-                choices=[("home", "Casa"), ("office", "Oficina"), ("other", "Otra")],
+                choices=[
+                    ("home", "Casa"),
+                    ("office", "Oficina"),
+                    ("other", "Otra"),
+                ],
                 default="",
-                help_text="Odoo work_location_type — lo materializa _compute_work_location_type desde version.work_location al guardar (tarea #524).",
+                help_text=(
+                    "Odoo work_location_type — lo materializa"
+                    " _compute_work_location_type desde version.work_location"
+                    " al guardar (tarea #524)."
+                ),
                 max_length=6,
             ),
         ),

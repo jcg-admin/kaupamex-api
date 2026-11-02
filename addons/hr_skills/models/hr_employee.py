@@ -64,6 +64,7 @@ Divergencias declaradas
    0 hits). ``get_internal_resume_lines`` sólo usa deltas de días
    (``relativedelta(days=±1)``), sustituibles 1:1 por ``timedelta``.
 """
+
 from datetime import date, timedelta
 
 import fields
@@ -153,21 +154,28 @@ def get_internal_resume_lines(cls, res_id, res_model):
         if not current_version.job_title:
             if interval_date_start:
                 previous_version = employee_versions[i - 1]
-                result.append({
-                    'id': previous_version.pk,
-                    'job_title': previous_version.job_title,
-                    'date_start': interval_date_start,
-                    'date_end': current_date_start - timedelta(days=1),
-                })
+                result.append(
+                    {
+                        'id': previous_version.pk,
+                        'job_title': previous_version.job_title,
+                        'date_start': interval_date_start,
+                        'date_end': current_date_start - timedelta(days=1),
+                    }
+                )
                 interval_date_start = False
-        elif (current_version.job_title != next_version.job_title
-                or current_date_end + timedelta(days=1) != next_version.date_version):
-            result.append({
-                'id': current_version.pk,
-                'job_title': current_version.job_title,
-                'date_start': interval_date_start or current_date_start,
-                'date_end': current_date_end,
-            })
+        elif (
+            current_version.job_title != next_version.job_title
+            or current_date_end + timedelta(days=1)
+            != next_version.date_version
+        ):
+            result.append(
+                {
+                    'id': current_version.pk,
+                    'job_title': current_version.job_title,
+                    'date_start': interval_date_start or current_date_start,
+                    'date_end': current_date_end,
+                }
+            )
             interval_date_start = False
         else:
             interval_date_start = interval_date_start or current_date_start
@@ -178,20 +186,24 @@ def get_internal_resume_lines(cls, res_id, res_model):
             last_version.date_version,
             last_version.contract_date_start or date.min,
         )
-        result.append({
-            'id': last_version.pk,
-            'job_title': last_version.job_title,
-            'date_start': interval_date_start or current_date_start,
-            'date_end': last_version.contract_date_end or False,
-        })
+        result.append(
+            {
+                'id': last_version.pk,
+                'job_title': last_version.job_title,
+                'date_start': interval_date_start or current_date_start,
+                'date_end': last_version.contract_date_end or False,
+            }
+        )
     elif interval_date_start:
         previous_version = employee_versions[-2]
-        result.append({
-            'id': previous_version.pk,
-            'job_title': previous_version.job_title,
-            'date_start': interval_date_start,
-            'date_end': current_date_start - timedelta(days=1),
-        })
+        result.append(
+            {
+                'id': previous_version.pk,
+                'job_title': previous_version.job_title,
+                'date_start': interval_date_start,
+                'date_end': current_date_start - timedelta(days=1),
+            }
+        )
     return result[::-1]
 
 
@@ -199,20 +211,28 @@ def apply_hr_skills_hr_employee_extensions():
     """Cuelga sobre ``hr.employee`` lo que ``hr_skills`` le añade — ≙
     ``_inherit``."""
     extend_model(
-        'hr', 'HrEmployee',
+        'hr',
+        'HrEmployee',
         campos={
             'skill_ids': fields.Many2many(
-                'hr_skills.HrSkill', blank=True,
+                'hr_skills.HrSkill',
+                blank=True,
                 related_name='employees_with_skill',
-                help_text='Odoo skill_ids (compute+store) — sincronizar '
-                          'con _compute_skill_ids().',
+                help_text=(
+                    'Odoo skill_ids (compute+store) — sincronizar '
+                    'con _compute_skill_ids().'
+                ),
             ),
         },
         metodos={
-            '_compute_current_employee_skill_ids': _compute_current_employee_skill_ids,
+            '_compute_current_employee_skill_ids': (
+                _compute_current_employee_skill_ids
+            ),
             '_compute_skill_ids': _compute_skill_ids,
             '_compute_certification_ids': _compute_certification_ids,
-            '_compute_display_certification_page': _compute_display_certification_page,
+            '_compute_display_certification_page': (
+                _compute_display_certification_page
+            ),
             'get_internal_resume_lines': get_internal_resume_lines,
         },
         propiedades={

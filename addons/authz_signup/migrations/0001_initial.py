@@ -34,7 +34,10 @@ class Migration(migrations.Migration):
                             ("signup", "Alta invitada"),
                             ("reset", "Restablecer contraseña"),
                         ],
-                        help_text='Odoo signup_type: "signup" (alta invitada) o "reset" (restablecer contraseña).',
+                        help_text=(
+                            'Odoo signup_type: "signup" (alta invitada) o'
+                            ' "reset" (restablecer contraseña).'
+                        ),
                         max_length=16,
                         verbose_name="Tipo de signup",
                     ),

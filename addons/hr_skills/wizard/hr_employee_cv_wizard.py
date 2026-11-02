@@ -40,6 +40,7 @@ Divergencia declarada — ``werkzeug.urls.url_encode`` → ``urllib.parse``
 uv.lock`` → 0 hits). ``urllib.parse.urlencode`` (stdlib) es el sustituto
 directo — misma codificación de query string.
 """
+
 from urllib.parse import urlencode
 
 from addons.hr_skills.models.hr_resume_line import HrResumeLine
@@ -68,28 +69,42 @@ class HrEmployeeCvWizard(TransientModel):
         ``@api.depends``; aquí devuelve un ``dict`` con ambos, recibiendo
         el queryset de empleados como argumento."""
         return {
-            'can_show_others': HrResumeLine.objects.filter(
-                employee__in=employees, line_type__isnull=True,
-            ).exists(),
+            'can_show_others': (
+                HrResumeLine.objects.filter(
+                    employee__in=employees,
+                    line_type__isnull=True,
+                ).exists()
+            ),
             'can_show_skills': any(
                 employee.skill_ids.exists() for employee in employees
             ),
         }
 
     @classmethod
-    def build_cv_url(cls, employees, color_primary=None, color_secondary=None,
-                      show_skills=True, show_contact=True, show_others=True,
-                      company=None):
+    def build_cv_url(
+        cls,
+        employees,
+        color_primary=None,
+        color_secondary=None,
+        show_skills=True,
+        show_contact=True,
+        show_others=True,
+        company=None,
+    ):
         """≙ la construcción de URL dentro de ``action_validate``
         (``:29-40``) — la parte con lógica real; el ``ir.actions.act_url``
         que la envuelve queda BLOQUEADO (ver la tabla del docstring del
         módulo)."""
-        color_primary = color_primary or (
-            company.primary_color if company is not None else None
-        ) or cls.DEFAULT_COLOR
-        color_secondary = color_secondary or (
-            company.secondary_color if company is not None else None
-        ) or cls.DEFAULT_COLOR
+        color_primary = (
+            color_primary
+            or (company.primary_color if company is not None else None)
+            or cls.DEFAULT_COLOR
+        )
+        color_secondary = (
+            color_secondary
+            or (company.secondary_color if company is not None else None)
+            or cls.DEFAULT_COLOR
+        )
         params = {
             'employee_ids': ','.join(str(e.pk) for e in employees),
             'color_primary': color_primary,

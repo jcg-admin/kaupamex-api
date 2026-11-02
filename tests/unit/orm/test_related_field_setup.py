@@ -16,6 +16,7 @@ del árbol daban para no portarlo.
 (``odoo19c: :744``); los otros cuatro ya viven en ``condition_to_q`` y
 ``_filter_function``.
 """
+
 import logging
 
 import pytest
@@ -46,7 +47,9 @@ class TestTheSetupWiresTheThreeFunctions:
 
         field.setup_related(bank)
 
-        assert field.related_field is bank._meta.get_field('country').related_model._meta.get_field('code')
+        assert field.related_field is bank._meta.get_field(
+            'country'
+        ).related_model._meta.get_field('code')
 
     def test_it_wires_compute_inverse_and_search(self, bank):
         """``store=False`` no es decoración del caso: es su premisa.
@@ -69,8 +72,9 @@ class TestTheSetupWiresTheThreeFunctions:
         assert field.compute == field._compute_related
         assert field.inverse == field._inverse_related
         assert field.search == field._search_related, (
-            'sin search el related se lee pero no se busca, que es exactamente '
-            'lo que se perdía al navegarlo por la FK')
+            'sin search el related se lee pero no se busca, que es exactamente'
+            ' lo que se perdía al navegarlo por la FK'
+        )
 
     def test_a_stored_related_is_not_searchable_by_the_chain(self, bank):
         """``:635`` — ``if not self.store and ...``.
@@ -100,10 +104,14 @@ class TestTheSetupWiresTheThreeFunctions:
 
         field.setup_related(bank)
 
-        target = bank._meta.get_field('country').related_model._meta.get_field('code')
+        target = bank._meta.get_field('country').related_model._meta.get_field(
+            'code'
+        )
         assert field.string == target.string
 
-    def test_a_type_mismatch_between_the_related_and_its_target_is_refused(self, bank):
+    def test_a_type_mismatch_between_the_related_and_its_target_is_refused(
+        self, bank
+    ):
         """``:622-624`` — ``if self.type != field.type: raise TypeError``.
 
         Una proyección que declara un tipo distinto del de su destino miente
@@ -125,7 +133,9 @@ class TestTheSetupWiresTheThreeFunctions:
         assert 'country_code' in str(excinfo.value)
         assert 'code' in str(excinfo.value)
 
-    def test_a_readonly_related_without_inverse_warns_about_its_default(self, bank, caplog):
+    def test_a_readonly_related_without_inverse_warns_about_its_default(
+        self, bank, caplog
+    ):
         """``:640-641`` — «Redundant default on %s».
 
         Sin inverso nadie escribe el valor, así que un ``default`` declarado
@@ -140,10 +150,12 @@ class TestTheSetupWiresTheThreeFunctions:
         with caplog.at_level(logging.WARNING, logger='orm.fields'):
             field.setup_related(bank)
 
-        assert field.inverse is None, (
-            'el aviso sólo tiene sentido si el inverso quedó sin cablear')
-        assert any('country_code' in r.getMessage() for r in caplog.records), (
-            caplog.text)
+        assert (
+            field.inverse is None
+        ), 'el aviso sólo tiene sentido si el inverso quedó sin cablear'
+        assert any(
+            'country_code' in r.getMessage() for r in caplog.records
+        ), caplog.text
 
     def test_a_writable_related_with_default_does_not_warn(self, bank, caplog):
         """El control que discrimina al anterior.
@@ -161,8 +173,7 @@ class TestTheSetupWiresTheThreeFunctions:
             field.setup_related(bank)
 
         assert field.inverse is not None
-        assert not [r for r in caplog.records
-                    if 'edundante' in r.getMessage()]
+        assert not [r for r in caplog.records if 'edundante' in r.getMessage()]
 
     def test_a_broken_chain_says_which_link_is_missing(self, bank):
         """``:611-615`` — la fuente lanza ``KeyError`` nombrando el eslabón."""
@@ -208,17 +219,24 @@ class TestTheSearchWalksTheChainBackwards:
         country = bank._meta.get_field('country')
         assert country.null is True, (
             'la precondición del caso cambió: con country NOT NULL no hay '
-            'fila sin valor que aceptar y este caso no distingue nada')
+            'fila sin valor que aceptar y este caso no distingue nada'
+        )
 
         field = self._related_field(bank, 'country.code', 'country_code')
         domain = field._search_related(bank, '=', False)
 
         conditions = list(domain.iter_conditions())
-        assert any(c.field_expr == 'country' and c.operator in ('in', '=')
-                   and False in (c.value if isinstance(c.value, (list, set, tuple))
-                                 else [c.value])
-                   for c in conditions), (
-            f'no se añadió la rama de la fila sin valor — {domain}')
+        assert any(
+            c.field_expr == 'country'
+            and c.operator in ('in', '=')
+            and False
+            in (
+                c.value
+                if isinstance(c.value, (list, set, tuple))
+                else [c.value]
+            )
+            for c in conditions
+        ), f'no se añadió la rama de la fila sin valor — {domain}'
 
     def test_a_positive_search_does_not_add_it(self, bank):
         """El control que discrimina: con un valor verdadero la rama sobra.
@@ -230,8 +248,9 @@ class TestTheSearchWalksTheChainBackwards:
         domain = field._search_related(bank, '=', 'MX')
 
         conditions = list(domain.iter_conditions())
-        assert len(conditions) == 1, (
-            f'se añadió la rama de nulos a una búsqueda positiva — {domain}')
+        assert (
+            len(conditions) == 1
+        ), f'se añadió la rama de nulos a una búsqueda positiva — {domain}'
 
     def test_a_negative_operator_with_a_truthy_value_gives_up(self, bank):
         """``:752-755`` — verbatim: devuelve ``NotImplemented`` para que el

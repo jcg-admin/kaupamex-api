@@ -17,7 +17,11 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 db_table="product_supplier_taxes_rel",
-                help_text="Impuestos por defecto al COMPRAR el producto (Odoo supplier_taxes_id; type_tax_use=purchase). Hereda ResCompany.account_purchase_tax igual que taxes.",
+                help_text=(
+                    "Impuestos por defecto al COMPRAR el producto (Odoo"
+                    " supplier_taxes_id; type_tax_use=purchase). Hereda"
+                    " ResCompany.account_purchase_tax igual que taxes."
+                ),
                 related_name="product_templates_purchase",
                 to="account.accounttax",
             ),
@@ -28,7 +32,11 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 db_table="product_taxes_rel",
-                help_text="Impuestos por defecto al VENDER el producto (Odoo taxes_id; type_tax_use=sale). Si se crea vacío, hereda ResCompany.account_sale_tax (ver el receptor de abajo).",
+                help_text=(
+                    "Impuestos por defecto al VENDER el producto (Odoo"
+                    " taxes_id; type_tax_use=sale). Si se crea vacío, hereda"
+                    " ResCompany.account_sale_tax (ver el receptor de abajo)."
+                ),
                 related_name="product_templates_sale",
                 to="account.accounttax",
             ),

@@ -9,13 +9,15 @@ Recogido por ``seed_authz`` vía ``addons.authz.declaration.discover()``.
   endpoint de signin y la lista pública NO llevan capacidad — son superficie
   pre-auth (``auth='none'`` en la referencia).
 """
+
 from addons.authz.declaration import CapabilitySpec
 
 MODULES = []
 
 CAPABILITIES = [
     CapabilitySpec(
-        code='permissions.oauth', name='Federación OAuth2',
+        code='permissions.oauth',
+        name='Federación OAuth2',
         is_sensitive=True,
     ),
 ]

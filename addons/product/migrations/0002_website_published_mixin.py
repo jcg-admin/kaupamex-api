@@ -16,7 +16,11 @@ class Migration(migrations.Migration):
             field=models.BooleanField(
                 db_index=True,
                 default=False,
-                help_text="Visible en la tienda. Por defecto NO — igual que _default_is_published de la referencia: dar de alta un producto no es publicarlo.",
+                help_text=(
+                    "Visible en la tienda. Por defecto NO — igual que"
+                    " _default_is_published de la referencia: dar de alta un"
+                    " producto no es publicarlo."
+                ),
                 verbose_name="Publicado",
             ),
         ),

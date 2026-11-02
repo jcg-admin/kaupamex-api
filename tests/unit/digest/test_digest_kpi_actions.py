@@ -16,6 +16,7 @@ Dos capas de prueba, deliberadamente separadas:
   ``crm``, ``hr_recruitment`` o ``account`` se rompiera —clave mal
   escrita, kwarg olvidado— estas claves desaparecerían del resultado.
 """
+
 import pytest
 
 from addons.base.models import ResCompany
@@ -46,7 +47,8 @@ def _base_method():
     installed = DigestDigest.__dict__.get('_compute_kpis_actions')
     assert installed is not None, (
         '_compute_kpis_actions no está instalado en DigestDigest — el '
-        'porte de la tarea #158 no aterrizó.')
+        'porte de la tarea #158 no aterrizó.'
+    )
     current = installed
     while getattr(current, '_chain_previous', None) is not None:
         current = current._chain_previous
@@ -56,13 +58,15 @@ def _base_method():
 @pytest.fixture
 def company():
     return ResCompany.objects.create(
-        code='digest-actions-co', name='Digest Actions Co')
+        code='digest-actions-co', name='Digest Actions Co'
+    )
 
 
 @pytest.fixture
 def digest(company):
     return DigestDigest.objects.create(
-        name='Digest con acciones', company_id=company)
+        name='Digest con acciones', company_id=company
+    )
 
 
 @pytest.fixture
@@ -99,7 +103,10 @@ class TestFullChainAsDjangoInstallsIt:
     invocar ``apply_*_extensions()`` a mano)."""
 
     def test_default_actions_for_a_user_without_special_groups(
-        self, digest, company, recipient,
+        self,
+        digest,
+        company,
+        recipient,
     ):
         actions = digest._compute_kpis_actions(company, recipient)
         assert actions == {
@@ -110,7 +117,11 @@ class TestFullChainAsDjangoInstallsIt:
         }
 
     def test_lead_action_switches_for_group_use_lead(
-        self, digest, company, recipient, group_use_lead,
+        self,
+        digest,
+        company,
+        recipient,
+        group_use_lead,
     ):
         recipient.group_ids.add(group_use_lead)
         actions = digest._compute_kpis_actions(company, recipient)
@@ -119,7 +130,8 @@ class TestFullChainAsDjangoInstallsIt:
         # ganadas, el de hr_recruitment y el de account no se mueven.
         assert actions['kpi_crm_opportunities_won'] == ACTION_PIPELINE
         assert actions['kpi_hr_recruitment_new_colleagues'] == (
-            ACTION_OPEN_MY_EMPLOYEES)
+            ACTION_OPEN_MY_EMPLOYEES
+        )
         assert actions['kpi_account_total_revenue'] == ACTION_OUT_INVOICE
 
     def test_no_recipient_is_fail_closed_not_a_crash(self, digest, company):

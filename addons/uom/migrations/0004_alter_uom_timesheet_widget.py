@@ -16,7 +16,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Odoo timesheet_widget. Widget del cliente web usado cuando esta unidad captura la hoja de horas.",
+                help_text=(
+                    "Odoo timesheet_widget. Widget del cliente web usado"
+                    " cuando esta unidad captura la hoja de horas."
+                ),
             ),
         ),
     ]

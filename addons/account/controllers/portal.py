@@ -82,6 +82,7 @@ Divergencias declaradas transversales:
   ``portal.mixin``, así que el acceso por token queda bloqueado por ese
   mixin y el acceso normal es "el asiento es del usuario").
 """
+
 from collections import OrderedDict
 
 from django.db.models import Q
@@ -105,8 +106,9 @@ class PortalAccount:
         portal (sin ``super()``: el padre aquí no es clase)."""
         values = {}
         if 'overdue_invoice_count' in counters:
-            values['overdue_invoice_count'] = \
-                self._get_overdue_invoice_count(request)
+            values['overdue_invoice_count'] = self._get_overdue_invoice_count(
+                request
+            )
         if 'invoice_count' in counters:
             values['invoice_count'] = AccountMove.objects.filter(
                 self._get_invoices_domain('out'),
@@ -126,7 +128,8 @@ class PortalAccount:
     def _get_overdue_invoice_count(self, request):
         """≙ ``_get_overdue_invoice_count``."""
         return AccountMove.objects.filter(
-            self._get_overdue_invoices_domain(request)).count()
+            self._get_overdue_invoices_domain(request)
+        ).count()
 
     def _invoice_get_page_view_values(self, invoice, access_token, **kwargs):
         """≙ ``_invoice_get_page_view_values`` (parcial declarado — sin
@@ -144,13 +147,19 @@ class PortalAccount:
         """≙ ``_get_invoices_domain`` — como ``Q``: publicadas o pagadas
         (nunca borrador/cancelada), del sentido pedido."""
         if m_type in ['in', 'out']:
-            move_type = [m_type + move
-                         for move in ('_invoice', '_refund', '_receipt')]
+            move_type = [
+                m_type + move for move in ('_invoice', '_refund', '_receipt')
+            ]
         else:
-            move_type = ('out_invoice', 'out_refund', 'in_invoice',
-                         'in_refund', 'out_receipt', 'in_receipt')
-        return (~Q(state__in=('cancel', 'draft'))
-                & Q(move_type__in=move_type))
+            move_type = (
+                'out_invoice',
+                'out_refund',
+                'in_invoice',
+                'in_refund',
+                'out_receipt',
+                'in_receipt',
+            )
+        return ~Q(state__in=('cancel', 'draft')) & Q(move_type__in=move_type)
 
     def _get_overdue_invoices_domain(self, request, partner_id=None):
         """≙ ``_get_overdue_invoices_domain`` (parcial declarado — el
@@ -159,8 +168,15 @@ class PortalAccount:
         return (
             ~Q(state__in=('cancel', 'draft'))
             & Q(move_type__in=('out_invoice', 'out_receipt'))
-            & ~Q(payment_state__in=('in_payment', 'paid', 'reversed',
-                                    'blocked', 'invoicing_legacy'))
+            & ~Q(
+                payment_state__in=(
+                    'in_payment',
+                    'paid',
+                    'reversed',
+                    'blocked',
+                    'invoicing_legacy',
+                )
+            )
             & Q(date__lt=timezone.now().date())
             & Q(partner_id=partner_id or request.user.pk)
         )
@@ -186,40 +202,64 @@ class PortalAccount:
             },
             'invoices': {
                 'label': _('Invoices'),
-                'domain': Q(move_type__in=('out_invoice', 'out_refund',
-                                           'out_receipt')),
+                'domain': Q(
+                    move_type__in=('out_invoice', 'out_refund', 'out_receipt')
+                ),
             },
             'bills': {
                 'label': _('Bills'),
-                'domain': Q(move_type__in=('in_invoice', 'in_refund',
-                                           'in_receipt')),
+                'domain': Q(
+                    move_type__in=('in_invoice', 'in_refund', 'in_receipt')
+                ),
             },
         }
 
-    def portal_my_invoices(self, request, page=1, date_begin=None,
-                            date_end=None, sortby=None, filterby=None, **kw):
+    def portal_my_invoices(
+        self,
+        request,
+        page=1,
+        date_begin=None,
+        date_end=None,
+        sortby=None,
+        filterby=None,
+        **kw,
+    ):
         """≙ ``GET /my/invoices`` — la lista paginada. La sesión
         ``my_invoices_history`` y el render QWeb son del cliente Odoo (ver
         la tabla del módulo); devuelve el dict de valores con el pager
         resuelto y las facturas de la página."""
         values = self._prepare_my_invoices_values(
-            request, page, date_begin, date_end, sortby, filterby)
+            request, page, date_begin, date_end, sortby, filterby
+        )
         pager = portal_pager(**values['pager'])
         invoices = values['invoices'](pager['offset'])
-        values.update({
-            'invoices': invoices,
-            'pager': pager,
-        })
+        values.update(
+            {
+                'invoices': invoices,
+                'pager': pager,
+            }
+        )
         return values
 
-    def _prepare_my_invoices_values(self, request, page, date_begin,
-                                     date_end, sortby, filterby,
-                                     domain=None, url="/my/invoices"):
+    def _prepare_my_invoices_values(
+        self,
+        request,
+        page,
+        date_begin,
+        date_end,
+        sortby,
+        filterby,
+        domain=None,
+        url="/my/invoices",
+    ):
         """≙ ``_prepare_my_invoices_values`` — el domain compuesto, el
         orden elegido y el pager con lambda de página (misma forma que la
         referencia: ``values['invoices'](offset)``)."""
-        domain = (domain or Q()) & self._get_invoices_domain() \
+        domain = (
+            (domain or Q())
+            & self._get_invoices_domain()
             & Q(partner=request.user)
+        )
 
         searchbar_sortings = self._get_account_searchbar_sortings()
         if not sortby:
@@ -243,12 +283,17 @@ class PortalAccount:
             # ≙ la lambda de la referencia: el recordset de la página se
             # resuelve cuando el pager ya fijó el offset.
             'invoices': lambda pager_offset: list(
-                queryset[pager_offset:pager_offset + self._items_per_page]),
+                queryset[pager_offset: pager_offset + self._items_per_page]
+            ),
             'page_name': 'invoice',
             'pager': {
                 'url': url,
-                'url_args': {'date_begin': date_begin, 'date_end': date_end,
-                             'sortby': sortby, 'filterby': filterby},
+                'url_args': {
+                    'date_begin': date_begin,
+                    'date_end': date_end,
+                    'sortby': sortby,
+                    'filterby': filterby,
+                },
                 'total': total,
                 'page': page,
                 'step': self._items_per_page,
@@ -257,14 +302,21 @@ class PortalAccount:
             'searchbar_sortings': searchbar_sortings,
             'sortby': sortby,
             'searchbar_filters': OrderedDict(
-                sorted(searchbar_filters.items())),
+                sorted(searchbar_filters.items())
+            ),
             'filterby': filterby,
             'overdue_invoice_count': self._get_overdue_invoice_count(request),
         }
 
-    def portal_my_invoice_detail(self, request, invoice_id,
-                                  access_token=None, report_type=None,
-                                  download=False, **kw):
+    def portal_my_invoice_detail(
+        self,
+        request,
+        invoice_id,
+        access_token=None,
+        report_type=None,
+        download=False,
+        **kw,
+    ):
         """≙ ``GET /my/invoices/<id>`` (parcial declarado — las ramas de
         descarga/render de reporte están bloqueadas; ver la tabla del
         módulo). El control de acceso: el asiento es del usuario; el acceso
@@ -277,6 +329,6 @@ class PortalAccount:
         if invoice.partner_id != request.user.pk:
             # ≙ el redirect a /my de la referencia ante AccessError.
             raise AccessDenied(
-                _('You are not allowed to access this document.'))
-        return self._invoice_get_page_view_values(
-            invoice, access_token, **kw)
+                _('You are not allowed to access this document.')
+            )
+        return self._invoice_get_page_view_values(invoice, access_token, **kw)

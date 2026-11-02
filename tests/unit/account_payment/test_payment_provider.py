@@ -7,6 +7,7 @@ docstring de ``src/addons/account_payment/models/payment_provider.py``) y
 Portación de ``odoo19c: account_payment/models/payment_provider.py``
 (``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``).
 """
+
 import pytest
 
 from addons.account.models import AccountJournal, AccountPaymentMethod
@@ -29,13 +30,15 @@ def company():
 @pytest.fixture
 def journal(company):
     return AccountJournal.objects.create(
-        name='Banco', code='BNKPP', type='bank', company=company)
+        name='Banco', code='BNKPP', type='bank', company=company
+    )
 
 
 @pytest.fixture
 def gateway():
     return PaymentGateway.objects.create(
-        gateway='MERCADOPAGO', name='MercadoPago', is_active=True)
+        gateway='MERCADOPAGO', name='MercadoPago', is_active=True
+    )
 
 
 class TestJournalProperty:
@@ -49,7 +52,8 @@ class TestJournalProperty:
 
     def test_two_gateways_can_share_a_journal(self, gateway, journal):
         other = PaymentGateway.objects.create(
-            gateway='PAYPAL', name='PayPal', is_active=True)
+            gateway='PAYPAL', name='PayPal', is_active=True
+        )
         gateway.journal = journal
         other.journal = journal
         assert gateway.journal.pk == journal.pk
@@ -62,13 +66,15 @@ class TestGetProviderPaymentMethod:
 
     def test_returns_the_matching_method(self, gateway):
         method = AccountPaymentMethod.objects.create(
-            name='MercadoPago', code='mercadopago', payment_type='inbound')
+            name='MercadoPago', code='mercadopago', payment_type='inbound'
+        )
         found = gateway._get_provider_payment_method('mercadopago')
         assert found.pk == method.pk
 
     def test_callable_as_classmethod_too(self):
         # ≙ odoo19c @api.model — se llama sin instancia en la referencia.
         method = AccountPaymentMethod.objects.create(
-            name='PayPal', code='paypal', payment_type='inbound')
+            name='PayPal', code='paypal', payment_type='inbound'
+        )
         found = PaymentGateway._get_provider_payment_method('paypal')
         assert found.pk == method.pk

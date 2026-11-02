@@ -60,6 +60,7 @@ el ``defaultdict(list)`` devolvía siempre ``[]`` — **la propiedad
 dependen todas de ella. Fix: agrupar por ``applicant_skill.applicant_id_id``
 (la pk), que es lo que el llamador ya esperaba.
 """
+
 from collections import defaultdict
 from datetime import date
 
@@ -67,7 +68,9 @@ import fields
 import models
 
 from addons.hr_recruitment.models.hr_applicant import HrApplicant
-from addons.hr_skills.models.hr_individual_skill_mixin import HrIndividualSkillMixin
+from addons.hr_skills.models.hr_individual_skill_mixin import (
+    HrIndividualSkillMixin,
+)
 
 
 class HrApplicantSkill(HrIndividualSkillMixin):
@@ -80,8 +83,11 @@ class HrApplicantSkill(HrIndividualSkillMixin):
     _order = 'skill_type_id, skill_level_id desc'
 
     applicant_id = fields.Many2one(
-        HrApplicant, on_delete=models.CASCADE, db_index=True,
-        related_name='applicant_skill_ids', verbose_name='Candidato',
+        HrApplicant,
+        on_delete=models.CASCADE,
+        db_index=True,
+        related_name='applicant_skill_ids',
+        verbose_name='Candidato',
         db_column='applicant_id',
     )
 
@@ -117,17 +123,27 @@ class HrApplicantSkill(HrIndividualSkillMixin):
         """
         by_pair = defaultdict(list)
         for applicant_skill in applicant_skills:
-            by_pair[(applicant_skill.applicant_id_id,
-                     applicant_skill.skill_id)].append(applicant_skill)
+            by_pair[
+                (applicant_skill.applicant_id_id, applicant_skill.skill_id)
+            ].append(applicant_skill)
         today = date.today()
         result = defaultdict(list)
         for (applicant_id, _skill_id), applicant_skill_list in by_pair.items():
-            active = [a_s for a_s in applicant_skill_list
-                      if not a_s.valid_to or a_s.valid_to >= today]
+            active = [
+                a_s
+                for a_s in applicant_skill_list
+                if not a_s.valid_to or a_s.valid_to >= today
+            ]
             if not active and applicant_skill_list[0].is_certification:
-                expired_valid_to = max(a_s.valid_to for a_s in applicant_skill_list
-                                       if a_s.valid_to)
-                active = [a_s for a_s in applicant_skill_list
-                          if a_s.valid_to == expired_valid_to]
+                expired_valid_to = max(
+                    a_s.valid_to
+                    for a_s in applicant_skill_list
+                    if a_s.valid_to
+                )
+                active = [
+                    a_s
+                    for a_s in applicant_skill_list
+                    if a_s.valid_to == expired_valid_to
+                ]
             result[applicant_id].extend(active)
         return result

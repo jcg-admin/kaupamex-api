@@ -6,6 +6,7 @@ aterrizado por error en ``group_ids``, que es un M2M y no tiene columna—.
 Reescribir una migración ya aplicada deja el grafo diciendo una cosa y la
 base otra; una migración nueva las vuelve a alinear sin DDL fuera de banda.
 """
+
 import django.db.models.deletion
 from django.db import migrations, models
 

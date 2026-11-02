@@ -24,8 +24,14 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("payment_timeout_minutes", models.PositiveIntegerField(default=30)),
-                ("order_timeout_minutes", models.PositiveIntegerField(default=60)),
+                (
+                    "payment_timeout_minutes",
+                    models.PositiveIntegerField(default=30),
+                ),
+                (
+                    "order_timeout_minutes",
+                    models.PositiveIntegerField(default=60),
+                ),
                 (
                     "site_name",
                     models.CharField(default="Kaupamex", max_length=100),
@@ -37,12 +43,17 @@ class Migration(migrations.Migration):
                         default=Decimal("0.16"),
                         max_digits=5,
                         validators=[
-                            django.core.validators.MinValueValidator(Decimal("0"))
+                            django.core.validators.MinValueValidator(
+                                Decimal("0")
+                            )
                         ],
                     ),
                 ),
                 ("max_return_days", models.PositiveIntegerField(default=30)),
-                ("min_stock_threshold", models.PositiveIntegerField(default=5)),
+                (
+                    "min_stock_threshold",
+                    models.PositiveIntegerField(default=5),
+                ),
                 (
                     "free_shipping_threshold",
                     models.DecimalField(
@@ -50,7 +61,9 @@ class Migration(migrations.Migration):
                         default=Decimal("999.00"),
                         max_digits=10,
                         validators=[
-                            django.core.validators.MinValueValidator(Decimal("0"))
+                            django.core.validators.MinValueValidator(
+                                Decimal("0")
+                            )
                         ],
                     ),
                 ),
@@ -58,7 +71,10 @@ class Migration(migrations.Migration):
                     "support_email",
                     models.EmailField(blank=True, default="", max_length=254),
                 ),
-                ("phone", models.CharField(blank=True, default="", max_length=30)),
+                (
+                    "phone",
+                    models.CharField(blank=True, default="", max_length=30),
+                ),
                 ("address", models.TextField(blank=True, default="")),
             ],
             options={

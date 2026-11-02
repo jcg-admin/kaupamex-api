@@ -16,7 +16,10 @@ class Migration(migrations.Migration):
             name="tax_group",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Grupo al que pertenece el impuesto (Odoo tax_group_id); agrupa los subtotales del documento.",
+                help_text=(
+                    "Grupo al que pertenece el impuesto (Odoo tax_group_id);"
+                    " agrupa los subtotales del documento."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="taxes",

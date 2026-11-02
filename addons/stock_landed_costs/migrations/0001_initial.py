@@ -178,7 +178,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Coste en destino repartido (Odoo additional_landed_cost).",
+                        help_text=(
+                            "Coste en destino repartido (Odoo"
+                            " additional_landed_cost)."
+                        ),
                         max_digits=14,
                     ),
                 ),
@@ -187,7 +190,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Costo final = former + additional (Odoo final_cost).",
+                        help_text=(
+                            "Costo final = former + additional (Odoo"
+                            " final_cost)."
+                        ),
                         max_digits=14,
                     ),
                 ),
@@ -232,7 +238,9 @@ class Migration(migrations.Migration):
             ],
             options={
                 "verbose_name": "Ajuste de valoración por coste en destino",
-                "verbose_name_plural": "Ajustes de valoración por coste en destino",
+                "verbose_name_plural": (
+                    "Ajustes de valoración por coste en destino"
+                ),
                 "db_table": "stock_valuation_adjustment",
                 "ordering": ["id"],
             },

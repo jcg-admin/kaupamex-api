@@ -1,4 +1,5 @@
 """Contrato de create_categories con identidades y transacciones reales."""
+
 import pytest
 from django.core.exceptions import ValidationError
 from django.db import connection, transaction
@@ -6,7 +7,6 @@ from django.db import connection, transaction
 from addons.base.models.ir_model import IrModelData
 from addons.base.models.ir_module import IrModuleCategory
 from modules import db as module_db
-
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]
 ROOT = 'ContractTree'
@@ -19,7 +19,10 @@ def _create(segments):
 
 def _identity(name, record_id, model='base.IrModuleCategory'):
     return IrModelData.objects.create(
-        module='base', name=name, model=model, res_id=record_id,
+        module='base',
+        name=name,
+        model=model,
+        res_id=record_id,
         noupdate=True,
     )
 
@@ -27,7 +30,10 @@ def _identity(name, record_id, model='base.IrModuleCategory'):
 def test_empty_path_has_no_side_effects():
     before = (IrModuleCategory.objects.count(), IrModelData.objects.count())
     assert _create([]) is None
-    assert (IrModuleCategory.objects.count(), IrModelData.objects.count()) == before
+    assert (
+        IrModuleCategory.objects.count(),
+        IrModelData.objects.count(),
+    ) == before
 
 
 def test_nested_path_creates_each_level_and_its_external_identity():
@@ -46,7 +52,9 @@ def test_nested_path_creates_each_level_and_its_external_identity():
     ]:
         identity = IrModelData.objects.get(module='base', name=name)
         assert (identity.model, identity.res_id, identity.noupdate) == (
-            'base.IrModuleCategory', record.pk, True,
+            'base.IrModuleCategory',
+            record.pk,
+            True,
         )
 
 
@@ -54,16 +62,23 @@ def test_unicode_and_native_xmlid_normalization_preserve_visible_name():
     label = 'ContractTree Árbol & Child'
     record_id = _create([label])
     assert IrModuleCategory.objects.get(pk=record_id).name == label
-    assert IrModelData.objects.get(
-        module='base', name='module_category_contracttree_árbol_and_child',
-    ).res_id == record_id
+    assert (
+        IrModelData.objects.get(
+            module='base',
+            name='module_category_contracttree_árbol_and_child',
+        ).res_id
+        == record_id
+    )
 
 
 def test_repeated_path_reuses_identity_and_shared_prefix():
     first = _create([ROOT, 'First'])
     counts = (IrModuleCategory.objects.count(), IrModelData.objects.count())
     assert _create([ROOT, 'First']) == first
-    assert (IrModuleCategory.objects.count(), IrModelData.objects.count()) == counts
+    assert (
+        IrModuleCategory.objects.count(),
+        IrModelData.objects.count(),
+    ) == counts
 
     second = _create([ROOT, 'Second'])
     first = IrModuleCategory.objects.get(pk=first)
@@ -75,7 +90,9 @@ def test_repeated_path_reuses_identity_and_shared_prefix():
 
 def test_renamed_visible_category_keeps_its_external_identity():
     record_id = _create([ROOT])
-    IrModuleCategory.objects.filter(pk=record_id).update(name='Renamed display')
+    IrModuleCategory.objects.filter(pk=record_id).update(
+        name='Renamed display'
+    )
 
     assert _create([ROOT]) == record_id
     assert IrModuleCategory.objects.get(pk=record_id).name == 'Renamed display'
@@ -88,11 +105,15 @@ def test_caller_rollback_preserves_ownership_of_the_transaction():
             raise RuntimeError('caller rollback')
 
     assert not IrModuleCategory.objects.filter(name=ROOT).exists()
-    assert not IrModelData.objects.filter(name__startswith='module_category_contracttree').exists()
+    assert not IrModelData.objects.filter(
+        name__startswith='module_category_contracttree'
+    ).exists()
 
 
 def test_wrong_model_identity_is_not_overwritten_and_new_parents_roll_back():
-    identity = _identity('module_category_contracttree_child', 123, 'base.IrModule')
+    identity = _identity(
+        'module_category_contracttree_child', 123, 'base.IrModule'
+    )
 
     with pytest.raises(ValidationError):
         _create([ROOT, 'Child'])

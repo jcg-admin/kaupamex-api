@@ -20,6 +20,7 @@ Divergencias declaradas:
 - ``rp_id``/``origin`` salen de ``web.base.url`` (SystemParameter, con la
   petición como fallback) — la referencia usa ``get_base_url()``.
 """
+
 import json
 import logging
 from urllib.parse import urlparse
@@ -66,23 +67,32 @@ class PasskeyKey(TimeStampedModel):
 
     name = fields.Char(max_length=255, verbose_name='Nombre')
     credential_identifier = fields.Char(
-        max_length=1024, unique=True,
+        max_length=1024,
+        unique=True,
         verbose_name='Identificador de credencial',
         help_text='NO expuesto por la API (group_system en la referencia).',
     )
     public_key = fields.Char(
-        max_length=2048, blank=True, default='',
+        max_length=2048,
+        blank=True,
+        default='',
         verbose_name='Llave pública',
         help_text='NO expuesta por la API (group_system en la referencia).',
     )
     sign_count = fields.Integer(
-        default=0, verbose_name='Contador de firmas',
+        default=0,
+        verbose_name='Contador de firmas',
     )
     user = fields.Many2one(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-        related_name='passkeys', db_index=True, verbose_name='Usuario',
-        help_text='≙ create_uid; el o2m auth_passkey_key_ids de res_users '
-                  'es este reverso.',
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='passkeys',
+        db_index=True,
+        verbose_name='Usuario',
+        help_text=(
+            '≙ create_uid; el o2m auth_passkey_key_ids de res_users '
+            'es este reverso.'
+        ),
     )
 
     class Meta:
@@ -113,13 +123,17 @@ class PasskeyKey(TimeStampedModel):
     def _start_auth(cls, request):
         """≙ ``_start_auth``: opciones de autenticación + challenge en la
         sesión."""
-        authentication_options = json.loads(options_to_json(
-            generate_authentication_options(
-                rp_id=urlparse(_base_url(request)).hostname,
-                user_verification=UserVerificationRequirement.REQUIRED,
-            )))
-        request.session[SESSION_CHALLENGE_KEY] = (
-            authentication_options['challenge'])
+        authentication_options = json.loads(
+            options_to_json(
+                generate_authentication_options(
+                    rp_id=urlparse(_base_url(request)).hostname,
+                    user_verification=UserVerificationRequirement.REQUIRED,
+                )
+            )
+        )
+        request.session[SESSION_CHALLENGE_KEY] = authentication_options[
+            'challenge'
+        ]
         return authentication_options
 
     @classmethod
@@ -130,7 +144,8 @@ class PasskeyKey(TimeStampedModel):
         auth_verification = verify_authentication_response(
             credential=auth,
             expected_challenge=base64url_to_bytes(
-                cls._get_session_challenge(request)),
+                cls._get_session_challenge(request)
+            ),
             expected_origin=[expected_origin],
             expected_rp_id=parsed.hostname,
             credential_public_key=base64url_to_bytes(public_key),
@@ -146,19 +161,23 @@ class PasskeyKey(TimeStampedModel):
     @classmethod
     def _start_registration(cls, request, user):
         """≙ ``_start_registration``: opciones de registro + challenge."""
-        registration_options = json.loads(options_to_json(
-            generate_registration_options(
-                rp_id=urlparse(_base_url(request)).hostname,
-                rp_name='Kaupamex',
-                user_id=str(user.id).encode(),
-                user_name=user.login,
-                authenticator_selection=AuthenticatorSelectionCriteria(
-                    resident_key=ResidentKeyRequirement.REQUIRED,
-                    user_verification=UserVerificationRequirement.REQUIRED,
-                ),
-            )))
-        request.session[SESSION_CHALLENGE_KEY] = (
-            registration_options['challenge'])
+        registration_options = json.loads(
+            options_to_json(
+                generate_registration_options(
+                    rp_id=urlparse(_base_url(request)).hostname,
+                    rp_name='Kaupamex',
+                    user_id=str(user.id).encode(),
+                    user_name=user.login,
+                    authenticator_selection=AuthenticatorSelectionCriteria(
+                        resident_key=ResidentKeyRequirement.REQUIRED,
+                        user_verification=UserVerificationRequirement.REQUIRED,
+                    ),
+                )
+            )
+        )
+        request.session[SESSION_CHALLENGE_KEY] = registration_options[
+            'challenge'
+        ]
         return registration_options
 
     @classmethod
@@ -169,7 +188,8 @@ class PasskeyKey(TimeStampedModel):
         verification = verify_registration_response(
             credential=registration,
             expected_challenge=base64url_to_bytes(
-                cls._get_session_challenge(request)),
+                cls._get_session_challenge(request)
+            ),
             expected_origin=[expected_origin],
             expected_rp_id=parsed.hostname,
             require_user_verification=True,

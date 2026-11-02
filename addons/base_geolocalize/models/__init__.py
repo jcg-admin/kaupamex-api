@@ -9,8 +9,13 @@ Un archivo por modelo (monolito modular, como Odoo):
 - ``res_partner.py`` -> ``PartnerGeolocation`` (lat/lng/fecha RELATED sobre
   ``base.ResPartner``).
 """
+
 from .base_geocoder import (
-    BaseGeocoder, GeoProvider, GeoProviderNotImplemented, get_google_map_api_key)
+    BaseGeocoder,
+    GeoProvider,
+    GeoProviderNotImplemented,
+    get_google_map_api_key,
+)
 from .res_partner import PartnerGeolocation
 
 __all__ = [

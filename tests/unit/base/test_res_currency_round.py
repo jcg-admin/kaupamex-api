@@ -8,6 +8,7 @@ equivalencia: los mismos ejemplos que usa el docstring de la referencia
 (0.006 vs 0.002, redondeo a un factor no potencia de diez) dan el mismo
 resultado que Odoo documenta.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -20,8 +21,11 @@ pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 @pytest.fixture
 def mxn():
     return ResCurrency.objects.create(
-        name='MXN', full_name='Peso mexicano', symbol='$',
-        rounding=Decimal('0.01'))
+        name='MXN',
+        full_name='Peso mexicano',
+        symbol='$',
+        rounding=Decimal('0.01'),
+    )
 
 
 @pytest.fixture
@@ -31,8 +35,11 @@ def chf_like():
     ``float_round``) — el caso que un ``quantize`` fijo a ``decimal_places``
     no puede resolver correctamente."""
     return ResCurrency.objects.create(
-        name='CHF', full_name='Franco suizo (redondeo a 0.05)', symbol='Fr',
-        rounding=Decimal('0.05'))
+        name='CHF',
+        full_name='Franco suizo (redondeo a 0.05)',
+        symbol='Fr',
+        rounding=Decimal('0.05'),
+    )
 
 
 class TestRound:

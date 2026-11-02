@@ -53,6 +53,7 @@ Divergencias declaradas
    ``self.calendar`` y devuelve el calendario elegido; persiste quien llama
    (``save()``), no el cómputo.
 """
+
 from datetime import datetime, timezone as dt_timezone
 from zoneinfo import ZoneInfo
 
@@ -67,33 +68,49 @@ def _compute_calendar_id(self):
     cae dentro del periodo del contrato, el calendario es el de la versión;
     si no, el del recurso (el inline del ``save()`` del addon padre).
     """
+
     def date_to_datetime(day, tzinfo):
         # ≙ ``date2datetime`` (``:16-18``): la medianoche local del día,
         # convertida a UTC naíf — la forma en que este árbol guarda
         # ``date_from`` cuando opera en UTC.
         naive = datetime.fromordinal(day.toordinal())
-        return naive.replace(tzinfo=tzinfo).astimezone(
-            dt_timezone.utc,
-        ).replace(tzinfo=None)
+        return (
+            naive.replace(tzinfo=tzinfo)
+            .astimezone(
+                dt_timezone.utc,
+            )
+            .replace(tzinfo=None)
+        )
 
     version = None
     if self.resource_id:
         employee = self.resource.hr_hremployee_resource_mixin_set.first()
-        version = employee.version if employee and employee.version_id else None
+        version = (
+            employee.version if employee and employee.version_id else None
+        )
 
     if version is not None and version.date_start:
         tzinfo = ZoneInfo(
-            (version.resource_calendar.tz
-             if version.resource_calendar_id else None) or 'UTC',
+            (
+                version.resource_calendar.tz
+                if version.resource_calendar_id
+                else None
+            )
+            or 'UTC',
         )
         start_dt = date_to_datetime(version.date_start, tzinfo)
-        end_dt = (date_to_datetime(version.date_end, tzinfo)
-                  if version.date_end else datetime.max)
+        end_dt = (
+            date_to_datetime(version.date_end, tzinfo)
+            if version.date_end
+            else datetime.max
+        )
         leave_from = self.date_from
         if leave_from is not None and leave_from.tzinfo is not None:
             # El corte de la referencia opera en UTC naíf; se normaliza el
             # extremo aware antes de comparar.
-            leave_from = leave_from.astimezone(dt_timezone.utc).replace(tzinfo=None)
+            leave_from = leave_from.astimezone(dt_timezone.utc).replace(
+                tzinfo=None
+            )
         if leave_from is not None and start_dt <= leave_from < end_dt:
             self.calendar = version.resource_calendar
             return self.calendar
@@ -108,6 +125,10 @@ def _compute_calendar_id(self):
 def apply_hr_resource_calendar_leaves_extensions():
     """Cuelga sobre ``resource.calendar.leaves`` lo que ``hr`` le añade — ≙
     ``_inherit``."""
-    extend_model('resource', 'ResourceCalendarLeaves', metodos={
-        '_compute_calendar_id': _compute_calendar_id,
-    })
+    extend_model(
+        'resource',
+        'ResourceCalendarLeaves',
+        metodos={
+            '_compute_calendar_id': _compute_calendar_id,
+        },
+    )

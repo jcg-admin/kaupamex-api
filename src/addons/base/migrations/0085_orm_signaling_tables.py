@@ -30,6 +30,7 @@ El ``INSERT ... DEFAULT VALUES`` de cada tabla es la siembra de la fuente
 (``:1056``): sin ella ``max(id)`` devuelve ``NULL`` y la primera comparacion de
 ``check_signaling`` se haria contra nada.
 """
+
 from django.db import migrations
 
 #: Los siete nombres, congelados. El orden es el de la fuente: el registro
@@ -46,13 +47,14 @@ SIGNALING_TABLES = (
 
 CREATE = '\n'.join(
     f'CREATE TABLE IF NOT EXISTS "{table}" '
-    f'(id SERIAL PRIMARY KEY, date TIMESTAMP DEFAULT now());\n'
+    '(id SERIAL PRIMARY KEY, date TIMESTAMP DEFAULT now());\n'
     f'INSERT INTO "{table}" DEFAULT VALUES;'
     for table in SIGNALING_TABLES
 )
 
-DROP = '\n'.join(f'DROP TABLE IF EXISTS "{table}" CASCADE;'
-                 for table in SIGNALING_TABLES)
+DROP = '\n'.join(
+    f'DROP TABLE IF EXISTS "{table}" CASCADE;' for table in SIGNALING_TABLES
+)
 
 
 class Migration(migrations.Migration):

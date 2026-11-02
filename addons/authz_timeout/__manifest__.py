@@ -27,7 +27,7 @@
 #      controllers/main.py      3 defs  → portado (las tres rutas, en REST)
 #      controllers/web_home.py             1 def  ─┐ portados por ROL, no por
 #      controllers/auth_passkey_webauthn.py 1 def ─┘ archivo: su cuerpo entero
-#                                                     es re-declarar la exención,
+# es re-declarar la exención,
 #                                                     que aquí es el atributo
 #                                                     `check_identity = False`
 #                                                     sobre la vista (ver
@@ -91,8 +91,10 @@
     #   `_check_credential` verifica el código con `services.verify_code`.
     #
     # `authz` es una dependencia TRANSITORIA, y se declara como tal.
-    # `require_capability` es obligatorio por DEC-11 —ninguna vista se gatea con
-    # `IsAuthenticated` a secas— y hoy sólo vive en `addons/authz/permissions.py`,
+    # `require_capability` es obligatorio por DEC-11 —ninguna vista se
+    # gatea con
+    # `IsAuthenticated` a secas— y hoy sólo vive en
+    # `addons/authz/permissions.py`,
     # que 42 archivos fuera de ese addon ya consumen. Pero la familia `authz*`
     # está declarada «partición de lo que la referencia mantiene en `base`»
     # (`analisis-familias-referencia.rst`), su alineación es la tarea #20, y el
@@ -101,11 +103,12 @@
     # Cuando #20 mude la capacidad a `base`, esta línea desaparece y el import
     # de `controllers/main.py` cambia de raíz — no de mecanismo.
     'depends': [
-        'base',              # ResGroups (el candado) y ResUsers (su lectura)
-        'authz',             # TRANSITORIA (#20/#322) — require_capability, DEC-11
-        'authz_totp',        # _mfa_type y services.verify_code
-        'authz_totp_mail',   # verify_totp_mail_code y _send_totp_mail_code
-        'authz_passkey',     # user.passkeys — el segundo factor WebAuthn
+        'base',  # ResGroups (el candado) y ResUsers (su lectura)
+        # TRANSITORIA (#20/#322) — require_capability, DEC-11
+        'authz',
+        'authz_totp',  # _mfa_type y services.verify_code
+        'authz_totp_mail',  # verify_totp_mail_code y _send_totp_mail_code
+        'authz_passkey',  # user.passkeys — el segundo factor WebAuthn
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

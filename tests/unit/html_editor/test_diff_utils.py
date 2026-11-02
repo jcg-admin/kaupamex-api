@@ -7,6 +7,7 @@ pidiera restaurar.
 
 Ninguno necesita base de datos: el archivo son funciones puras.
 """
+
 import pytest
 
 from addons.html_editor.models.diff_utils import (
@@ -28,20 +29,26 @@ pytestmark = [pytest.mark.unit]
 class TestThePatchRoundTrip:
     """``apply_patch(nuevo, generate_patch(nuevo, viejo)) == viejo``."""
 
-    @pytest.mark.parametrize('old, new', [
-        # una sustitución dentro de un párrafo
-        ('<p>hola</p><p>mundo</p>', '<p>hola</p><p>mundo cruel</p>'),
-        # una adición al final
-        ('<p>uno</p>', '<p>uno</p><p>dos</p><p>tres</p>'),
-        # un borrado en medio
-        ('<p>a</p><p>b</p><p>c</p>', '<p>a</p><p>c</p>'),
-        # un cambio de atributo sin cambio de texto
-        ('<p class="x">a</p>', '<p class="y">a</p>'),
-        # anidamiento
-        ('<div><ul><li>a</li></ul></div>', '<div><ul><li>a</li><li>b</li></ul></div>'),
-        # el contenido viejo vacío
-        ('', '<p>nuevo</p>'),
-    ])
+    @pytest.mark.parametrize(
+        'old, new',
+        [
+            # una sustitución dentro de un párrafo
+            ('<p>hola</p><p>mundo</p>', '<p>hola</p><p>mundo cruel</p>'),
+            # una adición al final
+            ('<p>uno</p>', '<p>uno</p><p>dos</p><p>tres</p>'),
+            # un borrado en medio
+            ('<p>a</p><p>b</p><p>c</p>', '<p>a</p><p>c</p>'),
+            # un cambio de atributo sin cambio de texto
+            ('<p class="x">a</p>', '<p class="y">a</p>'),
+            # anidamiento
+            (
+                '<div><ul><li>a</li></ul></div>',
+                '<div><ul><li>a</li><li>b</li></ul></div>',
+            ),
+            # el contenido viejo vacío
+            ('', '<p>nuevo</p>'),
+        ],
+    )
     def test_the_patch_reverts_the_new_content_to_the_old_one(self, old, new):
         patch = generate_patch(new, old)
         assert apply_patch(new, patch) == old
@@ -58,7 +65,10 @@ class TestTheOperationFormat:
 
     def test_the_three_operation_letters_are_the_ones_of_the_source(self):
         assert PATCH_OPERATIONS == {
-            'insert': '+', 'delete': '-', 'replace': 'R'}
+            'insert': '+',
+            'delete': '-',
+            'replace': 'R',
+        }
 
     def test_a_deletion_carries_no_content_after_the_colon(self):
         patch = generate_patch('<p>a</p><p>b</p>', '<p>a</p><p>b</p><p>c</p>')
@@ -75,7 +85,10 @@ class TestTheHistoryAttributeIsStrippedBeforeDiffing:
 
     def test_the_attribute_is_removed_with_its_quoted_value(self):
         html = '<p data-last-history-steps="1,2,3">a</p>'
-        assert _remove_html_attribute(html, HTML_ATTRIBUTES_TO_REMOVE) == '<p>a</p>'
+        assert (
+            _remove_html_attribute(html, HTML_ATTRIBUTES_TO_REMOVE)
+            == '<p>a</p>'
+        )
 
     def test_two_contents_differing_only_in_history_produce_no_patch(self):
         a = '<p data-last-history-steps="1,2">x</p>'
@@ -109,8 +122,9 @@ class TestTheComparisonMarksBothSides:
         assert '<removed>nuevo</removed>' in comparison
 
     def test_the_unchanged_nodes_carry_no_tag(self):
-        comparison = generate_comparison('<p>a</p><p>nuevo</p>',
-                                         '<p>a</p><p>viejo</p>')
+        comparison = generate_comparison(
+            '<p>a</p><p>nuevo</p>', '<p>a</p><p>viejo</p>'
+        )
         assert comparison.startswith('<p>a</p>')
 
     def test_equal_contents_come_back_unchanged(self):
@@ -136,12 +150,19 @@ class TestTheUnifiedDiffIsLineOriented:
         assert 'class="x"' in _indent('<p class="x">a</p>')
 
     def test_the_diff_names_only_the_changed_node(self):
-        diff = generate_unified_diff('<p>a</p><p>NUEVO</p>',
-                                     '<p>a</p><p>viejo</p>')
-        added = [ln for ln in diff.split('\n')
-                 if ln.startswith('+') and not ln.startswith('+++')]
-        removed = [ln for ln in diff.split('\n')
-                   if ln.startswith('-') and not ln.startswith('---')]
+        diff = generate_unified_diff(
+            '<p>a</p><p>NUEVO</p>', '<p>a</p><p>viejo</p>'
+        )
+        added = [
+            ln
+            for ln in diff.split('\n')
+            if ln.startswith('+') and not ln.startswith('+++')
+        ]
+        removed = [
+            ln
+            for ln in diff.split('\n')
+            if ln.startswith('-') and not ln.startswith('---')
+        ]
         assert [ln[1:].strip() for ln in added] == ['NUEVO']
         assert [ln[1:].strip() for ln in removed] == ['viejo']
 

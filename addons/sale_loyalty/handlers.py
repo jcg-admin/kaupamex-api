@@ -6,17 +6,25 @@ sin que ``sale`` declare dependencia hacia él.
 
 Los registra ``SaleLoyaltyConfig.ready()``.
 """
+
 from django.dispatch import receiver
 
 from addons.sale.models import SaleOrder
-from addons.sale.signals import (draft_discount_requested,
-                                 draft_voucher_requested)
-from addons.sale_loyalty.services import (draft_coupon_discount,
-                                          draft_coupon_voucher)
+from addons.sale.signals import (
+    draft_discount_requested,
+    draft_voucher_requested,
+)
+from addons.sale_loyalty.services import (
+    draft_coupon_discount,
+    draft_coupon_voucher,
+)
 
 
-@receiver(draft_discount_requested, sender=SaleOrder,
-          dispatch_uid='sale_loyalty.draft_coupon_discount')
+@receiver(
+    draft_discount_requested,
+    sender=SaleOrder,
+    dispatch_uid='sale_loyalty.draft_coupon_discount',
+)
 def contribute_voucher_discount(sender, order, subtotal, **kwargs):
     """Aporta el descuento vivo del cupón al total del draft.
 
@@ -27,8 +35,11 @@ def contribute_voucher_discount(sender, order, subtotal, **kwargs):
     return draft_coupon_discount(order, subtotal)
 
 
-@receiver(draft_voucher_requested, sender=SaleOrder,
-          dispatch_uid='sale_loyalty.draft_voucher')
+@receiver(
+    draft_voucher_requested,
+    sender=SaleOrder,
+    dispatch_uid='sale_loyalty.draft_voucher',
+)
 def contribute_applied_voucher(sender, order, **kwargs):
     """Devuelve el ``Voucher`` del cupón para que el núcleo lo consuma al
     confirmar, sin que ``sale`` conozca ``SaleOrderCoupon``."""

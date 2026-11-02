@@ -42,6 +42,7 @@ proyecto por tipo de operación— SÍ, como ``pickings_of_type``.
 — una instancia ES un registro (mismo criterio que ``certificate/models/
 certificate.py``).
 """
+
 from orm.model_classes import extend_model
 
 
@@ -73,9 +74,13 @@ def apply_project_stock_project_project_extensions():
     Par de Django (``'project', 'Project'``) porque el destino no declara
     ``_name`` (``addons/project/models/project_project.py``).
     """
-    extend_model('project', 'Project', metodos={
-        'pickings_of_type': pickings_of_type,
-    })
+    extend_model(
+        'project',
+        'Project',
+        metodos={
+            'pickings_of_type': pickings_of_type,
+        },
+    )
 
 
 __all__ = ['apply_project_stock_project_project_extensions']

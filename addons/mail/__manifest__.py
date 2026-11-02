@@ -9,7 +9,8 @@
         'que cualquier modelo hereda para dejar rastro y avisar'
     ),
     # `depends` MEDIDO da cuatro; la referencia declara ['base', 'base_setup',
-    # 'bus'] más `web_tour`/`html_editor`, que este árbol no tiene. `base_setup`
+    # 'bus'] más `web_tour`/`html_editor`, que este árbol no tiene.
+    # `base_setup`
     # hospeda la UI de ajustes del servidor de correo; aquí eso es
     # SystemParameter de `base`.
     #
@@ -22,7 +23,7 @@
     # datos — tampoco se declara (ver lote 2).
     'depends': [
         'base',  # ResUsers, ResPartner, ResCompany
-        'bus',   # el canal por el que se notifica el mensaje nuevo
+        'bus',  # el canal por el que se notifica el mensaje nuevo
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

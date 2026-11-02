@@ -12,6 +12,7 @@ aplicadas. Con el spec en ``data/``, ``tests/conftest.py`` puede re-aplicarlo
 —una sola definición, sin dos copias que puedan divergir— y la sesión siguiente
 no arranca con ``has_group`` devolviendo ``False`` para todo.
 """
+
 from django.db import migrations
 
 from addons.base.data.res_groups_data import seed_base_groups

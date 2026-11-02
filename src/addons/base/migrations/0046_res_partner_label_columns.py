@@ -25,7 +25,11 @@ class Migration(migrations.Migration):
                 blank=True,
                 db_index=True,
                 default="",
-                help_text="Identificador de la empresa en su registro mercantil (Odoo company_registry). store=True y readonly=False: se captura a mano y las localizaciones lo pueden derivar.",
+                help_text=(
+                    "Identificador de la empresa en su registro mercantil"
+                    " (Odoo company_registry). store=True y readonly=False: se"
+                    " captura a mano y las localizaciones lo pueden derivar."
+                ),
                 max_length=64,
             ),
         ),
@@ -36,7 +40,11 @@ class Migration(migrations.Migration):
                 blank=True,
                 db_index=True,
                 default="",
-                help_text="Nombre para listas: «Empresa, Persona» (Odoo complete_name). Es store=True en la fuente — se escribe al guardar, no se calcula al leer.",
+                help_text=(
+                    "Nombre para listas: «Empresa, Persona» (Odoo"
+                    " complete_name). Es store=True en la fuente — se escribe"
+                    " al guardar, no se calcula al leer."
+                ),
                 max_length=512,
             ),
         ),
@@ -46,7 +54,12 @@ class Migration(migrations.Migration):
             field=models.BooleanField(
                 db_index=True,
                 default=True,
-                help_text="Cliente sin acceso, o usuario compartido (Odoo partner_share). Es store=True en la fuente — se escribe al guardar. False solo cuando algun usuario suyo es interno.",
+                help_text=(
+                    "Cliente sin acceso, o usuario compartido (Odoo"
+                    " partner_share). Es store=True en la fuente — se escribe"
+                    " al guardar. False solo cuando algun usuario suyo es"
+                    " interno."
+                ),
             ),
         ),
     ]

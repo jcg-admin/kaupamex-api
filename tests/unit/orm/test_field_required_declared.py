@@ -39,6 +39,7 @@ Qué haría fallar a cada control
     El consumidor real. Miden que la decisión de
     ``check_ondelete_policies`` la toma la anotación y no el esquema.
 """
+
 import pytest
 
 import fields
@@ -108,7 +109,9 @@ class TestTheOndeleteConsumer:
     def test_a_declared_required_field_refuses_the_default_policy(self):
         field = _selection(required=True)
         with pytest.raises(ValueError, match='requerido'):
-            check_ondelete_policies(field, {'b': 'set null'}, ['b'], {'a', 'b'})
+            check_ondelete_policies(
+                field, {'b': 'set null'}, ['b'], {'a', 'b'}
+            )
 
     def test_a_declared_required_field_accepts_cascade(self):
         field = _selection(required=True)

@@ -7,6 +7,7 @@ serializers existen SOLO para documentar la forma de los errores en el
 schema; no se usan para serializar respuestas en runtime (las vistas ya
 devuelven ``Response({'detail': ..., 'codigo_error': ...})`` a mano).
 """
+
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse
 from rest_framework import serializers
 

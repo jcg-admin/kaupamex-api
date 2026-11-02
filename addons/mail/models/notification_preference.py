@@ -13,6 +13,7 @@ slice 3a). Vive en ``mail`` porque la preferencia de notificacion es una
 preocupacion del backbone de mensajeria; ``NotificationType`` es su hermano de
 familia (``notification_inbox``).
 """
+
 from django.conf import settings
 from django.db import models
 

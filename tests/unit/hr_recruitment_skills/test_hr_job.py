@@ -11,11 +11,14 @@ cliente sin mecanismo en este backend.
 
 Toca DB → django_db.
 """
+
 import pytest
 
 from addons.hr.models.hr_job import HrJob
 from addons.hr_recruitment.models.hr_applicant import HrApplicant
-from addons.hr_recruitment_skills.models.hr_applicant_skill import HrApplicantSkill
+from addons.hr_recruitment_skills.models.hr_applicant_skill import (
+    HrApplicantSkill,
+)
 from addons.hr_skills.models.hr_job_skill import HrJobSkill
 from addons.hr_skills.models.hr_skill import HrSkill
 from addons.hr_skills.models.hr_skill_level import HrSkillLevel
@@ -34,7 +37,8 @@ def _skill(skill_type, name='Python'):
 
 def _skill_level(skill_type, name='Nivel', progress=50):
     return HrSkillLevel.objects.create(
-        skill_type=skill_type, name=name, level_progress=progress)
+        skill_type=skill_type, name=name, level_progress=progress
+    )
 
 
 class TestComputeApplicantMatchingScore:
@@ -46,10 +50,13 @@ class TestComputeApplicantMatchingScore:
         level = _skill_level(skill_type, progress=70)
         job = HrJob.objects.create(name='Dev')
         HrJobSkill.objects.create(
-            job=job, skill=skill, skill_type=skill_type, skill_level=level)
+            job=job, skill=skill, skill_type=skill_type, skill_level=level
+        )
         applicant = HrApplicant.objects.create()
         HrApplicantSkill.objects.create(
-            applicant_id=applicant, skill=skill, skill_type=skill_type,
+            applicant_id=applicant,
+            skill=skill,
+            skill_type=skill_type,
             skill_level=level,
         )
 
@@ -68,7 +75,8 @@ class TestComputeApplicantMatchingScore:
         level = _skill_level(skill_type, progress=70)
         job = HrJob.objects.create(name='Dev')
         HrJobSkill.objects.create(
-            job=job, skill=needed, skill_type=skill_type, skill_level=level)
+            job=job, skill=needed, skill_type=skill_type, skill_level=level
+        )
         applicant = HrApplicant.objects.create()
 
         assert job._compute_applicant_matching_score(applicant) == 0
@@ -89,11 +97,14 @@ class TestSearchMatchingApplicants:
         level = _skill_level(skill_type)
         job = HrJob.objects.create(name='Dev')
         HrJobSkill.objects.create(
-            job=job, skill=skill, skill_type=skill_type, skill_level=level)
+            job=job, skill=skill, skill_type=skill_type, skill_level=level
+        )
         other_job = HrJob.objects.create(name='Other')
         candidate = HrApplicant.objects.create(job=other_job)
         HrApplicantSkill.objects.create(
-            applicant_id=candidate, skill=skill, skill_type=skill_type,
+            applicant_id=candidate,
+            skill=skill,
+            skill_type=skill_type,
             skill_level=level,
         )
         candidate._compute_skill_ids()
@@ -108,10 +119,13 @@ class TestSearchMatchingApplicants:
         level = _skill_level(skill_type)
         job = HrJob.objects.create(name='Dev')
         HrJobSkill.objects.create(
-            job=job, skill=skill, skill_type=skill_type, skill_level=level)
+            job=job, skill=skill, skill_type=skill_type, skill_level=level
+        )
         already_here = HrApplicant.objects.create(job=job)
         HrApplicantSkill.objects.create(
-            applicant_id=already_here, skill=skill, skill_type=skill_type,
+            applicant_id=already_here,
+            skill=skill,
+            skill_type=skill_type,
             skill_level=level,
         )
         already_here._compute_skill_ids()
@@ -125,10 +139,13 @@ class TestSearchMatchingApplicants:
         level = _skill_level(skill_type)
         job = HrJob.objects.create(name='Dev')
         HrJobSkill.objects.create(
-            job=job, skill=needed, skill_type=skill_type, skill_level=level)
+            job=job, skill=needed, skill_type=skill_type, skill_level=level
+        )
         unrelated = HrApplicant.objects.create()
         HrApplicantSkill.objects.create(
-            applicant_id=unrelated, skill=other, skill_type=skill_type,
+            applicant_id=unrelated,
+            skill=other,
+            skill_type=skill_type,
             skill_level=level,
         )
         unrelated._compute_skill_ids()

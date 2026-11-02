@@ -13,6 +13,7 @@ NO se portan ``action_brand_model``/``action_open_brand_form`` — devuelven
 diccionarios de acción de ventana de Odoo (``ir.actions.act_window``), sin
 equivalente en DRF; esa navegación la resuelve la capa de vistas/rutas.
 """
+
 import fields
 
 from addons.base.models import TimeStampedModel
@@ -24,10 +25,14 @@ class FleetVehicleModelBrand(TimeStampedModel):
     name = fields.Char(max_length=150, help_text='Odoo name (required).')
     active = fields.Boolean(default=True, help_text='Odoo active.')
     image_128 = fields.Image(
-        upload_to='fleet/brand_logos/', null=True, blank=True,
-        help_text='Logo de la marca, 128×128 (Odoo image_128, sin las otras '
-                   'reducciones del image.mixin — la referencia no hereda '
-                   'el mixin completo aquí, sólo declara este campo).',
+        upload_to='fleet/brand_logos/',
+        null=True,
+        blank=True,
+        help_text=(
+            'Logo de la marca, 128×128 (Odoo image_128, sin las otras '
+            'reducciones del image.mixin — la referencia no hereda '
+            'el mixin completo aquí, sólo declara este campo).'
+        ),
     )
 
     class Meta:

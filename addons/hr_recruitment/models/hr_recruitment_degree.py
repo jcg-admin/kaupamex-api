@@ -5,6 +5,7 @@ Adaptación fiel de Odoo ``hr_recruitment/models/hr_recruitment_degree.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3, 17 líneas) — atribución y
 aviso de licencia preservados (DEC-KX-03). Porte completo — 5 de 5 símbolos.
 """
+
 import fields
 import models
 from addons.base.models import TimeStampedModel
@@ -17,7 +18,8 @@ class HrRecruitmentDegree(TimeStampedModel):
     _description = 'Applicant Degree'
 
     name = fields.Char(
-        verbose_name='Nombre del grado', help_text='Odoo "Degree Name".',
+        verbose_name='Nombre del grado',
+        help_text='Odoo "Degree Name".',
     )
     score = fields.Float(default=0, verbose_name='Puntaje')
     sequence = fields.Integer(default=1, verbose_name='Secuencia')
@@ -29,9 +31,11 @@ class HrRecruitmentDegree(TimeStampedModel):
         constraints = [
             # ≙ ``_name_uniq`` (``:19-22``).
             models.UniqueConstraint(
-                fields=['name'], name='hr_recruitment_degree_name_uniq',
-                violation_error_message='The name of the Degree of '
-                                        'Recruitment must be unique!',
+                fields=['name'],
+                name='hr_recruitment_degree_name_uniq',
+                violation_error_message=(
+                    'The name of the Degree of Recruitment must be unique!'
+                ),
             ),
             # ≙ ``_score_range`` (``:23-26``).
             models.CheckConstraint(

@@ -11,6 +11,7 @@ se porta (tarea #250).
 Cada caso distingue dos comportamientos: no basta con que el método devuelva
 algo, tiene que devolver una cosa y no la otra.
 """
+
 from datetime import date, datetime
 
 import pytest
@@ -31,7 +32,13 @@ def _month_row(year, month, count):
 
 def _fill(rows, **kwargs):
     return Base._web_read_group_fill_temporal(
-        IrSequenceDateRange, rows, (_MONTH_SPEC,), _MONTH_MAP, ('__count',), **kwargs)
+        IrSequenceDateRange,
+        rows,
+        (_MONTH_SPEC,),
+        _MONTH_MAP,
+        ('__count',),
+        **kwargs,
+    )
 
 
 def test_inserts_the_missing_months_between_two_present_buckets():
@@ -40,11 +47,17 @@ def test_inserts_the_missing_months_between_two_present_buckets():
     Discrimina relleno de paso a través: sin el método el resultado son las
     tres filas de entrada.
     """
-    rows = [_month_row(2026, 6, 3), _month_row(2026, 9, 5), _month_row(2026, 12, 2)]
+    rows = [
+        _month_row(2026, 6, 3),
+        _month_row(2026, 9, 5),
+        _month_row(2026, 12, 2),
+    ]
 
     filled = _fill(rows)
 
-    assert [r[_MONTH_KEY] for r in filled] == [date(2026, m, 1) for m in range(6, 13)]
+    assert [r[_MONTH_KEY] for r in filled] == [
+        date(2026, m, 1) for m in range(6, 13)
+    ]
 
 
 def test_the_inserted_bucket_carries_zero_and_not_null():
@@ -83,8 +96,12 @@ def test_a_groupby_without_granularity_is_left_untouched():
     rows = [{'number_next': 1, '__count': 1}, {'number_next': 9, '__count': 2}]
 
     filled = Base._web_read_group_fill_temporal(
-        IrSequenceDateRange, rows, ('number_next',),
-        {'number_next': 'number_next', '__count': '__count'}, ('__count',))
+        IrSequenceDateRange,
+        rows,
+        ('number_next',),
+        {'number_next': 'number_next', '__count': '__count'},
+        ('__count',),
+    )
 
     assert filled == rows
 
@@ -95,13 +112,20 @@ def test_fill_from_and_fill_to_bound_the_interpolation():
     Es el ejemplo documentado en la referencia (``:1013-1017``). Discrimina
     cotas honradas de cotas ignoradas: sin ellas saldrían los siete meses.
     """
-    rows = [_month_row(2026, 6, 1), _month_row(2026, 9, 1), _month_row(2026, 12, 1)]
+    rows = [
+        _month_row(2026, 6, 1),
+        _month_row(2026, 9, 1),
+        _month_row(2026, 12, 1),
+    ]
 
     filled = _fill(rows, fill_from='2026-08-01', fill_to='2026-10-01')
 
     assert [r[_MONTH_KEY] for r in filled] == [
-        date(2026, 6, 1), date(2026, 8, 1), date(2026, 9, 1),
-        date(2026, 10, 1), date(2026, 12, 1),
+        date(2026, 6, 1),
+        date(2026, 8, 1),
+        date(2026, 9, 1),
+        date(2026, 10, 1),
+        date(2026, 12, 1),
     ]
 
 
@@ -113,7 +137,9 @@ def test_min_groups_extends_past_the_last_existing_bucket():
     """
     filled = _fill([_month_row(2026, 8, 7)], min_groups=4)
 
-    assert [r[_MONTH_KEY] for r in filled] == [date(2026, m, 1) for m in (8, 9, 10, 11)]
+    assert [r[_MONTH_KEY] for r in filled] == [
+        date(2026, m, 1) for m in (8, 9, 10, 11)
+    ]
     assert [r['__count'] for r in filled] == [7, 0, 0, 0]
 
 
@@ -123,13 +149,19 @@ def test_the_null_bucket_survives_and_lands_last():
     Discrimina conservar el nulo de tragárselo: ``None`` no es un punto de la
     recta temporal, así que va al final, no entre los meses.
     """
-    rows = [_month_row(2026, 6, 1), {_MONTH_KEY: None, '__count': 9}, _month_row(2026, 8, 1)]
+    rows = [
+        _month_row(2026, 6, 1),
+        {_MONTH_KEY: None, '__count': 9},
+        _month_row(2026, 8, 1),
+    ]
 
     filled = _fill(rows)
 
     assert filled[-1][_MONTH_KEY] is None
     assert filled[-1]['__count'] == 9
-    assert [r[_MONTH_KEY] for r in filled[:-1]] == [date(2026, m, 1) for m in (6, 7, 8)]
+    assert [r[_MONTH_KEY] for r in filled[:-1]] == [
+        date(2026, m, 1) for m in (6, 7, 8)
+    ]
 
 
 def test_without_rows_and_without_bounds_nothing_is_invented():
@@ -148,7 +180,9 @@ def test_without_rows_the_bounds_alone_generate_the_buckets():
     """
     filled = _fill([], fill_from='2026-03-01', fill_to='2026-05-01')
 
-    assert [r[_MONTH_KEY] for r in filled] == [date(2026, m, 1) for m in (3, 4, 5)]
+    assert [r[_MONTH_KEY] for r in filled] == [
+        date(2026, m, 1) for m in (3, 4, 5)
+    ]
     assert all(r['__count'] == 0 for r in filled)
 
 
@@ -166,10 +200,14 @@ def test_week_granularity_steps_seven_days_not_one_month():
     ]
 
     filled = Base._web_read_group_fill_temporal(
-        IrCron, rows, ('nextcall:week',), spec_map, ('__count',))
+        IrCron, rows, ('nextcall:week',), spec_map, ('__count',)
+    )
 
     assert [r[key] for r in filled] == [
-        datetime(2026, 3, 2), datetime(2026, 3, 9), datetime(2026, 3, 16)]
+        datetime(2026, 3, 2),
+        datetime(2026, 3, 9),
+        datetime(2026, 3, 16),
+    ]
 
 
 def test_fill_temporal_with_a_limit_is_refused():
@@ -181,5 +219,9 @@ def test_fill_temporal_with_a_limit_is_refused():
     """
     with pytest.raises(ValueError):
         Base.formatted_read_group(
-            IrSequenceDateRange.objects.none(), (_MONTH_SPEC,), ('__count',),
-            limit=5, fill_temporal={})
+            IrSequenceDateRange.objects.none(),
+            (_MONTH_SPEC,),
+            ('__count',),
+            limit=5,
+            fill_temporal={},
+        )

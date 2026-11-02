@@ -13,13 +13,43 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='HrEmployeePublic',
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('create_date', models.DateTimeField(blank=True, help_text='Odoo create_date — en la vista sale de e.created_at.', null=True)),
-                ('name', models.CharField(blank=True, default='', max_length=200)),
+                (
+                    'id',
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID',
+                    ),
+                ),
+                (
+                    'create_date',
+                    models.DateTimeField(
+                        blank=True,
+                        help_text=(
+                            'Odoo create_date — en la vista sale de'
+                            ' e.created_at.'
+                        ),
+                        null=True,
+                    ),
+                ),
+                (
+                    'name',
+                    models.CharField(blank=True, default='', max_length=200),
+                ),
                 ('active', models.BooleanField(default=True)),
-                ('mobile_phone', models.CharField(blank=True, default='', max_length=32)),
-                ('work_phone', models.CharField(blank=True, default='', max_length=32)),
-                ('work_email', models.CharField(blank=True, default='', max_length=254)),
+                (
+                    'mobile_phone',
+                    models.CharField(blank=True, default='', max_length=32),
+                ),
+                (
+                    'work_phone',
+                    models.CharField(blank=True, default='', max_length=32),
+                ),
+                (
+                    'work_email',
+                    models.CharField(blank=True, default='', max_length=254),
+                ),
                 ('color', models.IntegerField(default=0)),
             ],
             options={

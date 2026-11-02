@@ -6,7 +6,10 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("stock", "0015_alter_stockpicking_options_stockpicking_backorder_and_more"),
+        (
+            "stock",
+            "0015_alter_stockpicking_options_stockpicking_backorder_and_more",
+        ),
     ]
 
     operations = [

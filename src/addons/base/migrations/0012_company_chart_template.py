@@ -15,7 +15,11 @@ class Migration(migrations.Migration):
             name="chart_template",
             field=models.CharField(
                 blank=True,
-                help_text="Código del plan contable cargado en esta empresa (Odoo chart_template, company.py:117). Una empresa hija hereda el de su raíz al crearse.",
+                help_text=(
+                    "Código del plan contable cargado en esta empresa (Odoo"
+                    " chart_template, company.py:117). Una empresa hija hereda"
+                    " el de su raíz al crearse."
+                ),
                 max_length=64,
                 null=True,
             ),

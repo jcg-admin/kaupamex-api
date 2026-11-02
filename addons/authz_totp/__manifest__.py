@@ -18,9 +18,9 @@
     # de alta, que este monolito no sirve: esa pantalla es de `ui`—. La
     # dirección coincide; el consumo no.
     'depends': [
-        'base',   # ResUsers, SystemParameter (services.py:17, data.py:13)
+        'base',  # ResUsers, SystemParameter (services.py:17, data.py:13)
         'authz',  # la capacidad que gatea el CRUD (controllers/main.py:18)
-        'web',    # PRE_UID_KEY, build_session_info (controllers/main.py:65)
+        'web',  # PRE_UID_KEY, build_session_info (controllers/main.py:65)
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

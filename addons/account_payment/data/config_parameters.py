@@ -24,6 +24,7 @@ necesita.
 correcto: es DATO, independiente de qué lo consuma; y deja la puerta
 abierta a que un futuro consumidor lo encuentre ya presente.
 """
+
 #: Nombre completo de la clave — ≙ el ``<field name="key">`` del ``<record>``.
 ENABLE_PORTAL_PAYMENT_KEY = 'account_payment.enable_portal_payment'
 

@@ -13,6 +13,7 @@ adivinanza de ``auto``, el trato de ``quiet`` en ``QR``, el respaldo a
 ``Code128`` cuando la codificación no cuadra, el gancho de máscara y las tres
 salidas del ``except``.
 """
+
 import inspect
 
 import pytest
@@ -35,21 +36,25 @@ class TestTheDefaultsAreValidatedLikeTheSource:
         # La fuente valida con ``int``: el llamador es una URL, y ahí todo
         # llega como texto.
         output = IrActionsReport.barcode(
-            'Code128', 'KX-0001', width='300', height='80')
+            'Code128', 'KX-0001', width='300', height='80'
+        )
         assert output.startswith(PNG_MAGIC)
 
     def test_humanreadable_arrives_as_a_digit_and_is_read_as_a_boolean(self):
         # ``lambda x: bool(int(x))`` — '0' es falso, no verdadero.
         without_text = IrActionsReport.barcode(
-            'Code128', 'KX-0001', humanreadable='0')
+            'Code128', 'KX-0001', humanreadable='0'
+        )
         with_text = IrActionsReport.barcode(
-            'Code128', 'KX-0001', humanreadable='1')
+            'Code128', 'KX-0001', humanreadable='1'
+        )
         assert without_text != with_text
 
     def test_an_unknown_correction_level_falls_back_to_l(self):
         # ``x in ('L','M','Q','H') and x or 'L'`` — el validador de la fuente.
-        assert (IrActionsReport.barcode('QR', 'KX', barLevel='Z')
-                == IrActionsReport.barcode('QR', 'KX', barLevel='L'))
+        assert IrActionsReport.barcode(
+            'QR', 'KX', barLevel='Z'
+        ) == IrActionsReport.barcode('QR', 'KX', barLevel='L')
 
 
 class TestTheSizeGuardRejectsBeforeDrawing:
@@ -67,7 +72,8 @@ class TestTheSizeGuardRejectsBeforeDrawing:
     def test_the_limit_itself_is_not_rejected(self):
         # ``>`` y no ``>=``: 1200 x 1000 = 1 200 000 exacto pasa.
         assert IrActionsReport.barcode(
-            'Code128', 'KX-0001', width=1200, height=1000)
+            'Code128', 'KX-0001', width=1200, height=1000
+        )
 
 
 class TestUpcaIsPromotedToEan13:
@@ -80,8 +86,9 @@ class TestUpcaIsPromotedToEan13:
 
     def test_thirteen_digits_are_promoted_without_padding(self):
         value = '0012345678905'
-        assert (IrActionsReport.barcode('UPCA', value)
-                == IrActionsReport.barcode('EAN13', value))
+        assert IrActionsReport.barcode(
+            'UPCA', value
+        ) == IrActionsReport.barcode('EAN13', value)
 
     def test_another_length_stays_upca(self):
         # Fuera de (11, 12, 13) la fuente no promueve: el tipo sigue siendo
@@ -93,36 +100,42 @@ class TestAutoGuessesTheSymbologyByLength:
     """``symbology_guess = {8: 'EAN8', 13: 'EAN13'}``, si no ``Code128``."""
 
     def test_eight_digits_guess_ean8(self):
-        assert (IrActionsReport.barcode('auto', '96385074')
-                == IrActionsReport.barcode('EAN8', '96385074'))
+        assert IrActionsReport.barcode(
+            'auto', '96385074'
+        ) == IrActionsReport.barcode('EAN8', '96385074')
 
     def test_thirteen_digits_guess_ean13(self):
-        assert (IrActionsReport.barcode('auto', '5901234123457')
-                == IrActionsReport.barcode('EAN13', '5901234123457'))
+        assert IrActionsReport.barcode(
+            'auto', '5901234123457'
+        ) == IrActionsReport.barcode('EAN13', '5901234123457')
 
     def test_any_other_length_guesses_code128(self):
-        assert (IrActionsReport.barcode('auto', 'KX-0001')
-                == IrActionsReport.barcode('Code128', 'KX-0001'))
+        assert IrActionsReport.barcode(
+            'auto', 'KX-0001'
+        ) == IrActionsReport.barcode('Code128', 'KX-0001')
 
 
 class TestQrTradesQuietForBorder:
     """``quiet`` no existe en QR; la fuente lo traduce a ``barBorder``."""
 
     def test_quiet_false_removes_the_border(self):
-        assert (IrActionsReport.barcode('QR', 'KX', quiet=0)
-                == IrActionsReport.barcode('QR', 'KX', barBorder=0))
+        assert IrActionsReport.barcode(
+            'QR', 'KX', quiet=0
+        ) == IrActionsReport.barcode('QR', 'KX', barBorder=0)
 
     def test_quiet_true_keeps_the_default_border(self):
-        assert (IrActionsReport.barcode('QR', 'KX', quiet=1)
-                == IrActionsReport.barcode('QR', 'KX', barBorder=4))
+        assert IrActionsReport.barcode(
+            'QR', 'KX', quiet=1
+        ) == IrActionsReport.barcode('QR', 'KX', barBorder=4)
 
 
 class TestABadEncodingFallsBackToCode128:
     """El motivo que la fuente escribe: EAN8 de 11111111 dibujaría 11111115."""
 
     def test_an_ean8_with_a_wrong_check_digit_becomes_code128(self):
-        assert (IrActionsReport.barcode('EAN8', '11111111')
-                == IrActionsReport.barcode('Code128', '11111111'))
+        assert IrActionsReport.barcode(
+            'EAN8', '11111111'
+        ) == IrActionsReport.barcode('Code128', '11111111')
 
     def test_an_ean8_with_the_right_check_digit_stays_ean8(self):
         right = IrActionsReport.barcode('EAN8', '96385074')
@@ -143,8 +156,9 @@ class TestTheFailurePathHasThreeOutcomes:
 
     def test_any_other_type_retries_as_code128(self):
         # 'ITF' sólo admite dígitos; con letras falla y la fuente reintenta.
-        assert (IrActionsReport.barcode('ITF', 'ABC')
-                == IrActionsReport.barcode('Code128', 'ABC'))
+        assert IrActionsReport.barcode(
+            'ITF', 'ABC'
+        ) == IrActionsReport.barcode('Code128', 'ABC')
 
 
 class TestTheMaskHookIsCalledAndIsEmptyByDefault:
@@ -161,14 +175,17 @@ class TestTheMaskHookIsCalledAndIsEmptyByDefault:
             return barcode
 
         monkeypatch.setattr(
-            IrActionsReport, 'get_available_barcode_masks',
-            classmethod(lambda cls: {'kx': apply_mask}))
+            IrActionsReport,
+            'get_available_barcode_masks',
+            classmethod(lambda cls: {'kx': apply_mask}),
+        )
         IrActionsReport.barcode('QR', 'KX', mask='kx', width=120, height=120)
         assert seen['args'][:2] == (120, 120)
 
     def test_an_unknown_mask_is_ignored(self):
-        assert (IrActionsReport.barcode('QR', 'KX', mask='no-existe')
-                == IrActionsReport.barcode('QR', 'KX'))
+        assert IrActionsReport.barcode(
+            'QR', 'KX', mask='no-existe'
+        ) == IrActionsReport.barcode('QR', 'KX')
 
 
 class TestTheSignaturesMatchTheSource:
@@ -176,8 +193,14 @@ class TestTheSignaturesMatchTheSource:
 
     def test_barcode_takes_the_type_the_value_and_free_keywords(self):
         signature = inspect.signature(IrActionsReport.barcode)
-        assert list(signature.parameters) == ['barcode_type', 'value', 'kwargs']
+        assert list(signature.parameters) == [
+            'barcode_type',
+            'value',
+            'kwargs',
+        ]
 
     def test_the_mask_hook_takes_no_arguments(self):
-        signature = inspect.signature(IrActionsReport.get_available_barcode_masks)
+        signature = inspect.signature(
+            IrActionsReport.get_available_barcode_masks
+        )
         assert list(signature.parameters) == []

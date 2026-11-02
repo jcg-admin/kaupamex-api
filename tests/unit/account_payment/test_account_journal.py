@@ -13,6 +13,7 @@ que LO DE ESTE addon está presente/funciona — nunca que es el único
 contribuyente (``chain_method``/``_get_available_payment_method_lines`` no
 se compara contra un conteo exacto de hooks instalados).
 """
+
 import pytest
 from django.db import transaction
 
@@ -42,35 +43,46 @@ def company():
 @pytest.fixture
 def journal(company):
     return AccountJournal.objects.create(
-        name='Banco', code='BNKAJ', type='bank', company=company)
+        name='Banco', code='BNKAJ', type='bank', company=company
+    )
 
 
 @pytest.fixture
 def inbound_method():
     return AccountPaymentMethod.objects.create(
-        name='MercadoPago', code='mercadopago', payment_type='inbound')
+        name='MercadoPago', code='mercadopago', payment_type='inbound'
+    )
 
 
 class TestGetAvailablePaymentMethodLines:
-    def test_returns_lines_of_matching_payment_type(self, journal, inbound_method):
+    def test_returns_lines_of_matching_payment_type(
+        self, journal, inbound_method
+    ):
         line = AccountPaymentMethodLine.objects.create(
-            payment_method=inbound_method, journal=journal)
+            payment_method=inbound_method, journal=journal
+        )
         result = journal._get_available_payment_method_lines('inbound')
         assert line in result
 
-    def test_excludes_lines_of_other_payment_type(self, journal, inbound_method):
+    def test_excludes_lines_of_other_payment_type(
+        self, journal, inbound_method
+    ):
         outbound_method = AccountPaymentMethod.objects.create(
-            name='Transferencia', code='transfer', payment_type='outbound')
+            name='Transferencia', code='transfer', payment_type='outbound'
+        )
         AccountPaymentMethodLine.objects.create(
-            payment_method=outbound_method, journal=journal)
+            payment_method=outbound_method, journal=journal
+        )
         result = journal._get_available_payment_method_lines('inbound')
         assert not result.filter(payment_method=outbound_method).exists()
 
     def test_excludes_line_of_inactive_provider(self, journal, inbound_method):
         line = AccountPaymentMethodLine.objects.create(
-            payment_method=inbound_method, journal=journal)
+            payment_method=inbound_method, journal=journal
+        )
         gateway = PaymentGateway.objects.create(
-            gateway='PAYPAL', name='PayPal', is_active=False)
+            gateway='PAYPAL', name='PayPal', is_active=False
+        )
         PaymentGatewayJournal.objects.create(gateway=gateway, journal=journal)
         line.payment_provider = gateway
         result = journal._get_available_payment_method_lines('inbound')
@@ -78,9 +90,11 @@ class TestGetAvailablePaymentMethodLines:
 
     def test_keeps_line_of_active_provider(self, journal, inbound_method):
         line = AccountPaymentMethodLine.objects.create(
-            payment_method=inbound_method, journal=journal)
+            payment_method=inbound_method, journal=journal
+        )
         gateway = PaymentGateway.objects.create(
-            gateway='MERCADOPAGO', name='MercadoPago', is_active=True)
+            gateway='MERCADOPAGO', name='MercadoPago', is_active=True
+        )
         line.payment_provider = gateway
         result = journal._get_available_payment_method_lines('inbound')
         assert line in result
@@ -94,7 +108,8 @@ class TestUnlinkExceptLinkedToPaymentProvider:
 
     def test_delete_allowed_with_inactive_gateway(self, journal):
         gateway = PaymentGateway.objects.create(
-            gateway='PAYPAL', name='PayPal', is_active=False)
+            gateway='PAYPAL', name='PayPal', is_active=False
+        )
         PaymentGatewayJournal.objects.create(gateway=gateway, journal=journal)
         pk = journal.pk
         journal.delete()
@@ -102,12 +117,15 @@ class TestUnlinkExceptLinkedToPaymentProvider:
 
     def test_delete_blocked_with_active_gateway(self, journal):
         gateway = PaymentGateway.objects.create(
-            gateway='MERCADOPAGO', name='MercadoPago', is_active=True)
+            gateway='MERCADOPAGO', name='MercadoPago', is_active=True
+        )
         PaymentGatewayJournal.objects.create(gateway=gateway, journal=journal)
         # `atomic()` interno por la misma razón que en
-        # `test_account_payment_method_line.py`: el guard corre en `pre_delete`,
+        # `test_account_payment_method_line.py`: el guard corre en
+        # `pre_delete`,
         # dentro del bloque atómico de `Collector.delete()`, y sin acotar el
-        # rollback la consulta siguiente aborta con `TransactionManagementError`.
+        # rollback la consulta siguiente aborta con
+        # `TransactionManagementError`.
         with pytest.raises(UserError):
             with transaction.atomic():
                 journal.delete()

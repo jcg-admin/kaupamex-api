@@ -6,6 +6,7 @@ delivery_status``) YA existe; V5a lo **ancla** al canónico con la FK
 ``IN_PREPARATION`` (albarán ``assigned`` sin guía de transportista) sea
 proyectable sin depender del enum monolítico ``Order.status`` (H-SALE-09).
 """
+
 import uuid
 from decimal import Decimal
 
@@ -20,27 +21,34 @@ from tests.factories.product_factory import make_category, make_product
 pytestmark = pytest.mark.django_db
 
 ADDR = {
-    'recipient_name': 'Test V5', 'street': 'Calle 5', 'city': 'CDMX',
-    'state': 'CDMX', 'zip_code': '06600',
+    'recipient_name': 'Test V5',
+    'street': 'Calle 5',
+    'city': 'CDMX',
+    'state': 'CDMX',
+    'zip_code': '06600',
 }
 
 
 @pytest.fixture
 def sale_order(db):
     return SaleOrder.objects.create(
-        state=SaleOrder.STATE_SALE, cart_token=uuid.uuid4())
+        state=SaleOrder.STATE_SALE, cart_token=uuid.uuid4()
+    )
 
 
 @pytest.fixture
 def product_v5(db):
     cat = make_category(name='Cat V5')
-    return make_product(name='Prod V5', price=Decimal('90.00'), stock=5, categ=cat)
+    return make_product(
+        name='Prod V5', price=Decimal('90.00'), stock=5, categ=cat
+    )
 
 
 class TestPickingAnchorsToCanonical:
     def test_picking_carries_sale_order_fk(self, sale_order):
         picking = StockPicking.objects.create(
-            sale_order=sale_order, state=StockPicking.STATE_CONFIRMED)
+            sale_order=sale_order, state=StockPicking.STATE_CONFIRMED
+        )
         picking.action_assign()
         picking.refresh_from_db()
         assert picking.sale_order_id == sale_order.pk
@@ -56,18 +64,23 @@ class TestInPreparationIsProjectable:
     """IN_PREPARATION = albarán ``assigned`` (o delivery_status ``started``)
     sin guía de transportista — distinguible de PAID (sin albarán)."""
 
-    def test_assigned_picking_without_guide_marks_in_preparation(self, sale_order):
+    def test_assigned_picking_without_guide_marks_in_preparation(
+        self, sale_order
+    ):
         # PAID: sin albarán, sin guía.
         assert not sale_order.pickings.exists()
         assert not hasattr(sale_order, 'shipment_guide')
         # Transición a preparación: albarán asignado + delivery_status started.
         picking = StockPicking.objects.create(
-            sale_order=sale_order, state=StockPicking.STATE_CONFIRMED)
+            sale_order=sale_order, state=StockPicking.STATE_CONFIRMED
+        )
         picking.action_assign()
         delivery = SaleOrderDelivery.objects.create(
-            order=sale_order, delivery_status=SaleOrderDelivery.STATUS_STARTED)
+            order=sale_order, delivery_status=SaleOrderDelivery.STATUS_STARTED
+        )
         assert sale_order.pickings.filter(
-            state=StockPicking.STATE_ASSIGNED).exists()
+            state=StockPicking.STATE_ASSIGNED
+        ).exists()
         assert delivery.delivery_status == SaleOrderDelivery.STATUS_STARTED
         assert not hasattr(sale_order, 'shipment_guide')
 
@@ -78,13 +91,17 @@ class TestConfirmPopulatesFulfillmentAxis:
 
     def test_confirm_creates_assigned_picking_and_delivery(self, product_v5):
         draft = SaleOrder.objects.create(
-            state=SaleOrder.STATE_DRAFT, cart_token=uuid.uuid4())
+            state=SaleOrder.STATE_DRAFT, cart_token=uuid.uuid4()
+        )
         add_item_to_draft(draft, product_v5, quantity=1)
-        confirm_draft_order(draft, address_data=dict(ADDR),
-                            guest_email='v5b@test.mx')
+        confirm_draft_order(
+            draft, address_data=dict(ADDR), guest_email='v5b@test.mx'
+        )
         draft.refresh_from_db()
         picking = draft.pickings.get()
         assert picking.state == StockPicking.STATE_ASSIGNED
-        assert draft.delivery.delivery_status == SaleOrderDelivery.STATUS_STARTED
+        assert (
+            draft.delivery.delivery_status == SaleOrderDelivery.STATUS_STARTED
+        )
         # PAID vs IN_PREPARATION: hay albarán assigned pero aún sin guía.
         assert not hasattr(draft, 'shipment_guide')

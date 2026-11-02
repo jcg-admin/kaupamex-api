@@ -44,6 +44,7 @@ metodos que la fuente conserva avisando —``remove`` e ``items``— se portan
 **con su aviso**: retirarlos aqui adelantaria una retirada que la referencia
 no ha hecho, y la prueba mide que el ``DeprecationWarning`` se emite.
 """
+
 from __future__ import annotations
 
 import itertools
@@ -103,7 +104,8 @@ class Intervals(typing.Generic[T]):
                 # en un empate, que es lo que mantiene separado lo adyacente.
                 boundaries = sorted(
                     _boundaries(sorted(intervals), 'start', 'stop'),
-                    key=lambda i: i[0])
+                    key=lambda i: i[0],
+                )
             else:
                 boundaries = sorted(_boundaries(intervals, 'start', 'stop'))
             for value, flag, value_items in boundaries:
@@ -135,7 +137,8 @@ class Intervals(typing.Generic[T]):
         """Devuelve la union de los dos conjuntos de intervalos."""
         return Intervals(
             itertools.chain(self._items, other._items),
-            keep_distinct=self._keep_distinct)
+            keep_distinct=self._keep_distinct,
+        )
 
     def __and__(self, other):
         """Devuelve la interseccion de los dos conjuntos de intervalos."""
@@ -162,14 +165,17 @@ class Intervals(typing.Generic[T]):
         bounds1 = _boundaries(self, 'start', 'stop')
         bounds2 = _boundaries(
             Intervals(other, keep_distinct=self._keep_distinct),
-            'switch', 'switch')
+            'switch',
+            'switch',
+        )
 
-        start = None                    # lo fija start/stop
-        recs1 = None                    # lo fija start
-        enabled = difference            # lo cambia switch
+        start = None  # lo fija start/stop
+        recs1 = None  # lo fija start
+        enabled = difference  # lo cambia switch
         if self._keep_distinct:
             bounds = sorted(
-                itertools.chain(bounds1, bounds2), key=lambda i: i[0])
+                itertools.chain(bounds1, bounds2), key=lambda i: i[0]
+            )
         else:
             bounds = sorted(itertools.chain(bounds1, bounds2))
         for value, flag, recs in bounds:
@@ -193,18 +199,22 @@ class Intervals(typing.Generic[T]):
         """Retira un intervalo del conjunto."""
         warnings.warn(
             "Deprecated since 19.0, do not mutate intervals",
-            DeprecationWarning)
+            DeprecationWarning,
+        )
         self._items.remove(interval)
 
     def items(self):
         """Devuelve los intervalos."""
         warnings.warn(
             "Deprecated since 19.0, just iterate over Intervals",
-            DeprecationWarning)
+            DeprecationWarning,
+        )
         return self._items
 
 
-def intervals_overlap(interval_a: tuple[T, T], interval_b: tuple[T, T]) -> bool:
+def intervals_overlap(
+    interval_a: tuple[T, T], interval_b: tuple[T, T]
+) -> bool:
     """Dice si dos intervalos se cruzan.
 
     :param interval_a: el primer par ``(inicio, fin)``
@@ -249,5 +259,6 @@ def invert_intervals(
     return [
         (start, stop)
         for start, stop, _ in Intervals(
-            [(start, stop, set()) for start, stop in items])
+            [(start, stop, set()) for start, stop in items]
+        )
     ]

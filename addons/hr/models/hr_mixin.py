@@ -26,6 +26,7 @@ Adaptación fiel de Odoo hr/models/hr_mixin.py
      - BLOQUEADO
      - Mismo motivo que ``create`` — mismo sucesor.
 """
+
 import models
 
 

@@ -1,4 +1,5 @@
 """URLs — addons.authz_signup (alta, set-password y reset por token)."""
+
 from django.urls import path
 
 from addons.authz_signup.controllers.main import (

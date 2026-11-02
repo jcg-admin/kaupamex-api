@@ -9,6 +9,7 @@ Por qué estos códigos son de este addon:
 
 - ``logistics`` — ``delivery`` dueña envíos, guías y transportistas.
 """
+
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
 MODULES = [

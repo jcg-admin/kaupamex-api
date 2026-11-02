@@ -7,6 +7,7 @@ poblado y ``add_field_if_absent`` sobre una clase ajena no rompe con
 ``AppRegistryNotReady`` — mismo criterio que ``account_peppol`` /
 ``project_account``.
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -14,14 +15,15 @@ from django.apps import AppConfig
 
 class AccountPeppolAdvancedFieldsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name               = 'addons.account_peppol_advanced_fields'
-    label              = 'account_peppol_advanced_fields'
-    verbose_name       = 'Peppol — referencias avanzadas [DEPRECATED]'
+    name = 'addons.account_peppol_advanced_fields'
+    label = 'account_peppol_advanced_fields'
+    verbose_name = 'Peppol — referencias avanzadas [DEPRECATED]'
 
     #: Módulo → función. Mismo patrón que ``AccountPeppolConfig._EXTENSIONES``.
     _EXTENSIONES = {
-        'addons.account_peppol_advanced_fields.models.account_move':
-            'apply_account_peppol_advanced_fields_account_move_extensions',
+        'addons.account_peppol_advanced_fields.models.account_move': (
+            'apply_account_peppol_advanced_fields_account_move_extensions'
+        ),
     }
 
     def ready(self):

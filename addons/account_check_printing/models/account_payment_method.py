@@ -25,12 +25,15 @@ otro addon (la tanda actual ya tiene otro que extiende
 ``account.payment.method`` — ver el aviso de "NO ESTÁS SOLO") se instala
 antes en ``INSTALLED_APPS``.
 """
+
 from orm.method_chain import chain_method
 from addons.account.models import AccountPaymentMethod
 
 #: ≙ ``res['check_printing'] = {'mode': 'multi', 'type': ('bank',)}``
 #: (``odoo19c: account_payment_method.py:13``).
-CHECK_PRINTING_METHOD_INFO = {'check_printing': {'mode': 'multi', 'type': ('bank',)}}
+CHECK_PRINTING_METHOD_INFO = {
+    'check_printing': {'mode': 'multi', 'type': ('bank',)}
+}
 
 
 def _get_payment_method_information(self):
@@ -53,6 +56,8 @@ def apply_account_check_printing_payment_method_extensions():
     necesita. Se llama desde ``AccountCheckPrintingConfig.ready()``.
     """
     chain_method(
-        AccountPaymentMethod, '_get_payment_method_information',
-        _get_payment_method_information, combine=_merge_payment_method_information,
+        AccountPaymentMethod,
+        '_get_payment_method_information',
+        _get_payment_method_information,
+        combine=_merge_payment_method_information,
     )

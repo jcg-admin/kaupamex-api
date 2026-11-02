@@ -17,7 +17,12 @@ class Migration(migrations.Migration):
             name="vehicle",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Vehículo asociado a este apunte (Odoo vehicle_id). Al postear una factura de proveedor con este campo seteado en una línea de producto, se crea el servicio de flota correspondiente.",
+                help_text=(
+                    "Vehículo asociado a este apunte (Odoo vehicle_id). Al"
+                    " postear una factura de proveedor con este campo seteado"
+                    " en una línea de producto, se crea el servicio de flota"
+                    " correspondiente."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="account_move_lines",

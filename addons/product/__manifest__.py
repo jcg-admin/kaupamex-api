@@ -17,7 +17,7 @@
     # DRF, no dependencia de datos — no se declara (ver lote 2).
     'depends': [
         'base',  # ResCompany, ResCurrency, ResPartner, DecimalPrecision
-        'uom',   # Uom — el producto se vende y se almacena en una unidad
+        'uom',  # Uom — el producto se vende y se almacena en una unidad
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

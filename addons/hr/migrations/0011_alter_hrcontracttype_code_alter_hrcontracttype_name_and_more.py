@@ -6,7 +6,10 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("hr", "0010_hremployee_friday_location_hremployee_hourly_cost_and_more"),
+        (
+            "hr",
+            "0010_hremployee_friday_location_hremployee_hourly_cost_and_more",
+        ),
     ]
 
     operations = [
@@ -16,7 +19,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Código corto (Odoo code). Se auto-rellena desde name si se deja vacío — ver save() (Odoo _compute_code).",
+                help_text=(
+                    "Código corto (Odoo code). Se auto-rellena desde name si"
+                    " se deja vacío — ver save() (Odoo _compute_code)."
+                ),
                 verbose_name="Código",
             ),
         ),
@@ -51,7 +57,11 @@ class Migration(migrations.Migration):
             name="barcode",
             field=models.CharField(
                 blank=True,
-                help_text="Odoo barcode — identificación del empleado. Unicidad vía Meta.constraints (``hr_employee_barcode_uniq``), no aquí.",
+                help_text=(
+                    "Odoo barcode — identificación del empleado. Unicidad vía"
+                    " Meta.constraints (``hr_employee_barcode_uniq``), no"
+                    " aquí."
+                ),
                 null=True,
                 verbose_name="ID de gafete",
             ),
@@ -108,7 +118,11 @@ class Migration(migrations.Migration):
                     ("presence_other", "En otra ubicación"),
                 ],
                 default="",
-                help_text="BLOQUEADO por ``hr_presence_state`` — _compute_presence_icon deriva de ese campo, que queda en su default. Sucesor: tarea #21.",
+                help_text=(
+                    "BLOQUEADO por ``hr_presence_state`` —"
+                    " _compute_presence_icon deriva de ese campo, que queda en"
+                    " su default. Sucesor: tarea #21."
+                ),
             ),
         ),
         migrations.AlterField(
@@ -122,7 +136,12 @@ class Migration(migrations.Migration):
                     ("out_of_working_hour", "Fuera de horario"),
                 ],
                 default="out_of_working_hour",
-                help_text="BLOQUEADO por ``base.ResUsers.presence_ids`` — el cómputo (_compute_presence_state) necesita la presencia del usuario, infra bus no portada. El campo queda en su default. Sucesor: tarea #21.",
+                help_text=(
+                    "BLOQUEADO por ``base.ResUsers.presence_ids`` — el cómputo"
+                    " (_compute_presence_state) necesita la presencia del"
+                    " usuario, infra bus no portada. El campo queda en su"
+                    " default. Sucesor: tarea #21."
+                ),
                 verbose_name="Estado de presencia",
             ),
         ),
@@ -132,7 +151,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Código de base.ResLang.code (Odoo lang — Selection dinámico, ver divergencia del docstring del módulo).",
+                help_text=(
+                    "Código de base.ResLang.code (Odoo lang — Selection"
+                    " dinámico, ver divergencia del docstring del módulo)."
+                ),
                 verbose_name="Idioma",
             ),
         ),
@@ -147,7 +169,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Odoo legal_name (compute+store+readonly=False — se rellena desde name en save() si está vacío).",
+                help_text=(
+                    "Odoo legal_name (compute+store+readonly=False — se"
+                    " rellena desde name en save() si está vacío)."
+                ),
                 verbose_name="Nombre legal",
             ),
         ),
@@ -162,7 +187,10 @@ class Migration(migrations.Migration):
             model_name="hremployee",
             name="name",
             field=models.CharField(
-                help_text="Odoo name (related=resource_id.name — aquí columna propia, ver divergencia del docstring del módulo).",
+                help_text=(
+                    "Odoo name (related=resource_id.name — aquí columna"
+                    " propia, ver divergencia del docstring del módulo)."
+                ),
                 verbose_name="Nombre del empleado",
             ),
         ),
@@ -170,7 +198,9 @@ class Migration(migrations.Migration):
             model_name="hremployee",
             name="permit_no",
             field=models.CharField(
-                blank=True, default="", verbose_name="No. de permiso de trabajo"
+                blank=True,
+                default="",
+                verbose_name="No. de permiso de trabajo",
             ),
         ),
         migrations.AlterField(
@@ -214,12 +244,16 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="hremployee",
             name="study_school",
-            field=models.CharField(blank=True, default="", verbose_name="Institución"),
+            field=models.CharField(
+                blank=True, default="", verbose_name="Institución"
+            ),
         ),
         migrations.AlterField(
             model_name="hremployee",
             name="visa_no",
-            field=models.CharField(blank=True, default="", verbose_name="No. de visa"),
+            field=models.CharField(
+                blank=True, default="", verbose_name="No. de visa"
+            ),
         ),
         migrations.AlterField(
             model_name="hremployee",
@@ -234,7 +268,11 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Odoo work_location_name — lo materializa _compute_work_location_name desde version.work_location al guardar (tarea #524).",
+                help_text=(
+                    "Odoo work_location_name — lo materializa"
+                    " _compute_work_location_name desde version.work_location"
+                    " al guardar (tarea #524)."
+                ),
             ),
         ),
         migrations.AlterField(
@@ -242,9 +280,17 @@ class Migration(migrations.Migration):
             name="work_location_type",
             field=models.CharField(
                 blank=True,
-                choices=[("home", "Casa"), ("office", "Oficina"), ("other", "Otra")],
+                choices=[
+                    ("home", "Casa"),
+                    ("office", "Oficina"),
+                    ("other", "Otra"),
+                ],
                 default="",
-                help_text="Odoo work_location_type — lo materializa _compute_work_location_type desde version.work_location al guardar (tarea #524).",
+                help_text=(
+                    "Odoo work_location_type — lo materializa"
+                    " _compute_work_location_type desde version.work_location"
+                    " al guardar (tarea #524)."
+                ),
             ),
         ),
         migrations.AlterField(
@@ -278,7 +324,9 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Nombre del tipo de estructura salarial (Odoo name).",
+                help_text=(
+                    "Nombre del tipo de estructura salarial (Odoo name)."
+                ),
                 verbose_name="Tipo de estructura salarial",
             ),
         ),
@@ -323,7 +371,11 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Odoo job_title (compute+inverse+store). BLOQUEADO por ``el motor de compute+inverse+store`` — el auto-sync desde job.name lo exige; se asigna directo. Familia (a).",
+                help_text=(
+                    "Odoo job_title (compute+inverse+store). BLOQUEADO por"
+                    " ``el motor de compute+inverse+store`` — el auto-sync"
+                    " desde job.name lo exige; se asigna directo. Familia (a)."
+                ),
                 verbose_name="Título del puesto",
             ),
         ),
@@ -339,14 +391,21 @@ class Migration(migrations.Migration):
                     ("divorced", "Divorciado(a)"),
                 ],
                 default="single",
-                help_text="DIVERGENCIA: la referencia resuelve las opciones vía _get_marital_status_selection (método, se porta abajo); aquí son fijas (TextChoices), mismo criterio que Certificate en hr_employee.py.",
+                help_text=(
+                    "DIVERGENCIA: la referencia resuelve las opciones vía"
+                    " _get_marital_status_selection (método, se porta abajo);"
+                    " aquí son fijas (TextChoices), mismo criterio que"
+                    " Certificate en hr_employee.py."
+                ),
                 verbose_name="Estado civil",
             ),
         ),
         migrations.AlterField(
             model_name="hrversion",
             name="name",
-            field=models.CharField(blank=True, default="", verbose_name="Nombre"),
+            field=models.CharField(
+                blank=True, default="", verbose_name="Nombre"
+            ),
         ),
         migrations.AlterField(
             model_name="hrversion",
@@ -428,7 +487,11 @@ class Migration(migrations.Migration):
             model_name="hrworklocation",
             name="location_type",
             field=models.CharField(
-                choices=[("home", "Casa"), ("office", "Oficina"), ("other", "Otra")],
+                choices=[
+                    ("home", "Casa"),
+                    ("office", "Oficina"),
+                    ("other", "Otra"),
+                ],
                 default="office",
                 help_text="Casa / oficina / otra (Odoo location_type).",
                 verbose_name="Tipo de ubicación",

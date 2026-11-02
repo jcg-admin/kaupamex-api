@@ -11,6 +11,7 @@ La primera empresa **L1** ya no se nombra en código (DEC-3 de
 (``BOOTSTRAP_COMPANY_CODE``) y la crea el bootstrap — mecanismo que este
 archivo verifica junto al de la system company.
 """
+
 import pytest
 from django.test import override_settings
 
@@ -38,20 +39,23 @@ def test_get_system_creates_idempotent():
 
 
 def test_bootstrap_company_is_created_from_config():
-    with override_settings(BOOTSTRAP_COMPANY_CODE='primera-l1',
-                           BOOTSTRAP_COMPANY_NAME='Primera L1'):
+    with override_settings(
+        BOOTSTRAP_COMPANY_CODE='primera-l1',
+        BOOTSTRAP_COMPANY_NAME='Primera L1',
+    ):
         company = bootstrap_company_seed()
         again = bootstrap_company_seed()
     assert company is not None
     assert company.code == 'primera-l1'
-    assert again.pk == company.pk               # idempotente
+    assert again.pk == company.pk  # idempotente
     # Es una empresa L1 real, no la system company de datos compartidos.
     assert company.is_system is False
 
 
 def test_bootstrap_company_is_distinct_from_the_system_company():
-    with override_settings(BOOTSTRAP_COMPANY_CODE='otra-l1',
-                           BOOTSTRAP_COMPANY_NAME='Otra L1'):
+    with override_settings(
+        BOOTSTRAP_COMPANY_CODE='otra-l1', BOOTSTRAP_COMPANY_NAME='Otra L1'
+    ):
         company = bootstrap_company_seed()
     assert ResCompany.get_system().pk != company.pk
 

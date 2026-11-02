@@ -17,6 +17,7 @@ encabezado y la ausencia de número fiscal, y ese matiz depende de la
 numeración de ``account``, que no está resuelta. Declararla ahora sería
 inventar la diferencia. Se nombra la ausencia en vez de rellenarla.
 """
+
 from decimal import Decimal
 
 from addons.base.models.ir_actions_report import REPORT_TYPE_PDF
@@ -55,8 +56,13 @@ def _issuer(company):
     excepción a 200 líneas del dato faltante.
     """
     if company is None:
-        return {'name': '', 'address': '', 'email': '', 'phone': '',
-                'logo': ''}
+        return {
+            'name': '',
+            'address': '',
+            'email': '',
+            'phone': '',
+            'logo': '',
+        }
     partner = getattr(company, 'partner', None)
     return {
         'name': company.name or '',
@@ -77,10 +83,11 @@ def _buyer(order):
     partner; en la referencia el invitado es un partner efímero de
     ``website_sale``. Aquí el snapshot del email es lo único que hay.
     """
-    partner = getattr(order.partner, 'partner', None) if order.partner else None
+    partner = (
+        getattr(order.partner, 'partner', None) if order.partner else None
+    )
     if partner is not None:
-        return {'name': partner.name or '',
-                'address': partner.contact_address}
+        return {'name': partner.name or '', 'address': partner.contact_address}
     return {'name': order.guest_email or '', 'address': ''}
 
 
@@ -98,8 +105,11 @@ def build_sale_order(records, **ctx):
         'issuer': _issuer(order.company),
         'buyer': _buyer(order),
         'order_number': order.name or f'#{order.pk}',
-        'date': (order.date_order or order.created_at).isoformat(
-            timespec='seconds'),
+        'date': (
+            (order.date_order or order.created_at).isoformat(
+                timespec='seconds'
+            )
+        ),
         'currency': ctx.get('currency', DEFAULT_CURRENCY),
         'items': [
             {

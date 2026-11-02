@@ -1,4 +1,5 @@
 """Sonda Consumer: dos bases propias, router real y registros existentes."""
+
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
@@ -8,6 +9,7 @@ from pathlib import Path
 import subprocess
 
 import django
+
 django.setup()
 
 from django.conf import settings
@@ -22,7 +24,9 @@ from service import db as database_service
 
 run = Path(__file__).resolve().parent.parent
 name_a = settings.DATABASES['default']['NAME']
-assert name_a.startswith('orm_bootstrap_'), 'Use the existing exclusive PostgreSQL harness.'
+assert name_a.startswith(
+    'orm_bootstrap_'
+), 'Use the existing exclusive PostgreSQL harness.'
 name_b = name_a + '_b'
 container = os.environ['ORM_QA_CONTAINER']
 marker = 'module_' + name_a
@@ -31,9 +35,25 @@ results = {}
 
 
 def admin(sql):
-    subprocess.run(['docker', 'exec', '-i', '-u', 'postgres', container,
-                    'psql', '-X', '-v', 'ON_ERROR_STOP=1', '-d', 'postgres'],
-                   input=sql, text=True, check=True)
+    subprocess.run(
+        [
+            'docker',
+            'exec',
+            '-i',
+            '-u',
+            'postgres',
+            container,
+            'psql',
+            '-X',
+            '-v',
+            'ON_ERROR_STOP=1',
+            '-d',
+            'postgres',
+        ],
+        input=sql,
+        text=True,
+        check=True,
+    )
 
 
 def row_names(company):
@@ -49,20 +69,36 @@ async def context_probe():
         with company_scope(company):
             await asyncio.sleep(0)
             return get_current_company()
+
     return await asyncio.gather(read(97001), read(97002))
 
 
 created = hba_added = False
 original_management = getattr(settings, 'MULTIDB_MANAGEMENT_ENABLED', None)
 try:
-    # El backend Consumer crea/elimina la base; no se implementa otro provisioner.
+    # El backend Consumer crea/elimina la base; no se implementa otro
+    # provisioner.
     settings.MULTIDB_MANAGEMENT_ENABLED = True
     assert not database_service.database_exists(name_b)
-    subprocess.run(['docker', 'exec', '-i', '-u', 'postgres', container,
-                    'sh', '-c', 'cat >> "$PGDATA/pg_hba.conf"'],
-                   input=f'\nhost {name_b} {settings.DATABASES["default"]["USER"]} '
-                         f'{os.environ["ORM_QA_BRIDGE"]}/32 scram-sha-256 # {marker}\n',
-                   text=True, check=True)
+    subprocess.run(
+        [
+            'docker',
+            'exec',
+            '-i',
+            '-u',
+            'postgres',
+            container,
+            'sh',
+            '-c',
+            'cat >> "$PGDATA/pg_hba.conf"',
+        ],
+        input=(
+            f'\nhost {name_b} {settings.DATABASES["default"]["USER"]} '
+            f'{os.environ["ORM_QA_BRIDGE"]}/32 scram-sha-256 # {marker}\n'
+        ),
+        text=True,
+        check=True,
+    )
     hba_added = True
     admin('SELECT pg_reload_conf();')
     database_service.create_empty_database(name_b)
@@ -80,14 +116,23 @@ try:
     names_b = build_graph(['product']).order()
     for alias, names in ((alias_a, names_a), (alias_b, names_b)):
         # Fixtures de estado: bulk_create no dispara hooks de otros addons cuyo
-        # esquema esta sonda NO instala. No acredita save/instalación completos.
+        # esquema esta sonda NO instala. No acredita save/instalación
+        # completos.
         IrModule.objects.using(alias).bulk_create(
-            [IrModule(name=name, state='installed') for name in names])
-    results['fixture_scope'] = 'Only IrModule tables and manifest-derived state fixtures; NOT a completed module installation.'
+            [IrModule(name=name, state='installed') for name in names]
+        )
+    results['fixture_scope'] = (
+        'Only IrModule tables and manifest-derived state fixtures; NOT a'
+        ' completed module installation.'
+    )
     results['manifest_closures'] = {'a': names_a, 'b': names_b}
     results['independent_state_rows'] = {
-        'a': sorted(IrModule.objects.using(alias_a).values_list('name', flat=True)),
-        'b': sorted(IrModule.objects.using(alias_b).values_list('name', flat=True)),
+        'a': sorted(
+            IrModule.objects.using(alias_a).values_list('name', flat=True)
+        ),
+        'b': sorted(
+            IrModule.objects.using(alias_b).values_list('name', flat=True)
+        ),
     }
     results['routing'] = {}
     for company, alias in ((97001, alias_a), (97002, alias_b)):
@@ -97,30 +142,44 @@ try:
                 'read_alias': router.db_for_read(IrModule),
                 'write_alias': router.db_for_write(IrModule),
                 'expected': alias,
-                'names': sorted(IrModule.objects.values_list('name', flat=True)),
-                'written_label_on_expected_database': IrModule.objects.using(alias).get(name='base').shortdesc,
+                'names': sorted(
+                    IrModule.objects.values_list('name', flat=True)
+                ),
+                'written_label_on_expected_database': (
+                    IrModule.objects.using(alias).get(name='base').shortdesc
+                ),
             }
     a = IrModule.objects.using(alias_a).get(name='base')
     b = IrModule.objects.using(alias_b).get(name='base')
     with company_scope(97001):
-        results['cross_database_relation_allowed'] = router.allow_relation(a, b)
+        results['cross_database_relation_allowed'] = router.allow_relation(
+            a, b
+        )
     for alias in (alias_a, alias_b):
         try:
             with transaction.atomic(using=alias):
                 IrModule.objects.using(alias).bulk_create(
-                    [IrModule(name='rollback_probe', state='installed')])
+                    [IrModule(name='rollback_probe', state='installed')]
+                )
                 raise ValueError('rollback control')
         except ValueError:
-            pass  # silent OK because la excepción inyectada verifica el rollback.
-    results['rollback_preserved'] = all(not IrModule.objects.using(a).filter(name='rollback_probe').exists()
-                                        for a in (alias_a, alias_b))
+            # silent OK because la excepción inyectada verifica el rollback.
+            pass
+    results['rollback_preserved'] = all(
+        not IrModule.objects.using(a).filter(name='rollback_probe').exists()
+        for a in (alias_a, alias_b)
+    )
     with connections[alias_b].cursor() as cursor:
         try:
             with transaction.atomic(using=alias_b):
-                cursor.execute('CREATE TABLE orm_ddl_rollback_probe (id integer)')
+                cursor.execute(
+                    'CREATE TABLE orm_ddl_rollback_probe (id integer)'
+                )
                 raise ValueError('DDL rollback control')
         except ValueError:
-            pass  # silent OK because el DDL debe desaparecer al revertir la transacción.
+            # silent OK because el DDL debe desaparecer al revertir la
+            # transacción.
+            pass
         cursor.execute("SELECT to_regclass('orm_ddl_rollback_probe')")
         results['ddl_rollback_preserved'] = cursor.fetchone()[0] is None
         cursor.execute('SHOW server_version')
@@ -133,23 +192,40 @@ try:
     results['registry'] = {
         'distinct_instances': registries[0] is not registries[1],
         'separate_maps': registries[0].models is not registries[1].models,
-        'same_model_names': set(registries[0].models) == set(registries[1].models),
-        'product_models_in_a': sorted(k for k, v in registries[0].models.items()
-                                      if getattr(getattr(v, '_meta', None), 'app_label', None) == 'product'),
-        'product_models_in_b': sorted(k for k, v in registries[1].models.items()
-                                      if getattr(getattr(v, '_meta', None), 'app_label', None) == 'product'),
-        'process_model_classes_shared': all(registries[0].models[k] is v
-                                           for k, v in registries[1].models.items()
-                                           if k in registries[0].models),
+        'same_model_names': (
+            set(registries[0].models) == set(registries[1].models)
+        ),
+        'product_models_in_a': sorted(
+            k
+            for k, v in registries[0].models.items()
+            if getattr(getattr(v, '_meta', None), 'app_label', None)
+            == 'product'
+        ),
+        'product_models_in_b': sorted(
+            k
+            for k, v in registries[1].models.items()
+            if getattr(getattr(v, '_meta', None), 'app_label', None)
+            == 'product'
+        ),
+        'process_model_classes_shared': all(
+            registries[0].models[k] is v
+            for k, v in registries[1].models.items()
+            if k in registries[0].models
+        ),
     }
-    # Hipótesis separada: historial de migraciones y esquema no son equivalentes
+    # Hipótesis separada: historial de migraciones y esquema no son
+    # equivalentes
     # cuando un router omite contenttypes pero admite auth con FK a esa tabla.
     results['migration_executor'] = {}
     for alias in ('default', alias_b):
         executor = MigrationExecutor(connections[alias])
         target = [('auth', '0001_initial')]
-        observed = {'plan': [list(m.key) if hasattr(m, 'key') else [m.app_label, m.name]
-                             for m, backwards in executor.migration_plan(target)]}
+        observed = {
+            'plan': [
+                list(m.key) if hasattr(m, 'key') else [m.app_label, m.name]
+                for m, backwards in executor.migration_plan(target)
+            ]
+        }
         results['migration_executor'][alias] = observed
         try:
             executor.migrate(target)
@@ -166,9 +242,15 @@ try:
             observed['recovered_with_fresh_connection'] = True
         with connections[alias].cursor() as cursor:
             cursor.execute("SELECT to_regclass('django_content_type')")
-            observed['contenttypes_table_exists'] = cursor.fetchone()[0] is not None
-            cursor.execute("SELECT app, name FROM django_migrations ORDER BY app, name")
-            observed['migration_history'] = [list(row) for row in cursor.fetchall()]
+            observed['contenttypes_table_exists'] = (
+                cursor.fetchone()[0] is not None
+            )
+            cursor.execute(
+                "SELECT app, name FROM django_migrations ORDER BY app, name"
+            )
+            observed['migration_history'] = [
+                list(row) for row in cursor.fetchall()
+            ]
         results['migration_executor'][alias] = observed
 finally:
     for alias in (alias_a, alias_b):
@@ -181,11 +263,27 @@ finally:
     if created:
         database_service.drop_database(name_b)
     if hba_added:
-        subprocess.run(['docker', 'exec', '-u', 'postgres', container, 'sh', '-c',
-                        f"sed -i '/# {marker}$/d' \"$PGDATA/pg_hba.conf\""], check=True)
+        subprocess.run(
+            [
+                'docker',
+                'exec',
+                '-u',
+                'postgres',
+                container,
+                'sh',
+                '-c',
+                f"sed -i '/# {marker}$/d' \"$PGDATA/pg_hba.conf\"",
+            ],
+            check=True,
+        )
         admin('SELECT pg_reload_conf();')
     settings.MULTIDB_MANAGEMENT_ENABLED = original_management
-    results['second_database_removed'] = not database_service.database_exists(name_b)
-    (run / 'outputs' / os.environ.get('ORM_PROBE_OUTPUT', 'database-contract.json')).write_text(
-        json.dumps(results, ensure_ascii=False, indent=2) + '\n')
+    results['second_database_removed'] = not database_service.database_exists(
+        name_b
+    )
+    (
+        run
+        / 'outputs'
+        / os.environ.get('ORM_PROBE_OUTPUT', 'database-contract.json')
+    ).write_text(json.dumps(results, ensure_ascii=False, indent=2) + '\n')
 print(json.dumps(results, ensure_ascii=False, indent=2))

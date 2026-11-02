@@ -21,7 +21,10 @@ class Migration(migrations.Migration):
             name="employee",
             field=models.ForeignKey(
                 db_column="employee_id",
-                help_text="Odoo employee_id (required, ondelete=cascade; su default de usuario ambiente no se porta — divergencia 2).",
+                help_text=(
+                    "Odoo employee_id (required, ondelete=cascade; su default"
+                    " de usuario ambiente no se porta — divergencia 2)."
+                ),
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="homeworking_exceptions",
                 to="hr.hremployee",
@@ -38,7 +41,12 @@ class Migration(migrations.Migration):
             name="work_location",
             field=models.ForeignKey(
                 db_column="work_location_id",
-                help_text="Sede de la excepción (Odoo work_location_id, required). PROTECT: el borrado de una sede pasa por _unlink_except_used_by_employee, que limpia estas filas antes (ver hr_work_location.py de este addon).",
+                help_text=(
+                    "Sede de la excepción (Odoo work_location_id, required)."
+                    " PROTECT: el borrado de una sede pasa por"
+                    " _unlink_except_used_by_employee, que limpia estas filas"
+                    " antes (ver hr_work_location.py de este addon)."
+                ),
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="homeworking_exceptions",
                 to="hr.hrworklocation",
@@ -55,7 +63,10 @@ class Migration(migrations.Migration):
             constraint=models.UniqueConstraint(
                 fields=("employee_id", "date"),
                 name="_uniq_exceptional_per_day",
-                violation_error_message="Only one default work location and one exceptional work location per day per employee.",
+                violation_error_message=(
+                    "Only one default work location and one exceptional work"
+                    " location per day per employee."
+                ),
             ),
         ),
     ]

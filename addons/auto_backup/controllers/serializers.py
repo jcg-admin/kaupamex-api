@@ -1,4 +1,5 @@
 """Serializers — ``addons.auto_backup`` (UC-ADM-05)."""
+
 from rest_framework import serializers
 
 from addons.auto_backup.models import DbBackupDetails
@@ -15,8 +16,15 @@ class DbBackupDetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = DbBackupDetails
         fields = [
-            'id', 'name', 'url', 'db_backup_id',
-            'type', 'status', 'size_bytes', 'error_detail',
-            'created_at', 'updated_at',
+            'id',
+            'name',
+            'url',
+            'db_backup_id',
+            'type',
+            'status',
+            'size_bytes',
+            'error_detail',
+            'created_at',
+            'updated_at',
         ]
         read_only_fields = fields

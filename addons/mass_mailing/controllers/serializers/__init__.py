@@ -2,6 +2,7 @@
 
 Un archivo por serializer (monolito modular), re-exportados aquí.
 """
+
 from .campaign import (
     NEWSLETTER_STATUS_CHOICES,
     CampaignCreateSerializer,

@@ -11,12 +11,14 @@ Recogido por ``seed_authz`` vía ``addons.authz.declaration.discover()``.
 El send/verify del código propio va con ``account.security`` (ya sembrada
 en todos los roles, DEC-ENF-01) — no se declara capacidad nueva para eso.
 """
+
 from addons.authz.declaration import CapabilitySpec
 
 MODULES = []
 
 CAPABILITIES = [
     CapabilitySpec(
-        code='permissions.totp_invite', name='Invitar a activar 2FA',
+        code='permissions.totp_invite',
+        name='Invitar a activar 2FA',
     ),
 ]

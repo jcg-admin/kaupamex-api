@@ -11,6 +11,7 @@ Contrato fiel a la referencia, verificado idéntico en las dos poblaciones:
 - La ausencia de dato DENIEGA (fail-closed); ya no existe el centinela
   ``company=None`` como elevación implícita.
 """
+
 import pytest
 
 from exceptions import AccessError
@@ -33,7 +34,8 @@ def _clean_context():
 
 class TestCanalDelDato:
     def test_fallback_al_permitido_completo(self):
-        # "If not specified in the context, fallback on current user companies."
+        # "If not specified in the context, fallback on current user
+        # companies."
         assert activate_companies((), (7, 9)) == (7, 9)
         assert get_current_companies() == (7, 9)
         assert get_current_company() == 7  # env.company = la primera activada

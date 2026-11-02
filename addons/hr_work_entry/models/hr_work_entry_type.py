@@ -56,12 +56,12 @@ Divergencias declaradas
 6. **``translate=True``** se anota en el campo sin traducir todavía (aviso de
    ``orm/fields_textual.py::Char``, tarea #333).
 """
+
 import fields
 import models
 
 from addons.base.models import ResCountry, TimeStampedModel
 from exceptions import UserError
-
 
 #: ``code`` del registro ``hr_work_entry.work_entry_type_attendance`` de la
 #: fuente (``odoo19c: hr_work_entry/data/hr_work_entry_type_data.xml:7``) —
@@ -77,49 +77,78 @@ class HrWorkEntryType(TimeStampedModel):
     _description = 'HR Work Entry Type'
 
     name = fields.Char(
-        required=True, translate=True,
+        required=True,
+        translate=True,
         help_text='Odoo name (required, translate).',
     )
     display_code = fields.Char(
-        'Display Code', max_length=3, blank=True, default='', translate=True,
-        help='This code can be changed, it is only for a display purpose '
-             '(3 letters max)',
+        'Display Code',
+        max_length=3,
+        blank=True,
+        default='',
+        translate=True,
+        help=(
+            'This code can be changed, it is only for a display purpose '
+            '(3 letters max)'
+        ),
     )
     code = fields.Char(
-        'Payroll Code', required=True,
-        help='Careful, the Code is used in many references, changing it '
-             'could lead to unwanted changes.',
+        'Payroll Code',
+        required=True,
+        help=(
+            'Careful, the Code is used in many references, changing it '
+            'could lead to unwanted changes.'
+        ),
     )
     external_code = fields.Char(
-        blank=True, default='',
+        blank=True,
+        default='',
         help='Use this code to export your data to a third party',
     )
     color = fields.Integer(default=0)
     sequence = fields.Integer(default=25)
     active = fields.Boolean(
-        'Active', default=True,
-        help_text='If the active field is set to false, it will allow you to '
-                  'hide the work entry type without removing it.',
+        'Active',
+        default=True,
+        help_text=(
+            'If the active field is set to false, it will allow you to '
+            'hide the work entry type without removing it.'
+        ),
     )
     country = fields.Many2one(
-        ResCountry, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='work_entry_types', verbose_name='Country',
-        help_text='Odoo country_id. DIVERGENCIA D-2: sin el domain= de '
-                  'sesión (env.companies) — lo aplica la capa DRF.',
+        ResCountry,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='work_entry_types',
+        verbose_name='Country',
+        help_text=(
+            'Odoo country_id. DIVERGENCIA D-2: sin el domain= de '
+            'sesión (env.companies) — lo aplica la capa DRF.'
+        ),
     )
     is_leave = fields.Boolean(
-        default=False, verbose_name='Time Off',
-        help_text='Allow the work entry type to be linked with time off types.',
+        default=False,
+        verbose_name='Time Off',
+        help_text=(
+            'Allow the work entry type to be linked with time off types.'
+        ),
     )
     amount_rate = fields.Float(
-        default=1.0, verbose_name='Rate',
-        help_text='If you want the hours should be paid double, the rate '
-                  'should be 200%.',
+        default=1.0,
+        verbose_name='Rate',
+        help_text=(
+            'If you want the hours should be paid double, the rate '
+            'should be 200%.'
+        ),
     )
     is_extra_hours = fields.Boolean(
-        default=False, verbose_name='Added to Monthly Pay',
-        help_text='Check this setting if you want the hours to be considered '
-                  'as extra time and added as a bonus to the basic salary.',
+        default=False,
+        verbose_name='Added to Monthly Pay',
+        help_text=(
+            'Check this setting if you want the hours to be considered '
+            'as extra time and added as a bonus to the basic salary.'
+        ),
     )
 
     class Meta:
@@ -166,30 +195,36 @@ class HrWorkEntryType(TimeStampedModel):
             return
         stored_country_id = (
             HrWorkEntryType.objects.filter(pk=self.pk)
-            .values_list('country_id', flat=True).first()
+            .values_list('country_id', flat=True)
+            .first()
         )
         if stored_country_id == self.country_id:
             return
         if self.code == ATTENDANCE_TYPE_CODE:
             raise UserError(
                 "You can't change the country of this specific work entry "
-                'type.'
+                "type."
             )
         if self.work_entries.exists():
             raise UserError(
                 "You can't change the Country of this work entry type cause "
                 "it's currently used by the system. You need to delete "
-                'related working entries first.'
+                "related working entries first."
             )
 
     def _check_code_unicity(self):
         """≙ ``_check_code_unicity`` (``:46-59``) — el mismo ``code`` no puede
         repetirse entre tipos del mismo país (o sin país)."""
-        similar = HrWorkEntryType.objects.filter(
-            code=self.code,
-        ).filter(
-            models.Q(country__isnull=True) | models.Q(country=self.country_id),
-        ).exclude(pk=self.pk)
+        similar = (
+            HrWorkEntryType.objects.filter(
+                code=self.code,
+            )
+            .filter(
+                models.Q(country__isnull=True)
+                | models.Q(country=self.country_id),
+            )
+            .exclude(pk=self.pk)
+        )
         if similar.exists():
             raise UserError(
                 'The same code cannot be associated to multiple work entry '

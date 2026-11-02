@@ -1,4 +1,5 @@
 """Tests — addon ``sale_margin`` (costo + margen por línea)."""
+
 from decimal import Decimal
 
 import pytest
@@ -14,14 +15,22 @@ pytestmark = pytest.mark.integration
 def producto(db):
     cat = make_category(name='Cat M')
     return make_product(
-        name='Prod M', price=Decimal('100.00'), stock=5, categ=cat,
+        name='Prod M',
+        price=Decimal('100.00'),
+        stock=5,
+        categ=cat,
         standard_price=Decimal('60.00'),
     )
 
 
 def test_margin_from_product_cost(producto):
     so = SaleOrder.objects.create()
-    line = SaleOrderLine.objects.create(order=so, product=producto, product_uom_qty=2, price_unit=Decimal('100.00'))
+    line = SaleOrderLine.objects.create(
+        order=so,
+        product=producto,
+        product_uom_qty=2,
+        price_unit=Decimal('100.00'),
+    )
     m = SaleOrderLineMargin.objects.create(line=line)
     # subtotal (untaxed) de 2×100 IVA-incl 16% = 172.41; costo 60×2 = 120
     assert line.price_subtotal == Decimal('172.41')
@@ -31,7 +40,12 @@ def test_margin_from_product_cost(producto):
 
 def test_capture_purchase_price_snapshot(producto):
     so = SaleOrder.objects.create()
-    line = SaleOrderLine.objects.create(order=so, product=producto, product_uom_qty=1, price_unit=Decimal('100.00'))
+    line = SaleOrderLine.objects.create(
+        order=so,
+        product=producto,
+        product_uom_qty=1,
+        price_unit=Decimal('100.00'),
+    )
     m = SaleOrderLineMargin.objects.create(line=line)
     assert m.purchase_price is None
     m.capture_purchase_price()
@@ -45,6 +59,11 @@ def test_capture_purchase_price_snapshot(producto):
 
 def test_margin_zero_subtotal(producto):
     so = SaleOrder.objects.create()
-    line = SaleOrderLine.objects.create(order=so, product=producto, product_uom_qty=1, price_unit=Decimal('0.00'))
+    line = SaleOrderLine.objects.create(
+        order=so,
+        product=producto,
+        product_uom_qty=1,
+        price_unit=Decimal('0.00'),
+    )
     m = SaleOrderLineMargin.objects.create(line=line)
     assert m.margin_percent() == Decimal('0.00')

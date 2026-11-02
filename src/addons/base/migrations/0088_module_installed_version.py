@@ -1,4 +1,5 @@
 """Separa la versión instalada del manifiesto sin inventar historia."""
+
 from django.db import migrations, models
 
 
@@ -9,8 +10,14 @@ class Migration(migrations.Migration):
             model_name='irmodule',
             name='installed_version',
             field=models.CharField(
-                blank=True, null=True, default=None, editable=False,
-                help_text='Versión realmente instalada; NULL si no existe evidencia de instalación.',
+                blank=True,
+                null=True,
+                default=None,
+                editable=False,
+                help_text=(
+                    'Versión realmente instalada; NULL si no existe evidencia'
+                    ' de instalación.'
+                ),
             ),
         ),
     ]

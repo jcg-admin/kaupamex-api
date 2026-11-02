@@ -7,6 +7,7 @@ usar SHIPPING_OPTIONS hardcoded.
 
 UC-CFG-02 / GAP-C1: checkout shipping gap.
 """
+
 import pytest
 from decimal import Decimal
 from addons.delivery.models import ShippingMethod
@@ -19,15 +20,24 @@ URL = '/api/v2/shipping-methods/'
 @pytest.fixture
 def metodos(db):
     std = ShippingMethod.objects.create(
-        name='Estándar', cost=Decimal('0.00'), estimated_days=5, is_active=True,
+        name='Estándar',
+        cost=Decimal('0.00'),
+        estimated_days=5,
+        is_active=True,
         free_threshold=None,
     )
     exp = ShippingMethod.objects.create(
-        name='Express', cost=Decimal('280.00'), estimated_days=1, is_active=True,
+        name='Express',
+        cost=Decimal('280.00'),
+        estimated_days=1,
+        is_active=True,
         free_threshold=None,
     )
     inactivo = ShippingMethod.objects.create(
-        name='Inactivo', cost=Decimal('0.00'), estimated_days=3, is_active=False,
+        name='Inactivo',
+        cost=Decimal('0.00'),
+        estimated_days=3,
+        is_active=False,
     )
     return {'std': std, 'exp': exp, 'inactivo': inactivo}
 
@@ -68,8 +78,10 @@ class TestPublicShippingMethods:
 
     def test_free_threshold_en_respuesta(self, api_client, db):
         ShippingMethod.objects.create(
-            name='Estándar con umbral', cost=Decimal('99.00'),
-            estimated_days=5, is_active=True,
+            name='Estándar con umbral',
+            cost=Decimal('99.00'),
+            estimated_days=5,
+            is_active=True,
             free_threshold=Decimal('500.00'),
         )
         r = api_client.get(URL)

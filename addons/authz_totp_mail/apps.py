@@ -1,4 +1,5 @@
 """AppConfig — addons.authz_totp_mail (Odoo auth_totp_mail)."""
+
 import importlib
 
 from django.apps import AppConfig
@@ -11,8 +12,9 @@ class AuthzTotpMailConfig(AppConfig):
 
     #: Extensiones que este addon cuelga de modelos ajenos — ≙ ``_inherit``.
     _EXTENSIONS = {
-        'addons.authz_totp_mail.models.res_users':
-            'apply_authz_totp_mail_res_users_extensions',
+        'addons.authz_totp_mail.models.res_users': (
+            'apply_authz_totp_mail_res_users_extensions'
+        ),
     }
 
     def ready(self):

@@ -16,6 +16,7 @@ Va sin prefijo de versión a propósito: las rutas de la fuente son absolutas
 (``/web_editor/…``, ``/html_editor/…``) y el cliente del editor las construye
 con esa forma. Se reporta al orquestador como sucesor.
 """
+
 from django.urls import path
 
 from .main import (
@@ -40,66 +41,123 @@ app_name = 'html_editor_v2'
 
 urlpatterns = [
     path('html_editor/attachment/remove', remove_endpoint, name='remove'),
-
-    path('web_editor/get_image_info', get_image_info_endpoint,
-         name='get_image_info_legacy'),
-    path('html_editor/get_image_info', get_image_info_endpoint,
-         name='get_image_info'),
-
-    path('web_editor/video_url/data', video_url_data_endpoint,
-         name='video_url_data_legacy'),
-    path('html_editor/video_url/data', video_url_data_endpoint,
-         name='video_url_data'),
-
-    path('web_editor/attachment/add_data', add_data_endpoint,
-         name='add_data_legacy'),
-    path('html_editor/attachment/add_data', add_data_endpoint,
-         name='add_data'),
-
-    path('web_editor/attachment/add_url', add_url_endpoint,
-         name='add_url_legacy'),
+    path(
+        'web_editor/get_image_info',
+        get_image_info_endpoint,
+        name='get_image_info_legacy',
+    ),
+    path(
+        'html_editor/get_image_info',
+        get_image_info_endpoint,
+        name='get_image_info',
+    ),
+    path(
+        'web_editor/video_url/data',
+        video_url_data_endpoint,
+        name='video_url_data_legacy',
+    ),
+    path(
+        'html_editor/video_url/data',
+        video_url_data_endpoint,
+        name='video_url_data',
+    ),
+    path(
+        'web_editor/attachment/add_data',
+        add_data_endpoint,
+        name='add_data_legacy',
+    ),
+    path(
+        'html_editor/attachment/add_data', add_data_endpoint, name='add_data'
+    ),
+    path(
+        'web_editor/attachment/add_url',
+        add_url_endpoint,
+        name='add_url_legacy',
+    ),
     path('html_editor/attachment/add_url', add_url_endpoint, name='add_url'),
-
-    path('web_editor/modify_image/<int:attachment_id>', modify_image_endpoint,
-         name='modify_image_legacy'),
-    path('html_editor/modify_image/<int:attachment_id>', modify_image_endpoint,
-         name='modify_image'),
-
-    path('web_editor/save_library_media', save_library_media_endpoint,
-         name='save_library_media_legacy'),
-    path('html_editor/save_library_media', save_library_media_endpoint,
-         name='save_library_media'),
-
-    path('web_editor/shape/<str:module>/<path:filename>', shape_endpoint,
-         name='shape_legacy'),
-    path('html_editor/shape/<str:module>/<path:filename>', shape_endpoint,
-         name='shape'),
-
-    path('web_editor/image_shape/<str:img_key>/<str:module>/<path:filename>',
-         image_shape_endpoint, name='image_shape_legacy'),
-    path('html_editor/image_shape/<str:img_key>/<str:module>/<path:filename>',
-         image_shape_endpoint, name='image_shape'),
-
-    path('web_editor/generate_text', generate_text_endpoint,
-         name='generate_text_legacy'),
-    path('html_editor/generate_text', generate_text_endpoint,
-         name='generate_text'),
-
-    path('web_editor/get_ice_servers', get_ice_servers_endpoint,
-         name='get_ice_servers_legacy'),
-    path('html_editor/get_ice_servers', get_ice_servers_endpoint,
-         name='get_ice_servers'),
-
-    path('web_editor/bus_broadcast', bus_broadcast_endpoint,
-         name='bus_broadcast_legacy'),
-    path('html_editor/bus_broadcast', bus_broadcast_endpoint,
-         name='bus_broadcast'),
-
-    path('html_editor/link_preview_external', link_preview_metadata_endpoint,
-         name='link_preview_external'),
-    path('html_editor/link_preview_internal',
-         link_preview_metadata_internal_endpoint, name='link_preview_internal'),
-
-    path('html_editor/media_library_search', media_library_search_endpoint,
-         name='media_library_search'),
+    path(
+        'web_editor/modify_image/<int:attachment_id>',
+        modify_image_endpoint,
+        name='modify_image_legacy',
+    ),
+    path(
+        'html_editor/modify_image/<int:attachment_id>',
+        modify_image_endpoint,
+        name='modify_image',
+    ),
+    path(
+        'web_editor/save_library_media',
+        save_library_media_endpoint,
+        name='save_library_media_legacy',
+    ),
+    path(
+        'html_editor/save_library_media',
+        save_library_media_endpoint,
+        name='save_library_media',
+    ),
+    path(
+        'web_editor/shape/<str:module>/<path:filename>',
+        shape_endpoint,
+        name='shape_legacy',
+    ),
+    path(
+        'html_editor/shape/<str:module>/<path:filename>',
+        shape_endpoint,
+        name='shape',
+    ),
+    path(
+        'web_editor/image_shape/<str:img_key>/<str:module>/<path:filename>',
+        image_shape_endpoint,
+        name='image_shape_legacy',
+    ),
+    path(
+        'html_editor/image_shape/<str:img_key>/<str:module>/<path:filename>',
+        image_shape_endpoint,
+        name='image_shape',
+    ),
+    path(
+        'web_editor/generate_text',
+        generate_text_endpoint,
+        name='generate_text_legacy',
+    ),
+    path(
+        'html_editor/generate_text',
+        generate_text_endpoint,
+        name='generate_text',
+    ),
+    path(
+        'web_editor/get_ice_servers',
+        get_ice_servers_endpoint,
+        name='get_ice_servers_legacy',
+    ),
+    path(
+        'html_editor/get_ice_servers',
+        get_ice_servers_endpoint,
+        name='get_ice_servers',
+    ),
+    path(
+        'web_editor/bus_broadcast',
+        bus_broadcast_endpoint,
+        name='bus_broadcast_legacy',
+    ),
+    path(
+        'html_editor/bus_broadcast',
+        bus_broadcast_endpoint,
+        name='bus_broadcast',
+    ),
+    path(
+        'html_editor/link_preview_external',
+        link_preview_metadata_endpoint,
+        name='link_preview_external',
+    ),
+    path(
+        'html_editor/link_preview_internal',
+        link_preview_metadata_internal_endpoint,
+        name='link_preview_internal',
+    ),
+    path(
+        'html_editor/media_library_search',
+        media_library_search_endpoint,
+        name='media_library_search',
+    ),
 ]

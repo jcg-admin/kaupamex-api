@@ -14,6 +14,7 @@ base/models/report_paperformat.py:166-167`` que el archivo no declaraba pese
 a que ``atributos-de-clase-de-modelo.md`` los exige verbatim junto a su forma
 Django (``Meta.db_table`` derivado de ``_name``).
 """
+
 import pytest
 
 from addons.base.models.ir_actions_report import IrActionsReport
@@ -46,8 +47,10 @@ class TestTheClassAttributesMatchTheReference:
         assert ReportPaperformat._description == 'Paper Format Config'
 
     def test_the_table_derives_from_the_name(self):
-        assert (ReportPaperformat._meta.db_table
-                == ReportPaperformat._name.replace('.', '_'))
+        assert (
+            ReportPaperformat._meta.db_table
+            == ReportPaperformat._name.replace('.', '_')
+        )
 
 
 class TestReportIdsSeesOnlyItsOwnReports:
@@ -61,7 +64,11 @@ class TestReportIdsSeesOnlyItsOwnReports:
         mine = _paperformat(name='Mío')
         other = _paperformat(name='Ajeno')
         linked = _report(paperformat_id=mine)
-        _report(paperformat_id=other, name='Otro reporte', report_name='base.report_y')
+        _report(
+            paperformat_id=other,
+            name='Otro reporte',
+            report_name='base.report_y',
+        )
 
         assert list(mine.report_ids.all()) == [linked]
         assert list(other.report_ids.all()) != [linked]

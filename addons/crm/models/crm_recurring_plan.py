@@ -4,6 +4,7 @@ Adaptación fiel de Odoo ``crm/models/crm_recurring_plan.py``
 (``crm.recurring.plan``): plan de ingreso recurrente de una oportunidad. Se
 portan los cuatro campos, los tres atributos de clase y su restricción.
 """
+
 import fields
 import models
 
@@ -18,20 +19,23 @@ class CrmRecurringPlan(TimeStampedModel):
     _order = "sequence"
 
     # Odoo name (crm_recurring_plan.py:11, required, translate).
-    name             = fields.Char(
-        max_length=255, help_text='Nombre del plan (Odoo name).',
+    name = fields.Char(
+        max_length=255,
+        help_text='Nombre del plan (Odoo name).',
     )
     # Odoo number_of_months (crm_recurring_plan.py:12, required).
     number_of_months = fields.Integer(
         help_text='Número de meses del plan (Odoo number_of_months).',
     )
     # Odoo active (crm_recurring_plan.py:13, default True).
-    active           = fields.Boolean(
-        default=True, help_text='Archivar sin borrar (Odoo active).',
+    active = fields.Boolean(
+        default=True,
+        help_text='Archivar sin borrar (Odoo active).',
     )
     # Odoo sequence (crm_recurring_plan.py:14, default 10).
-    sequence         = fields.Integer(
-        default=10, help_text='Orden de listado (Odoo sequence).',
+    sequence = fields.Integer(
+        default=10,
+        help_text='Orden de listado (Odoo sequence).',
     )
 
     class Meta:
@@ -44,7 +48,9 @@ class CrmRecurringPlan(TimeStampedModel):
             models.CheckConstraint(
                 condition=models.Q(number_of_months__gte=0),
                 name='crm_recurring_plan_check_number_of_months',
-                violation_error_message="El número de meses no puede ser negativo.",
+                violation_error_message=(
+                    "El número de meses no puede ser negativo."
+                ),
             ),
         ]
 

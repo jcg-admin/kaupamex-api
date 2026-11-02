@@ -1,4 +1,5 @@
 """``SupportTicketReply`` — mensaje del hilo de un ticket (UC-SUPP-03)."""
+
 from django.conf import settings
 from django.db import models
 

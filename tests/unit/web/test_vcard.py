@@ -6,6 +6,7 @@ ya tiene su propia cobertura de contenido (formato RFC 6350); aquí se
 verifica la frontera HTTP: capacidad, un contacto vs varios, e ids
 inexistentes.
 """
+
 import zipfile
 from io import BytesIO
 
@@ -23,14 +24,19 @@ VCARD_URL = '/api/v2/web/vcard/download/'
 
 def _user_with_capability(email, code):
     domain = code.split('.', 1)[0]
-    module, _ = Module.objects.get_or_create(code=domain, defaults={'name': domain})
+    module, _ = Module.objects.get_or_create(
+        code=domain, defaults={'name': domain}
+    )
     cap, _ = Capability.objects.get_or_create(
-        code=code, defaults={'module': module, 'name': code})
+        code=code, defaults={'module': module, 'name': code}
+    )
     role, _ = Role.objects.get_or_create(
-        code=f'role_{code.replace(".", "_")}', defaults={'name': code})
+        code=f'role_{code.replace(".", "_")}', defaults={'name': code}
+    )
     role.capabilities.set([cap])
     u = get_user_model().objects.create_user(
-        login=email, password='TestPass123!')
+        login=email, password='TestPass123!'
+    )
     RoleAssignment.objects.create(user=u, role=role)
     return u
 
@@ -44,7 +50,8 @@ class TestVcardDownloadGate:
 
     def test_user_without_capability_is_denied(self, api_client, db, user):
         outsider = get_user_model().objects.create_user(
-            login='vcard_outsider@kaupamex.mx', password='TestPass123!')
+            login='vcard_outsider@kaupamex.mx', password='TestPass123!'
+        )
         api_client.force_login(outsider)
         res = api_client.get(VCARD_URL, {'partner_ids': str(user.partner.pk)})
         assert res.status_code == 403
@@ -55,7 +62,8 @@ class TestVcardDownloadResult:
 
     def test_single_partner_returns_vcf(self, api_client, db, user):
         operator = _user_with_capability(
-            'vcard_operator@kaupamex.mx', 'web.vcard.download')
+            'vcard_operator@kaupamex.mx', 'web.vcard.download'
+        )
         api_client.force_login(operator)
         res = api_client.get(VCARD_URL, {'partner_ids': str(user.partner.pk)})
         assert res.status_code == 200
@@ -68,11 +76,12 @@ class TestVcardDownloadResult:
     def test_multiple_partners_return_zip(self, api_client, db, user):
         second = ResPartner.objects.create(name='Segundo Contacto')
         operator = _user_with_capability(
-            'vcard_operator2@kaupamex.mx', 'web.vcard.download')
+            'vcard_operator2@kaupamex.mx', 'web.vcard.download'
+        )
         api_client.force_login(operator)
         res = api_client.get(
-            VCARD_URL,
-            {'partner_ids': f'{user.partner.pk},{second.pk}'})
+            VCARD_URL, {'partner_ids': f'{user.partner.pk},{second.pk}'}
+        )
         assert res.status_code == 200
         assert res['Content-Type'] == 'application/zip'
         with zipfile.ZipFile(BytesIO(res.content)) as archive:
@@ -80,7 +89,8 @@ class TestVcardDownloadResult:
 
     def test_missing_partner_ids_returns_400(self, api_client, db):
         operator = _user_with_capability(
-            'vcard_operator3@kaupamex.mx', 'web.vcard.download')
+            'vcard_operator3@kaupamex.mx', 'web.vcard.download'
+        )
         api_client.force_login(operator)
         res = api_client.get(VCARD_URL)
         assert res.status_code == 400
@@ -88,7 +98,8 @@ class TestVcardDownloadResult:
 
     def test_unknown_partner_id_returns_404(self, api_client, db):
         operator = _user_with_capability(
-            'vcard_operator4@kaupamex.mx', 'web.vcard.download')
+            'vcard_operator4@kaupamex.mx', 'web.vcard.download'
+        )
         api_client.force_login(operator)
         res = api_client.get(VCARD_URL, {'partner_ids': '999999999'})
         assert res.status_code == 404

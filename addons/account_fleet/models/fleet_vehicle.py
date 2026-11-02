@@ -64,6 +64,7 @@ Divergencias declaradas
    ``AccountMove.STATES`` — no hay tercer valor que excluir aparte de
    ``'cancel'``.
 """
+
 from addons.account.models import AccountMove, AccountMoveLine
 from addons.fleet.models import FleetVehicle
 

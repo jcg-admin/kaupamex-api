@@ -20,6 +20,7 @@ está autenticado, así que acota a las suyas
 ``PasskeyBackend.authenticate`` y ``verify_webauthn_credential``, y comparten
 la cola en ``_consume_assertion``.
 """
+
 import logging
 
 from django.apps import apps as django_apps
@@ -46,11 +47,12 @@ def _consume_assertion(request, passkey, webauthn_response):
     """
     try:
         new_sign_count = PasskeyKey._verify_auth(
-            request, webauthn_response, passkey.public_key,
-            passkey.sign_count)
+            request, webauthn_response, passkey.public_key, passkey.sign_count
+        )
     except InvalidAuthenticationResponse as exc:
-        _logger.info('Passkey assertion failed for %r: %s',
-                     passkey.user.login, exc)
+        _logger.info(
+            'Passkey assertion failed for %r: %s', passkey.user.login, exc
+        )
         return False
     passkey.sign_count = new_sign_count
     passkey.save(update_fields=['sign_count', 'updated_at'])
@@ -82,15 +84,15 @@ def verify_webauthn_credential(user, request, webauthn_response):
     if not webauthn_response or request is None:
         return None
     passkey = (
-        PasskeyKey.objects
-        .select_related('user')
+        PasskeyKey.objects.select_related('user')
         .filter(user=user, credential_identifier=webauthn_response.get('id'))
         .first()
     )
     if passkey is None:
         # ≙ AccessDenied('Unknown passkey') — contrato local: None.
-        _logger.info('Identity check (passkey): unknown passkey for %r',
-                     user.login)
+        _logger.info(
+            'Identity check (passkey): unknown passkey for %r', user.login
+        )
         return None
     if not _consume_assertion(request, passkey, webauthn_response):
         return None
@@ -104,8 +106,7 @@ class PasskeyBackend(BaseBackend):
             return None
         credential_id = webauthn_response.get('id')
         passkey = (
-            PasskeyKey.objects
-            .select_related('user')
+            PasskeyKey.objects.select_related('user')
             .filter(credential_identifier=credential_id, user__active=True)
             .first()
         )

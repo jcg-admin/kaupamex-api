@@ -5,6 +5,7 @@ Ejercita el porte de
 (``odoo-tools@622ddc2a``), incluido el símbolo que **no** se portó: que su
 bloqueo sea ruidoso es parte del contrato, no un detalle.
 """
+
 import pytest
 
 from addons.base.models.ir_model import IrModel, IrModelData
@@ -35,7 +36,10 @@ def _declare(model_name, module_name):
     modelo = IrModel.objects.create(name=model_name, model=model_name)
     IrModelData.objects.create(
         name=f'model_{model_name.replace(".", "_")}',
-        model='ir.model', module=module_name, res_id=modelo.pk)
+        model='ir.model',
+        module=module_name,
+        res_id=modelo.pk,
+    )
     return modelo
 
 
@@ -57,7 +61,8 @@ def test_object_find_ignores_models_of_another_module(module, other_module):
 def test_object_find_ignores_rows_that_point_elsewhere(module):
     """``('model', '=', 'ir.model')``: una fila de otro modelo no cuenta."""
     IrModelData.objects.create(
-        name='view_order_form', model='ir.ui.view', module='sale', res_id=1)
+        name='view_order_form', model='ir.ui.view', module='sale', res_id=1
+    )
     assert not ReportBaseReportIrmodulereference._object_find(module).exists()
 
 
@@ -67,21 +72,18 @@ def test_object_find_is_empty_for_a_module_that_declares_nothing(module):
 
 def test_report_values_carry_the_selected_modules(module, other_module):
     """``:33-35``: ``docs`` son los módulos que el llamador pidió."""
-    valores = ReportBaseReportIrmodulereference._get_report_values(
-        [module.pk])
+    valores = ReportBaseReportIrmodulereference._get_report_values([module.pk])
     assert list(valores['docs']) == [module]
 
 
 def test_report_values_echo_the_ids_they_received(module):
-    valores = ReportBaseReportIrmodulereference._get_report_values(
-        [module.pk])
+    valores = ReportBaseReportIrmodulereference._get_report_values([module.pk])
     assert valores['doc_ids'] == [module.pk]
 
 
 def test_report_values_expose_both_finders_as_callables(module):
     """``:36-37``: la plantilla los invoca por nombre, así que viajan."""
-    valores = ReportBaseReportIrmodulereference._get_report_values(
-        [module.pk])
+    valores = ReportBaseReportIrmodulereference._get_report_values([module.pk])
     assert callable(valores['findobj'])
     assert callable(valores['findfields'])
 
@@ -89,8 +91,7 @@ def test_report_values_expose_both_finders_as_callables(module):
 def test_the_exposed_finder_is_the_working_one(module):
     """``findobj`` no es un envoltorio: es el método que ya se ejercitó."""
     order = _declare('sale.order', 'sale')
-    valores = ReportBaseReportIrmodulereference._get_report_values(
-        [module.pk])
+    valores = ReportBaseReportIrmodulereference._get_report_values([module.pk])
     assert list(valores['findobj'](module)) == [order]
 
 
@@ -100,8 +101,7 @@ def test_doc_model_is_none_while_the_report_spec_is_not_declared(module):
     La fuente asume que el registro existe porque su XML lo siembra; aquí el
     valor sale ``None`` en vez de reventar, y el docstring dice por qué.
     """
-    valores = ReportBaseReportIrmodulereference._get_report_values(
-        [module.pk])
+    valores = ReportBaseReportIrmodulereference._get_report_values([module.pk])
     assert valores['doc_model'] is None
 
 

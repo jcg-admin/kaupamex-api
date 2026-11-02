@@ -37,6 +37,7 @@ nullable), el llamador lo declara explícito. Mismo criterio que
 ``AccountAnalyticLine.user`` (``api: addons/analytic/models/
 analytic_line.py``, *"Sin default a env.user"*).
 """
+
 import fields
 import models
 
@@ -49,15 +50,23 @@ class AccountAnalyticLineCalendarEmployee(models.Model):
     el calendario personal de un usuario."""
 
     user_id = fields.Many2one(
-        ResUsers, on_delete=models.CASCADE, related_name='timesheet_calendar_filters',
+        ResUsers,
+        on_delete=models.CASCADE,
+        related_name='timesheet_calendar_filters',
         verbose_name='Usuario',
-        help_text='Odoo user_id (required, ondelete=cascade). Sin default '
-                  'a env.user — ver docstring del módulo.',
+        help_text=(
+            'Odoo user_id (required, ondelete=cascade). Sin default '
+            'a env.user — ver docstring del módulo.'
+        ),
         db_column='user_id',
     )
     employee_id = fields.Many2one(
-        HrEmployee, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='calendar_filters', verbose_name='Empleado',
+        HrEmployee,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='calendar_filters',
+        verbose_name='Empleado',
         db_column='employee_id',
     )
     checked = fields.Boolean(default=True, verbose_name='Marcado')

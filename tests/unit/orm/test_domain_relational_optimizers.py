@@ -10,10 +10,10 @@ nada. Ninguno de los dos era portable antes de ``api@5ae823c9``: el primero
 necesita que ``display_name`` resuelva en un dominio, que es lo que ``search=``
 en el campo sin columna desbloqueó (:ref:`h-api-965`).
 """
+
 import pytest
 
-from orm.domains import (Domain, to_q,
-                         _optimize_m2o_bypass_comodel_id_lookup)
+from orm.domains import Domain, to_q, _optimize_m2o_bypass_comodel_id_lookup
 
 from addons.base.models.ir_rule import IrRule
 from addons.base.models.res_groups import ResGroups
@@ -55,9 +55,10 @@ class TestRelationalNameSearch:
         """Con ids y textos mezclados el dominio es la disyunción de los dos:
         los textos por etiqueta, los ids por la columna."""
         optimized = Domain('groups', 'in', ['uno', 7]).optimize(IrRule)
-        expected = (Domain('groups', 'any',
-                           Domain('display_name', 'in', ['uno']))
-                    | Domain('groups', 'in', [7])).optimize(IrRule)
+        expected = (
+            Domain('groups', 'any', Domain('display_name', 'in', ['uno']))
+            | Domain('groups', 'in', [7])
+        ).optimize(IrRule)
         assert optimized == expected
 
     def test_a_list_of_only_ids_is_left_alone(self):
@@ -82,55 +83,69 @@ class TestManyToOneBypassesTheSubquery:
     def test_an_id_in_collapses_to_a_direct_comparison(self):
         condition = Domain('privilege', 'any!', Domain('id', 'in', {1, 2}))
         assert _optimize_m2o_bypass_comodel_id_lookup(
-            condition, ResGroups) == Domain('privilege', 'in', {1, 2})
+            condition, ResGroups
+        ) == Domain('privilege', 'in', {1, 2})
 
     def test_the_false_is_dropped_from_a_positive_in(self):
         """``a any! (id in X)`` es ``a in (X - {False})``: un ``False`` dentro
         del conjunto de ids del comodelo no designa ninguna fila."""
         condition = Domain('privilege', 'any!', Domain('id', 'in', {1, False}))
         assert _optimize_m2o_bypass_comodel_id_lookup(
-            condition, ResGroups) == Domain('privilege', 'in', {1})
+            condition, ResGroups
+        ) == Domain('privilege', 'in', {1})
 
     def test_the_false_is_added_to_a_negated_in(self):
         """Y al negar entra: sin el ``False``, una fila con el relacional
         vacío pasaría el filtro."""
         condition = Domain('privilege', 'any!', Domain('id', 'not in', {1}))
         assert _optimize_m2o_bypass_comodel_id_lookup(
-            condition, ResGroups) == Domain('privilege', 'not in', {1, False})
+            condition, ResGroups
+        ) == Domain('privilege', 'not in', {1, False})
 
     def test_a_nested_any_loses_one_level(self):
         inner = Domain('name', '=', 'x')
         condition = Domain('privilege', 'any!', Domain('id', 'any!', inner))
         assert _optimize_m2o_bypass_comodel_id_lookup(
-            condition, ResGroups) == Domain('privilege', 'any!', inner)
+            condition, ResGroups
+        ) == Domain('privilege', 'any!', inner)
 
     def test_a_nested_not_any_also_demands_the_relation_is_set(self):
         """``a any! (id not any! X)`` no es sólo ``a not any! X``: una fila con
         ``a`` vacío no tiene comodelo que evaluar, así que se exige además."""
         inner = Domain('name', '=', 'x')
-        condition = Domain('privilege', 'any!', Domain('id', 'not any!', inner))
-        assert _optimize_m2o_bypass_comodel_id_lookup(condition, ResGroups) == (
+        condition = Domain(
+            'privilege', 'any!', Domain('id', 'not any!', inner)
+        )
+        assert _optimize_m2o_bypass_comodel_id_lookup(
+            condition, ResGroups
+        ) == (
             Domain('privilege', '!=', False)
-            & Domain('privilege', 'not any!', inner))
+            & Domain('privilege', 'not any!', inner)
+        )
 
     def test_the_outer_not_any_negates_the_whole_result(self):
         condition = Domain('privilege', 'not any!', Domain('id', 'in', {1, 2}))
-        assert _optimize_m2o_bypass_comodel_id_lookup(condition, ResGroups) == \
-            ~Domain('privilege', 'in', {1, 2})
+        assert _optimize_m2o_bypass_comodel_id_lookup(
+            condition, ResGroups
+        ) == ~Domain('privilege', 'in', {1, 2})
 
     def test_a_subdomain_that_is_not_about_id_is_left_alone(self):
         """El atajo vale porque el ``id`` del comodelo **es** la columna del
         relacional. Sobre cualquier otro campo la subconsulta hace falta."""
         condition = Domain('privilege', 'any!', Domain('name', '=', 'x'))
-        assert _optimize_m2o_bypass_comodel_id_lookup(
-            condition, ResGroups) is condition
+        assert (
+            _optimize_m2o_bypass_comodel_id_lookup(condition, ResGroups)
+            is condition
+        )
 
     def test_an_any_without_the_bang_is_left_alone(self):
         """Sin el ``!`` el permiso del comodelo sigue vigente, y saltarse la
         subconsulta se lo saltaría con él."""
         condition = Domain('privilege', 'any', Domain('id', 'in', {1, 2}))
-        assert _optimize_m2o_bypass_comodel_id_lookup(
-            condition, ResGroups) is condition
+        assert (
+            _optimize_m2o_bypass_comodel_id_lookup(condition, ResGroups)
+            is condition
+        )
 
 
 class TestAnyCompilesToASubquery:
@@ -150,19 +165,23 @@ class TestAnyCompilesToASubquery:
 
     def test_an_any_selects_through_the_relation(self, db):
         privilege = ResGroupsPrivilege.objects.create(name='Compras 966')
-        dentro = ResGroups.objects.create(name='Comprador 966',
-                                          privilege=privilege)
+        dentro = ResGroups.objects.create(
+            name='Comprador 966', privilege=privilege
+        )
         fuera = ResGroups.objects.create(name='Suelto 966')
         found = self._matching(
-            Domain('privilege', 'any!', Domain('name', '=', 'Compras 966')))
+            Domain('privilege', 'any!', Domain('name', '=', 'Compras 966'))
+        )
         assert dentro in found and fuera not in found
 
     def test_a_not_any_excludes_them(self, db):
         privilege = ResGroupsPrivilege.objects.create(name='Ventas 966')
-        dentro = ResGroups.objects.create(name='Vendedor 966',
-                                          privilege=privilege)
+        dentro = ResGroups.objects.create(
+            name='Vendedor 966', privilege=privilege
+        )
         found = self._matching(
-            Domain('privilege', 'not any!', Domain('name', '=', 'Ventas 966')))
+            Domain('privilege', 'not any!', Domain('name', '=', 'Ventas 966'))
+        )
         assert dentro not in found
 
     def test_a_non_relational_field_is_refused(self, db):

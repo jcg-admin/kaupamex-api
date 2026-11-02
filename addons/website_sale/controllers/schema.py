@@ -3,6 +3,7 @@
 Patrón Open/Closed: el addon declara sus tags aquí y el hook los agrega al
 schema final; ``config/settings/base.py`` no se toca al añadir una familia.
 """
+
 SPECTACULAR_TAGS = [
     {
         'name': 'cart',

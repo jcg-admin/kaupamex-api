@@ -6,7 +6,10 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("product", "0011_productsupplierinfo_purchase_requisition_line_and_more"),
+        (
+            "product",
+            "0011_productsupplierinfo_purchase_requisition_line_and_more",
+        ),
     ]
 
     operations = [
@@ -20,7 +23,14 @@ class Migration(migrations.Migration):
                     ("sale_order", "En el pedido confirmado"),
                 ],
                 default="hidden",
-                help_text='Odoo attached_on_sale ("Sale : Visible at"). Permite compartir el documento con el cliente dentro de una venta. En el presupuesto: se envía y queda accesible en cualquier momento — útil para fichas de producto. En el pedido confirmado: se envía al confirmar — útil para manuales o contenido digital comprado.',
+                help_text=(
+                    'Odoo attached_on_sale ("Sale : Visible at"). Permite'
+                    ' compartir el documento con el cliente dentro de una'
+                    ' venta. En el presupuesto: se envía y queda accesible en'
+                    ' cualquier momento — útil para fichas de producto. En el'
+                    ' pedido confirmado: se envía al confirmar — útil para'
+                    ' manuales o contenido digital comprado.'
+                ),
                 max_length=16,
                 verbose_name="Venta: visible en",
             ),

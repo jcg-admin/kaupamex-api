@@ -15,6 +15,7 @@ de ``INSTALLED_APPS`` para EXISTIR, sólo para ejecutarse (Django no corre
 migraciones de una app que no está registrada) — ver ``__init__.py`` del
 paquete, sección "Wiring pendiente".
 """
+
 from django.db import migrations
 
 from addons.account_fleet.data import seed_fleet_service_types

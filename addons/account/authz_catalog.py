@@ -20,6 +20,7 @@ financiero es su contrapartida contable (Finance). Colapsarlos perdería esa
 distinción, que es la misma que la referencia sostiene entre ``account.move``
 y ``account.payment``.
 """
+
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
 MODULES = [

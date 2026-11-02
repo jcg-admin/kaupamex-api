@@ -59,6 +59,7 @@ Sucesor: el porte de ``mail.activity.schedule`` (y de los planes de los que
 depende) a ``addons/mail`` — el MISMO DESCONOCIDO con condición de cierre
 que ``models/mail_activity_plan.py``.
 """
+
 from datetime import date, timedelta
 
 
@@ -71,8 +72,9 @@ def _compute_plan_date(employees):
     ``None`` si ningún empleado tiene fecha de alta (la rama ``super()``
     de la referencia — ver divergencia 3).
     """
-    start_dates = [employee.date_start for employee in employees
-                   if employee.date_start]
+    start_dates = [
+        employee.date_start for employee in employees if employee.date_start
+    ]
     if not start_dates:
         return None
     today = date.today()

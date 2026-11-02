@@ -75,5 +75,7 @@ def main(argv=None):
     # MÁS endurecido: la primera petición de un recién llegado recibía un 301 a
     # `https://` que nadie sirve (`SECURE_SSL_REDIRECT = True`), sin que el
     # mensaje de error nombrara la causa. Ver H-API-636.
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
+    os.environ.setdefault(
+        'DJANGO_SETTINGS_MODULE', 'config.settings.development'
+    )
     execute_from_command_line([argv[0]] + args)

@@ -24,6 +24,7 @@ stub— y se agrega en migración aditiva cuando ``hr.employee`` aterrice.
        el método de la fuente recibe ``self`` sin usarlo. Se porta como
        función de módulo, mismo comportamiento (``randint(1, 11)``).
 """
+
 from random import randint
 
 import fields
@@ -48,11 +49,13 @@ class HrEmployeeCategory(TimeStampedModel):
     _description = "Employee Category"
 
     name = fields.Char(
-        'Nombre de la etiqueta', required=True,
+        'Nombre de la etiqueta',
+        required=True,
         help='Nombre de la etiqueta (Odoo name).',
     )
     color = fields.Integer(
-        default=_default_category_color, verbose_name='Índice de color',
+        default=_default_category_color,
+        verbose_name='Índice de color',
         help_text='Color del kanban, 1-11 (Odoo color).',
     )
 
@@ -69,7 +72,8 @@ class HrEmployeeCategory(TimeStampedModel):
         # f'{_table}_{attr[1:]}' → 'hr_employee_category_name_uniq'.
         constraints = [
             models.UniqueConstraint(
-                fields=['name'], name='hr_employee_category_name_uniq'),
+                fields=['name'], name='hr_employee_category_name_uniq'
+            ),
         ]
 
     def __str__(self):

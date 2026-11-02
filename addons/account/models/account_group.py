@@ -49,6 +49,7 @@ consulta del ORM sobre ``type(self).objects``.
 NO se porta: ``_search_display_name``/``_compute_display_name`` (formato de
 UI del cliente web de Odoo, sin análogo en esta API).
 """
+
 from django.core.exceptions import ValidationError
 from django.db.models import F
 from django.db.models.functions import Length
@@ -63,8 +64,11 @@ from addons.base.models import _reject_hierarchy_cycle
 class AccountGroup(models.Model):
     """``account.group`` — nodo del árbol de agrupación por rango de código."""
 
-    parent               = fields.Many2one(
-        'self', on_delete=models.CASCADE, null=True, blank=True,
+    parent = fields.Many2one(
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='children',
         help_text=(
             'Padre en la jerarquía (Odoo parent_id, readonly en la '
@@ -72,19 +76,28 @@ class AccountGroup(models.Model):
             'asigna a mano).'
         ),
     )
-    name                   = fields.Char(
-        max_length=255, help_text='Nombre del grupo (Odoo name, requerido).',
+    name = fields.Char(
+        max_length=255,
+        help_text='Nombre del grupo (Odoo name, requerido).',
     )
-    code_prefix_start        = fields.Char(
-        max_length=32, blank=True, default='',
-        help_text='Prefijo de código, inicio del rango (Odoo code_prefix_start).',
+    code_prefix_start = fields.Char(
+        max_length=32,
+        blank=True,
+        default='',
+        help_text=(
+            'Prefijo de código, inicio del rango (Odoo code_prefix_start).'
+        ),
     )
-    code_prefix_end            = fields.Char(
-        max_length=32, blank=True, default='',
+    code_prefix_end = fields.Char(
+        max_length=32,
+        blank=True,
+        default='',
         help_text='Prefijo de código, fin del rango (Odoo code_prefix_end).',
     )
-    company                      = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, related_name='account_groups',
+    company = fields.Many2one(
+        'base.ResCompany',
+        on_delete=models.CASCADE,
+        related_name='account_groups',
         help_text='Empresa (Odoo company_id, requerido).',
     )
 
@@ -101,7 +114,8 @@ class AccountGroup(models.Model):
             # NULL), así que LENGTH() ya nunca ve NULL.
             models.CheckConstraint(
                 condition=Exact(
-                    Length(F('code_prefix_start')), Length(F('code_prefix_end')),
+                    Length(F('code_prefix_start')),
+                    Length(F('code_prefix_end')),
                 ),
                 name='account_group_prefix_length_eq',
                 violation_error_code='ACCOUNT_GROUP_PREFIX_LENGTH_MISMATCH',
@@ -110,7 +124,10 @@ class AccountGroup(models.Model):
 
     def __str__(self) -> str:
         prefix = self.code_prefix_start or ''
-        if self.code_prefix_end and self.code_prefix_end != self.code_prefix_start:
+        if (
+            self.code_prefix_end
+            and self.code_prefix_end != self.code_prefix_start
+        ):
             prefix = f'{prefix}-{self.code_prefix_end}'
         return f'{prefix} {self.name}'.strip()
 
@@ -136,9 +153,11 @@ class AccountGroup(models.Model):
         start = self.code_prefix_start or ''
         end = self.code_prefix_end or ''
         if len(start) != len(end):
-            raise ValidationError({
-                'code_prefix_end': 'ACCOUNT_GROUP_PREFIX_LENGTH_MISMATCH',
-            })
+            raise ValidationError(
+                {
+                    'code_prefix_end': 'ACCOUNT_GROUP_PREFIX_LENGTH_MISMATCH',
+                }
+            )
 
     def _check_prefix_overlap(self):
         """Rechaza que el rango de prefijo de ``self`` se solape con el de
@@ -157,20 +176,26 @@ class AccountGroup(models.Model):
             return
         end = self.code_prefix_end or start
         conflict = (
-            type(self).objects
-            .filter(company_id=self.company_id)
+            type(self)
+            .objects.filter(company_id=self.company_id)
             .exclude(pk=self.pk)
             .annotate(_prefix_length=Length('code_prefix_start'))
             .filter(_prefix_length=len(start))
             .filter(
-                models.Q(code_prefix_start__lte=start, code_prefix_end__gte=start)
-                | models.Q(code_prefix_start__gte=start, code_prefix_start__lte=end)
+                models.Q(
+                    code_prefix_start__lte=start, code_prefix_end__gte=start
+                )
+                | models.Q(
+                    code_prefix_start__gte=start, code_prefix_start__lte=end
+                )
             )
         )
         if conflict.exists():
-            raise ValidationError({
-                'code_prefix_start': 'ACCOUNT_GROUP_PREFIX_OVERLAP',
-            })
+            raise ValidationError(
+                {
+                    'code_prefix_start': 'ACCOUNT_GROUP_PREFIX_OVERLAP',
+                }
+            )
 
     def _sanitize_prefixes(self):
         """Cross-default de inicio/fin — Odoo ``_compute_code_prefix_start``/
@@ -192,16 +217,25 @@ class AccountGroup(models.Model):
         if not self.company_id or not self.code_prefix_start:
             return
         best = None
-        for other in type(self).objects.filter(company=self.company).exclude(pk=self.pk):
+        for other in (
+            type(self).objects.filter(company=self.company).exclude(pk=self.pk)
+        ):
             if not other.code_prefix_start:
                 continue
             if len(other.code_prefix_start) >= len(self.code_prefix_start):
                 continue
             covers = (
-                other.code_prefix_start <= self.code_prefix_start[:len(other.code_prefix_start)]
-                and other.code_prefix_end >= (self.code_prefix_end or self.code_prefix_start)[:len(other.code_prefix_end)]
+                other.code_prefix_start
+                <= self.code_prefix_start[: len(other.code_prefix_start)]
+                and other.code_prefix_end
+                >= (self.code_prefix_end or self.code_prefix_start)[
+                    : len(other.code_prefix_end)
+                ]
             )
-            if covers and (best is None or len(other.code_prefix_start) > len(best.code_prefix_start)):
+            if covers and (
+                best is None
+                or len(other.code_prefix_start) > len(best.code_prefix_start)
+            ):
                 best = other
         new_parent = best.pk if best is not None else None
         if new_parent != self.parent_id:

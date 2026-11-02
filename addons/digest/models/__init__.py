@@ -8,6 +8,7 @@ de consumidor, ver el docstring de ``digest.py`` y
 vive en ``signals.py``, importada por ``DigestConfig.ready()`` — no en este
 ``__init__`` (no es un modelo).
 """
+
 from .digest import DigestDigest, DigestPeriodicity, DigestState
 from .digest_tip import DigestTip
 

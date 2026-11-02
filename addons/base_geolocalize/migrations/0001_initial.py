@@ -30,7 +30,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text='Nombre técnico del proveedor (Odoo tech_name, p.ej. "openstreetmap").',
+                        help_text=(
+                            'Nombre técnico del proveedor (Odoo tech_name,'
+                            ' p.ej. "openstreetmap").'
+                        ),
                         max_length=64,
                     ),
                 ),
@@ -67,28 +70,40 @@ class Migration(migrations.Migration):
                     "latitude",
                     models.FloatField(
                         default=0.0,
-                        help_text="Latitud GPS (Odoo partner_latitude, base/res_partner.py:270).",
+                        help_text=(
+                            "Latitud GPS (Odoo partner_latitude,"
+                            " base/res_partner.py:270)."
+                        ),
                     ),
                 ),
                 (
                     "longitude",
                     models.FloatField(
                         default=0.0,
-                        help_text="Longitud GPS (Odoo partner_longitude, base/res_partner.py:271).",
+                        help_text=(
+                            "Longitud GPS (Odoo partner_longitude,"
+                            " base/res_partner.py:271)."
+                        ),
                     ),
                 ),
                 (
                     "date_localization",
                     models.DateField(
                         blank=True,
-                        help_text="Fecha de la última geolocalización exitosa (Odoo date_localization, 19:10).",
+                        help_text=(
+                            "Fecha de la última geolocalización exitosa (Odoo"
+                            " date_localization, 19:10)."
+                        ),
                         null=True,
                     ),
                 ),
                 (
                     "partner",
                     models.OneToOneField(
-                        help_text="Partner al que pertenece (Odoo _inherit res.partner).",
+                        help_text=(
+                            "Partner al que pertenece (Odoo _inherit"
+                            " res.partner)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="geolocation",
                         to="base.respartner",

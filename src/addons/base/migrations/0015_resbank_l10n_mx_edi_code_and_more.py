@@ -18,7 +18,11 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Número de tres dígitos que la ABM asigna a las instituciones bancarias (Odoo l10n_mx_edi_code; ABM = Asociación de Bancos de México).",
+                help_text=(
+                    "Número de tres dígitos que la ABM asigna a las"
+                    " instituciones bancarias (Odoo l10n_mx_edi_code; ABM ="
+                    " Asociación de Bancos de México)."
+                ),
                 max_length=3,
             ),
         ),
@@ -27,7 +31,10 @@ class Migration(migrations.Migration):
             name="l10n_mx_income_re_invoicing_account",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Cuenta de ingresos para re-facturación (Odoo l10n_mx_income_re_invoicing_account_id).",
+                help_text=(
+                    "Cuenta de ingresos para re-facturación (Odoo"
+                    " l10n_mx_income_re_invoicing_account_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="+",
@@ -39,7 +46,10 @@ class Migration(migrations.Migration):
             name="l10n_mx_income_return_discount_account",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Cuenta de ingresos para devoluciones y descuentos (Odoo l10n_mx_income_return_discount_account_id).",
+                help_text=(
+                    "Cuenta de ingresos para devoluciones y descuentos (Odoo"
+                    " l10n_mx_income_return_discount_account_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="+",
@@ -52,7 +62,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="CLABE — cifra bancaria estandarizada de México (Odoo l10n_mx_edi_clabe).",
+                help_text=(
+                    "CLABE — cifra bancaria estandarizada de México (Odoo"
+                    " l10n_mx_edi_clabe)."
+                ),
                 max_length=18,
             ),
         ),

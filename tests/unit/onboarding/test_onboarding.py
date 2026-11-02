@@ -26,6 +26,7 @@ sesión de test, sin tocar ``base.py`` ni crear ``migrations/``:
 Cuando el addon se wireé de verdad (INSTALLED_APPS + migración inicial),
 este fixture deja de ser necesario y puede retirarse sin tocar los tests.
 """
+
 import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
@@ -58,13 +59,15 @@ def _company(code):
 
 def _step(title, action='action_open'):
     return OnboardingOnboardingStep.objects.create(
-        title=title, panel_step_open_action_name=action,
+        title=title,
+        panel_step_open_action_name=action,
     )
 
 
 def _onboarding(route_name, steps=()):
     onboarding = OnboardingOnboarding.objects.create(
-        name=route_name, route_name=route_name,
+        name=route_name,
+        route_name=route_name,
     )
     if steps:
         onboarding.set_steps(steps)
@@ -90,7 +93,9 @@ class TestStepLinkAndReverseRelation:
         assert list(
             onboarding.steps.order_by('id').values_list('title', flat=True),
         ) == ['Step 1', 'Step 2']
-        assert list(step1.onboardings.values_list('route_name', flat=True)) == [
+        assert list(
+            step1.onboardings.values_list('route_name', flat=True)
+        ) == [
             'route_link_1',
         ]
 
@@ -176,13 +181,22 @@ class TestActionValidateStepById:
     xmlid documentado en ``OnboardingOnboardingStep``)."""
 
     def test_not_found_for_unknown_pk(self):
-        assert OnboardingOnboardingStep.action_validate_step(999999) == 'NOT_FOUND'
+        assert (
+            OnboardingOnboardingStep.action_validate_step(999999)
+            == 'NOT_FOUND'
+        )
 
     def test_just_done_on_first_call_was_done_on_second(self):
         step = _step('Step validate')
         _onboarding('route_validate_1', steps=[step])
-        assert OnboardingOnboardingStep.action_validate_step(step.pk) == 'JUST_DONE'
-        assert OnboardingOnboardingStep.action_validate_step(step.pk) == 'WAS_DONE'
+        assert (
+            OnboardingOnboardingStep.action_validate_step(step.pk)
+            == 'JUST_DONE'
+        )
+        assert (
+            OnboardingOnboardingStep.action_validate_step(step.pk)
+            == 'WAS_DONE'
+        )
 
 
 class TestActionClosePanel:
@@ -210,8 +224,14 @@ class TestCompanyScopedProgress:
         progress_acme = onboarding._search_or_create_progress(company=acme)
         progress_globex = onboarding._search_or_create_progress(company=globex)
         assert progress_acme.pk != progress_globex.pk
-        assert onboarding.get_current_progress(company=acme).pk == progress_acme.pk
-        assert onboarding.get_current_progress(company=globex).pk == progress_globex.pk
+        assert (
+            onboarding.get_current_progress(company=acme).pk
+            == progress_acme.pk
+        )
+        assert (
+            onboarding.get_current_progress(company=globex).pk
+            == progress_globex.pk
+        )
 
     def test_ambient_company_scope_resolves_current_progress(self):
         acme = _company('acme-onb-3')
@@ -231,7 +251,9 @@ class TestUniqueConstraints:
         OnboardingProgress.objects.create(onboarding=onboarding, company=acme)
         with pytest.raises(IntegrityError):
             with transaction.atomic():
-                OnboardingProgress.objects.create(onboarding=onboarding, company=acme)
+                OnboardingProgress.objects.create(
+                    onboarding=onboarding, company=acme
+                )
 
     def test_progress_global_and_per_company_can_coexist(self):
         acme = _company('acme-onb-5')
@@ -253,7 +275,8 @@ class TestUniqueConstraints:
         with pytest.raises(IntegrityError):
             with transaction.atomic():
                 OnboardingOnboarding.objects.create(
-                    name='dup', route_name='route_unique_dup',
+                    name='dup',
+                    route_name='route_unique_dup',
                 )
 
 
@@ -262,10 +285,12 @@ class TestConsolidateJustDone:
         step_a = _step('Consolidate a')
         step_b = _step('Consolidate b')
         row_a = OnboardingProgressStep.objects.create(
-            step=step_a, step_state='just_done',
+            step=step_a,
+            step_state='just_done',
         )
         row_b = OnboardingProgressStep.objects.create(
-            step=step_b, step_state='not_done',
+            step=step_b,
+            step_state='not_done',
         )
         count = OnboardingProgressStep.consolidate_just_done_queryset(
             OnboardingProgressStep.objects.filter(pk__in=[row_a.pk, row_b.pk]),
@@ -289,8 +314,10 @@ class TestStepImagePlaceholder:
 
     def test_the_step_image_field_names_its_own_placeholder(self):
         step = _step('Placeholder A')
-        assert step._get_placeholder_filename('step_image') == \
-            'base/static/img/onboarding_default.png'
+        assert (
+            step._get_placeholder_filename('step_image')
+            == 'base/static/img/onboarding_default.png'
+        )
 
     def test_any_other_field_falls_back_to_the_default(self):
         """La fuente cierra con ``super()``, que sube al ``BaseModel``. Aqui
@@ -335,7 +362,8 @@ class TestStepImagePlaceholder:
         IrBinary.placeholder = staticmethod(espia)
         try:
             IrBinary.get_image_response_from(
-                step, field_name='step_image', placeholder='otra/ruta.png')
+                step, field_name='step_image', placeholder='otra/ruta.png'
+            )
         finally:
             IrBinary.placeholder = original
 

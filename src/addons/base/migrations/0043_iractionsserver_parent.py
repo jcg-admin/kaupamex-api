@@ -16,7 +16,9 @@ class Migration(migrations.Migration):
             name="parent",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo parent_id. Acción compuesta que encadena a ésta.",
+                help_text=(
+                    "Odoo parent_id. Acción compuesta que encadena a ésta."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="child_ids",

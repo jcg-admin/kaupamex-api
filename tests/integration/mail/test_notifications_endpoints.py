@@ -15,6 +15,7 @@ Mutations:
 
 JSON keys + identifiers in English (DEC-DOC-005).
 """
+
 import pytest
 from addons.mail.models import Notification, NotificationPreference
 
@@ -35,7 +36,8 @@ class TestNotificationsCapabilityGate:
 
     def test_requires_account_notifications(self, api_client, db):
         u = get_user_model().objects.create_user(
-            login='norole-notif@kaupamex.mx', password='TestPass123!')
+            login='norole-notif@kaupamex.mx', password='TestPass123!'
+        )
         api_client.force_login(u)
         assert api_client.get(LIST_URL).status_code == 403
 
@@ -59,7 +61,9 @@ class TestListNotifications:
         res = api_client.get(LIST_URL)
         assert res.status_code == 401
 
-    def test_list_only_own_notifications(self, auth_client, user, admin_user, db):
+    def test_list_only_own_notifications(
+        self, auth_client, user, admin_user, db
+    ):
         _make_notification(user, subject='Mio')
         _make_notification(admin_user, subject='De otro')
         res = auth_client.get(LIST_URL)
@@ -84,7 +88,9 @@ class TestUnreadCount:
         res = api_client.get(UNREAD_COUNT_URL)
         assert res.status_code == 401
 
-    def test_counts_only_unread_for_user(self, auth_client, user, admin_user, db):
+    def test_counts_only_unread_for_user(
+        self, auth_client, user, admin_user, db
+    ):
         _make_notification(user, subject='A', read=False)
         _make_notification(user, subject='B', read=False)
         _make_notification(user, subject='C', read=True)
@@ -124,7 +130,9 @@ class TestMarkAllRead:
         res = api_client.patch(LIST_URL)
         assert res.status_code == 401
 
-    def test_marks_all_user_notifications_as_read(self, auth_client, user, admin_user, db):
+    def test_marks_all_user_notifications_as_read(
+        self, auth_client, user, admin_user, db
+    ):
         _make_notification(user, read=False)
         _make_notification(user, read=False)
         other = _make_notification(admin_user, read=False)
@@ -152,7 +160,12 @@ class TestGetPreferences:
         rows = body['results']
         types = {r['type'] for r in rows}
         # tipos esperados
-        assert {'ORDER_UPDATE', 'RETURN_UPDATE', 'PROMOTION', 'SYSTEM'} <= types
+        assert {
+            'ORDER_UPDATE',
+            'RETURN_UPDATE',
+            'PROMOTION',
+            'SYSTEM',
+        } <= types
         for row in rows:
             for key in ('type', 'enabled', 'mandatory', 'label'):
                 assert key in row
@@ -167,15 +180,21 @@ class TestGetPreferences:
 # ─── PUT /preferences ────────────────────────────────────────────────────
 class TestUpdatePreferences:
     def test_requires_auth(self, api_client, db):
-        res = api_client.put(PREFERENCES_URL,
-                             {'preferences': [{'type': 'PROMOTION', 'enabled': False}]},
-                             format='json')
+        res = api_client.put(
+            PREFERENCES_URL,
+            {'preferences': [{'type': 'PROMOTION', 'enabled': False}]},
+            format='json',
+        )
         assert res.status_code == 401
 
     def test_disables_optional_preference(self, auth_client, user, db):
-        res = auth_client.put(PREFERENCES_URL, {
-            'preferences': [{'type': 'PROMOTION', 'enabled': False}],
-        }, format='json')
+        res = auth_client.put(
+            PREFERENCES_URL,
+            {
+                'preferences': [{'type': 'PROMOTION', 'enabled': False}],
+            },
+            format='json',
+        )
         assert res.status_code == 200
         body = res.json()
         by_type = {r['type']: r for r in body['results']}
@@ -185,9 +204,13 @@ class TestUpdatePreferences:
         assert pref.enabled is False
 
     def test_mandatory_type_cannot_be_disabled(self, auth_client, db):
-        res = auth_client.put(PREFERENCES_URL, {
-            'preferences': [{'type': 'ORDER_UPDATE', 'enabled': False}],
-        }, format='json')
+        res = auth_client.put(
+            PREFERENCES_URL,
+            {
+                'preferences': [{'type': 'ORDER_UPDATE', 'enabled': False}],
+            },
+            format='json',
+        )
         assert res.status_code == 200
         body = res.json()
         by_type = {r['type']: r for r in body['results']}
@@ -196,56 +219,89 @@ class TestUpdatePreferences:
         assert body.get('skipped_mandatory') == ['ORDER_UPDATE']
 
     def test_skipped_mandatory_empty_when_only_optional(self, auth_client, db):
-        res = auth_client.put(PREFERENCES_URL, {
-            'preferences': [{'type': 'PROMOTION', 'enabled': False}],
-        }, format='json')
+        res = auth_client.put(
+            PREFERENCES_URL,
+            {
+                'preferences': [{'type': 'PROMOTION', 'enabled': False}],
+            },
+            format='json',
+        )
         assert res.status_code == 200
         assert res.json().get('skipped_mandatory') == []
 
     def test_skipped_mandatory_only_when_disabling(self, auth_client, db):
-        res = auth_client.put(PREFERENCES_URL, {
-            'preferences': [{'type': 'SYSTEM', 'enabled': True}],
-        }, format='json')
+        res = auth_client.put(
+            PREFERENCES_URL,
+            {
+                'preferences': [{'type': 'SYSTEM', 'enabled': True}],
+            },
+            format='json',
+        )
         assert res.status_code == 200
         assert res.json().get('skipped_mandatory') == []
 
     def test_invalid_type_returns_400(self, auth_client, db):
-        res = auth_client.put(PREFERENCES_URL, {
-            'preferences': [{'type': 'BOGUS', 'enabled': False}],
-        }, format='json')
+        res = auth_client.put(
+            PREFERENCES_URL,
+            {
+                'preferences': [{'type': 'BOGUS', 'enabled': False}],
+            },
+            format='json',
+        )
         assert res.status_code == 400
 
-    def test_disable_promotion_and_support_together(self, auth_client, user, db):
+    def test_disable_promotion_and_support_together(
+        self, auth_client, user, db
+    ):
         """H-NOT-01: deshabilitar Promociones + Actualizaciones de soporte a la
         vez debe devolver 200 (era el flujo que reportaba 500 en prod)."""
-        res = auth_client.put(PREFERENCES_URL, {
-            'preferences': [
-                {'type': 'PROMOTION', 'enabled': False},
-                {'type': 'SUPPORT_UPDATE', 'enabled': False},
-            ],
-        }, format='json')
+        res = auth_client.put(
+            PREFERENCES_URL,
+            {
+                'preferences': [
+                    {'type': 'PROMOTION', 'enabled': False},
+                    {'type': 'SUPPORT_UPDATE', 'enabled': False},
+                ],
+            },
+            format='json',
+        )
         assert res.status_code == 200
         by_type = {r['type']: r for r in res.json()['results']}
         assert by_type['PROMOTION']['enabled'] is False
         assert by_type['SUPPORT_UPDATE']['enabled'] is False
         assert NotificationPreference.objects.filter(
-            user=user, type='PROMOTION', enabled=False,
+            user=user,
+            type='PROMOTION',
+            enabled=False,
         ).exists()
         assert NotificationPreference.objects.filter(
-            user=user, type='SUPPORT_UPDATE', enabled=False,
+            user=user,
+            type='SUPPORT_UPDATE',
+            enabled=False,
         ).exists()
 
     def test_resave_is_idempotent(self, auth_client, user, db):
         """H-NOT-01: reguardar la misma preferencia no duplica filas ni rompe
         (el upsert tolerante actualiza en sitio, no crea una segunda fila)."""
         payload = {'preferences': [{'type': 'PROMOTION', 'enabled': False}]}
-        assert auth_client.put(PREFERENCES_URL, payload, format='json').status_code == 200
+        assert (
+            auth_client.put(
+                PREFERENCES_URL, payload, format='json'
+            ).status_code
+            == 200
+        )
         # segundo guardado: toggle de vuelta a True, sobre la fila existente
-        res = auth_client.put(PREFERENCES_URL, {
-            'preferences': [{'type': 'PROMOTION', 'enabled': True}],
-        }, format='json')
+        res = auth_client.put(
+            PREFERENCES_URL,
+            {
+                'preferences': [{'type': 'PROMOTION', 'enabled': True}],
+            },
+            format='json',
+        )
         assert res.status_code == 200
-        rows = NotificationPreference.objects.filter(user=user, type='PROMOTION')
+        rows = NotificationPreference.objects.filter(
+            user=user, type='PROMOTION'
+        )
         assert rows.count() == 1
         assert rows.first().enabled is True
 
@@ -260,16 +316,20 @@ class TestAdminAudienceCount:
         res = auth_client.get(ADMIN_AUDIENCE_URL + '?recipient_type=USER')
         assert res.status_code == 403
 
-    def test_user_recipient_count_matches_username(self, admin_client, user, db):
+    def test_user_recipient_count_matches_username(
+        self, admin_client, user, db
+    ):
         res = admin_client.get(
-            ADMIN_AUDIENCE_URL + f'?recipient_type=USER&recipient_identifier={user.email}'
+            ADMIN_AUDIENCE_URL
+            + f'?recipient_type=USER&recipient_identifier={user.email}'
         )
         assert res.status_code == 200
         assert res.json() == {'count': 1}
 
     def test_user_recipient_count_zero_when_missing(self, admin_client, db):
         res = admin_client.get(
-            ADMIN_AUDIENCE_URL + '?recipient_type=USER&recipient_identifier=nope-zzz'
+            ADMIN_AUDIENCE_URL
+            + '?recipient_type=USER&recipient_identifier=nope-zzz'
         )
         assert res.status_code == 200
         assert res.json() == {'count': 0}
@@ -280,7 +340,8 @@ class TestAdminAudienceCount:
 
     def test_product_buyers_zero_when_no_orders(self, admin_client, db):
         res = admin_client.get(
-            ADMIN_AUDIENCE_URL + '?recipient_type=PRODUCT_BUYERS&product_id=999999'
+            ADMIN_AUDIENCE_URL
+            + '?recipient_type=PRODUCT_BUYERS&product_id=999999'
         )
         assert res.status_code == 200
         assert res.json() == {'count': 0}
@@ -289,32 +350,47 @@ class TestAdminAudienceCount:
 # ─── POST /admin/manual ──────────────────────────────────────────────────
 class TestAdminManualNotification:
     def test_requires_auth(self, api_client, db):
-        res = api_client.post(ADMIN_MANUAL_URL, {
-            'recipient_type': 'USER',
-            'recipient_identifier': 'nobody',
-            'subject': 'Hola',
-            'message': 'Mensaje suficientemente largo.',
-        }, format='json')
+        res = api_client.post(
+            ADMIN_MANUAL_URL,
+            {
+                'recipient_type': 'USER',
+                'recipient_identifier': 'nobody',
+                'subject': 'Hola',
+                'message': 'Mensaje suficientemente largo.',
+            },
+            format='json',
+        )
         assert res.status_code == 401
 
     def test_requires_staff(self, auth_client, db):
-        res = auth_client.post(ADMIN_MANUAL_URL, {
-            'recipient_type': 'USER',
-            'recipient_identifier': 'nobody',
-            'subject': 'Hola',
-            'message': 'Mensaje suficientemente largo.',
-        }, format='json')
+        res = auth_client.post(
+            ADMIN_MANUAL_URL,
+            {
+                'recipient_type': 'USER',
+                'recipient_identifier': 'nobody',
+                'subject': 'Hola',
+                'message': 'Mensaje suficientemente largo.',
+            },
+            format='json',
+        )
         assert res.status_code == 403
 
     def test_send_to_specific_user_creates_notification(
-        self, admin_client, user, db,
+        self,
+        admin_client,
+        user,
+        db,
     ):
-        res = admin_client.post(ADMIN_MANUAL_URL, {
-            'recipient_type': 'USER',
-            'recipient_identifier': user.email,
-            'subject': 'Hola directo',
-            'message': 'Mensaje directo de prueba.',
-        }, format='json')
+        res = admin_client.post(
+            ADMIN_MANUAL_URL,
+            {
+                'recipient_type': 'USER',
+                'recipient_identifier': user.email,
+                'subject': 'Hola directo',
+                'message': 'Mensaje directo de prueba.',
+            },
+            format='json',
+        )
         assert res.status_code == 201
         body = res.json()
         for key in ('id', 'recipients_count', 'status'):
@@ -322,42 +398,69 @@ class TestAdminManualNotification:
         assert body['recipients_count'] == 1
         assert body['status'] == 'SENT'
 
-        assert Notification.objects.filter(
-            user=user, subject='Hola directo',
-        ).count() == 1
+        assert (
+            Notification.objects.filter(
+                user=user,
+                subject='Hola directo',
+            ).count()
+            == 1
+        )
 
     def test_user_without_identifier_returns_400(self, admin_client, db):
-        res = admin_client.post(ADMIN_MANUAL_URL, {
-            'recipient_type': 'USER',
-            'subject': 'Hola',
-            'message': 'Mensaje de prueba.',
-        }, format='json')
+        res = admin_client.post(
+            ADMIN_MANUAL_URL,
+            {
+                'recipient_type': 'USER',
+                'subject': 'Hola',
+                'message': 'Mensaje de prueba.',
+            },
+            format='json',
+        )
         assert res.status_code == 400
 
-    def test_product_buyers_without_product_id_returns_400(self, admin_client, db):
-        res = admin_client.post(ADMIN_MANUAL_URL, {
-            'recipient_type': 'PRODUCT_BUYERS',
-            'subject': 'Hola',
-            'message': 'Mensaje de prueba.',
-        }, format='json')
+    def test_product_buyers_without_product_id_returns_400(
+        self, admin_client, db
+    ):
+        res = admin_client.post(
+            ADMIN_MANUAL_URL,
+            {
+                'recipient_type': 'PRODUCT_BUYERS',
+                'subject': 'Hola',
+                'message': 'Mensaje de prueba.',
+            },
+            format='json',
+        )
         assert res.status_code == 400
 
     def test_send_to_user_who_disabled_promotion_skips_notification(
-        self, admin_client, user, db,
+        self,
+        admin_client,
+        user,
+        db,
     ):
         NotificationPreference.objects.create(
-            user=user, type='PROMOTION', enabled=False,
+            user=user,
+            type='PROMOTION',
+            enabled=False,
         )
-        res = admin_client.post(ADMIN_MANUAL_URL, {
-            'recipient_type': 'USER',
-            'recipient_identifier': user.email,
-            'subject': 'Promo bloqueada',
-            'message': 'No deberia llegar.',
-        }, format='json')
+        res = admin_client.post(
+            ADMIN_MANUAL_URL,
+            {
+                'recipient_type': 'USER',
+                'recipient_identifier': user.email,
+                'subject': 'Promo bloqueada',
+                'message': 'No deberia llegar.',
+            },
+            format='json',
+        )
         assert res.status_code == 201
         # recipients_count refleja la audiencia bruta, no la entregada.
         assert res.json()['recipients_count'] == 1
 
-        assert Notification.objects.filter(
-            user=user, subject='Promo bloqueada',
-        ).count() == 0
+        assert (
+            Notification.objects.filter(
+                user=user,
+                subject='Promo bloqueada',
+            ).count()
+            == 0
+        )

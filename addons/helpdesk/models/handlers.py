@@ -4,6 +4,7 @@ Reubicados desde ``mail/models/notification_signals.py`` (T-035): el receptor
 del cierre de ticket vive con ``SupportTicket``, no dentro del addon de correo.
 Ver la nota de dirección en ``addons/orders/handlers.py``.
 """
+
 import logging
 
 from django.db.models.signals import post_save, pre_save
@@ -24,7 +25,9 @@ def _cache_ticket_old_status(sender, instance, **kwargs):
         return
     if instance.pk:
         try:
-            instance._old_status = SupportTicket.objects.get(pk=instance.pk).status
+            instance._old_status = SupportTicket.objects.get(
+                pk=instance.pk
+            ).status
         except SupportTicket.DoesNotExist:
             instance._old_status = None
     else:
@@ -49,9 +52,13 @@ def _support_ticket_closed(sender, instance, created, **kwargs):
     # setearlo.
     closed_by_staff = getattr(instance, '_closed_by_staff', True)
     try:
-        notify_support_closed(instance, instance.user, closed_by_staff=closed_by_staff)
+        notify_support_closed(
+            instance, instance.user, closed_by_staff=closed_by_staff
+        )
     except Exception:
         logger.warning(
-            '_support_ticket_closed: notificacion fallida para SupportTicket %s',
-            instance.pk, exc_info=True,
+            '_support_ticket_closed: notificacion fallida para'
+            ' SupportTicket %s',
+            instance.pk,
+            exc_info=True,
         )

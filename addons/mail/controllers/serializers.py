@@ -3,9 +3,13 @@ Serializers — addons.mail.
 
 JSON keys in English (DEC-DOC-005).
 """
-from rest_framework import serializers
-from addons.mail.models import ManualNotification, Notification, NotificationType
 
+from rest_framework import serializers
+from addons.mail.models import (
+    ManualNotification,
+    Notification,
+    NotificationType,
+)
 
 
 class NotificationSerializer(serializers.ModelSerializer):
@@ -53,7 +57,10 @@ class ManualNotificationCreateSerializer(serializers.Serializer):
         choices=ManualNotification.RecipientType.choices,
     )
     recipient_identifier = serializers.CharField(
-        required=False, allow_blank=True, default='', max_length=254,
+        required=False,
+        allow_blank=True,
+        default='',
+        max_length=254,
     )
     product_id = serializers.IntegerField(required=False, allow_null=True)
     subject = serializers.CharField(min_length=3, max_length=200)
@@ -63,16 +70,24 @@ class ManualNotificationCreateSerializer(serializers.Serializer):
         recipient_type = attrs.get('recipient_type')
         if recipient_type == ManualNotification.RecipientType.USER:
             if not attrs.get('recipient_identifier'):
-                raise serializers.ValidationError({
-                    'recipient_identifier':
-                        'recipient_identifier es requerido para recipient_type=USER.',
-                })
+                raise serializers.ValidationError(
+                    {
+                        'recipient_identifier': (
+                            'recipient_identifier es requerido para'
+                            ' recipient_type=USER.'
+                        ),
+                    }
+                )
         elif recipient_type == ManualNotification.RecipientType.PRODUCT_BUYERS:
             if not attrs.get('product_id'):
-                raise serializers.ValidationError({
-                    'product_id':
-                        'product_id es requerido para recipient_type=PRODUCT_BUYERS.',
-                })
+                raise serializers.ValidationError(
+                    {
+                        'product_id': (
+                            'product_id es requerido para'
+                            ' recipient_type=PRODUCT_BUYERS.'
+                        ),
+                    }
+                )
         return attrs
 
 

@@ -40,7 +40,8 @@ class Migration(migrations.Migration):
                 (
                     "color",
                     models.IntegerField(
-                        default=0, help_text="Índice de color (Odoo crm.tag.color)."
+                        default=0,
+                        help_text="Índice de color (Odoo crm.tag.color).",
                     ),
                 ),
             ],
@@ -83,20 +84,27 @@ class Migration(migrations.Migration):
                     "active",
                     models.BooleanField(
                         default=True,
-                        help_text="Archivar el equipo sin borrarlo (Odoo crm.team.active).",
+                        help_text=(
+                            "Archivar el equipo sin borrarlo (Odoo"
+                            " crm.team.active)."
+                        ),
                     ),
                 ),
                 (
                     "color",
                     models.IntegerField(
-                        default=0, help_text="Índice de color (Odoo crm.team.color)."
+                        default=0,
+                        help_text="Índice de color (Odoo crm.team.color).",
                     ),
                 ),
                 (
                     "company",
                     models.ForeignKey(
                         blank=True,
-                        help_text="ResCompany propietaria (Odoo crm.team.company_id).",
+                        help_text=(
+                            "ResCompany propietaria (Odoo"
+                            " crm.team.company_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="sales_teams",
@@ -140,7 +148,9 @@ class Migration(migrations.Migration):
                     "active",
                     models.BooleanField(
                         default=True,
-                        help_text="Archivar la membresía sin borrarla (Odoo active).",
+                        help_text=(
+                            "Archivar la membresía sin borrarla (Odoo active)."
+                        ),
                     ),
                 ),
                 (

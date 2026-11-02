@@ -6,6 +6,7 @@ La expectativa de ausencia de setter en columnas ordinarias se reconcilia
 con el fallo medido de invalidación de TASK-GEN-0633; los nuevos casos
 PostgreSQL prueban el efecto, no sólo la presencia de un método.
 """
+
 import pytest
 from django.db import connection, models
 from django.db.models.query_utils import DeferredAttribute
@@ -47,7 +48,9 @@ class TestTheDescriptorIsInstalledWhereItHasWork:
         assert isinstance(descriptor, ComputedFieldDescriptor)
         assert hasattr(descriptor, '__set__')
 
-    def test_a_plain_column_has_the_dependency_notifying_setter(self, partner_model):
+    def test_a_plain_column_has_the_dependency_notifying_setter(
+        self, partner_model
+    ):
         """Una columna ordinaria también puede alimentar un cómputo."""
         descriptor = descriptor_of(partner_model, 'name')
         assert isinstance(descriptor, DeferredAttribute)
@@ -56,12 +59,13 @@ class TestTheDescriptorIsInstalledWhereItHasWork:
         assert hasattr(descriptor, '__set__')
 
 
-
 class TestGetOnTheClass:
     """``:1644-1645`` — ``if record is None: return self``."""
 
     def test_class_level_access_returns_the_descriptor(self, partner_model):
-        assert isinstance(partner_model.commercial_company_name, FieldDescriptor)
+        assert isinstance(
+            partner_model.commercial_company_name, FieldDescriptor
+        )
 
 
 class TestGetGoesThroughTheEnvironmentCache:
@@ -107,7 +111,10 @@ class TestSetPartitionsTheRecordAsTheSourceDoes:
         with environment.protecting([field], record):
             record.commercial_company_name = 'Escrito bajo proteccion'
 
-        assert field._get_cache(environment)[record.pk] == 'Escrito bajo proteccion'
+        assert (
+            field._get_cache(environment)[record.pk]
+            == 'Escrito bajo proteccion'
+        )
 
     def test_a_real_record_is_not_flushed_on_assignment(self, partner_model):
         """La divergencia de mecanismo, medida y declarada en el modulo.
@@ -131,18 +138,27 @@ class TestSetPartitionsTheRecordAsTheSourceDoes:
         record = partner_model.objects.create(name='Real')
         field = model_field_registry(partner_model)['commercial_company_name']
         stored_before = partner_model.objects.values_list(
-            'commercial_company_name', flat=True).get(pk=record.pk)
+            'commercial_company_name', flat=True
+        ).get(pk=record.pk)
 
         with CaptureQueriesContext(connection) as capturadas:
             record.commercial_company_name = 'Asignado'
 
-        escrituras = [q['sql'] for q in capturadas
-                      if q['sql'].lstrip().upper().startswith(
-                          ('UPDATE', 'INSERT', 'DELETE'))]
+        escrituras = [
+            q['sql']
+            for q in capturadas
+            if q['sql']
+            .lstrip()
+            .upper()
+            .startswith(('UPDATE', 'INSERT', 'DELETE'))
+        ]
         assert escrituras == []
-        assert partner_model.objects.values_list(
-            'commercial_company_name', flat=True).get(
-                pk=record.pk) == stored_before
+        assert (
+            partner_model.objects.values_list(
+                'commercial_company_name', flat=True
+            ).get(pk=record.pk)
+            == stored_before
+        )
         assert field._get_cache(record_environment())[record.pk] == 'Asignado'
 
 

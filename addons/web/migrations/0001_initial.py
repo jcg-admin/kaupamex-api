@@ -28,7 +28,10 @@ class Migration(migrations.Migration):
                 (
                     "res_model",
                     models.CharField(
-                        help_text="Modelo donde se embebe la acción (Odoo res_model, requerido).",
+                        help_text=(
+                            "Modelo donde se embebe la acción (Odoo res_model,"
+                            " requerido)."
+                        ),
                         max_length=120,
                         verbose_name="Modelo del registro",
                     ),
@@ -37,7 +40,10 @@ class Migration(migrations.Migration):
                     "res_id",
                     models.IntegerField(
                         default=0,
-                        help_text="ID del registro donde se embebe; 0 = ningún registro particular (Odoo res_id).",
+                        help_text=(
+                            "ID del registro donde se embebe; 0 = ningún"
+                            " registro particular (Odoo res_id)."
+                        ),
                         verbose_name="ID del registro",
                     ),
                 ),
@@ -46,7 +52,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text='IDs separados por coma, en el orden elegido por el usuario; "false" marca un hueco (Odoo embedded_actions_order).',
+                        help_text=(
+                            'IDs separados por coma, en el orden elegido por'
+                            ' el usuario; "false" marca un hueco (Odoo'
+                            ' embedded_actions_order).'
+                        ),
                         max_length=255,
                         verbose_name="Orden de las acciones embebidas",
                     ),
@@ -56,7 +66,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="IDs separados por coma de las acciones visibles (Odoo embedded_actions_visibility).",
+                        help_text=(
+                            "IDs separados por coma de las acciones visibles"
+                            " (Odoo embedded_actions_visibility)."
+                        ),
                         max_length=255,
                         verbose_name="Visibilidad de las acciones embebidas",
                     ),
@@ -65,14 +78,20 @@ class Migration(migrations.Migration):
                     "embedded_visibility",
                     models.BooleanField(
                         default=False,
-                        help_text="Si la barra superior de acciones embebidas está visible (Odoo embedded_visibility).",
+                        help_text=(
+                            "Si la barra superior de acciones embebidas está"
+                            " visible (Odoo embedded_visibility)."
+                        ),
                         verbose_name="Barra superior visible",
                     ),
                 ),
                 (
                     "action",
                     models.ForeignKey(
-                        help_text="Acción embebida a la que aplica el ajuste (Odoo action_id, requerido, ondelete=cascade).",
+                        help_text=(
+                            "Acción embebida a la que aplica el ajuste (Odoo"
+                            " action_id, requerido, ondelete=cascade)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="embedded_user_settings",
                         to="base.iractionsactwindow",
@@ -82,7 +101,11 @@ class Migration(migrations.Migration):
                 (
                     "user_setting",
                     models.ForeignKey(
-                        help_text="Preferencias del usuario dueño de este ajuste (Odoo user_setting_id, requerido, ondelete=cascade).",
+                        help_text=(
+                            "Preferencias del usuario dueño de este ajuste"
+                            " (Odoo user_setting_id, requerido,"
+                            " ondelete=cascade)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="embedded_actions_config_ids",
                         to="base.resuserssettings",
@@ -92,7 +115,9 @@ class Migration(migrations.Migration):
             ],
             options={
                 "verbose_name": "Ajuste de acción embebida por usuario",
-                "verbose_name_plural": "Ajustes de acciones embebidas por usuario",
+                "verbose_name_plural": (
+                    "Ajustes de acciones embebidas por usuario"
+                ),
                 "db_table": "res_users_settings_embedded_action",
                 "constraints": [
                     models.UniqueConstraint(

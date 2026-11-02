@@ -6,6 +6,7 @@ Un archivo, un modelo (monolito modular, como Odoo):
 - ``res_partner.py`` → ``PartnerGln`` (GLN — RELATED OneToOne sobre
   ``base.ResPartner``, DEC-SALE-01).
 """
+
 from .res_partner import PartnerGln
 
 __all__ = ['PartnerGln']

@@ -12,6 +12,7 @@ así que ``json.dumps`` lo conoce de serie y ``dict.update`` **sí** lo
 atraviesa. Los dos casos que fijan esa frontera están abajo: si alguien
 «mejora» ``frozendict`` haciéndolo estricto, dejará de ser el de la fuente.
 """
+
 import json
 
 import pytest
@@ -22,15 +23,18 @@ from tools.misc import ReadonlyDict, freehash, frozendict
 class TestTheFrozenMappingRefusesToBeModified:
     """Los siete métodos que la fuente niega (``odoo19c: misc.py:963-982``)."""
 
-    @pytest.mark.parametrize('operation', [
-        lambda d: d.__setitem__('a', 2),
-        lambda d: d.__delitem__('a'),
-        lambda d: d.clear(),
-        lambda d: d.pop('a'),
-        lambda d: d.popitem(),
-        lambda d: d.setdefault('b', 1),
-        lambda d: d.update({'b': 1}),
-    ])
+    @pytest.mark.parametrize(
+        'operation',
+        [
+            lambda d: d.__setitem__('a', 2),
+            lambda d: d.__delitem__('a'),
+            lambda d: d.clear(),
+            lambda d: d.pop('a'),
+            lambda d: d.popitem(),
+            lambda d: d.setdefault('b', 1),
+            lambda d: d.update({'b': 1}),
+        ],
+    )
     def test_the_seven_mutators_raise(self, operation):
         with pytest.raises(NotImplementedError):
             operation(frozendict({'a': 1}))

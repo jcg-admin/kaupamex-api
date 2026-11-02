@@ -6,6 +6,7 @@ en cualquier forma (``key=value``, JSON, dict-repr, header Bearer, PAN),
 sin tocar metadata de Nivel 3 (username, path, status). Funcion pura: no
 toca DB → no requiere django_db.
 """
+
 import pytest
 
 from tools.log_scrubber import REDACTED, scrub
@@ -13,24 +14,39 @@ from tools.log_scrubber import REDACTED, scrub
 pytestmark = [pytest.mark.unit]
 
 
-@pytest.mark.parametrize('raw', [
-    "password=hunter2",
-    "passwd=hunter2",
-    "pwd: hunter2",
-    'password = "hunter2"',
-    "{'password': 'hunter2'}",
-    '{"password": "hunter2"}',
-])
+@pytest.mark.parametrize(
+    'raw',
+    [
+        "password=hunter2",
+        "passwd=hunter2",
+        "pwd: hunter2",
+        'password = "hunter2"',
+        "{'password': 'hunter2'}",
+        '{"password": "hunter2"}',
+    ],
+)
 def test_redacts_password_forms(raw):
     out = scrub(raw)
     assert 'hunter2' not in out
     assert REDACTED in out
 
 
-@pytest.mark.parametrize('key', [
-    'token', 'access_token', 'refresh_token', 'card_token',
-    'secret', 'client_secret', 'api_key', 'apikey', 'cvv', 'cvc', 'pan',
-])
+@pytest.mark.parametrize(
+    'key',
+    [
+        'token',
+        'access_token',
+        'refresh_token',
+        'card_token',
+        'secret',
+        'client_secret',
+        'api_key',
+        'apikey',
+        'cvv',
+        'cvc',
+        'pan',
+    ],
+)
 def test_redacts_each_secret_key(key):
     out = scrub(f'{key}=SUPERSECRETVALUE1')
     assert 'SUPERSECRETVALUE1' not in out
@@ -77,7 +93,7 @@ def test_redacts_inside_traceback():
     trace = (
         'Traceback (most recent call last):\n'
         '  File "views.py", line 42, in post\n'
-        "    charge(card_token='tok_live_51H', password='hunter2')\n"
+        '    charge(card_token=\'tok_live_51H\', password=\'hunter2\')\n'
         'ValueError: boom\n'
     )
     out = scrub(trace)
@@ -88,14 +104,17 @@ def test_redacts_inside_traceback():
     assert 'ValueError: boom' in out
 
 
-@pytest.mark.parametrize('safe', [
-    'username=bob',
-    'user_id=42',
-    'path=/api/v2/catalogue/products/',
-    'status_code=500 duration_ms=1234',
-    'method=POST view_name=admin_logs',
-    'correlation_id=deadbeef',
-])
+@pytest.mark.parametrize(
+    'safe',
+    [
+        'username=bob',
+        'user_id=42',
+        'path=/api/v2/catalogue/products/',
+        'status_code=500 duration_ms=1234',
+        'method=POST view_name=admin_logs',
+        'correlation_id=deadbeef',
+    ],
+)
 def test_does_not_touch_non_secret_metadata(safe):
     assert scrub(safe) == safe
 

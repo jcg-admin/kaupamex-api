@@ -14,6 +14,7 @@ consumo: que el peek no consuma y que coincida con lo que ``next_by_id``
 habría dado. El método portado se prueba en
 ``tests/unit/base/test_ir_sequence_date_range.py``.
 """
+
 import pytest
 
 from addons.base.models import IrSequence
@@ -23,7 +24,9 @@ pytestmark = pytest.mark.django_db
 
 class TestGetNextChar:
     def test_peek_does_not_consume(self):
-        sequence = IrSequence.objects.create(name='Test', padding=5, number_next=1)
+        sequence = IrSequence.objects.create(
+            name='Test', padding=5, number_next=1
+        )
         first_peek = sequence.get_next_char(sequence.number_next)
         second_peek = sequence.get_next_char(sequence.number_next)
         assert first_peek == second_peek == '00001'
@@ -31,16 +34,21 @@ class TestGetNextChar:
         assert sequence.number_next == 1
 
     def test_matches_the_format_next_by_id_would_produce(self):
-        sequence = IrSequence.objects.create(name='Test', padding=3, number_next=41)
+        sequence = IrSequence.objects.create(
+            name='Test', padding=3, number_next=41
+        )
         peeked = sequence.get_next_char(sequence.number_next)
         consumed = sequence.next_by_id()
         assert peeked == consumed == '041'
 
     def test_it_applies_prefix_and_suffix(self):
         sequence = IrSequence.objects.create(
-            name='Test', padding=4, number_next=7, prefix='CHK-', suffix='-END')
+            name='Test', padding=4, number_next=7, prefix='CHK-', suffix='-END'
+        )
         assert sequence.get_next_char(sequence.number_next) == 'CHK-0007-END'
 
     def test_it_pads_without_prefix(self):
-        sequence = IrSequence.objects.create(name='Test', padding=5, number_next=1)
+        sequence = IrSequence.objects.create(
+            name='Test', padding=5, number_next=1
+        )
         assert sequence.get_next_char(999) == '00999'

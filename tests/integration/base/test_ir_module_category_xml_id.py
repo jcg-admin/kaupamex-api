@@ -10,6 +10,7 @@ declara con los cuatro campos que el cómputo necesita.
 
 Qué haría fallar a cada control se declara en cada caso.
 """
+
 import pytest
 
 from addons.base.models.ir_model import IrModelData
@@ -25,8 +26,11 @@ def category(db):
 
 def _external_id(record, module, name):
     return IrModelData.objects.create(
-        model=type(record)._meta.label, res_id=record.pk,
-        module=module, name=name)
+        model=type(record)._meta.label,
+        res_id=record.pk,
+        module=module,
+        name=name,
+    )
 
 
 class TestTheExternalIdOfACategory:
@@ -60,8 +64,10 @@ class TestTheExternalIdOfACategory:
         """
         _external_id(category, 'base', 'module_category_a')
         _external_id(category, 'sale', 'module_category_b')
-        assert category.xml_id in ('base.module_category_a',
-                                   'sale.module_category_b')
+        assert category.xml_id in (
+            'base.module_category_a',
+            'sale.module_category_b',
+        )
         assert '.' in category.xml_id and ',' not in category.xml_id
 
     def test_it_does_not_take_the_id_of_another_record(self, category):
@@ -82,8 +88,12 @@ class TestTheExternalIdOfACategory:
         secuencias por tabla, así que la categoría 3 se llevaría el
         identificador del módulo 3.
         """
-        IrModelData.objects.create(model='base.IrModule', res_id=category.pk,
-                                   module='base', name='module_sale')
+        IrModelData.objects.create(
+            model='base.IrModule',
+            res_id=category.pk,
+            module='base',
+            name='module_sale',
+        )
         assert category.xml_id == ''
 
     def test_the_field_takes_no_column(self):

@@ -16,7 +16,10 @@ class Migration(migrations.Migration):
             name="skill_ids",
             field=models.ManyToManyField(
                 blank=True,
-                help_text="Odoo skill_ids (compute+store) — sincronizar con _compute_skill_ids().",
+                help_text=(
+                    "Odoo skill_ids (compute+store) — sincronizar con"
+                    " _compute_skill_ids()."
+                ),
                 related_name="applicants_with_skill",
                 to="hr_skills.hrskill",
             ),

@@ -8,6 +8,7 @@ transaction.on_commit se parchea para llamar callbacks inmediatamente:
 el fixture db envuelve cada test en una transaccion que se revierte
 (nunca commitea), por lo que on_commit nunca dispara sin el parche.
 """
+
 import pytest
 from decimal import Decimal
 from unittest.mock import patch
@@ -29,10 +30,13 @@ LOCMEM_SETTINGS = {
     'EMAIL_BACKEND': 'django.core.mail.backends.locmem.EmailBackend',
 }
 
-_ON_COMMIT_PATH = 'addons.mail.models.notification_service.transaction.on_commit'
+_ON_COMMIT_PATH = (
+    'addons.mail.models.notification_service.transaction.on_commit'
+)
 
 
-# ─── fixtures ─────────────────────────────────────────────────────────────────────────────────────
+# ─── fixtures ────────
+
 
 @pytest.fixture
 def order_stub(db, user):
@@ -46,21 +50,22 @@ def order_stub(db, user):
         # ``name`` es la referencia pública de la orden en la referencia
         # (``sale.order.name``); el stub decía ``order_number``, que el
         # servicio dejó de leer al portarse la familia sale.
-        pk            = 1
-        name          = 'PY-TEST-0001'
-        user          = _user
+        pk = 1
+        name = 'PY-TEST-0001'
+        user = _user
         # ``notify_order_status_changed`` resuelve el comprador por
         # ``order.partner``, que en este esquema apunta a la credencial
         # (``sale/models/sale_order.py:92-95``, divergencia H-API-254).
         # ``user`` se conserva porque ``notify_order_created`` lo recibe
         # explícito como argumento, no de la orden.
-        partner       = _user
+        partner = _user
         shipping_info = _Shipping()
 
     return _Order()
 
 
-# ─── UC-NOT-01 ──────────────────────────────────────────────────────────────────────────────────────
+# ─── UC-NOT-01 ────────
+
 
 class TestNotifyOrderCreated:
     @override_settings(**LOCMEM_SETTINGS)
@@ -84,7 +89,9 @@ class TestNotifyOrderCreated:
         order_stub.user = None
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             notify_order_created(order_stub, None, Decimal('580.00'))
-        assert not Notification.objects.filter(subject__icontains='PY-TEST-0001').exists()
+        assert not Notification.objects.filter(
+            subject__icontains='PY-TEST-0001'
+        ).exists()
         assert len(mail.outbox) == 0
 
     @override_settings(**LOCMEM_SETTINGS)
@@ -106,15 +113,25 @@ class TestNotifyOrderCreated:
         assert mail.outbox[0].to == [user.login]
 
 
-# ─── UC-NOT-02 ──────────────────────────────────────────────────────────────────────────────────────
+# ─── UC-NOT-02 ────────
+
 
 class TestNotifyOrderStatusChanged:
     @override_settings(**LOCMEM_SETTINGS)
-    @pytest.mark.parametrize('status', [
-        'PROCESSING', 'IN_PREPARATION', 'SHIPPED',
-        'DELIVERED', 'CANCELLED', 'REFUNDED',
-    ])
-    def test_crea_notification_para_estado_relevante(self, db, user, order_stub, status):
+    @pytest.mark.parametrize(
+        'status',
+        [
+            'PROCESSING',
+            'IN_PREPARATION',
+            'SHIPPED',
+            'DELIVERED',
+            'CANCELLED',
+            'REFUNDED',
+        ],
+    )
+    def test_crea_notification_para_estado_relevante(
+        self, db, user, order_stub, status
+    ):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             notify_order_status_changed(order_stub, status)
         assert Notification.objects.filter(user=user).exists()
@@ -134,14 +151,16 @@ class TestNotifyOrderStatusChanged:
         assert len(mail.outbox) == 0
 
 
-# ─── UC-NOT-03 ──────────────────────────────────────────────────────────────────────────────────────
+# ─── UC-NOT-03 ────────
+
 
 class TestNotifyShippingUpdated:
     @override_settings(**LOCMEM_SETTINGS)
     def test_creates_notification_and_email(self, db, user, order_stub):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             notify_shipping_updated(
-                order_stub, user,
+                order_stub,
+                user,
                 tracking_number='TRACK-001',
                 event_description='Paquete en camino.',
             )
@@ -150,19 +169,25 @@ class TestNotifyShippingUpdated:
         assert 'envio' in mail.outbox[0].subject.lower()
 
 
-# ─── UC-NOT-04 ──────────────────────────────────────────────────────────────────────────────────────
+# ─── UC-NOT-04 ────────
+
 
 class TestNotifyReturnProcessed:
     @override_settings(**LOCMEM_SETTINGS)
     @pytest.mark.parametrize('status', ['APPROVED', 'REJECTED'])
-    def test_creates_notification_and_email(self, db, user, order_stub, status):
+    def test_creates_notification_and_email(
+        self, db, user, order_stub, status
+    ):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
-            notify_return_processed(order_stub, user, status, reason='Producto dañado')
+            notify_return_processed(
+                order_stub, user, status, reason='Producto dañado'
+            )
         assert Notification.objects.filter(user=user).exists()
         assert len(mail.outbox) == 1
 
 
-# ─── UC-NOT-05 ──────────────────────────────────────────────────────────────────────────────────────
+# ─── UC-NOT-05 ────────
+
 
 class TestNotifyRefundProcessed:
     @override_settings(**LOCMEM_SETTINGS)

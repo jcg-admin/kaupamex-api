@@ -18,6 +18,7 @@ con una implementación que lo llamara y tirara el resultado.
 
 Ver :ref:`h-api-993`.
 """
+
 import pytest
 
 from addons.base.models.ir_http import IrHttp
@@ -38,11 +39,14 @@ def slug_of(name, pk=42):
 class TestTheSlugKeepsWhatDjangoWouldDrop:
     """La razón de portar ``_slugify``: las escrituras no latinas."""
 
-    @pytest.mark.parametrize('name, expected', [
-        ('手工皂', '手工皂-42'),
-        ('ハンドメイド 石鹸', 'ハントメイト-石鹸-42'),
-        ('صابون يدوي', 'صابون-يدوي-42'),
-    ])
+    @pytest.mark.parametrize(
+        'name, expected',
+        [
+            ('手工皂', '手工皂-42'),
+            ('ハンドメイド 石鹸', 'ハントメイト-石鹸-42'),
+            ('صابون يدوي', 'صابون-يدوي-42'),
+        ],
+    )
     def test_a_non_latin_name_survives_in_the_slug(self, name, expected):
         assert slug_of(name) == expected
 
@@ -74,12 +78,16 @@ class TestTheEmptySlugBranchOfTheSource:
 class TestTheTwoSerializersAgreeOnTheSameName:
     """El defecto que esto cierra: dos slugs para el mismo producto."""
 
-    @pytest.mark.parametrize('name', ['手工皂', 'Café Orgánico', 'Camisa Azul'])
+    @pytest.mark.parametrize(
+        'name', ['手工皂', 'Café Orgánico', 'Camisa Azul']
+    )
     def test_the_showcase_slug_starts_with_the_wishlist_one(self, name):
         variant = ProductTemplate(name=name)
         variant.pk = 42
         wishlist = WishlistProductNestedSerializer().get_slug(variant)
         assert slug_of(name) == f'{wishlist}-42'
 
-    def test_both_come_from_the_ported_slugify(self, ):
+    def test_both_come_from_the_ported_slugify(
+        self,
+    ):
         assert slug_of('手工皂') == f'{IrHttp.slugify_one("手工皂")}-42'

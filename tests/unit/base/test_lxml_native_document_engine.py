@@ -19,6 +19,7 @@ memoria:
 *Ciega a:* el coste de serializar el registro a XML, que es el precio real de
 la vía completa y no se mide aquí.
 """
+
 import pathlib
 import tempfile
 
@@ -38,13 +39,18 @@ ORDER = ET.XML(
 class TestWhatXpathAlreadyDoes:
     """El recorrido y la agregación no necesitan motor de plantillas."""
 
-    @pytest.mark.parametrize('expression, expected', [
-        ('string(@name)',                    'SO-1'),
-        ('count(line)',                      2.0),
-        ('sum(line/@price)',                 13.5),
-        ('concat(@name, "-", count(line))',  'SO-1-2'),
-    ])
-    def test_it_covers_lookup_aggregation_and_concatenation(self, expression, expected):
+    @pytest.mark.parametrize(
+        'expression, expected',
+        [
+            ('string(@name)', 'SO-1'),
+            ('count(line)', 2.0),
+            ('sum(line/@price)', 13.5),
+            ('concat(@name, "-", count(line))', 'SO-1-2'),
+        ],
+    )
+    def test_it_covers_lookup_aggregation_and_concatenation(
+        self, expression, expected
+    ):
         assert ORDER.xpath(expression) == expected
 
     def test_but_it_cannot_multiply_two_node_sets_elementwise(self):
@@ -72,14 +78,13 @@ class TestWhatOpensIfTheDataBecomesXmlFirst:
 
     SHEET = (
         '<xsl:stylesheet version="1.0"'
-        ' xmlns:xsl="http://www.w3.org/1999/XSL/Transform">'
-        '<xsl:output method="xml" indent="no"/>'
-        '<xsl:template match="/order"><doc n="{@name}">'
-        '<xsl:for-each select="line">'
-        '<l><xsl:value-of select="format-number(@price * @qty, \'#,##0.00\')"/></l>'
-        '</xsl:for-each>'
-        '<total><xsl:value-of select="format-number(sum(line/@price), \'#,##0.00\')"/></total>'
-        '</doc></xsl:template></xsl:stylesheet>'
+        ' xmlns:xsl="http://www.w3.org/1999/XSL/Transform"><xsl:output'
+        ' method="xml" indent="no"/><xsl:template match="/order"><doc'
+        ' n="{@name}"><xsl:for-each select="line"><l><xsl:value-of'
+        ' select="format-number(@price * @qty,'
+        ' \'#,##0.00\')"/></l></xsl:for-each><total><xsl:value-of'
+        ' select="format-number(sum(line/@price),'
+        ' \'#,##0.00\')"/></total></doc></xsl:template></xsl:stylesheet>'
     )
 
     def test_inside_for_each_the_multiplication_works(self):
@@ -100,7 +105,10 @@ class TestWhatOpensIfTheDataBecomesXmlFirst:
         def amount_with_currency(_context, value):
             return f'{float(value):.2f} MXN'
 
-        assert ORDER.xpath('kx:amount_with_currency(sum(line/@price))') == '13.50 MXN'
+        assert (
+            ORDER.xpath('kx:amount_with_currency(sum(line/@price))')
+            == '13.50 MXN'
+        )
 
 
 class TestTheXsltAttackSurfaceIsRealAndClosable:
@@ -116,7 +124,7 @@ class TestTheXsltAttackSurfaceIsRealAndClosable:
         return ET.XML(
             '<xsl:stylesheet version="1.0"'
             ' xmlns:xsl="http://www.w3.org/1999/XSL/Transform">'
-            f'<xsl:template match="/"><read>'
+            '<xsl:template match="/"><read>'
             f'<xsl:value-of select="document(\'file://{target}\')"/>'
             '</read></xsl:template></xsl:stylesheet>'
         )
@@ -125,7 +133,9 @@ class TestTheXsltAttackSurfaceIsRealAndClosable:
         # CONTROL POSITIVO: apunta a un archivo que EXISTE y es XML parseable.
         # Con un archivo inexistente -o con uno que no sea XML- el caso pasaría
         # por la razón equivocada y no mediría la guarda.
-        result = str(ET.XSLT(self.sheet_reading(readable_xml_file))(ET.XML('<d/>')))
+        result = str(
+            ET.XSLT(self.sheet_reading(readable_xml_file))(ET.XML('<d/>'))
+        )
         assert 'CONTENIDO-SECRETO' in result
 
     def test_deny_all_closes_it(self, readable_xml_file):
@@ -141,9 +151,13 @@ class TestTheProgrammaticTreeNeedsNoTemplateAtAll:
 
     def test_it_escapes_and_refuses_by_construction(self):
         node = E.items(E.i('10.50', n='Tornillo & tuerca'))
-        assert 'n="Tornillo &amp; tuerca"' in ET.tostring(node, encoding='unicode')
+        assert 'n="Tornillo &amp; tuerca"' in ET.tostring(
+            node, encoding='unicode'
+        )
 
-        with pytest.raises(ValueError, match='All strings must be XML compatible'):
+        with pytest.raises(
+            ValueError, match='All strings must be XML compatible'
+        ):
             E.i('valor\x0bcon control')
 
     def test_but_it_has_no_arch_so_no_addon_can_patch_it(self):

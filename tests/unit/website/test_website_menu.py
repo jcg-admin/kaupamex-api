@@ -51,9 +51,12 @@ def active_company():
 
 def _public_user():
     """El usuario público del sitio — requerido por ``Website.user``."""
-    existing = ResUsers.objects.filter(login='menu-public@kaupamex.test').first()
+    existing = ResUsers.objects.filter(
+        login='menu-public@kaupamex.test'
+    ).first()
     return existing or ResUsers.objects.create_user(
-        login='menu-public@kaupamex.test')
+        login='menu-public@kaupamex.test'
+    )
 
 
 def _site(**kwargs):
@@ -71,6 +74,7 @@ def _menu(key, **kwargs):
 
 # ── 1. Cabecera — los 4 atributos de clase de la fuente ─────────────────────
 
+
 def test_class_attributes_match_the_source():
     """``odoo19c: website_menu.py:16-21`` declara exactamente estos cuatro."""
     assert WebsiteMenu._name == 'website.menu'
@@ -85,6 +89,7 @@ def test_meta_ordering_mirrors_order():
 
 
 # ── 2. El campo ``website`` (#543) ──────────────────────────────────────────
+
 
 def test_website_field_contract():
     """``website_id = fields.Many2one('website', ondelete='cascade')``
@@ -126,6 +131,7 @@ def test_deleting_the_site_cascades_to_its_menus():
 
 # ── 3. ``_default_sequence`` ────────────────────────────────────────────────
 
+
 def test_default_sequence_is_zero_on_an_empty_tree():
     assert WebsiteMenu._default_sequence() == 0
 
@@ -139,6 +145,7 @@ def test_default_sequence_puts_the_new_menu_at_the_end():
 
 
 # ── 4. ``parent_path`` — el invariante de ``_parent_store`` ─────────────────
+
 
 def test_parent_path_uses_the_source_format():
     """«1/4/9/»: ids de ancestros y el propio, con ``/`` final, para que
@@ -170,6 +177,7 @@ def test_parent_path_follows_a_reparent_on_save():
 
 # ── 5. ``_validate_parent_menu`` ────────────────────────────────────────────
 
+
 def test_hierarchy_deeper_than_two_levels_is_rejected():
     """≙ «Menus cannot have more than two levels of hierarchy»
     (``odoo19c: :99``)."""
@@ -177,8 +185,9 @@ def test_hierarchy_deeper_than_two_levels_is_rejected():
     child = _menu('depth-child', parent=root)
     grandchild = _menu('depth-grandchild', parent=child)
 
-    too_deep = WebsiteMenu(name='depth-4', key='depth-4', parent=grandchild,
-                           sequence=0)
+    too_deep = WebsiteMenu(
+        name='depth-4', key='depth-4', parent=grandchild, sequence=0
+    )
     with pytest.raises(UserError):
         too_deep._validate_parent_menu()
 
@@ -217,15 +226,19 @@ def test_two_level_tree_is_valid():
 
 # ── 6. ``_clean_url`` ───────────────────────────────────────────────────────
 
-@pytest.mark.parametrize('given,expected', [
-    ('/account/orders', '/account/orders'),   # ya relativa: intacta
-    ('#top', '#top'),                         # ancla especial: intacta
-    ('#bottom', '#bottom'),
-    ('ventas@kaupamex.test', 'mailto:ventas@kaupamex.test'),
-    ('mailto:ventas@kaupamex.test', 'mailto:ventas@kaupamex.test'),
-    ('https://externo.test', 'https://externo.test'),
-    ('shop', '/shop'),                        # sin esquema ni barra: relativa
-])
+
+@pytest.mark.parametrize(
+    'given,expected',
+    [
+        ('/account/orders', '/account/orders'),  # ya relativa: intacta
+        ('#top', '#top'),  # ancla especial: intacta
+        ('#bottom', '#bottom'),
+        ('ventas@kaupamex.test', 'mailto:ventas@kaupamex.test'),
+        ('mailto:ventas@kaupamex.test', 'mailto:ventas@kaupamex.test'),
+        ('https://externo.test', 'https://externo.test'),
+        ('shop', '/shop'),  # sin esquema ni barra: relativa
+    ],
+)
 def test_clean_url_heuristics(given, expected):
     """≙ ``_clean_url`` (``odoo19c: :198-207``), sobre ``route``."""
     menu = WebsiteMenu(name='clean', key='clean', route=given, sequence=0)
@@ -234,13 +247,16 @@ def test_clean_url_heuristics(given, expected):
 
 # ── 7. ``_compute_display_name`` y ``get_tree`` ─────────────────────────────
 
+
 def test_display_name_appends_the_site_when_asked():
     """≙ ``_compute_display_name`` (``odoo19c: :61-69``): el sufijo
     ``[Sitio]`` sólo aparece al pedir desambiguar."""
     site = _site(name='Sitio B', domain='https://b.kaupamex.test')
     menu = _menu('dn-menu', name='Tienda', website=site)
     assert menu._compute_display_name() == 'Tienda'
-    assert menu._compute_display_name(display_website=True) == 'Tienda [Sitio B]'
+    assert (
+        menu._compute_display_name(display_website=True) == 'Tienda [Sitio B]'
+    )
 
     orphan = _menu('dn-orphan', name='Suelta')
     assert orphan._compute_display_name(display_website=True) == 'Suelta'
@@ -253,8 +269,14 @@ def test_get_tree_serializes_the_site_menu():
     site = _site(domain='https://tree.kaupamex.test')
     root = _menu('tree-root', website=site)
     home = _menu('tree-home', website=site, parent=root, route='/', sequence=1)
-    shop = _menu('tree-shop', website=site, parent=root, route='/shop',
-                 sequence=2, new_window=True)
+    shop = _menu(
+        'tree-shop',
+        website=site,
+        parent=root,
+        route='/shop',
+        sequence=2,
+        new_window=True,
+    )
 
     tree = WebsiteMenu.get_tree(site.pk)
     assert tree['fields']['id'] == root.pk

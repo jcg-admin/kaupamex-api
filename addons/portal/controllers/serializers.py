@@ -15,6 +15,7 @@ el mismo contrato se expone como REST para el SPA. Lo que se conserva es la
   (``portal.py:914-935``): ``validation`` debe igualar el *login*, y además
   la contraseña debe validar.
 """
+
 from rest_framework import serializers
 
 from addons.base.models.res_partner import ResPartner
@@ -47,8 +48,20 @@ class PortalAddressSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ResPartner
-        fields = ['id', 'name', 'type', 'street', 'street2', 'city', 'zip',
-                  'state', 'country', 'phone', 'email', 'active']
+        fields = [
+            'id',
+            'name',
+            'type',
+            'street',
+            'street2',
+            'city',
+            'zip',
+            'state',
+            'country',
+            'phone',
+            'email',
+            'active',
+        ]
         read_only_fields = ['id', 'active']
 
 
@@ -65,7 +78,6 @@ class PortalAccountSerializer(serializers.ModelSerializer):
         model = ResPartner
         fields = ['id'] + CAMPOS_EDITABLES
         read_only_fields = ['id']
-
 
 
 class PasswordChangeSerializer(serializers.Serializer):

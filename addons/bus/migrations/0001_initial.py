@@ -35,7 +35,10 @@ class Migration(migrations.Migration):
                 (
                     "message",
                     models.TextField(
-                        help_text="Carga JSON {type, payload} (Odoo bus.bus.message)."
+                        help_text=(
+                            "Carga JSON {type, payload} (Odoo"
+                            " bus.bus.message)."
+                        )
                     ),
                 ),
             ],

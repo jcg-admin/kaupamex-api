@@ -16,7 +16,10 @@ class Migration(migrations.Migration):
             name="auto_install_required",
             field=models.BooleanField(
                 default=True,
-                help_text="Odoo auto_install_required: si esta dependencia bloquea la instalación automática del addon que la declara.",
+                help_text=(
+                    "Odoo auto_install_required: si esta dependencia bloquea"
+                    " la instalación automática del addon que la declara."
+                ),
             ),
         ),
         migrations.CreateModel(
@@ -36,7 +39,8 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        db_index=True, help_text="Nombre técnico del addon excluido."
+                        db_index=True,
+                        help_text="Nombre técnico del addon excluido.",
                     ),
                 ),
                 (

@@ -15,7 +15,10 @@ class Migration(migrations.Migration):
             name="is_storable",
             field=models.BooleanField(
                 default=False,
-                help_text="Lleva existencias en almacén (Odoo is_storable, «Track Inventory»).",
+                help_text=(
+                    "Lleva existencias en almacén (Odoo is_storable, «Track"
+                    " Inventory»)."
+                ),
             ),
         ),
     ]

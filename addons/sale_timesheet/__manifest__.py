@@ -6,14 +6,16 @@
     'version': '1.0',
     'category': 'Sales/Sales',
     'summary': 'Sell based on timesheets',
-    'description': """
+    'description': (
+        """
 Allows to sell timesheets in your sales order
 =============================================
 
 This module set the right product on all timesheet lines
 according to the order/contract you work on. This allows to
 have real delivered quantities in sales orders.
-""",
+"""
+    ),
     # `depends` MEDIDO contra los imports reales de este addon, no copiado de
     # la referencia (que declara sólo ['sale_project', 'hr_timesheet']).
     #
@@ -21,7 +23,8 @@ have real delivered quantities in sales orders.
     #                 (models/project_sale_line_employee_map.py)
     #   hr            HrEmployee                    (ídem)
     #   project       Project                       (ídem)
-    #   sale          SaleOrder, SaleOrderLine      (ídem + models/hr_timesheet.py)
+    # sale          SaleOrder, SaleOrderLine      (ídem +
+    # models/hr_timesheet.py)
     #   analytic      AccountAnalyticLine           (5 archivos)
     #   account       AccountMove (models/hr_timesheet.py) y
     #                 AccountMoveReversal (models/account_move_reversal.py)
@@ -29,7 +32,7 @@ have real delivered quantities in sales orders.
     #   hr_timesheet  NO se importa un símbolo, pero SÍ se encadena el
     #                 `_hourly_cost` que instala, y se leen tres columnas que
     #                 cuelga (Project.allow_timesheets,
-    #                 ResCompany.project_time_mode_id / timesheet_encode_uom_id).
+    # ResCompany.project_time_mode_id / timesheet_encode_uom_id).
     #                 Es una dependencia de ORDEN, y el grafo es quien la
     #                 garantiza: sin ella el encadenado instalaría el nuestro
     #                 sin anterior y perdería el fallback al hourly_cost del

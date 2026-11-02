@@ -33,6 +33,7 @@ Divergencias declaradas
   de Django no acepta lambda (regla del proyecto); se usan funciones
   nombradas ``_default_legend_*``.
 """
+
 from django.apps import apps
 
 import fields
@@ -67,32 +68,53 @@ class HrRecruitmentStage(TimeStampedModel):
     name = fields.Char(verbose_name='Nombre de la etapa')
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
     jobs = fields.Many2many(
-        'hr.HrJob', related_name='recruitment_stages', blank=True,
+        'hr.HrJob',
+        related_name='recruitment_stages',
+        blank=True,
         verbose_name='Específica de puestos',
-        help_text='Odoo job_ids: puestos que usan esta etapa. Otros puestos '
-                  'no la usarán.',
+        help_text=(
+            'Odoo job_ids: puestos que usan esta etapa. Otros puestos '
+            'no la usarán.'
+        ),
     )
-    requirements = fields.Text(blank=True, default='', verbose_name='Requisitos')
+    requirements = fields.Text(
+        blank=True, default='', verbose_name='Requisitos'
+    )
     template = fields.Many2one(
-        'mail.MailTemplate', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_recruitment_stages', verbose_name='Plantilla de correo',
-        help_text='Odoo template_id: se publica un mensaje sobre el '
-                  'candidato con esta plantilla al entrar en la etapa.',
+        'mail.MailTemplate',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_recruitment_stages',
+        verbose_name='Plantilla de correo',
+        help_text=(
+            'Odoo template_id: se publica un mensaje sobre el '
+            'candidato con esta plantilla al entrar en la etapa.'
+        ),
     )
     fold = fields.Boolean(
-        default=False, verbose_name='Plegada en kanban',
-        help_text='Esta etapa se pliega en la vista kanban cuando no hay '
-                  'registros que mostrar.',
+        default=False,
+        verbose_name='Plegada en kanban',
+        help_text=(
+            'Esta etapa se pliega en la vista kanban cuando no hay '
+            'registros que mostrar.'
+        ),
     )
     hired_stage = fields.Boolean(
-        default=False, verbose_name='Etapa de contratación',
-        help_text='Si se marca, esta etapa determina la fecha de '
-                  'contratación de un candidato.',
+        default=False,
+        verbose_name='Etapa de contratación',
+        help_text=(
+            'Si se marca, esta etapa determina la fecha de '
+            'contratación de un candidato.'
+        ),
     )
     rotting_threshold_days = fields.Integer(
-        default=0, verbose_name='Días para viciarse',
-        help_text='Días antes de que los candidatos en esta etapa se '
-                  'consideren vencidos. 0 desactiva.',
+        default=0,
+        verbose_name='Días para viciarse',
+        help_text=(
+            'Días antes de que los candidatos en esta etapa se '
+            'consideren vencidos. 0 desactiva.'
+        ),
     )
     legend_blocked = fields.Char(
         default=_default_legend_blocked,

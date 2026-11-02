@@ -14,8 +14,11 @@ import os
 
 parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
 parser.add_argument('target', help='la clase de la referencia a censar')
-parser.add_argument('--relative', default='odoo/orm/models.py',
-                    help='ruta dentro del arbol de la referencia')
+parser.add_argument(
+    '--relative',
+    default='odoo/orm/models.py',
+    help='ruta dentro del arbol de la referencia',
+)
 args = parser.parse_args()
 
 root = os.environ.get('ODOO19C')
@@ -23,29 +26,42 @@ if not root:
     raise SystemExit(
         'ERROR — falta ODOO19C. Declararla con '
         '`eval "$(python3 scripts/reference_roots.py --env)"`. NO se emite '
-        'censo: un censo vacio aqui seria un verde falso.')
+        'censo: un censo vacio aqui seria un verde falso.'
+    )
 SOURCE = os.path.join(root, args.relative)
 TARGET = args.target
 
 text = open(SOURCE).read()
 tree = ast.parse(text)
 
-klass = next((n for n in tree.body
-              if isinstance(n, ast.ClassDef) and n.name == TARGET), None)
+klass = next(
+    (n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == TARGET),
+    None,
+)
 if klass is None:
-    raise SystemExit(f'ERROR — {TARGET} no esta en {SOURCE}. NO se emite conteo.')
+    raise SystemExit(
+        f'ERROR — {TARGET} no esta en {SOURCE}. NO se emite conteo.'
+    )
 
 print(f'archivo    : odoo/orm/models.py')
 print(f'clase      : {klass.name}  (lineas {klass.lineno}-{klass.end_lineno})')
 
-attrs = [(t.id, n.lineno) for n in klass.body if isinstance(n, ast.Assign)
-         for t in n.targets if isinstance(t, ast.Name) and t.id.startswith('_')]
+attrs = [
+    (t.id, n.lineno)
+    for n in klass.body
+    if isinstance(n, ast.Assign)
+    for t in n.targets
+    if isinstance(t, ast.Name) and t.id.startswith('_')
+]
 print(f'atributos de clase: {len(attrs)}')
 for name, line in attrs:
     print(f'   :{line}  {text.splitlines()[line - 1].strip()}')
 
-methods = [n for n in klass.body
-           if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+methods = [
+    n
+    for n in klass.body
+    if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+]
 print(f'metodos declarados: {len(methods)}')
 print()
 for m in methods:

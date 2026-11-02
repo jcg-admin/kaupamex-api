@@ -10,6 +10,7 @@ sección de ``output_field``/``resolve_expression``: es el contrato que
 ``addons/stock/models/stock_quant.py:831,834`` consume sin editarse
 (H-API-698).
 """
+
 import warnings
 
 import pytest
@@ -28,10 +29,12 @@ class _QueryStub:
     ``RawSQL.resolve_expression`` sólo consulta ``query.model``; con ``None``
     cae al camino genérico de ``Expression`` sin tocar la base.
     """
+
     model = None
 
 
 # -- construcción básica (``odoo19c: odoo/tools/sql.py:89-135``) --------------
+
 
 def test_empty_sql_has_empty_code_and_params():
     sql = SQL()
@@ -72,6 +75,7 @@ def test_positional_and_named_arguments_are_mutually_exclusive():
 
 # -- composición y anidamiento (``odoo19c: odoo/tools/sql.py:116-135``) -------
 
+
 def test_nested_sql_objects_merge_code_and_params():
     sql = SQL(
         "UPDATE %s SET %s",
@@ -100,7 +104,9 @@ def test_copy_constructor_from_sql_rejects_extra_arguments():
 
 def test_to_flush_collects_the_metadata_of_all_parts():
     field_a, field_b = object(), object()
-    sql = SQL("%s AND %s", SQL("a", to_flush=field_a), SQL("b", to_flush=field_b))
+    sql = SQL(
+        "%s AND %s", SQL("a", to_flush=field_a), SQL("b", to_flush=field_b)
+    )
     assert tuple(sql.to_flush) == (field_a, field_b)
 
 
@@ -111,6 +117,7 @@ def test_to_flush_accepts_a_single_field_or_an_iterable():
 
 
 # -- join (``odoo19c: odoo/tools/sql.py:178-192``) ----------------------------
+
 
 def test_join_with_a_parameterless_separator():
     joined = SQL(", ").join([SQL.identifier("a"), SQL.identifier("b"), 3])
@@ -135,12 +142,16 @@ def test_join_of_a_single_sql_returns_it_unchanged():
 
 # -- identifier (``odoo19c: odoo/tools/sql.py:194-201``) ----------------------
 
+
 def test_identifier_quotes_the_name():
     assert SQL.identifier("stock_quant").code == '"stock_quant"'
 
 
 def test_identifier_with_subname_quotes_both():
-    assert SQL.identifier("stock_quant", "quantity").code == '"stock_quant"."quantity"'
+    assert (
+        SQL.identifier("stock_quant", "quantity").code
+        == '"stock_quant"."quantity"'
+    )
 
 
 def test_identifier_rejects_an_injection_attempt():
@@ -157,6 +168,7 @@ def test_ident_re_admits_dollar_and_hyphen():
 
 
 # -- dunders (``odoo19c: odoo/tools/sql.py:154-176``) -------------------------
+
 
 def test_equality_and_hash_cover_code_and_params():
     assert SQL("a = %s", 1) == SQL("a = %s", 1)
@@ -185,16 +197,22 @@ def test_iteration_is_deprecated_but_still_deconstructs():
 
 # -- named_to_positional_printf (``odoo19c: odoo/tools/misc.py:1959``) --------
 
+
 def test_named_to_positional_printf_preserves_consumption_order():
-    assert named_to_positional_printf("%(a)s-%(b)s-%(a)s", {'a': 1, 'b': 2}) == \
-        ("%s-%s-%s", (1, 2, 1))
+    assert named_to_positional_printf(
+        "%(a)s-%(b)s-%(a)s", {'a': 1, 'b': 2}
+    ) == ("%s-%s-%s", (1, 2, 1))
 
 
 def test_named_to_positional_printf_escapes_double_percent():
-    assert named_to_positional_printf("a%%b %(x)s", {'x': 9}) == ("a%%b %s", (9,))
+    assert named_to_positional_printf("a%%b %(x)s", {'x': 9}) == (
+        "a%%b %s",
+        (9,),
+    )
 
 
 # -- retrocompatibilidad con el alias RawSQL retirado (H-API-698) -------------
+
 
 def test_output_field_keyword_matches_the_stock_quant_call():
     """La llamada exacta de ``stock_quant.py:831`` construye sin error."""
@@ -204,11 +222,17 @@ def test_output_field_keyword_matches_the_stock_quant_call():
 
 
 def test_resolve_expression_delegates_to_rawsql_with_the_output_field():
-    sql = SQL('SUM(quantity) - SUM(reserved_quantity)',
-              output_field=models.DecimalField(max_digits=16, decimal_places=2))
+    sql = SQL(
+        'SUM(quantity) - SUM(reserved_quantity)',
+        output_field=models.DecimalField(max_digits=16, decimal_places=2),
+    )
     resolved = sql.resolve_expression(
-        query=_QueryStub(), allow_joins=True, reuse=None, summarize=False,
-        for_save=False)
+        query=_QueryStub(),
+        allow_joins=True,
+        reuse=None,
+        summarize=False,
+        for_save=False,
+    )
     assert isinstance(resolved, RawSQL)
     assert resolved.sql == 'SUM(quantity) - SUM(reserved_quantity)'
     assert resolved.params == ()

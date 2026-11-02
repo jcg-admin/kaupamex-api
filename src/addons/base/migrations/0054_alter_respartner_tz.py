@@ -79,18 +79,30 @@ class Migration(migrations.Migration):
                         "America/Argentina/Buenos_Aires",
                         "America/Argentina/Buenos_Aires",
                     ),
-                    ("America/Argentina/Catamarca", "America/Argentina/Catamarca"),
+                    (
+                        "America/Argentina/Catamarca",
+                        "America/Argentina/Catamarca",
+                    ),
                     ("America/Argentina/Cordoba", "America/Argentina/Cordoba"),
                     ("America/Argentina/Jujuy", "America/Argentina/Jujuy"),
-                    ("America/Argentina/La_Rioja", "America/Argentina/La_Rioja"),
+                    (
+                        "America/Argentina/La_Rioja",
+                        "America/Argentina/La_Rioja",
+                    ),
                     ("America/Argentina/Mendoza", "America/Argentina/Mendoza"),
                     (
                         "America/Argentina/Rio_Gallegos",
                         "America/Argentina/Rio_Gallegos",
                     ),
                     ("America/Argentina/Salta", "America/Argentina/Salta"),
-                    ("America/Argentina/San_Juan", "America/Argentina/San_Juan"),
-                    ("America/Argentina/San_Luis", "America/Argentina/San_Luis"),
+                    (
+                        "America/Argentina/San_Juan",
+                        "America/Argentina/San_Juan",
+                    ),
+                    (
+                        "America/Argentina/San_Luis",
+                        "America/Argentina/San_Luis",
+                    ),
                     ("America/Argentina/Tucuman", "America/Argentina/Tucuman"),
                     ("America/Argentina/Ushuaia", "America/Argentina/Ushuaia"),
                     ("America/Aruba", "America/Aruba"),
@@ -144,10 +156,16 @@ class Migration(migrations.Migration):
                     ("America/Halifax", "America/Halifax"),
                     ("America/Havana", "America/Havana"),
                     ("America/Hermosillo", "America/Hermosillo"),
-                    ("America/Indiana/Indianapolis", "America/Indiana/Indianapolis"),
+                    (
+                        "America/Indiana/Indianapolis",
+                        "America/Indiana/Indianapolis",
+                    ),
                     ("America/Indiana/Knox", "America/Indiana/Knox"),
                     ("America/Indiana/Marengo", "America/Indiana/Marengo"),
-                    ("America/Indiana/Petersburg", "America/Indiana/Petersburg"),
+                    (
+                        "America/Indiana/Petersburg",
+                        "America/Indiana/Petersburg",
+                    ),
                     ("America/Indiana/Tell_City", "America/Indiana/Tell_City"),
                     ("America/Indiana/Vevay", "America/Indiana/Vevay"),
                     ("America/Indiana/Vincennes", "America/Indiana/Vincennes"),
@@ -156,8 +174,14 @@ class Migration(migrations.Migration):
                     ("America/Iqaluit", "America/Iqaluit"),
                     ("America/Jamaica", "America/Jamaica"),
                     ("America/Juneau", "America/Juneau"),
-                    ("America/Kentucky/Louisville", "America/Kentucky/Louisville"),
-                    ("America/Kentucky/Monticello", "America/Kentucky/Monticello"),
+                    (
+                        "America/Kentucky/Louisville",
+                        "America/Kentucky/Louisville",
+                    ),
+                    (
+                        "America/Kentucky/Monticello",
+                        "America/Kentucky/Monticello",
+                    ),
                     ("America/Kralendijk", "America/Kralendijk"),
                     ("America/La_Paz", "America/La_Paz"),
                     ("America/Lima", "America/Lima"),
@@ -185,8 +209,14 @@ class Migration(migrations.Migration):
                     ("America/Nipigon", "America/Nipigon"),
                     ("America/Nome", "America/Nome"),
                     ("America/Noronha", "America/Noronha"),
-                    ("America/North_Dakota/Beulah", "America/North_Dakota/Beulah"),
-                    ("America/North_Dakota/Center", "America/North_Dakota/Center"),
+                    (
+                        "America/North_Dakota/Beulah",
+                        "America/North_Dakota/Beulah",
+                    ),
+                    (
+                        "America/North_Dakota/Center",
+                        "America/North_Dakota/Center",
+                    ),
                     (
                         "America/North_Dakota/New_Salem",
                         "America/North_Dakota/New_Salem",
@@ -525,7 +555,14 @@ class Migration(migrations.Migration):
                     ("Etc/Zulu", "Etc/Zulu"),
                 ],
                 default=addons.base.models.res_partner._default_tz,
-                help_text="When printing documents and exporting/importing data, time values are computed according to this timezone. If the timezone is not set, UTC (Coordinated Universal Time) is used. Anywhere else, time values are computed according to the time offset of your web client (Odoo tz).",
+                help_text=(
+                    "When printing documents and exporting/importing data,"
+                    " time values are computed according to this timezone. If"
+                    " the timezone is not set, UTC (Coordinated Universal"
+                    " Time) is used. Anywhere else, time values are computed"
+                    " according to the time offset of your web client (Odoo"
+                    " tz)."
+                ),
                 max_length=64,
                 verbose_name="Timezone",
             ),

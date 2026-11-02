@@ -11,6 +11,7 @@ prosa, ``ir_cron.py:62`` dice **"El runner del cron — PORTADO COMPLETO"** y
 
 Qué haría fallar a cada control se declara en cada caso.
 """
+
 import pytest
 
 from addons.base.models.ir_autovacuum import IrAutovacuum
@@ -24,17 +25,23 @@ pytestmark = pytest.mark.integration
 def counted_commits(monkeypatch):
     """Cuenta las cesiones de turno sin tocar la base."""
     calls = []
-    monkeypatch.setattr(IrCron, '_commit_progress',
-                        classmethod(lambda cls, *a, **k: calls.append(1)))
+    monkeypatch.setattr(
+        IrCron,
+        '_commit_progress',
+        classmethod(lambda cls, *a, **k: calls.append(1)),
+    )
     return calls
 
 
 def _plant(monkeypatch, *methods):
     """Sustituye el censo de métodos por los que el caso quiere ejercer."""
     monkeypatch.setattr(
-        IrAutovacuum, '_collect_methods',
-        staticmethod(lambda: [(object, f'probe_{i}', f)
-                              for i, f in enumerate(methods)]))
+        IrAutovacuum,
+        '_collect_methods',
+        staticmethod(
+            lambda: [(object, f'probe_{i}', f) for i, f in enumerate(methods)]
+        ),
+    )
 
 
 class TestTheSweepYieldsAfterEachMethod:
@@ -52,7 +59,8 @@ class TestTheSweepYieldsAfterEachMethod:
         assert len(counted_commits) == 3
 
     def test_a_method_that_raises_does_not_commit_its_own_work(
-            self, monkeypatch, counted_commits):
+        self, monkeypatch, counted_commits
+    ):
         """CONTROL del SITIO de la llamada dentro del ``try``.
 
         La fuente comitea **después** de ``func(model)``: un método que
@@ -62,6 +70,7 @@ class TestTheSweepYieldsAfterEachMethod:
         Qué lo haría fallar: comitear antes de llamar, o en un ``finally``.
         El barrido dejaría asentado el trabajo parcial de un método roto.
         """
+
         def boom():
             raise RuntimeError('barrido roto')
 
@@ -71,7 +80,8 @@ class TestTheSweepYieldsAfterEachMethod:
         assert len(counted_commits) == 1
 
     def test_a_method_that_asks_for_another_turn_commits_each_time(
-            self, monkeypatch, counted_commits):
+        self, monkeypatch, counted_commits
+    ):
         """El método que devuelve ``(hechos, restantes)`` vuelve a la cola
         (``:56``), y cada vuelta cede el turno otra vez.
 
@@ -86,8 +96,9 @@ class TestTheSweepYieldsAfterEachMethod:
             IrAutovacuum._run_vacuum_cleaner()
         assert len(counted_commits) == 2
 
-    def test_without_a_cron_in_context_nothing_runs(self, monkeypatch,
-                                                    counted_commits):
+    def test_without_a_cron_in_context_nothing_runs(
+        self, monkeypatch, counted_commits
+    ):
         """CONTROL de la guarda de arranque, que es anterior a todo esto.
 
         Qué lo haría fallar: barrer sin cron. La fuente lo prohíbe

@@ -5,13 +5,16 @@
 Adaptación fiel de Odoo resource/models/resource_calendar{,_attendance}.py
 (odoo-tools@622ddc2a, odoo19c:, LGPL-3).
 """
+
 from datetime import date
 
 import pytest
 
 from addons.base.models import ResCompany
 from addons.resource.models import (
-    ResourceCalendar, ResourceCalendarAttendance, ResourceResource,
+    ResourceCalendar,
+    ResourceCalendarAttendance,
+    ResourceResource,
 )
 from exceptions import ValidationError
 
@@ -25,32 +28,50 @@ def company():
 
 @pytest.fixture
 def calendar(company):
-    return ResourceCalendar.objects.create(name='Horario estándar', company=company)
+    return ResourceCalendar.objects.create(
+        name='Horario estándar', company=company
+    )
 
 
 class TestResourceCalendarAttendance:
     def test_duration_hours_from_hour_range(self, calendar):
         attendance = ResourceCalendarAttendance.objects.create(
-            name='Lunes mañana', calendar=calendar, dayofweek='0',
-            hour_from=8, hour_to=12, day_period='morning',
+            name='Lunes mañana',
+            calendar=calendar,
+            dayofweek='0',
+            hour_from=8,
+            hour_to=12,
+            day_period='morning',
         )
         assert attendance.duration_hours == 4
 
     def test_duration_hours_is_zero_for_lunch(self, calendar):
         attendance = ResourceCalendarAttendance.objects.create(
-            name='Lunes descanso', calendar=calendar, dayofweek='0',
-            hour_from=12, hour_to=13, day_period='lunch',
+            name='Lunes descanso',
+            calendar=calendar,
+            dayofweek='0',
+            hour_from=12,
+            hour_to=13,
+            day_period='lunch',
         )
         assert attendance.duration_hours == 0
 
     def test_is_work_period_excludes_lunch(self, calendar):
         work = ResourceCalendarAttendance.objects.create(
-            name='Lunes mañana', calendar=calendar, dayofweek='0',
-            hour_from=8, hour_to=12, day_period='morning',
+            name='Lunes mañana',
+            calendar=calendar,
+            dayofweek='0',
+            hour_from=8,
+            hour_to=12,
+            day_period='morning',
         )
         lunch = ResourceCalendarAttendance.objects.create(
-            name='Lunes descanso', calendar=calendar, dayofweek='0',
-            hour_from=12, hour_to=13, day_period='lunch',
+            name='Lunes descanso',
+            calendar=calendar,
+            dayofweek='0',
+            hour_from=12,
+            hour_to=13,
+            day_period='lunch',
         )
         assert work.is_work_period is True
         assert lunch.is_work_period is False
@@ -60,19 +81,29 @@ class TestResourceCalendarAttendance:
         # algoritmo de la referencia (no hay tabla externa que consultar).
         day_a = date(2026, 1, 5)
         day_b = day_a.replace(day=12)
-        assert ResourceCalendarAttendance.get_week_type(day_a) != \
-            ResourceCalendarAttendance.get_week_type(day_b)
+        assert ResourceCalendarAttendance.get_week_type(
+            day_a
+        ) != ResourceCalendarAttendance.get_week_type(day_b)
 
-    def test_copy_vals_round_trips_into_new_attendance(self, calendar, company):
+    def test_copy_vals_round_trips_into_new_attendance(
+        self, calendar, company
+    ):
         source = ResourceCalendarAttendance.objects.create(
-            name='Martes tarde', calendar=calendar, dayofweek='1',
-            hour_from=13, hour_to=17, day_period='afternoon', sequence=20,
+            name='Martes tarde',
+            calendar=calendar,
+            dayofweek='1',
+            hour_from=13,
+            hour_to=17,
+            day_period='afternoon',
+            sequence=20,
         )
         other_calendar = ResourceCalendar.objects.create(
-            name='Otro horario', company=company,
+            name='Otro horario',
+            company=company,
         )
         clone = ResourceCalendarAttendance.objects.create(
-            calendar=other_calendar, **source.copy_vals(),
+            calendar=other_calendar,
+            **source.copy_vals(),
         )
         assert clone.name == source.name
         assert clone.hour_from == source.hour_from
@@ -82,24 +113,40 @@ class TestResourceCalendarAttendance:
 class TestResourceCalendarValidation:
     def test_check_attendances_raises_on_overlap(self, calendar):
         ResourceCalendarAttendance.objects.create(
-            name='A', calendar=calendar, dayofweek='0',
-            hour_from=8, hour_to=12, day_period='morning',
+            name='A',
+            calendar=calendar,
+            dayofweek='0',
+            hour_from=8,
+            hour_to=12,
+            day_period='morning',
         )
         ResourceCalendarAttendance.objects.create(
-            name='B', calendar=calendar, dayofweek='0',
-            hour_from=11, hour_to=15, day_period='afternoon',
+            name='B',
+            calendar=calendar,
+            dayofweek='0',
+            hour_from=11,
+            hour_to=15,
+            day_period='afternoon',
         )
         with pytest.raises(ValidationError):
             calendar.check_attendances()
 
     def test_check_attendances_passes_without_overlap(self, calendar):
         ResourceCalendarAttendance.objects.create(
-            name='A', calendar=calendar, dayofweek='0',
-            hour_from=8, hour_to=12, day_period='morning',
+            name='A',
+            calendar=calendar,
+            dayofweek='0',
+            hour_from=8,
+            hour_to=12,
+            day_period='morning',
         )
         ResourceCalendarAttendance.objects.create(
-            name='B', calendar=calendar, dayofweek='0',
-            hour_from=13, hour_to=17, day_period='afternoon',
+            name='B',
+            calendar=calendar,
+            dayofweek='0',
+            hour_from=13,
+            hour_to=17,
+            day_period='afternoon',
         )
         calendar.check_attendances()  # no debe levantar
 
@@ -139,7 +186,9 @@ class TestResourceCalendarDefaultForCompany:
         assert calendar.company_id == company.pk
         assert calendar.attendances.count() == 15  # 5 días * 3 tramos
         # Idempotente: una segunda llamada no crea otro calendario.
-        assert company.get_or_create_default_resource_calendar().pk == calendar.pk
+        assert (
+            company.get_or_create_default_resource_calendar().pk == calendar.pk
+        )
 
     def test_resource_calendars_reverse_accessor(self, company, calendar):
         assert list(company.resource_calendars.all()) == [calendar]
@@ -150,7 +199,9 @@ class TestResourceCalendarSwitchModes:
         calendar.create_default_attendances()
         calendar.switch_calendar_type()
         assert calendar.two_weeks_calendar is True
-        week_types = {a.week_type for a in calendar.attendances.all() if a.week_type}
+        week_types = {
+            a.week_type for a in calendar.attendances.all() if a.week_type
+        }
         assert week_types == {'0', '1'}
 
     def test_switch_calendar_type_round_trips_to_single_week(self, calendar):

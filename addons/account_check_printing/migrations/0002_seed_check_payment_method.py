@@ -12,6 +12,7 @@ journal_settings``, ``ir_sequence``). No depende del wiring pendiente de
 migraciones de una app que no está registrada) — mismo criterio que
 ``account_fleet/migrations/0001_seed_fleet_service_type_vendor_bill.py``.
 """
+
 from django.db import migrations
 
 from addons.account_check_printing.data import (
@@ -30,7 +31,10 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('account_check_printing', '0001_initial'),
-        ('account', '0004_accountpaymentmethod_accountpaymentmethodline_and_more'),
+        (
+            'account',
+            '0004_accountpaymentmethod_accountpaymentmethodline_and_more',
+        ),
         ('base', '0001_initial'),
     ]
 

@@ -43,7 +43,13 @@ class Migration(migrations.Migration):
             name="so_line",
             field=models.ForeignKey(
                 blank=True,
-                help_text='Odoo so_line ("Sales Order Item"). Acotado a las líneas con qty_delivered_method=analytic; ver SO_LINE_DOMAIN. El índice parcial que la fuente pide con index=btree_not_null lo declara la migración de analytic.',
+                help_text=(
+                    'Odoo so_line ("Sales Order Item"). Acotado a las líneas'
+                    ' con qty_delivered_method=analytic; ver SO_LINE_DOMAIN.'
+                    ' El índice parcial que la fuente pide con'
+                    ' index=btree_not_null lo declara la migración de'
+                    ' analytic.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="analytic_lines",
@@ -70,7 +76,12 @@ class Migration(migrations.Migration):
                     ("timesheet", "Hoja de horas"),
                     ("sale_order", "Pedido de venta"),
                 ],
-                help_text="Odoo business_domain; único valor que declara la raíz analytic. Otros addons amplían el vocabulario con extend_model(selection_add=…) ≙ selection_add: account suma invoice y bill, sale suma sale_order.",
+                help_text=(
+                    "Odoo business_domain; único valor que declara la raíz"
+                    " analytic. Otros addons amplían el vocabulario con"
+                    " extend_model(selection_add=…) ≙ selection_add: account"
+                    " suma invoice y bill, sale suma sale_order."
+                ),
                 max_length=32,
                 verbose_name="Dominio de negocio",
             ),

@@ -42,7 +42,9 @@ import tempfile
 import time
 from pathlib import Path
 
-VENV_GUNICORN = Path(__file__).resolve().parents[1] / '.venv' / 'bin' / 'gunicorn'
+VENV_GUNICORN = (
+    Path(__file__).resolve().parents[1] / '.venv' / 'bin' / 'gunicorn'
+)
 
 # App WSGI mínima — la pregunta es del arbiter, no de Django. Meter Django aquí
 # mezclaría dos variables (arranque del ORM y hospedaje del proceso lateral).
@@ -52,7 +54,8 @@ def application(environ, start_response):
     return [b'ok']
 '''
 
-# El hook corre en el MASTER. Lanza un hijo que late a un archivo: si el archivo
+# El hook corre en el MASTER. Lanza un hijo que late a un archivo: si el
+# archivo
 # sigue creciendo tras matar al master, el hijo quedó huérfano.
 CONF = '''
 import os, sys, time
@@ -88,12 +91,17 @@ def main():
     pidfile = workdir / 'cron.pid'
     (workdir / 'app.py').write_text(APP)
     (workdir / 'conf.py').write_text(
-        CONF.format(port=8099, latido=str(latido), pidfile=str(pidfile)))
+        CONF.format(port=8099, latido=str(latido), pidfile=str(pidfile))
+    )
 
     print(f'workdir: {workdir}')
     proc = subprocess.Popen(
         [str(VENV_GUNICORN), '-c', 'conf.py', 'app:application'],
-        cwd=workdir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        cwd=workdir,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
 
     # Esperar a que el hook haya corrido y el hijo esté latiendo.
     for _ in range(50):
@@ -109,8 +117,10 @@ def main():
 
     cron_pid = int(pidfile.read_text().strip())
     print(f'master pid={proc.pid} | proceso lateral pid={cron_pid}')
-    print(f'HALLAZGO 1 — el master SI puede alojar un proceso lateral: '
-          f'{"vivo" if pid_vivo(cron_pid) else "muerto"}')
+    print(
+        'HALLAZGO 1 — el master SI puede alojar un proceso lateral: '
+        f'{"vivo" if pid_vivo(cron_pid) else "muerto"}'
+    )
 
     latidos_antes = latido.read_text().count('latido')
 
@@ -126,13 +136,19 @@ def main():
     huerfano = pid_vivo(cron_pid)
     latidos_despues = latido.read_text().count('latido')
 
-    print(f'\ntras SIGTERM al master: proceso lateral '
-          f'{"SIGUE VIVO (huerfano)" if huerfano else "murio con el master"}')
-    print(f'latidos antes={latidos_antes} despues={latidos_despues} '
-          f'(crecio={latidos_despues > latidos_antes})')
+    print(
+        '\ntras SIGTERM al master: proceso lateral '
+        f'{"SIGUE VIVO (huerfano)" if huerfano else "murio con el master"}'
+    )
+    print(
+        f'latidos antes={latidos_antes} despues={latidos_despues} '
+        f'(crecio={latidos_despues > latidos_antes})'
+    )
 
     if huerfano:
-        print('\nVEREDICTO: alojarlo es POSIBLE pero el hijo queda HUERFANO al')
+        print(
+            '\nVEREDICTO: alojarlo es POSIBLE pero el hijo queda HUERFANO al'
+        )
         print('apagar. systemd daria la unidad por detenida con el cron vivo')
         print('tocando la base. La unidad separada no es un rodeo: es lo que')
         print('pone el ciclo de vida del cron bajo el supervisor.')

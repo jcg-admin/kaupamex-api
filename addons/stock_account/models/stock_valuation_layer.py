@@ -21,6 +21,7 @@ graba el ``unit_cost`` con el que se valuó ese movimiento.
    cuatro raíces medidas — es invención nuestra. Ver :ref:`h-api-889`
    (decisión del ejecutor: 19 gobierna) y la tarea #151.
 """
+
 from decimal import Decimal
 
 import fields
@@ -32,38 +33,56 @@ from addons.base.models import TimeStampedModel
 class StockValuationLayer(TimeStampedModel):
     """``stock.valuation.layer`` — una capa de valoración de inventario."""
 
-    product_id      = fields.Many2one(
-        'product.ProductProduct', on_delete=models.CASCADE, related_name='valuation_layers',
+    product_id = fields.Many2one(
+        'product.ProductProduct',
+        on_delete=models.CASCADE,
+        related_name='valuation_layers',
         help_text='Producto (Odoo product_id).',
         db_column='product_id',
     )
-    quantity        = fields.Monetary(
-        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+    quantity = fields.Monetary(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
         help_text='Cantidad valuada; negativa en salidas (Odoo quantity).',
     )
-    unit_cost       = fields.Monetary(
-        max_digits=12, decimal_places=4, default=Decimal('0.0000'),
+    unit_cost = fields.Monetary(
+        max_digits=12,
+        decimal_places=4,
+        default=Decimal('0.0000'),
         help_text='Valor unitario del movimiento (Odoo unit_cost).',
     )
-    value           = fields.Monetary(
-        max_digits=14, decimal_places=2, default=Decimal('0.00'),
+    value = fields.Monetary(
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal('0.00'),
         help_text='Valor total; negativo en salidas (Odoo value).',
     )
-    remaining_qty   = fields.Monetary(
-        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+    remaining_qty = fields.Monetary(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
         help_text='Saldo por consumir en FIFO (Odoo remaining_qty).',
     )
     remaining_value = fields.Monetary(
-        max_digits=14, decimal_places=2, default=Decimal('0.00'),
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal('0.00'),
         help_text='Valor del saldo FIFO (Odoo remaining_value).',
     )
-    stock_move_id   = fields.Many2one(
-        'stock.StockMove', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='valuation_layers', help_text='Movimiento (Odoo stock_move_id).',
+    stock_move_id = fields.Many2one(
+        'stock.StockMove',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='valuation_layers',
+        help_text='Movimiento (Odoo stock_move_id).',
         db_column='stock_move_id',
     )
-    description     = fields.Char(
-        max_length=255, blank=True, default='',
+    description = fields.Char(
+        max_length=255,
+        blank=True,
+        default='',
         help_text='Descripción (Odoo description).',
     )
 
@@ -74,4 +93,7 @@ class StockValuationLayer(TimeStampedModel):
         verbose_name_plural = 'Capas de valoración de inventario'
 
     def __str__(self) -> str:
-        return f'{self.product_id} {self.quantity}@{self.unit_cost} = {self.value}'
+        return (
+            f'{self.product_id} {self.quantity}@{self.unit_cost} ='
+            f' {self.value}'
+        )

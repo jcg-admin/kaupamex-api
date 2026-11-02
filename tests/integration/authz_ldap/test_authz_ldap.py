@@ -11,6 +11,7 @@ Sin ``python-ldap`` instalado (estado verificado del contenedor): el mock
 reemplaza la capa de red, igual que en la referencia, así que la suite corre
 sin el binario.
 """
+
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -19,7 +20,12 @@ from django.contrib.auth import authenticate, get_user_model
 from django.core.management import call_command
 from django.utils import timezone
 
-from addons.authz.models import Capability, Role, RoleAssignment, RoleCapability
+from addons.authz.models import (
+    Capability,
+    Role,
+    RoleAssignment,
+    RoleCapability,
+)
 from addons.authz.services import invalidate_capabilities
 from addons.authz_reauth.models import ReauthSession
 from addons.authz_ldap.models import CompanyLdap
@@ -68,11 +74,17 @@ class TestLdapBackend:
         login = 'test_ldap_user@kaupamex.mx'
         assert not User.objects.filter(login=login).exists()
 
-        with patch.object(
-            CompanyLdap.objects.__class__, '_get_ldap_dicts',
-            return_value=[_conf(company)],
-        ), patch.object(
-            CompanyLdap, '_authenticate', return_value=LDAP_ENTRY,
+        with (
+            patch.object(
+                CompanyLdap.objects.__class__,
+                '_get_ldap_dicts',
+                return_value=[_conf(company)],
+            ),
+            patch.object(
+                CompanyLdap,
+                '_authenticate',
+                return_value=LDAP_ENTRY,
+            ),
         ):
             user = authenticate(username=login, password='secret')
 
@@ -88,18 +100,25 @@ class TestLdapBackend:
         # RFC 4513 §6.3.1 (unauthenticated authentication) — igual que la
         # referencia, un password vacío jamás llega al directorio.
         with patch.object(
-            CompanyLdap, '_authenticate',
+            CompanyLdap,
+            '_authenticate',
         ) as mock_auth:
             assert authenticate(username='x@kaupamex.mx', password='') is None
         mock_auth.assert_not_called()
 
     def test_create_user_false_no_crea(self, db, company):
         login = 'sin-alta@kaupamex.mx'
-        with patch.object(
-            CompanyLdap.objects.__class__, '_get_ldap_dicts',
-            return_value=[_conf(company, create_user=False)],
-        ), patch.object(
-            CompanyLdap, '_authenticate', return_value=LDAP_ENTRY,
+        with (
+            patch.object(
+                CompanyLdap.objects.__class__,
+                '_get_ldap_dicts',
+                return_value=[_conf(company, create_user=False)],
+            ),
+            patch.object(
+                CompanyLdap,
+                '_authenticate',
+                return_value=LDAP_ENTRY,
+            ),
         ):
             assert authenticate(username=login, password='secret') is None
         assert not User.objects.filter(login=login).exists()
@@ -112,11 +131,17 @@ class TestLdapBackend:
         user.set_unusable_password()
         user.save(update_fields=['password'])
 
-        with patch.object(
-            CompanyLdap.objects.__class__, '_get_ldap_dicts',
-            return_value=[_conf(company)],
-        ), patch.object(
-            CompanyLdap, '_authenticate', return_value=LDAP_ENTRY,
+        with (
+            patch.object(
+                CompanyLdap.objects.__class__,
+                '_get_ldap_dicts',
+                return_value=[_conf(company)],
+            ),
+            patch.object(
+                CompanyLdap,
+                '_authenticate',
+                return_value=LDAP_ENTRY,
+            ),
         ):
             assert authenticate(username=login, password='secret') == user
 
@@ -126,11 +151,17 @@ class TestLdapBackend:
         user.active = False
         user.save(update_fields=['active'])
 
-        with patch.object(
-            CompanyLdap.objects.__class__, '_get_ldap_dicts',
-            return_value=[_conf(company)],
-        ), patch.object(
-            CompanyLdap, '_authenticate', return_value=LDAP_ENTRY,
+        with (
+            patch.object(
+                CompanyLdap.objects.__class__,
+                '_get_ldap_dicts',
+                return_value=[_conf(company)],
+            ),
+            patch.object(
+                CompanyLdap,
+                '_authenticate',
+                return_value=LDAP_ENTRY,
+            ),
         ):
             assert authenticate(username=login, password='secret') is None
 
@@ -156,39 +187,50 @@ class TestCompanyLdapEndpoint:
     def _login_elevado(self, client, user):
         client.force_authenticate(user)
         ReauthSession.objects.update_or_create(
-            user_id=user.pk, session_key='',
-            defaults={'started_at': timezone.now(),
-                      'expires_at': timezone.now() + timedelta(seconds=900)})
+            user_id=user.pk,
+            session_key='',
+            defaults={
+                'started_at': timezone.now(),
+                'expires_at': timezone.now() + timedelta(seconds=900),
+            },
+        )
 
     def test_sin_capacidad_403(self, seeded, api_client):
         user = User.objects.create_user(
-            login='sin-cap@kaupamex.mx', password='x')
+            login='sin-cap@kaupamex.mx', password='x'
+        )
         api_client.force_authenticate(user)
         resp = api_client.get('/api/v2/authz/ldap-configs/')
         assert resp.status_code == 403
 
     def test_con_capacidad_lista(self, seeded, api_client, company):
         user = User.objects.create_user(
-            login='con-cap@kaupamex.mx', password='x')
+            login='con-cap@kaupamex.mx', password='x'
+        )
         self._grant(user)
         self._login_elevado(api_client, user)
         resp = api_client.get('/api/v2/authz/ldap-configs/')
         assert resp.status_code == 200, resp.data
 
     def test_password_ldap_no_vuelve(self, seeded, api_client, company):
-        user = User.objects.create_user(
-            login='cfg@kaupamex.mx', password='x')
+        user = User.objects.create_user(login='cfg@kaupamex.mx', password='x')
         self._grant(user)
         self._login_elevado(api_client, user)
-        resp = api_client.post('/api/v2/authz/ldap-configs/', {
-            'company': company.id,
-            'ldap_server': 'ldap.kaupamex.mx',
-            'ldap_server_port': 389,
-            'ldap_password': 'super-secreto',
-            'ldap_filter': '(uid=%s)',
-            'ldap_base': 'dc=kaupamex,dc=mx',
-        }, format='json')
+        resp = api_client.post(
+            '/api/v2/authz/ldap-configs/',
+            {
+                'company': company.id,
+                'ldap_server': 'ldap.kaupamex.mx',
+                'ldap_server_port': 389,
+                'ldap_password': 'super-secreto',
+                'ldap_filter': '(uid=%s)',
+                'ldap_base': 'dc=kaupamex,dc=mx',
+            },
+            format='json',
+        )
         assert resp.status_code == 201, resp.data
         assert 'ldap_password' not in resp.data
-        assert CompanyLdap.objects.get(
-            pk=resp.data['id']).ldap_password == 'super-secreto'
+        assert (
+            CompanyLdap.objects.get(pk=resp.data['id']).ldap_password
+            == 'super-secreto'
+        )

@@ -17,6 +17,7 @@ Verifica:
 
 Toca DB → django_db.
 """
+
 import hashlib
 
 import pytest
@@ -34,11 +35,13 @@ def _make_company():
 
 # --- Importable desde el hogar canónico ------------------------------------
 
+
 def test_importable_desde_addons_base_models():
     assert IrAttachment.__module__ == 'addons.base.models.ir_attachment'
 
 
 # --- db_table / app_label fieles a Odoo ------------------------------------
+
 
 def test_db_table_matches_reference():
     assert IrAttachment._meta.db_table == 'ir_attachment'
@@ -48,14 +51,27 @@ def test_db_table_matches_reference():
 def test_campos_faithful_presentes():
     field_names = {f.name for f in IrAttachment._meta.get_fields()}
     for expected in (
-        'name', 'description', 'res_model', 'res_field', 'res_id',
-        'type', 'url', 'public', 'access_token', 'mimetype', 'file_size',
-        'checksum', 'store_fname', 'datas', 'company',
+        'name',
+        'description',
+        'res_model',
+        'res_field',
+        'res_id',
+        'type',
+        'url',
+        'public',
+        'access_token',
+        'mimetype',
+        'file_size',
+        'checksum',
+        'store_fname',
+        'datas',
+        'company',
     ):
         assert expected in field_names, f'falta el campo Odoo {expected!r}'
 
 
 # --- Creación con datas: file_size + checksum calculados -------------------
+
 
 def test_create_con_datas_calcula_file_size_y_checksum():
     contenido = b'hola mundo adjunto'
@@ -82,6 +98,7 @@ def test_mimetype_explicito_no_se_sobreescribe():
 
 # --- type='url' sin datas ---------------------------------------------------
 
+
 def test_attachment_tipo_url_sin_datas():
     attachment = IrAttachment.objects.create(
         name='enlace-externo',
@@ -99,6 +116,7 @@ def test_attachment_tipo_url_sin_datas():
 
 # --- Vínculo polimórfico res_model/res_id (campos planos, no FK) -----------
 
+
 def test_vinculo_polimorfico_res_model_res_id():
     attachment = IrAttachment.objects.create(
         name='imagen-producto.jpg',
@@ -111,7 +129,8 @@ def test_vinculo_polimorfico_res_model_res_id():
     assert attachment.res_id == 5
 
     encontrados = IrAttachment.objects.filter(
-        res_model='catalogue.Product', res_id=5,
+        res_model='catalogue.Product',
+        res_id=5,
     )
     assert attachment in encontrados
 
@@ -124,6 +143,7 @@ def test_res_id_nullable_sin_vinculo():
 
 # --- company FK nullable (SET_NULL) ----------------------------------------
 
+
 def test_company_fk_nullable():
     attachment = IrAttachment.objects.create(name='sin-empresa')
     assert attachment.company_id is None
@@ -132,7 +152,8 @@ def test_company_fk_nullable():
 def test_company_fk_set_null_al_borrar_company():
     company = _make_company()
     attachment = IrAttachment.objects.create(
-        name='con-empresa', company=company,
+        name='con-empresa',
+        company=company,
     )
 
     company.delete()
@@ -142,6 +163,7 @@ def test_company_fk_set_null_al_borrar_company():
 
 
 # --- __str__ -----------------------------------------------------------
+
 
 def test_str_devuelve_name():
     attachment = IrAttachment.objects.create(name='mi-adjunto.txt')

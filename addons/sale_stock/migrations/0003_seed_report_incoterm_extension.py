@@ -8,6 +8,7 @@ tiene que existir para colgar ``inherit_id``).
 
 Idempotente por ``key``; el reverse borra sólo la fila de esta clave.
 """
+
 from django.db import migrations
 
 from addons.sale.data.report_templates import REPORT_SALEORDER_KEY
@@ -21,12 +22,14 @@ def seed_extension(apps, schema_editor):
     """Crea la vista de extensión colgada de la primaria de ``sale``."""
     IrUiView = apps.get_model('base', 'IrUiView')
     alias = schema_editor.connection.alias
-    if IrUiView.objects.using(alias).filter(
-            key=REPORT_INCOTERM_KEY).exists():
+    if IrUiView.objects.using(alias).filter(key=REPORT_INCOTERM_KEY).exists():
         return
-    primary = IrUiView.objects.using(alias).filter(
-        key=REPORT_SALEORDER_KEY, mode='primary').order_by(
-        'priority', 'id').first()
+    primary = (
+        IrUiView.objects.using(alias)
+        .filter(key=REPORT_SALEORDER_KEY, mode='primary')
+        .order_by('priority', 'id')
+        .first()
+    )
     if primary is None:
         # silent OK because la primaria pudo des-sembrarse a mano (reverse de
         # sale.0002); una extensión sin ancla violaría el CHECK del modelo.
@@ -36,8 +39,10 @@ def seed_extension(apps, schema_editor):
         # El valor va CONGELADO: una migración escribe sobre el modelo
         # histórico, y el renombre a ``template`` lo aplica ``base/0070``
         # sobre las filas ya escritas.
-        type='qweb', key=REPORT_INCOTERM_KEY,
-        mode='extension', active=True,
+        type='qweb',
+        key=REPORT_INCOTERM_KEY,
+        mode='extension',
+        active=True,
         inherit_id=primary,
         arch_db=REPORT_INCOTERM_ARCH,
     )

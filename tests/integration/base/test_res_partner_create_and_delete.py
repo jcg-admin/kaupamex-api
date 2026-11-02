@@ -20,6 +20,7 @@ Los tres mecanismos, y por qué no se confunden:
 
 Qué haría fallar a cada control se declara en cada caso.
 """
+
 import pytest
 
 from django.contrib.auth import get_user_model
@@ -53,12 +54,17 @@ class TestParseContactFromEmail:
     Los tres formatos que su docstring enumera, más el caso por defecto.
     """
 
-    @pytest.mark.parametrize('text, expected', [
-        ('Raoul <raoul@grosbedon.fr>', ('Raoul', 'raoul@grosbedon.fr')),
-        ('"Raoul le Grand" <raoul@grosbedon.fr>',
-         ('Raoul le Grand', 'raoul@grosbedon.fr')),
-        ('Raoul raoul@grosbedon.fr', ('Raoul', 'raoul@grosbedon.fr')),
-    ])
+    @pytest.mark.parametrize(
+        'text, expected',
+        [
+            ('Raoul <raoul@grosbedon.fr>', ('Raoul', 'raoul@grosbedon.fr')),
+            (
+                '"Raoul le Grand" <raoul@grosbedon.fr>',
+                ('Raoul le Grand', 'raoul@grosbedon.fr'),
+            ),
+            ('Raoul raoul@grosbedon.fr', ('Raoul', 'raoul@grosbedon.fr')),
+        ],
+    )
     def test_the_three_supported_shapes(self, text, expected):
         """El eje — los tres que la fuente enumera en su docstring."""
         assert parse_contact_from_email(text) == expected
@@ -69,7 +75,10 @@ class TestParseContactFromEmail:
         Qué lo haría fallar: devolver ``('', '')`` para lo que no parsea. El
         contacto se crearía sin nombre.
         """
-        assert parse_contact_from_email('Solo un nombre') == ('Solo un nombre', '')
+        assert parse_contact_from_email('Solo un nombre') == (
+            'Solo un nombre',
+            '',
+        )
 
     def test_the_empty_text_gives_two_empty_strings(self):
         """CONTROL de la guarda de entrada.
@@ -157,8 +166,9 @@ class TestFindOrCreate:
 
     def test_it_finds_the_existing_one(self, db):
         """El eje: no duplica."""
-        existing = ResPartner.objects.create(name='Ya esta',
-                                             email='ya@kaupamex.mx')
+        existing = ResPartner.objects.create(
+            name='Ya esta', email='ya@kaupamex.mx'
+        )
         found = ResPartner.find_or_create('Otro nombre <ya@kaupamex.mx>')
         assert found.pk == existing.pk
         assert found.name == 'Ya esta', 'encuentra, no reescribe'
@@ -170,8 +180,9 @@ class TestFindOrCreate:
         crearía un segundo partner para la misma persona, que es el duplicado
         que este método existe para evitar.
         """
-        existing = ResPartner.objects.create(name='Mayusculas',
-                                             email='MAY@kaupamex.mx')
+        existing = ResPartner.objects.create(
+            name='Mayusculas', email='MAY@kaupamex.mx'
+        )
         found = ResPartner.find_or_create('may@kaupamex.mx')
         assert found.pk == existing.pk
 
@@ -198,7 +209,9 @@ class TestFindOrCreate:
         de nombre.
         """
         with pytest.raises(ValueError):
-            ResPartner.find_or_create('Solo un nombre', assert_valid_email=True)
+            ResPartner.find_or_create(
+                'Solo un nombre', assert_valid_email=True
+            )
 
     def test_without_the_flag_a_text_without_an_email_creates(self, db):
         """CONTROL de la dirección contraria — por defecto NO revienta.
@@ -217,10 +230,16 @@ class TestCreateCompany:
     def test_it_promotes_the_company_name_to_a_real_parent(self, db):
         """El eje: la razón social escrita a mano pasa a ser un partner."""
         mx = ResCountry.objects.get_or_create(
-            code='MX', defaults={'name': 'Mexico'})[0]
+            code='MX', defaults={'name': 'Mexico'}
+        )[0]
         who = ResPartner.objects.create(
-            name='Contacto', company_name='Yoruba SA', vat='XAXX010101000',
-            street='Reforma 1', city='CDMX', country=mx)
+            name='Contacto',
+            company_name='Yoruba SA',
+            vat='XAXX010101000',
+            street='Reforma 1',
+            city='CDMX',
+            country=mx,
+        )
         assert who.create_company() is True
         who.refresh_from_db()
         assert who.parent is not None
@@ -240,7 +259,9 @@ class TestCreateCompany:
         assert who.create_company() is True
         who.refresh_from_db()
         assert who.parent is None
-        assert ResPartner.objects.count() == before + 1, 'sólo el propio contacto'
+        assert (
+            ResPartner.objects.count() == before + 1
+        ), 'sólo el propio contacto'
 
     def test_the_children_move_to_the_new_company(self, db):
         """CONTROL del ``child_ids`` del ``write`` de la fuente.
@@ -249,10 +270,12 @@ class TestCreateCompany:
         quedarían colgando de él en vez de de la empresa, y la jerarquía
         quedaría con dos niveles donde la fuente deja uno.
         """
-        who = ResPartner.objects.create(name='Contacto',
-                                        company_name='Yoruba SA')
-        child = ResPartner.objects.create(name='Entrega', parent=who,
-                                          type=ResPartner.TYPE_DELIVERY)
+        who = ResPartner.objects.create(
+            name='Contacto', company_name='Yoruba SA'
+        )
+        child = ResPartner.objects.create(
+            name='Entrega', parent=who, type=ResPartner.TYPE_DELIVERY
+        )
         who.create_company()
         child.refresh_from_db()
         who.refresh_from_db()
@@ -265,8 +288,9 @@ class TestUnlinkExceptUser:
 
     def test_a_partner_with_an_active_user_is_not_deleted(self, db):
         """El eje. Qué lo haría fallar: no consultar las cuentas."""
-        account = User.objects.create_user(login='borrar@kaupamex.mx',
-                                           password=PASSWORD)
+        account = User.objects.create_user(
+            login='borrar@kaupamex.mx', password=PASSWORD
+        )
         with pytest.raises(RedirectWarning):
             account.partner.delete()
 
@@ -290,8 +314,9 @@ class TestUnlinkExceptUser:
         rather archive them after archiving their associated user"*— no se
         puede seguir.
         """
-        account = User.objects.create_user(login='nombrado@kaupamex.mx',
-                                           password=PASSWORD)
+        account = User.objects.create_user(
+            login='nombrado@kaupamex.mx', password=PASSWORD
+        )
         with pytest.raises(RedirectWarning) as exc:
             account.partner.delete()
         assert 'nombrado@kaupamex.mx' in str(exc.value)

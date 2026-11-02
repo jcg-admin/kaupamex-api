@@ -17,6 +17,7 @@ que ese módulo instala. Python conserva el orden de inserción del dict desde
 Los otros cinco archivos de ``models/`` **no** entran aquí: están bloqueados
 enteros y son documentación (ver ``models/__init__.py``).
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -24,22 +25,27 @@ from django.apps import AppConfig
 
 class AccountPeppolConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name               = 'addons.account_peppol'
-    label              = 'account_peppol'
-    verbose_name       = 'Peppol (account_peppol)'
+    name = 'addons.account_peppol'
+    label = 'account_peppol'
+    verbose_name = 'Peppol (account_peppol)'
 
     #: Módulo → función. Mismo patrón que ``AccountDebitNoteConfig``.
     _EXTENSIONES = {
-        'addons.account_peppol.models.account_edi_proxy_user':
-            'apply_account_peppol_account_edi_proxy_user_extensions',
-        'addons.account_peppol.models.res_company':
-            'apply_account_peppol_res_company_extensions',
-        'addons.account_peppol.models.res_partner':
-            'apply_account_peppol_res_partner_extensions',
-        'addons.account_peppol.models.account_move':
-            'apply_account_peppol_account_move_extensions',
-        'addons.account_peppol.models.account_journal':
-            'apply_account_peppol_account_journal_extensions',
+        'addons.account_peppol.models.account_edi_proxy_user': (
+            'apply_account_peppol_account_edi_proxy_user_extensions'
+        ),
+        'addons.account_peppol.models.res_company': (
+            'apply_account_peppol_res_company_extensions'
+        ),
+        'addons.account_peppol.models.res_partner': (
+            'apply_account_peppol_res_partner_extensions'
+        ),
+        'addons.account_peppol.models.account_move': (
+            'apply_account_peppol_account_move_extensions'
+        ),
+        'addons.account_peppol.models.account_journal': (
+            'apply_account_peppol_account_journal_extensions'
+        ),
     }
 
     def ready(self):

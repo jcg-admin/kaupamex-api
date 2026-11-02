@@ -63,8 +63,10 @@ def betweenness_centrality(nodes, edges):
             node = stack.pop()
             for predecessor in predecessors[node]:
                 dependency[predecessor] += (
-                    shortest[predecessor] / shortest[node]
-                    * (1 + dependency[node]))
+                    shortest[predecessor]
+                    / shortest[node]
+                    * (1 + dependency[node])
+                )
             if node != source:
                 centrality[node] += dependency[node]
     return centrality

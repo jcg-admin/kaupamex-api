@@ -32,6 +32,7 @@ segundo consumidor la necesita, el sitio correcto es
 ``src/tools/xml_utils.py`` (tarea **#401**, DESCONOCIDA hasta que aparezca
 ese segundo consumidor).
 """
+
 import re
 
 from lxml import etree
@@ -48,11 +49,19 @@ _XML_VALID_CHAR_RANGES = (
     _TAB
     + _LINE_FEED
     + _CARRIAGE_RETURN
-    + chr(0x20) + '-' + chr(0xD7FF)
-    + chr(0xE000) + '-' + chr(0xFFFD)
-    + chr(0x10000) + '-' + chr(0x10FFFF)
+    + chr(0x20)
+    + '-'
+    + chr(0xD7FF)
+    + chr(0xE000)
+    + '-'
+    + chr(0xFFFD)
+    + chr(0x10000)
+    + '-'
+    + chr(0x10FFFF)
 )
-_CONTROL_CHARACTERS_RE = re.compile(('[^' + _XML_VALID_CHAR_RANGES + ']').encode())
+_CONTROL_CHARACTERS_RE = re.compile(
+    ('[^' + _XML_VALID_CHAR_RANGES + ']').encode()
+)
 
 
 def _remove_control_characters(byte_node):
@@ -69,7 +78,15 @@ def _remove_control_characters(byte_node):
     return _CONTROL_CHARACTERS_RE.sub(b'', byte_node)
 
 
-def dict_to_xml(node, *, nsmap={}, template=None, render_empty_nodes=False, tag=None, path=None):
+def dict_to_xml(
+    node,
+    *,
+    nsmap={},
+    template=None,
+    render_empty_nodes=False,
+    tag=None,
+    path=None,
+):
     """Ayudante para renderizar un ``dict`` Python como nodo XML.
 
     Se espera que el ``dict`` tenga esta forma::
@@ -111,6 +128,7 @@ def dict_to_xml(node, *, nsmap={}, template=None, render_empty_nodes=False, tag=
     :return: el nodo XML renderizado, como ``lxml.Element``, o ``None`` si
         quedo vacio y ``render_empty_nodes`` es ``False``.
     """
+
     def convert_tag_to_lxml_convention(tag):
         if ':' in tag:
             namespace, local_name = tag.split(':')
@@ -125,7 +143,9 @@ def dict_to_xml(node, *, nsmap={}, template=None, render_empty_nodes=False, tag=
     tag = node.get('_tag') or (template or {}).get('_tag', tag)
 
     if tag is None:
-        raise ValueError(f"No se especifico tag para el nodo: {str(node)[:20]}")
+        raise ValueError(
+            f"No se especifico tag para el nodo: {str(node)[:20]}"
+        )
 
     if path is None:
         path = tag
@@ -134,8 +154,15 @@ def dict_to_xml(node, *, nsmap={}, template=None, render_empty_nodes=False, tag=
 
     # Anade atributos
     for attr_name, attr_value in node.items():
-        if not attr_name.startswith('_') and not isinstance(attr_value, (dict, list)) and attr_value is not None and attr_value is not False:
-            element.set(convert_tag_to_lxml_convention(attr_name), str(attr_value))
+        if (
+            not attr_name.startswith('_')
+            and not isinstance(attr_value, (dict, list))
+            and attr_value is not None
+            and attr_value is not False
+        ):
+            element.set(
+                convert_tag_to_lxml_convention(attr_name), str(attr_value)
+            )
 
     # Anade el texto, si lo hay
     text = node.get('_text')
@@ -166,10 +193,22 @@ def dict_to_xml(node, *, nsmap={}, template=None, render_empty_nodes=False, tag=
                         child_is_empty = False
 
             # Verifica que todo nodo hijo no vacio este definido en el template
-            if template is not None and child_tag not in template and not child_is_empty:
-                raise ValueError(f"El siguiente nodo hijo no esta definido en el template: {path}/{child_tag}")
+            if (
+                template is not None
+                and child_tag not in template
+                and not child_is_empty
+            ):
+                raise ValueError(
+                    "El siguiente nodo hijo no esta definido en el template:"
+                    f" {path}/{child_tag}"
+                )
 
-    if not render_empty_nodes and not element.attrib and not element.text and len(element) == 0:
+    if (
+        not render_empty_nodes
+        and not element.attrib
+        and not element.text
+        and len(element) == 0
+    ):
         return None
 
     return element

@@ -32,7 +32,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text='Odoo name ("Description") — para qué es esta clave.',
+                        help_text=(
+                            'Odoo name ("Description") — para qué es esta'
+                            ' clave.'
+                        ),
                         verbose_name="Descripción",
                     ),
                 ),
@@ -40,7 +43,10 @@ class Migration(migrations.Migration):
                     "scope",
                     models.CharField(
                         blank=True,
-                        help_text='Odoo scope. NULL da acceso a cualquier RPC; con valor, sólo a ese ámbito ("rpc", "browser").',
+                        help_text=(
+                            'Odoo scope. NULL da acceso a cualquier RPC; con'
+                            ' valor, sólo a ese ámbito ("rpc", "browser").'
+                        ),
                         null=True,
                         verbose_name="Ámbito",
                     ),
@@ -49,7 +55,11 @@ class Migration(migrations.Migration):
                     "expiration_date",
                     models.DateTimeField(
                         blank=True,
-                        help_text="Odoo expiration_date. NULL es una clave permanente, que sólo un usuario de sistema puede crear.",
+                        help_text=(
+                            "Odoo expiration_date. NULL es una clave"
+                            " permanente, que sólo un usuario de sistema puede"
+                            " crear."
+                        ),
                         null=True,
                         verbose_name="Fecha de caducidad",
                     ),
@@ -58,7 +68,11 @@ class Migration(migrations.Migration):
                     "index",
                     models.CharField(
                         db_index=True,
-                        help_text="Odoo index — los primeros 8 hexadecimales de la clave, en claro. Es por lo que se busca la fila; NO es la clave.",
+                        help_text=(
+                            "Odoo index — los primeros 8 hexadecimales de la"
+                            " clave, en claro. Es por lo que se busca la fila;"
+                            " NO es la clave."
+                        ),
                         max_length=8,
                         verbose_name="Prefijo",
                     ),
@@ -66,14 +80,21 @@ class Migration(migrations.Migration):
                 (
                     "key",
                     models.CharField(
-                        help_text="Odoo key — el hash de la clave completa. SECRETO: ningún serializer lo expone, igual que el secreto TOTP.",
+                        help_text=(
+                            "Odoo key — el hash de la clave completa. SECRETO:"
+                            " ningún serializer lo expone, igual que el"
+                            " secreto TOTP."
+                        ),
                         verbose_name="Clave (hash)",
                     ),
                 ),
                 (
                     "user",
                     models.ForeignKey(
-                        help_text="Odoo user_id — el dueño del dispositivo de confianza.",
+                        help_text=(
+                            "Odoo user_id — el dueño del dispositivo de"
+                            " confianza."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="totp_trusted_devices",
                         to=settings.AUTH_USER_MODEL,
@@ -94,7 +115,10 @@ class Migration(migrations.Migration):
                 "constraints": [
                     models.CheckConstraint(
                         condition=django.db.models.lookups.Exact(
-                            django.db.models.functions.text.Length(models.F("index")), 8
+                            django.db.models.functions.text.Length(
+                                models.F("index")
+                            ),
+                            8,
                         ),
                         name="auth_totp_device_index_size",
                         violation_error_code="TRUSTED_DEVICE_INDEX_SIZE",

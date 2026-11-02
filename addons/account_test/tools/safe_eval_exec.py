@@ -67,6 +67,7 @@ Estas tres son reducciones de **superficie del consumidor**, no relajaciones
 de seguridad: el whitelist de opcodes y el chequeo de nombres dunder se
 copian íntegros.
 """
+
 import dis
 from opcode import opmap, opname
 from types import CodeType
@@ -76,22 +77,34 @@ unsafe_eval = eval
 __all__ = ['safe_eval']
 
 
-# ─── Nombres "dunder" prohibidos (≙ _UNSAFE_ATTRIBUTES + assert_no_dunder_name) ──
+# ─── Nombres "dunder" prohibidos (≙ _UNSAFE_ATTRIBUTES +
+# assert_no_dunder_name) ──
 _UNSAFE_ATTRIBUTES = [
     # Frames
-    'f_builtins', 'f_code', 'f_globals', 'f_locals', 'f_generator',
+    'f_builtins',
+    'f_code',
+    'f_globals',
+    'f_locals',
+    'f_generator',
     # Código
-    'co_code', '_co_code_adaptive',
+    'co_code',
+    '_co_code_adaptive',
     # Method resolution order
     'mro',
     # Tracebacks
     'tb_frame',
     # Generadores
-    'gi_code', 'gi_frame', 'gi_yieldfrom',
+    'gi_code',
+    'gi_frame',
+    'gi_yieldfrom',
     # Corutinas
-    'cr_await', 'cr_code', 'cr_frame',
+    'cr_await',
+    'cr_code',
+    'cr_frame',
     # Corutinas-generador
-    'ag_await', 'ag_code', 'ag_frame',
+    'ag_await',
+    'ag_code',
+    'ag_frame',
 ]
 
 
@@ -104,74 +117,186 @@ def _to_opcodes(opnames, _opmap=opmap):
 
 
 # Opcodes que NUNCA deben ser usables, restados de todos los conjuntos.
-_BLACKLIST = set(_to_opcodes([
-    'IMPORT_STAR', 'IMPORT_NAME', 'IMPORT_FROM',
-    'STORE_ATTR', 'DELETE_ATTR',
-    'STORE_GLOBAL', 'DELETE_GLOBAL',
-]))
+_BLACKLIST = set(
+    _to_opcodes(
+        [
+            'IMPORT_STAR',
+            'IMPORT_NAME',
+            'IMPORT_FROM',
+            'STORE_ATTR',
+            'DELETE_ATTR',
+            'STORE_GLOBAL',
+            'DELETE_GLOBAL',
+        ]
+    )
+)
 
 # Opcodes necesarios para construir literales.
-_CONST_OPCODES = set(_to_opcodes([
-    'POP_TOP', 'ROT_TWO', 'ROT_THREE', 'ROT_FOUR', 'DUP_TOP', 'DUP_TOP_TWO',
-    'LOAD_CONST', 'RETURN_VALUE',
-    'BUILD_LIST', 'BUILD_MAP', 'BUILD_TUPLE', 'BUILD_SET',
-    'BUILD_CONST_KEY_MAP', 'LIST_EXTEND', 'SET_UPDATE',
-    'COPY', 'SWAP', 'RESUME', 'RETURN_CONST', 'TO_BOOL', 'LOAD_SMALL_INT',
-])) - _BLACKLIST
+_CONST_OPCODES = (
+    set(
+        _to_opcodes(
+            [
+                'POP_TOP',
+                'ROT_TWO',
+                'ROT_THREE',
+                'ROT_FOUR',
+                'DUP_TOP',
+                'DUP_TOP_TWO',
+                'LOAD_CONST',
+                'RETURN_VALUE',
+                'BUILD_LIST',
+                'BUILD_MAP',
+                'BUILD_TUPLE',
+                'BUILD_SET',
+                'BUILD_CONST_KEY_MAP',
+                'LIST_EXTEND',
+                'SET_UPDATE',
+                'COPY',
+                'SWAP',
+                'RESUME',
+                'RETURN_CONST',
+                'TO_BOOL',
+                'LOAD_SMALL_INT',
+            ]
+        )
+    )
+    - _BLACKLIST
+)
 
 _operations = [
-    'POWER', 'MULTIPLY', 'FLOOR_DIVIDE', 'TRUE_DIVIDE', 'MODULO', 'ADD',
-    'SUBTRACT', 'LSHIFT', 'RSHIFT', 'AND', 'XOR', 'OR',
+    'POWER',
+    'MULTIPLY',
+    'FLOOR_DIVIDE',
+    'TRUE_DIVIDE',
+    'MODULO',
+    'ADD',
+    'SUBTRACT',
+    'LSHIFT',
+    'RSHIFT',
+    'AND',
+    'XOR',
+    'OR',
 ]
 
 # Operaciones sobre literales.
-_EXPR_OPCODES = _CONST_OPCODES.union(_to_opcodes([
-    'UNARY_POSITIVE', 'UNARY_NEGATIVE', 'UNARY_NOT', 'UNARY_INVERT',
-    *('BINARY_' + op for op in _operations), 'BINARY_SUBSCR',
-    *('INPLACE_' + op for op in _operations),
-    'BUILD_SLICE',
-    'LIST_APPEND', 'MAP_ADD', 'SET_ADD',
-    'COMPARE_OP', 'IS_OP', 'CONTAINS_OP',
-    'DICT_MERGE', 'DICT_UPDATE',
-    'GEN_START',
-    'BINARY_OP', 'BINARY_SLICE',
-])) - _BLACKLIST
+_EXPR_OPCODES = (
+    _CONST_OPCODES.union(
+        _to_opcodes(
+            [
+                'UNARY_POSITIVE',
+                'UNARY_NEGATIVE',
+                'UNARY_NOT',
+                'UNARY_INVERT',
+                *('BINARY_' + op for op in _operations),
+                'BINARY_SUBSCR',
+                *('INPLACE_' + op for op in _operations),
+                'BUILD_SLICE',
+                'LIST_APPEND',
+                'MAP_ADD',
+                'SET_ADD',
+                'COMPARE_OP',
+                'IS_OP',
+                'CONTAINS_OP',
+                'DICT_MERGE',
+                'DICT_UPDATE',
+                'GEN_START',
+                'BINARY_OP',
+                'BINARY_SLICE',
+            ]
+        )
+    )
+    - _BLACKLIST
+)
 
 # El conjunto completo — statements, llamadas, control de flujo, excepciones.
-_SAFE_OPCODES = _EXPR_OPCODES.union(_to_opcodes([
-    'POP_BLOCK', 'POP_EXCEPT',
-    'SETUP_LOOP', 'SETUP_EXCEPT', 'BREAK_LOOP', 'CONTINUE_LOOP',
-    'EXTENDED_ARG',
-    'MAKE_FUNCTION', 'CALL_FUNCTION', 'CALL_FUNCTION_KW', 'CALL_FUNCTION_EX',
-    'CALL_METHOD', 'LOAD_METHOD',
-    'GET_ITER', 'FOR_ITER', 'YIELD_VALUE',
-    'JUMP_FORWARD', 'JUMP_ABSOLUTE', 'JUMP_BACKWARD',
-    'JUMP_IF_FALSE_OR_POP', 'JUMP_IF_TRUE_OR_POP',
-    'POP_JUMP_IF_FALSE', 'POP_JUMP_IF_TRUE',
-    'SETUP_FINALLY', 'END_FINALLY',
-    'BEGIN_FINALLY', 'CALL_FINALLY', 'POP_FINALLY',
-    'RAISE_VARARGS', 'LOAD_NAME', 'STORE_NAME', 'DELETE_NAME', 'LOAD_ATTR',
-    'LOAD_FAST', 'STORE_FAST', 'DELETE_FAST', 'UNPACK_SEQUENCE',
-    'STORE_SUBSCR', 'LOAD_GLOBAL',
-    'RERAISE', 'JUMP_IF_NOT_EXC_MATCH',
-    'PUSH_NULL', 'PRECALL', 'CALL', 'KW_NAMES',
-    'POP_JUMP_FORWARD_IF_FALSE', 'POP_JUMP_FORWARD_IF_TRUE',
-    'POP_JUMP_BACKWARD_IF_FALSE', 'POP_JUMP_BACKWARD_IF_TRUE',
-    'POP_JUMP_FORWARD_IF_NONE', 'POP_JUMP_BACKWARD_IF_NONE',
-    'POP_JUMP_FORWARD_IF_NOT_NONE', 'POP_JUMP_BACKWARD_IF_NOT_NONE',
-    'CHECK_EXC_MATCH',
-    'RETURN_GENERATOR', 'PUSH_EXC_INFO', 'NOP',
-    'FORMAT_VALUE', 'BUILD_STRING',
-    'END_FOR', 'LOAD_FAST_AND_CLEAR', 'LOAD_FAST_CHECK',
-    'POP_JUMP_IF_NOT_NONE', 'POP_JUMP_IF_NONE',
-    'CALL_INTRINSIC_1', 'STORE_SLICE',
-    'CALL_KW', 'LOAD_FAST_LOAD_FAST',
-    'STORE_FAST_STORE_FAST', 'STORE_FAST_LOAD_FAST',
-    'CONVERT_VALUE', 'FORMAT_SIMPLE', 'FORMAT_WITH_SPEC',
-    'SET_FUNCTION_ATTRIBUTE',
-    'LOAD_FAST_BORROW', 'LOAD_FAST_BORROW_LOAD_FAST_BORROW',
-    'POP_ITER', 'LOAD_COMMON_CONSTANT', 'NOT_TAKEN',
-])) - _BLACKLIST
+_SAFE_OPCODES = (
+    _EXPR_OPCODES.union(
+        _to_opcodes(
+            [
+                'POP_BLOCK',
+                'POP_EXCEPT',
+                'SETUP_LOOP',
+                'SETUP_EXCEPT',
+                'BREAK_LOOP',
+                'CONTINUE_LOOP',
+                'EXTENDED_ARG',
+                'MAKE_FUNCTION',
+                'CALL_FUNCTION',
+                'CALL_FUNCTION_KW',
+                'CALL_FUNCTION_EX',
+                'CALL_METHOD',
+                'LOAD_METHOD',
+                'GET_ITER',
+                'FOR_ITER',
+                'YIELD_VALUE',
+                'JUMP_FORWARD',
+                'JUMP_ABSOLUTE',
+                'JUMP_BACKWARD',
+                'JUMP_IF_FALSE_OR_POP',
+                'JUMP_IF_TRUE_OR_POP',
+                'POP_JUMP_IF_FALSE',
+                'POP_JUMP_IF_TRUE',
+                'SETUP_FINALLY',
+                'END_FINALLY',
+                'BEGIN_FINALLY',
+                'CALL_FINALLY',
+                'POP_FINALLY',
+                'RAISE_VARARGS',
+                'LOAD_NAME',
+                'STORE_NAME',
+                'DELETE_NAME',
+                'LOAD_ATTR',
+                'LOAD_FAST',
+                'STORE_FAST',
+                'DELETE_FAST',
+                'UNPACK_SEQUENCE',
+                'STORE_SUBSCR',
+                'LOAD_GLOBAL',
+                'RERAISE',
+                'JUMP_IF_NOT_EXC_MATCH',
+                'PUSH_NULL',
+                'PRECALL',
+                'CALL',
+                'KW_NAMES',
+                'POP_JUMP_FORWARD_IF_FALSE',
+                'POP_JUMP_FORWARD_IF_TRUE',
+                'POP_JUMP_BACKWARD_IF_FALSE',
+                'POP_JUMP_BACKWARD_IF_TRUE',
+                'POP_JUMP_FORWARD_IF_NONE',
+                'POP_JUMP_BACKWARD_IF_NONE',
+                'POP_JUMP_FORWARD_IF_NOT_NONE',
+                'POP_JUMP_BACKWARD_IF_NOT_NONE',
+                'CHECK_EXC_MATCH',
+                'RETURN_GENERATOR',
+                'PUSH_EXC_INFO',
+                'NOP',
+                'FORMAT_VALUE',
+                'BUILD_STRING',
+                'END_FOR',
+                'LOAD_FAST_AND_CLEAR',
+                'LOAD_FAST_CHECK',
+                'POP_JUMP_IF_NOT_NONE',
+                'POP_JUMP_IF_NONE',
+                'CALL_INTRINSIC_1',
+                'STORE_SLICE',
+                'CALL_KW',
+                'LOAD_FAST_LOAD_FAST',
+                'STORE_FAST_STORE_FAST',
+                'STORE_FAST_LOAD_FAST',
+                'CONVERT_VALUE',
+                'FORMAT_SIMPLE',
+                'FORMAT_WITH_SPEC',
+                'SET_FUNCTION_ATTRIBUTE',
+                'LOAD_FAST_BORROW',
+                'LOAD_FAST_BORROW_LOAD_FAST_BORROW',
+                'POP_ITER',
+                'LOAD_COMMON_CONSTANT',
+                'NOT_TAKEN',
+            ]
+        )
+    )
+    - _BLACKLIST
+)
 
 
 def _assert_no_dunder_name(code_obj, expr):
@@ -181,7 +306,8 @@ def _assert_no_dunder_name(code_obj, expr):
     for name in code_obj.co_names:
         if '__' in name or name in _UNSAFE_ATTRIBUTES:
             raise NameError(
-                'safe_eval: nombre prohibido %r (%r)' % (name, expr))
+                'safe_eval: nombre prohibido %r (%r)' % (name, expr)
+            )
 
 
 def _assert_valid_codeobj(allowed_codes, code_obj, expr):
@@ -191,7 +317,11 @@ def _assert_valid_codeobj(allowed_codes, code_obj, expr):
     if not allowed_codes >= code_codes:
         raise ValueError(
             'safe_eval: opcode(s) prohibido(s) en %r: %s'
-            % (expr, ', '.join(opname[x] for x in (code_codes - allowed_codes))))
+            % (
+                expr,
+                ', '.join(opname[x] for x in (code_codes - allowed_codes)),
+            )
+        )
     for const in code_obj.co_consts:
         if isinstance(const, CodeType):
             _assert_valid_codeobj(allowed_codes, const, 'lambda')
@@ -212,14 +342,38 @@ def _compile_codeobj(expr, filename='<code_exec>', mode='exec'):
 #: Builtins disponibles — subconjunto de la referencia sin
 #: ``__import__``/alias Python 2 (ver la sección "Reducciones declaradas").
 _BUILTINS = {
-    'True': True, 'False': False, 'None': None,
-    'bytes': bytes, 'str': str, 'bool': bool, 'int': int, 'float': float,
-    'enumerate': enumerate, 'dict': dict, 'list': list, 'tuple': tuple,
-    'set': set, 'map': map, 'filter': filter, 'zip': zip,
-    'abs': abs, 'min': min, 'max': max, 'sum': sum, 'sorted': sorted,
-    'round': round, 'len': len, 'repr': repr, 'all': all, 'any': any,
-    'ord': ord, 'chr': chr, 'divmod': divmod, 'isinstance': isinstance,
-    'range': range, 'Exception': Exception,
+    'True': True,
+    'False': False,
+    'None': None,
+    'bytes': bytes,
+    'str': str,
+    'bool': bool,
+    'int': int,
+    'float': float,
+    'enumerate': enumerate,
+    'dict': dict,
+    'list': list,
+    'tuple': tuple,
+    'set': set,
+    'map': map,
+    'filter': filter,
+    'zip': zip,
+    'abs': abs,
+    'min': min,
+    'max': max,
+    'sum': sum,
+    'sorted': sorted,
+    'round': round,
+    'len': len,
+    'repr': repr,
+    'all': all,
+    'any': any,
+    'ord': ord,
+    'chr': chr,
+    'divmod': divmod,
+    'isinstance': isinstance,
+    'range': range,
+    'Exception': Exception,
 }
 
 #: Excepciones que se re-lanzan sin envolver — reducido a la única con
@@ -242,13 +396,15 @@ def safe_eval(expr, context=None, *, mode='exec', filename=None):
     :raises ValueError: opcode prohibido, o error durante la evaluación.
     """
     if isinstance(expr, CodeType):
-        raise TypeError(
-            'safe_eval no evalúa objetos code directamente.')
-    assert context is None or isinstance(context, dict), (
-        'El contexto debe ser un dict')
+        raise TypeError('safe_eval no evalúa objetos code directamente.')
+    assert context is None or isinstance(
+        context, dict
+    ), 'El contexto debe ser un dict'
 
     globals_dict = dict(context or {}, __builtins__=dict(_BUILTINS))
-    code_obj = _compile_codeobj(expr, filename=filename or '<code_exec>', mode=mode)
+    code_obj = _compile_codeobj(
+        expr, filename=filename or '<code_exec>', mode=mode
+    )
     _assert_valid_codeobj(_SAFE_OPCODES, code_obj, expr)
     try:
         return unsafe_eval(code_obj, globals_dict, None)

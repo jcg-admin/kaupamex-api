@@ -9,6 +9,7 @@ los dos primitivos reimplementados (``_luhn_is_valid``, ``_iso11649_is_valid``,
 sustitutos de ``stdnum.luhn``/``stdnum.iso11649`` — ver la sección
 "Qué se porta aquí" del módulo).
 """
+
 from addons.account_qr_code_sepa.tools import (
     SEPA_ZONE_COUNTRY_CODES,
     _iso11649_is_valid,
@@ -39,13 +40,22 @@ class TestSepaZoneCountryCodes:
 
 class TestSanitizeStructuredReference:
     def test_quita_espacios(self):
-        assert sanitize_structured_reference(' RF18 1234 5678 9  ') == 'RF18123456789'
+        assert (
+            sanitize_structured_reference(' RF18 1234 5678 9  ')
+            == 'RF18123456789'
+        )
 
     def test_normaliza_el_formato_belga_con_cruces(self):
-        assert sanitize_structured_reference('+++020/3430/57642+++') == '020343057642'
+        assert (
+            sanitize_structured_reference('+++020/3430/57642+++')
+            == '020343057642'
+        )
 
     def test_normaliza_el_formato_belga_con_asteriscos(self):
-        assert sanitize_structured_reference('***020/3430/57642***') == '020343057642'
+        assert (
+            sanitize_structured_reference('***020/3430/57642***')
+            == '020343057642'
+        )
 
 
 class TestIsValidStructuredReference:

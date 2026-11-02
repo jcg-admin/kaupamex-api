@@ -25,7 +25,11 @@ class Migration(migrations.Migration):
                     ("invoicing_legacy", "Facturación heredada"),
                 ],
                 default="not_paid",
-                help_text="Estado de pago (Odoo payment_state). Se recalcula con compute_payment_state() al registrar o revertir una conciliación — no se deriva automáticamente en save().",
+                help_text=(
+                    "Estado de pago (Odoo payment_state). Se recalcula con"
+                    " compute_payment_state() al registrar o revertir una"
+                    " conciliación — no se deriva automáticamente en save()."
+                ),
                 max_length=17,
             ),
         ),

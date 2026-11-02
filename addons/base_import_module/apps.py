@@ -7,6 +7,7 @@ Existe como app Django válida únicamente para que el addon sea
 localizable en ``addons/`` con la misma forma que sus hermanos —
 ``INSTALLED_APPS`` no necesita incluirlo mientras no aporte nada.
 """
+
 from django.apps import AppConfig
 
 

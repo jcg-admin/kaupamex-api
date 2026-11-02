@@ -42,6 +42,7 @@ Divergencias declaradas
    TODOS sus consumidores (``hours_per_week``, ``_days_per_week``) reciban
    el filtro, que es exactamente lo que el ``super()`` de la fuente compra.
 """
+
 from orm.method_chain import chain_method
 from orm.model_classes import extend_model
 
@@ -58,7 +59,8 @@ def _drop_leave_attendances(_new_result, previous_attendances):
     """``combine=`` de la cadena — ≙ ``super()._get_global_attendances()
     .filtered(lambda a: not a.work_entry_type_id.is_leave)`` (``:15``)."""
     return [
-        attendance for attendance in (previous_attendances or [])
+        attendance
+        for attendance in (previous_attendances or [])
         if not (
             attendance.work_entry_type_id
             and attendance.work_entry_type.is_leave
@@ -68,7 +70,9 @@ def _drop_leave_attendances(_new_result, previous_attendances):
 
 def _wire_global_attendances(model):
     chain_method(
-        model, '_global_attendances', _global_attendances,
+        model,
+        '_global_attendances',
+        _global_attendances,
         combine=_drop_leave_attendances,
     )
 
@@ -76,4 +80,6 @@ def _wire_global_attendances(model):
 def apply_hr_work_entry_resource_calendar_extensions():
     """Cuelga sobre ``resource.calendar`` lo que ``hr_work_entry`` le añade —
     ≙ ``_inherit``."""
-    extend_model('resource', 'ResourceCalendar', luego=_wire_global_attendances)
+    extend_model(
+        'resource', 'ResourceCalendar', luego=_wire_global_attendances
+    )

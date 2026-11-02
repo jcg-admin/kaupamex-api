@@ -28,6 +28,7 @@ Adaptación fiel de Odoo hr/models/hr_work_location.py
        upstream — no hay ningún campo de imagen en este modelo). Se
        traduce por su significado real, no por su etiqueta literal.
 """
+
 import fields
 import models
 
@@ -52,28 +53,44 @@ class HrWorkLocation(TimeStampedModel):
 
     active = fields.Boolean(default=True, verbose_name='Activo')
     name = fields.Char(
-        'Sede de trabajo', required=True,
+        'Sede de trabajo',
+        required=True,
         help='Nombre de la sede de trabajo (Odoo name).',
     )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_work_locations', verbose_name='Empresa',
-        help_text='Empresa dueña de la sede (Odoo company_id, required=True '
-                  'en la fuente — ver docstring del módulo).',
+        'base.ResCompany',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_work_locations',
+        verbose_name='Empresa',
+        help_text=(
+            'Empresa dueña de la sede (Odoo company_id, required=True '
+            'en la fuente — ver docstring del módulo).'
+        ),
     )
     location_type = fields.Selection(
-        choices=LocationType.choices, default=LocationType.OFFICE,
+        choices=LocationType.choices,
+        default=LocationType.OFFICE,
         verbose_name='Tipo de ubicación',
         help_text='Casa / oficina / otra (Odoo location_type).',
     )
     address = fields.Many2one(
-        'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_work_locations', verbose_name='Dirección de trabajo',
-        help_text='Dirección de la sede (Odoo address_id, check_company=True '
-                  'en la fuente — ver docstring del módulo).',
+        'base.ResPartner',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_work_locations',
+        verbose_name='Dirección de trabajo',
+        help_text=(
+            'Dirección de la sede (Odoo address_id, check_company=True '
+            'en la fuente — ver docstring del módulo).'
+        ),
     )
     location_number = fields.Char(
-        blank=True, default='', verbose_name='Número de ubicación',
+        blank=True,
+        default='',
+        verbose_name='Número de ubicación',
     )
 
     class Meta:

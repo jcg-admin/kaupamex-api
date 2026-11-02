@@ -15,7 +15,10 @@ class Migration(migrations.Migration):
             name="vat_check_vies",
             field=models.BooleanField(
                 default=False,
-                help_text="Odoo vat_check_vies — comprobar los identificadores fiscales intracomunitarios contra la base VIES.",
+                help_text=(
+                    "Odoo vat_check_vies — comprobar los identificadores"
+                    " fiscales intracomunitarios contra la base VIES."
+                ),
                 verbose_name="Verify VAT Numbers",
             ),
         ),
@@ -24,7 +27,10 @@ class Migration(migrations.Migration):
             name="vies_valid",
             field=models.BooleanField(
                 default=False,
-                help_text="European VAT numbers are automatically checked on the VIES database (Odoo vies_valid).",
+                help_text=(
+                    "European VAT numbers are automatically checked on the"
+                    " VIES database (Odoo vies_valid)."
+                ),
                 verbose_name="Intra-Community Valid",
             ),
         ),

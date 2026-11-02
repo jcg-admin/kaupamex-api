@@ -24,6 +24,7 @@ Divergencias declaradas:
   ``classmethod``, porque allá se invoca sobre el modelo y no sobre un
   registro— la necesita.
 """
+
 import re
 
 import fields
@@ -58,12 +59,14 @@ class UtmMedium(TimeStampedModel):
     # ≙ ``name`` (requerido; ``translate=False`` en la fuente — el medio es
     # un identificador, no una etiqueta).
     name = fields.Char(
-        max_length=255, verbose_name='Nombre del medio',
+        max_length=255,
+        verbose_name='Nombre del medio',
         help_text='Nombre del medio de entrega.',
     )
     # ≙ ``active``.
     active = fields.Boolean(
-        default=True, verbose_name='Activo',
+        default=True,
+        verbose_name='Activo',
         help_text='Permite archivar el medio sin borrarlo.',
     )
 
@@ -77,7 +80,8 @@ class UtmMedium(TimeStampedModel):
             # ≙ ``_unique_name = models.Constraint('UNIQUE(name)', 'The name
             # must be unique')`` (``odoo19c: :19-22``).
             models.UniqueConstraint(
-                fields=['name'], name='utm_medium_unique_name',
+                fields=['name'],
+                name='utm_medium_unique_name',
                 violation_error_message='The name must be unique',
             ),
         ]
@@ -114,12 +118,16 @@ class UtmMedium(TimeStampedModel):
         for medium in SELF_REQUIRED_UTM_MEDIUMS_REF:
             utm_medium = IrModelData.ref(medium, raise_if_not_found=False)
             if utm_medium is not None and utm_medium.pk == self.pk:
-                raise UserError(str(_(
-                    "Oops, you can't delete the Medium '%s'.\n"
-                    "Doing so would be like tearing down a load-bearing wall "
-                    "— not the best idea.",
-                    self.name,
-                )))
+                raise UserError(
+                    str(
+                        _(
+                            "Oops, you can't delete the Medium '%s'.\nDoing so"
+                            " would be like tearing down a load-bearing wall —"
+                            " not the best idea.",
+                            self.name,
+                        )
+                    )
+                )
 
     def delete(self, *args, **kwargs):
         """El punto donde este stack ejecuta la guarda de ``@api.ondelete``."""

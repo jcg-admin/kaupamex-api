@@ -1,10 +1,14 @@
-# Adaptado de Odoo Community `payment_stripe/__manifest__.py` (LGPL-3, odoo19c:)
+# Adaptado de Odoo Community `payment_stripe/__manifest__.py` (LGPL-3,
+# odoo19c:)
 # — atribución y aviso de licencia preservados (DEC-KX-03).
 {
     'name': 'Proveedor de pago: Stripe',
     'version': '1.0',
     'category': 'Accounting/Payment Providers',
-    'summary': 'Stripe — Payment Intents, webhook firmado y tokenización de la tarjeta',
+    'summary': (
+        'Stripe — Payment Intents, webhook firmado y tokenización de la'
+        ' tarjeta'
+    ),
     # `depends` MEDIDO coincide EXACTO con el de la referencia: un proveedor
     # implementa el contrato de `payment` y no toca nada más.
     #

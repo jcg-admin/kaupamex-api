@@ -23,6 +23,7 @@ Los casos cubren, en este orden:
 5. **La política del sitio** — el sellado de la hora de activación (el
    ``compute`` almacenado que vive en ``save()``) y el retraso por defecto.
 """
+
 from datetime import timedelta
 from decimal import Decimal
 
@@ -57,6 +58,7 @@ PORTED_ON_SALE_ORDER = [
 
 # ── fixtures ────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def public_user(db):
     """El usuario público del sitio — ≙ ``website.user_id``."""
@@ -67,16 +69,19 @@ def public_user(db):
 def website(db, public_user):
     company = ResCompany.objects.create(name='Kaupamex Carrito QA')
     with company_scope(company.pk):
-        yield Website.objects.create(name='Tienda', sequence=1,
-                                     user=public_user)
+        yield Website.objects.create(
+            name='Tienda', sequence=1, user=public_user
+        )
 
 
 @pytest.fixture
 def settings_row(website):
     """La política del sitio con el envío activo y 10 h de retraso."""
     return WebsiteSaleSettings.objects.create(
-        website=website, cart_abandoned_delay=10.0,
-        send_abandoned_cart_email=True)
+        website=website,
+        cart_abandoned_delay=10.0,
+        send_abandoned_cart_email=True,
+    )
 
 
 @pytest.fixture
@@ -102,9 +107,17 @@ def product(db):
     return make_product(name='Adimú', price=Decimal('250.00'))
 
 
-def make_cart(website, buyer, product, *, hours_ago=24.0,
-              state=SaleOrder.STATE_DRAFT, with_line=True, price=None,
-              attach_info=True):
+def make_cart(
+    website,
+    buyer,
+    product,
+    *,
+    hours_ago=24.0,
+    state=SaleOrder.STATE_DRAFT,
+    with_line=True,
+    price=None,
+    attach_info=True,
+):
     """Un carrito con la antigüedad y los rasgos que el caso necesite.
 
     ``created_at`` se alinea con ``date_order``: es ``auto_now_add``, así que
@@ -114,20 +127,27 @@ def make_cart(website, buyer, product, *, hours_ago=24.0,
     contra ``date_order``— mediría un mundo que no existe.
     """
     born = timezone.now() - timedelta(hours=hours_ago)
-    order = SaleOrder.objects.create(state=state, partner=buyer,
-                                     date_order=born)
+    order = SaleOrder.objects.create(
+        state=state, partner=buyer, date_order=born
+    )
     SaleOrder.objects.filter(pk=order.pk).update(created_at=born)
     order.refresh_from_db()
     if with_line:
         SaleOrderLine.objects.create(
-            order=order, product=product, product_uom_qty=1,
-            price_unit=Decimal('250.00') if price is None else price)
+            order=order,
+            product=product,
+            product_uom_qty=1,
+            price_unit=Decimal('250.00') if price is None else price,
+        )
     if attach_info:
-        WebsiteSaleOrderInfo.objects.create(sale_order=order, website_id=website)
+        WebsiteSaleOrderInfo.objects.create(
+            sale_order=order, website_id=website
+        )
     return order
 
 
 # ── 1. la cabecera de la rebanada ───────────────────────────────────────────
+
 
 @pytest.mark.parametrize('symbol', PORTED_ON_SALE_ORDER)
 def test_ported_symbol_is_installed_on_sale_order(symbol):
@@ -143,8 +163,9 @@ def test_is_abandoned_cart_has_no_column():
     """``store=False`` en la fuente (``odoo19c: sale_order.py:46-48``): el
     campo existe para leerse, no para consultarse. Si generara columna, la
     adaptación habría cambiado la naturaleza del campo sin decirlo."""
-    assert 'is_abandoned_cart' not in {f.name
-                                       for f in SaleOrder._meta.get_fields()}
+    assert 'is_abandoned_cart' not in {
+        f.name for f in SaleOrder._meta.get_fields()
+    }
 
 
 def test_stored_half_lives_in_the_side_table():
@@ -155,33 +176,40 @@ def test_stored_half_lives_in_the_side_table():
 
 # ── 2. los cuatro predicados del compute ────────────────────────────────────
 
-def test_cart_older_than_delay_is_abandoned(settings_row, website, buyer,
-                                            product):
+
+def test_cart_older_than_delay_is_abandoned(
+    settings_row, website, buyer, product
+):
     cart = make_cart(website, buyer, product, hours_ago=24.0)
     assert cart.is_abandoned_cart is True
 
 
-def test_cart_younger_than_delay_is_not_abandoned(settings_row, website, buyer,
-                                                  product):
+def test_cart_younger_than_delay_is_not_abandoned(
+    settings_row, website, buyer, product
+):
     """El retraso configurado son 10 h; a las 2 h todavía está comprando."""
     cart = make_cart(website, buyer, product, hours_ago=2.0)
     assert cart.is_abandoned_cart is False
 
 
-def test_order_without_website_is_not_abandoned(settings_row, website, buyer,
-                                                product):
+def test_order_without_website_is_not_abandoned(
+    settings_row, website, buyer, product
+):
     """≙ ``if order.website_id and …``: un pedido que no nació en la tienda
     no es un carrito abandonado, por viejo que sea."""
-    cart = make_cart(website, buyer, product, hours_ago=48.0,
-                     attach_info=False)
+    cart = make_cart(
+        website, buyer, product, hours_ago=48.0, attach_info=False
+    )
     assert cart.is_abandoned_cart is False
 
 
-def test_confirmed_order_is_not_abandoned(settings_row, website, buyer,
-                                          product):
+def test_confirmed_order_is_not_abandoned(
+    settings_row, website, buyer, product
+):
     """≙ ``order.state == 'draft'``."""
-    cart = make_cart(website, buyer, product, hours_ago=48.0,
-                     state=SaleOrder.STATE_SALE)
+    cart = make_cart(
+        website, buyer, product, hours_ago=48.0, state=SaleOrder.STATE_SALE
+    )
     assert cart.is_abandoned_cart is False
 
 
@@ -191,8 +219,9 @@ def test_empty_cart_is_not_abandoned(settings_row, website, buyer, product):
     assert cart.is_abandoned_cart is False
 
 
-def test_public_user_cart_is_not_abandoned(settings_row, website, public_user,
-                                           product):
+def test_public_user_cart_is_not_abandoned(
+    settings_row, website, public_user, product
+):
     """≙ ``order.partner_id != public_partner_id``.
 
     Divergencia declarada: la comparación es contra ``website.user`` porque el
@@ -202,8 +231,9 @@ def test_public_user_cart_is_not_abandoned(settings_row, website, public_user,
     assert cart.is_abandoned_cart is False
 
 
-def test_delay_falls_back_to_one_hour_without_settings(website, buyer,
-                                                       product):
+def test_delay_falls_back_to_one_hour_without_settings(
+    website, buyer, product
+):
     """≙ el ``or 1.0`` de la fuente (``:84``), extendido al sitio sin fila de
     política: sin configuración rige una hora, no cero ni infinito."""
     cart = make_cart(website, buyer, product, hours_ago=2.0)
@@ -211,6 +241,7 @@ def test_delay_falls_back_to_one_hour_without_settings(website, buyer,
 
 
 # ── 3. el search dice lo mismo que el compute ───────────────────────────────
+
 
 def test_search_rejects_operators_other_than_in(settings_row):
     """≙ ``if operator != 'in': return NotImplemented`` (``:129-130``)."""
@@ -229,18 +260,30 @@ def test_search_agrees_with_compute(settings_row, website, buyer, product):
     # comprador: el índice único sólo cubre ``state='draft'``.
     abandoned = make_cart(website, buyer, product, hours_ago=24.0)
     recent = make_cart(website, make_buyer('reciente'), product, hours_ago=1.0)
-    confirmed = make_cart(website, buyer, product, hours_ago=48.0,
-                          state=SaleOrder.STATE_SALE)
-    empty = make_cart(website, make_buyer('vacio'), product, hours_ago=48.0,
-                      with_line=False)
-    off_site = make_cart(website, make_buyer('fuera'), product, hours_ago=48.0,
-                         attach_info=False)
+    confirmed = make_cart(
+        website, buyer, product, hours_ago=48.0, state=SaleOrder.STATE_SALE
+    )
+    empty = make_cart(
+        website, make_buyer('vacio'), product, hours_ago=48.0, with_line=False
+    )
+    off_site = make_cart(
+        website,
+        make_buyer('fuera'),
+        product,
+        hours_ago=48.0,
+        attach_info=False,
+    )
 
-    found = set(SaleOrder._search_abandoned_cart('in', [True])
-                .values_list('pk', flat=True))
-    expected = {order.pk
-                for order in (abandoned, recent, confirmed, empty, off_site)
-                if order.is_abandoned_cart}
+    found = set(
+        SaleOrder._search_abandoned_cart('in', [True]).values_list(
+            'pk', flat=True
+        )
+    )
+    expected = {
+        order.pk
+        for order in (abandoned, recent, confirmed, empty, off_site)
+        if order.is_abandoned_cart
+    }
 
     assert found == expected
     assert found == {abandoned.pk}
@@ -257,18 +300,24 @@ def test_search_covers_a_website_without_policy_row(website, buyer, product):
     """
     cart = make_cart(website, buyer, product, hours_ago=2.0)
     assert cart.is_abandoned_cart is True
-    found = set(SaleOrder._search_abandoned_cart('in', [True])
-                .values_list('pk', flat=True))
+    found = set(
+        SaleOrder._search_abandoned_cart('in', [True]).values_list(
+            'pk', flat=True
+        )
+    )
     assert found == {cart.pk}
 
 
 # ── 4. el filtro de envío ───────────────────────────────────────────────────
 
-def test_filter_keeps_the_recoverable_cart(settings_row, website, buyer,
-                                           product):
+
+def test_filter_keeps_the_recoverable_cart(
+    settings_row, website, buyer, product
+):
     cart = make_cart(website, buyer, product, hours_ago=24.0)
     kept = SaleOrder._filter_can_send_abandoned_cart_mail(
-        SaleOrder.objects.filter(pk=cart.pk))
+        SaleOrder.objects.filter(pk=cart.pk)
+    )
     assert [order.pk for order in kept] == [cart.pk]
 
 
@@ -277,84 +326,112 @@ def test_filter_drops_cart_without_buyer_email(settings_row, website, product):
     no hay a quién escribirle. Aquí el carrito anónimo sin ``guest_email`` es
     el caso equivalente."""
     cart = SaleOrder.objects.create(
-        state=SaleOrder.STATE_DRAFT, partner=None,
-        date_order=timezone.now() - timedelta(hours=24))
-    SaleOrderLine.objects.create(order=cart, product=product,
-                                 product_uom_qty=1,
-                                 price_unit=Decimal('250.00'))
+        state=SaleOrder.STATE_DRAFT,
+        partner=None,
+        date_order=timezone.now() - timedelta(hours=24),
+    )
+    SaleOrderLine.objects.create(
+        order=cart,
+        product=product,
+        product_uom_qty=1,
+        price_unit=Decimal('250.00'),
+    )
     WebsiteSaleOrderInfo.objects.create(sale_order=cart, website_id=website)
     kept = SaleOrder._filter_can_send_abandoned_cart_mail(
-        SaleOrder.objects.filter(pk=cart.pk))
+        SaleOrder.objects.filter(pk=cart.pk)
+    )
     assert kept == []
 
 
-def test_filter_drops_cart_with_failed_payment(settings_row, website, buyer,
-                                               product):
+def test_filter_drops_cart_with_failed_payment(
+    settings_row, website, buyer, product
+):
     """≙ ``not any(transaction.state == 'error' …)`` (``:812``).
 
     Divergencia declarada: el eje de pago aquí es ``payment.Payment`` colgado
     por FK del pedido, y su estado equivalente a ``error`` es ``FAILED``.
     """
     cart = make_cart(website, buyer, product, hours_ago=24.0)
-    Payment.objects.create(sale_order=cart, gateway=Payment.GATEWAYS[0][0],
-                           status=Payment.STATUS_FAILED,
-                           amount=Decimal('250.00'))
+    Payment.objects.create(
+        sale_order=cart,
+        gateway=Payment.GATEWAYS[0][0],
+        status=Payment.STATUS_FAILED,
+        amount=Decimal('250.00'),
+    )
     kept = SaleOrder._filter_can_send_abandoned_cart_mail(
-        SaleOrder.objects.filter(pk=cart.pk))
+        SaleOrder.objects.filter(pk=cart.pk)
+    )
     assert kept == []
 
 
-def test_filter_drops_cart_whose_lines_are_all_free(settings_row, website,
-                                                    buyer, product):
+def test_filter_drops_cart_whose_lines_are_all_free(
+    settings_row, website, buyer, product
+):
     """≙ ``any(not float_is_zero(line.price_unit …))`` (``:813``)."""
-    cart = make_cart(website, buyer, product, hours_ago=24.0,
-                     price=Decimal('0.00'))
+    cart = make_cart(
+        website, buyer, product, hours_ago=24.0, price=Decimal('0.00')
+    )
     kept = SaleOrder._filter_can_send_abandoned_cart_mail(
-        SaleOrder.objects.filter(pk=cart.pk))
+        SaleOrder.objects.filter(pk=cart.pk)
+    )
     assert kept == []
 
 
-def test_filter_drops_cart_when_the_buyer_already_bought(settings_row, website,
-                                                         buyer, product):
+def test_filter_drops_cart_when_the_buyer_already_bought(
+    settings_row, website, buyer, product
+):
     """≙ ``not has_later_sale_order.get(partner_id)`` (``:814``): quien ya
     completó una compra después del abandono no necesita que le insistan."""
     cart = make_cart(website, buyer, product, hours_ago=5.0)
-    later = make_cart(website, buyer, product, hours_ago=1.0,
-                      state=SaleOrder.STATE_SALE)
+    later = make_cart(
+        website, buyer, product, hours_ago=1.0, state=SaleOrder.STATE_SALE
+    )
     assert later.state == SaleOrder.STATE_SALE
     kept = SaleOrder._filter_can_send_abandoned_cart_mail(
-        SaleOrder.objects.filter(pk=cart.pk))
+        SaleOrder.objects.filter(pk=cart.pk)
+    )
     assert kept == []
 
 
-def test_filter_demands_a_single_website(settings_row, website, buyer,
-                                         product, public_user):
+def test_filter_demands_a_single_website(
+    settings_row, website, buyer, product, public_user
+):
     """≙ ``self.website_id.ensure_one()`` (``:776``): el retraso de abandono es
     del sitio, así que mezclar sitios daría una fecha de corte falsa."""
     other_company = ResCompany.objects.create(name='Kaupamex Otro Sitio QA')
     with company_scope(other_company.pk):
-        other = Website.objects.create(name='Otra tienda', sequence=2,
-                                       user=public_user)
+        other = Website.objects.create(
+            name='Otra tienda', sequence=2, user=public_user
+        )
     # Dos carritos vivos a la vez → dos clientes (ver ``make_buyer``).
     first = make_cart(website, buyer, product, hours_ago=24.0)
-    second = make_cart(other, make_buyer('otro-sitio'), product, hours_ago=24.0)
+    second = make_cart(
+        other, make_buyer('otro-sitio'), product, hours_ago=24.0
+    )
     with pytest.raises(UserError):
         SaleOrder._filter_can_send_abandoned_cart_mail(
-            SaleOrder.objects.filter(pk__in=[first.pk, second.pk]))
+            SaleOrder.objects.filter(pk__in=[first.pk, second.pk])
+        )
 
 
 def test_filter_on_empty_input_returns_empty(settings_row):
-    assert SaleOrder._filter_can_send_abandoned_cart_mail(
-        SaleOrder.objects.none()) == []
+    assert (
+        SaleOrder._filter_can_send_abandoned_cart_mail(
+            SaleOrder.objects.none()
+        )
+        == []
+    )
 
 
 # ── 5. la política del sitio ────────────────────────────────────────────────
 
+
 def test_activation_time_is_sealed_when_the_flag_turns_on(website):
     """≙ ``_compute_send_abandoned_cart_email_activation_time`` (``:291-295``),
     que aquí vive en ``save()`` porque este ORM no tiene ``@api.depends``."""
-    row = WebsiteSaleSettings.objects.create(website=website,
-                                             send_abandoned_cart_email=False)
+    row = WebsiteSaleSettings.objects.create(
+        website=website, send_abandoned_cart_email=False
+    )
     assert row.send_abandoned_cart_email_activation_time is None
 
     row.send_abandoned_cart_email = True
@@ -381,15 +458,18 @@ def test_default_delay_matches_the_reference(website):
 def test_zero_delay_falls_back_to_one_hour(website):
     """≙ ``website.cart_abandoned_delay or 1.0``: un cero configurado no
     convierte todo carrito en abandonado al instante."""
-    row = WebsiteSaleSettings.objects.create(website=website,
-                                             cart_abandoned_delay=0.0)
+    row = WebsiteSaleSettings.objects.create(
+        website=website, cart_abandoned_delay=0.0
+    )
     assert row._get_cart_abandoned_delay() == 1.0
 
 
 # ── 6. la plantilla de recuperación ─────────────────────────────────────────
 
-def test_template_is_none_when_nothing_is_seeded(settings_row, website, buyer,
-                                                 product):
+
+def test_template_is_none_when_nothing_is_seeded(
+    settings_row, website, buyer, product
+):
     """≙ el recordset vacío ``self.env['mail.template']`` de la fuente
     (``:228``): sin plantilla del sitio ni del addon no hay con qué escribir.
 

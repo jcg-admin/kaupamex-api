@@ -8,6 +8,7 @@ migrar. Los archivos que sólo EXTIENDEN modelos de otro addon
 cargan desde ``AccountEdiConfig.ready()``, cuando el registro de modelos ya
 está poblado — mismo criterio que ``account/models/__init__.py``.
 """
+
 from .account_edi_document import AccountEdiDocument
 from .account_edi_format import AccountEdiFormat
 

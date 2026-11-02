@@ -28,16 +28,24 @@ class SubscriptionBillingRun(TimeStampedModel):
 
     period = fields.Char(max_length=7, verbose_name='Periodo')  # ``YYYY-MM``
     triggered_by = fields.Selection(
-        max_length=8, choices=TriggeredBy.choices, default=TriggeredBy.TIME,
+        max_length=8,
+        choices=TriggeredBy.choices,
+        default=TriggeredBy.TIME,
         verbose_name='Disparada por',
     )
     started_at = fields.Datetime(auto_now_add=True, verbose_name='Inicio')
     finished_at = fields.Datetime(
-        null=True, blank=True, verbose_name='Fin',
+        null=True,
+        blank=True,
+        verbose_name='Fin',
     )
-    invoices_issued = fields.Integer(default=0, verbose_name='Facturas emitidas')
+    invoices_issued = fields.Integer(
+        default=0, verbose_name='Facturas emitidas'
+    )
     amount_charged = fields.Monetary(
-        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
         verbose_name='Monto cobrado',
     )
     currency = fields.Char(max_length=3, default='MXN', verbose_name='Moneda')

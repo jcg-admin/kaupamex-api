@@ -38,6 +38,7 @@ Con las tres migraciones desaplicadas y las dos tablas vaciadas,
 ``migrate`` las aplica y deja **23 | 4**. La sonda corrió sobre una base
 desechable (``kaupamex_seed_probe``), no sobre la de QA.
 """
+
 import importlib
 
 import pytest
@@ -64,23 +65,36 @@ class TestTheAclIsThere:
         Un sembrador «arreglado» que le pusiera ``perm_read=True`` cambiaría la
         política disfrazado de corrección.
         """
-        row = IrModelAccess.objects.filter(name='ir_ui_view group_user').first()
+        row = IrModelAccess.objects.filter(
+            name='ir_ui_view group_user'
+        ).first()
         assert row is not None
-        assert (row.perm_read, row.perm_write, row.perm_create,
-                row.perm_unlink) == (False, False, False, False)
+        assert (
+            row.perm_read,
+            row.perm_write,
+            row.perm_create,
+            row.perm_unlink,
+        ) == (False, False, False, False)
 
 
 class TestTheRecordRulesAreThere:
     """Las cuatro reglas multi-empresa, que son el aislamiento L3."""
 
-    @pytest.mark.parametrize('name,model_name', [
-        ('Company Setting multi-company', 'base.CompanySetting'),
-        ('Sales Order multi-company', 'sale.SaleOrder'),
-        ('Company Module Subscription multi-company',
-         'sale_subscription.CompanyModuleSubscription'),
-        ('Subscription Invoice multi-company',
-         'sale_subscription.SubscriptionInvoice'),
-    ])
+    @pytest.mark.parametrize(
+        'name,model_name',
+        [
+            ('Company Setting multi-company', 'base.CompanySetting'),
+            ('Sales Order multi-company', 'sale.SaleOrder'),
+            (
+                'Company Module Subscription multi-company',
+                'sale_subscription.CompanyModuleSubscription',
+            ),
+            (
+                'Subscription Invoice multi-company',
+                'sale_subscription.SubscriptionInvoice',
+            ),
+        ],
+    )
     def test_the_rule_is_seeded_for_its_model(self, name, model_name):
         rule = IrRule.objects.filter(name=name).first()
         assert rule is not None
@@ -117,13 +131,19 @@ class TestTheSeedersHaveTheTwoEntryPoints:
     cuerpos, arreglar uno dejaría el otro atrás y el fallo aparecería lejos.
     """
 
-    @pytest.mark.parametrize('modulo,vivo,historico', [
-        ('addons.base.security.ir_model_access', 'seed', 'seed_base_acl'),
-        ('addons.base.security.base_security', 'seed', 'seed_base_rules'),
-        ('addons.sale.security.ir_rules', 'seed', 'seed_sale_rules'),
-        ('addons.sale_subscription.security.ir_rules', 'seed',
-         'seed_subscription_rules'),
-    ])
+    @pytest.mark.parametrize(
+        'modulo,vivo,historico',
+        [
+            ('addons.base.security.ir_model_access', 'seed', 'seed_base_acl'),
+            ('addons.base.security.base_security', 'seed', 'seed_base_rules'),
+            ('addons.sale.security.ir_rules', 'seed', 'seed_sale_rules'),
+            (
+                'addons.sale_subscription.security.ir_rules',
+                'seed',
+                'seed_subscription_rules',
+            ),
+        ],
+    )
     def test_both_entry_points_exist(self, modulo, vivo, historico):
         module = importlib.import_module(modulo)
         assert callable(getattr(module, vivo))

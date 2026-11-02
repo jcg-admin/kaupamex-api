@@ -11,6 +11,7 @@ no del pedido, y por eso vive aquí y no en ``sale.order``.
 El destino es :class:`~addons.payment.models.payment_provider.PaymentGateway`,
 que es nuestra contraparte de ``payment.provider``.
 """
+
 import fields
 
 from orm.model_classes import extend_model
@@ -21,7 +22,8 @@ from orm.model_classes import extend_model
 _inherit = 'payment.provider'
 
 #: ≙ ``('so_name', 'Based on Document Reference')`` (``odoo19c: :11``). El
-#: **valor** es idéntico al de la referencia —es lo que se guarda y se compara—;
+#: **valor** es idéntico al de la referencia —es lo que se guarda y se
+#: compara—;
 #: la etiqueta va en español por ``redaccion-tecnica-es.md``.
 SO_REFERENCE_SO_NAME = 'so_name'
 
@@ -35,7 +37,8 @@ SO_REFERENCE_TYPES = [
 ]
 
 #: ≙ ``string='Communication'`` (``odoo19c: :9``) — el rótulo del campo en la
-#: fuente. Se conserva su sentido: es el texto que el cliente ve en su estado de
+#: fuente. Se conserva su sentido: es el texto que el cliente ve en su
+#: estado de
 #: cuenta, no un nombre interno.
 SO_REFERENCE_TYPE_VERBOSE_NAME = 'Comunicación'
 
@@ -48,16 +51,20 @@ def apply_sale_payment_provider_extensions():
     es de la app ``payment`` y ahí es donde Django la escribe.
     """
     extend_model(
-        'payment', 'PaymentGateway',
+        'payment',
+        'PaymentGateway',
         campos={
             'so_reference_type': fields.Selection(
-                max_length=16, choices=SO_REFERENCE_TYPES,
+                max_length=16,
+                choices=SO_REFERENCE_TYPES,
                 default=SO_REFERENCE_SO_NAME,
                 verbose_name=SO_REFERENCE_TYPE_VERBOSE_NAME,
-                help_text='Odoo so_reference_type ("Communication"). Fija el '
-                          'tipo de comunicación que aparecerá en los pedidos '
-                          'de venta; se le entrega al cliente al elegir el '
-                          'método de pago.',
+                help_text=(
+                    'Odoo so_reference_type ("Communication"). Fija el '
+                    'tipo de comunicación que aparecerá en los pedidos '
+                    'de venta; se le entrega al cliente al elegir el '
+                    'método de pago.'
+                ),
             ),
         },
     )

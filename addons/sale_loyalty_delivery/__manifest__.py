@@ -1,4 +1,5 @@
-# Adaptado de Odoo Community `sale_loyalty_delivery/__manifest__.py` (LGPL-3, odoo19c:) —
+# Adaptado de Odoo Community `sale_loyalty_delivery/__manifest__.py`
+# (LGPL-3, odoo19c:) —
 # atribución y aviso de licencia preservados (DEC-KX-03).
 {
     'name': 'Cupón de envío gratis',
@@ -14,7 +15,7 @@
     # motor pero todavía no al transportista (Grupo A, tarea #64).
     'depends': [
         'sale_loyalty',  # el puente que aplica la recompensa
-        'delivery',      # DeliveryCarrier — la línea que cubre
+        'delivery',  # DeliveryCarrier — la línea que cubre
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

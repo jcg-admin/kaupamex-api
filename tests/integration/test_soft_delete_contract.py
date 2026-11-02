@@ -26,9 +26,14 @@ pero seis modelos concretos vivos sí lo declaran. El sujeto pasa a ``Voucher``
 (``loyalty/models/voucher.py:28``), que conserva la cobertura del contrato
 sobre un modelo real.
 """
+
 import pytest
 from addons.loyalty.models import Voucher
-from addons.base.models import SoftDeleteModel, SoftDeleteManager, AllObjectsManager
+from addons.base.models import (
+    SoftDeleteModel,
+    SoftDeleteManager,
+    AllObjectsManager,
+)
 
 pytestmark = pytest.mark.integration
 

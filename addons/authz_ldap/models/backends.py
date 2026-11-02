@@ -25,6 +25,7 @@ Cablear en settings::
         'addons.authz_ldap.backends.LdapBackend',
     ]
 """
+
 import logging
 
 from django.apps import apps as django_apps

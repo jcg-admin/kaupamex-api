@@ -11,6 +11,7 @@ aún no está poblado (``AppRegistryNotReady``); excepción #4 de
 ``no-lazy-imports.md``: ``importlib.import_module`` es una llamada de
 función, no un ``import`` estático.
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -28,17 +29,39 @@ class HrRecruitmentConfig(AppConfig):
     #: y ``res_partner.py`` NO aparecen aquí: no cuelgan código, sólo
     #: documentan un reverso automático (ver sus propios docstrings).
     _EXTENSIONES = {
-        'addons.hr_recruitment.models.calendar': 'apply_hr_recruitment_calendar_extensions',
-        'addons.hr_recruitment.models.digest': 'apply_hr_recruitment_digest_extensions',
-        'addons.hr_recruitment.models.hr_department': 'apply_hr_recruitment_hr_department_extensions',
-        'addons.hr_recruitment.models.hr_job': 'apply_hr_recruitment_hr_job_extensions',
-        'addons.hr_recruitment.models.ir_attachment': 'apply_hr_recruitment_ir_attachment_extensions',
-        'addons.hr_recruitment.models.ir_ui_menu': 'apply_hr_recruitment_ir_ui_menu_extensions',
-        'addons.hr_recruitment.models.mail_activity_plan': 'apply_hr_recruitment_mail_activity_plan_extensions',
-        'addons.hr_recruitment.models.res_company': 'apply_hr_recruitment_res_company_extensions',
-        'addons.hr_recruitment.models.res_config_settings': 'apply_hr_recruitment_res_config_settings_extensions',
-        'addons.hr_recruitment.models.res_users': 'apply_hr_recruitment_res_users_extensions',
-        'addons.hr_recruitment.wizard.mail_activity_schedule': 'apply_hr_recruitment_mail_activity_schedule_extensions',
+        'addons.hr_recruitment.models.calendar': (
+            'apply_hr_recruitment_calendar_extensions'
+        ),
+        'addons.hr_recruitment.models.digest': (
+            'apply_hr_recruitment_digest_extensions'
+        ),
+        'addons.hr_recruitment.models.hr_department': (
+            'apply_hr_recruitment_hr_department_extensions'
+        ),
+        'addons.hr_recruitment.models.hr_job': (
+            'apply_hr_recruitment_hr_job_extensions'
+        ),
+        'addons.hr_recruitment.models.ir_attachment': (
+            'apply_hr_recruitment_ir_attachment_extensions'
+        ),
+        'addons.hr_recruitment.models.ir_ui_menu': (
+            'apply_hr_recruitment_ir_ui_menu_extensions'
+        ),
+        'addons.hr_recruitment.models.mail_activity_plan': (
+            'apply_hr_recruitment_mail_activity_plan_extensions'
+        ),
+        'addons.hr_recruitment.models.res_company': (
+            'apply_hr_recruitment_res_company_extensions'
+        ),
+        'addons.hr_recruitment.models.res_config_settings': (
+            'apply_hr_recruitment_res_config_settings_extensions'
+        ),
+        'addons.hr_recruitment.models.res_users': (
+            'apply_hr_recruitment_res_users_extensions'
+        ),
+        'addons.hr_recruitment.wizard.mail_activity_schedule': (
+            'apply_hr_recruitment_mail_activity_schedule_extensions'
+        ),
     }
 
     def ready(self):

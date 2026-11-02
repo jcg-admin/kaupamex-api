@@ -8,7 +8,10 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("account", "0024_analytic_distribution_on_move_line"),
-        ("base", "0066_alter_reslang_code_reslang_res_lang_name_uniq_and_more"),
+        (
+            "base",
+            "0066_alter_reslang_code_reslang_res_lang_name_uniq_and_more",
+        ),
     ]
 
     operations = [
@@ -18,7 +21,13 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="expense_account_id",
-                help_text="Cuenta de gasto reconocida al validar una factura de proveedor, salvo en contabilidad anglosajona con valoración perpetua de inventario, donde el gasto se reconoce al validar la factura de cliente (Odoo expense_account_id).",
+                help_text=(
+                    "Cuenta de gasto reconocida al validar una factura de"
+                    " proveedor, salvo en contabilidad anglosajona con"
+                    " valoración perpetua de inventario, donde el gasto se"
+                    " reconoce al validar la factura de cliente (Odoo"
+                    " expense_account_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="+",
@@ -31,7 +40,11 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="income_account_id",
-                help_text="Cuenta de ingreso usada al validar una factura de cliente cuando ni el producto ni su categoría declaran la suya (Odoo income_account_id).",
+                help_text=(
+                    "Cuenta de ingreso usada al validar una factura de cliente"
+                    " cuando ni el producto ni su categoría declaran la suya"
+                    " (Odoo income_account_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="+",

@@ -25,6 +25,7 @@ distingue «no lo puedo leer» de «lo leí mal».
 Los nombres son los de la fuente porque son los que sus consumidores usan:
 ``PdfFileReader``, ``PdfFileWriter``, ``PdfReadError``.
 """
+
 import io
 import re
 
@@ -77,8 +78,9 @@ class PdfFileReader:
 
         self.raw = raw
         #: número de objeto → cuerpo, en bytes y sin el envoltorio ``obj``.
-        self.objects = {int(num): body
-                        for num, _gen, body in _OBJECT.findall(raw)}
+        self.objects = {
+            int(num): body for num, _gen, body in _OBJECT.findall(raw)
+        }
 
         trailer = _TRAILER.search(raw)
         root = _ROOT.search(trailer.group(1) if trailer else raw)
@@ -105,8 +107,11 @@ class PdfFileReader:
         tipo lo perdería.
         """
         catalog = self.objects.get(self.trailer['/Root'], b'')
-        pages_ref = _REFERENCE.search(
-            catalog[catalog.find(b'/Pages'):]) if b'/Pages' in catalog else None
+        pages_ref = (
+            _REFERENCE.search(catalog[catalog.find(b'/Pages'):])
+            if b'/Pages' in catalog
+            else None
+        )
         if pages_ref is None:
             raise PdfReadError('el catálogo no declara /Pages')
         return self._walk(int(pages_ref.group(1)), set())
@@ -114,8 +119,9 @@ class PdfFileReader:
     def _walk(self, number, seen):
         """Los números de objeto de las páginas bajo ``number``, en orden."""
         if number in seen:
-            raise PdfReadError('ciclo en el árbol de páginas: objeto %s'
-                               % number)
+            raise PdfReadError(
+                'ciclo en el árbol de páginas: objeto %s' % number
+            )
         seen.add(number)
         body = self.objects.get(number, b'')
         kids = _KIDS.search(body)
@@ -191,18 +197,24 @@ class PdfFileWriter:
 
         def emit(number, body):
             offsets[number] = sum(len(piece) for piece in pieces)
-            pieces.append(b'%d 0 obj\n' % number + body.strip() + b'\nendobj\n')
+            pieces.append(
+                b'%d 0 obj\n' % number + body.strip() + b'\nendobj\n'
+            )
 
         kids = b' '.join(b'%d 0 R' % number for number in self._pages)
         emit(1, b'<< /Type /Catalog /Pages 2 0 R >>')
-        emit(2, b'<< /Type /Pages /Kids [ %s ] /Count %d >>'
-             % (kids, len(self._pages)))
+        emit(
+            2,
+            b'<< /Type /Pages /Kids [ %s ] /Count %d >>'
+            % (kids, len(self._pages)),
+        )
         for number in sorted(self._objects):
             body = self._objects[number]
             if number in self._pages:
                 # La página cuelga del nodo raíz nuevo, no del de su origen.
-                body = re.sub(rb'/Parent\s+\d+\s+\d+\s+R', b'/Parent 2 0 R',
-                              body)
+                body = re.sub(
+                    rb'/Parent\s+\d+\s+\d+\s+R', b'/Parent 2 0 R', body
+                )
             emit(number, body)
 
         start = sum(len(piece) for piece in pieces)
@@ -211,7 +223,9 @@ class PdfFileWriter:
         pieces.append(b'0000000000 65535 f \n')
         for number in range(1, total):
             pieces.append(b'%010d 00000 n \n' % offsets.get(number, 0))
-        pieces.append(b'trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n'
-                      b'%%%%EOF\n' % (total, start))
+        pieces.append(
+            b'trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n'
+            % (total, start)
+        )
         stream.write(b''.join(pieces))
         return stream

@@ -4,6 +4,7 @@ Ejecutar desde API con PYTHONPATH=src, uv run --frozen python <este archivo>.
 Usa el despachador real. No carga el conftest global ni acredita aceptación
 de addons, PostgreSQL o ejecución de Odoo nativo.
 """
+
 import json
 import sys
 import unittest
@@ -15,8 +16,9 @@ from django.db.migrations.writer import MigrationWriter
 
 from orm.fields_misc import Json
 
-
-settings.configure(INSTALLED_APPS=[], DEFAULT_AUTO_FIELD='django.db.models.AutoField')
+settings.configure(
+    INSTALLED_APPS=[], DEFAULT_AUTO_FIELD='django.db.models.AutoField'
+)
 # No se registra un modelo ni se abre una base: se caracteriza el Field real.
 
 
@@ -63,7 +65,9 @@ class JsonDefaultContract(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    suite = unittest.defaultTestLoader.loadTestsFromTestCase(JsonDefaultContract)
+    suite = unittest.defaultTestLoader.loadTestsFromTestCase(
+        JsonDefaultContract
+    )
     result = unittest.TextTestRunner(verbosity=2).run(suite)
     report = {
         'task': 'TASK-API-0420',
@@ -74,6 +78,10 @@ if __name__ == '__main__':
         'classification': 'BASELINE_FAILURE' if result.failures else 'PASS',
         'limits': 'Field-only; no Odoo runtime, DB or addon acceptance',
     }
-    destination = Path(__file__).resolve().parents[1] / 'outputs' / 'json-default-results.json'
+    destination = (
+        Path(__file__).resolve().parents[1]
+        / 'outputs'
+        / 'json-default-results.json'
+    )
     destination.write_text(json.dumps(report, indent=2) + '\n')
     sys.exit(report['exit_code'])

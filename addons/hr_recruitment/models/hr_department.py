@@ -9,6 +9,7 @@ computes, los 5 símbolos de la fuente.
 ``_inherit`` lo expresa ``extend_model('hr', 'HrDepartment', …)`` — par de
 Django porque ``hr.HrDepartment`` no declara ``_name`` propio en este árbol.
 """
+
 from django.apps import apps
 
 import fields
@@ -25,11 +26,14 @@ def new_applicant_count(department):
     sembrada — el guard se conserva, sólo cambia su fuente de verdad.
     """
     user = get_current_user()
-    if user is None or not user.has_group('hr_recruitment.group_hr_recruitment_interviewer'):
+    if user is None or not user.has_group(
+        'hr_recruitment.group_hr_recruitment_interviewer'
+    ):
         return 0
     HrApplicant = apps.get_model('hr_recruitment', 'HrApplicant')
     return HrApplicant.objects.filter(
-        department=department, stage__sequence__lte=1,
+        department=department,
+        stage__sequence__lte=1,
     ).count()
 
 
@@ -57,7 +61,8 @@ def apply_hr_recruitment_hr_department_extensions():
     ≙ ``_inherit``. Los tres campos son compute puro (sin ``store``, sin
     columna): se instalan como propiedades de sólo lectura."""
     extend_model(
-        'hr', 'HrDepartment',
+        'hr',
+        'HrDepartment',
         propiedades={
             'new_applicant_count': new_applicant_count,
             'new_hired_employee': new_hired_employee,

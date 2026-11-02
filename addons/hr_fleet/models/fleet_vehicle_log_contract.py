@@ -24,6 +24,7 @@ DIVERGENCIA declarada: el ``related`` no almacenado es property — mismo
 criterio que ``purchaser`` del propio ``fleet_vehicle_log_contract.py``
 local (``:144``).
 """
+
 from orm.model_classes import extend_model
 
 
@@ -37,7 +38,8 @@ def apply_hr_fleet_fleet_vehicle_log_contract_extensions():
     """Cuelga sobre ``fleet.vehicle.log.contract`` lo que ``hr_fleet``
     necesita — ≙ ``_inherit``. Se invoca desde ``HrFleetConfig.ready()``."""
     extend_model(
-        'fleet', 'FleetVehicleLogContract',
+        'fleet',
+        'FleetVehicleLogContract',
         propiedades={
             'purchaser_employee': purchaser_employee,
         },

@@ -13,6 +13,7 @@ class BaseBankConfig(AppConfig):
     una ``ResCompany`` que cobra o paga por SPEI necesita una CLABE bien
     formada).
     """
+
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'addons.base_bank'
     verbose_name = 'Base — Validación de cuenta bancaria (IBAN/CLABE)'

@@ -6,6 +6,7 @@ filtrando por ``Domain('state', '=', 'draft')``). Estos serializers no
 declaran un modelo propio: proyectan esa orden y sus líneas al contrato que
 el SPA ya consume.
 """
+
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -22,16 +23,25 @@ class ProductListSerializer(serializers.ModelSerializer):
     """
 
     slug = serializers.SerializerMethodField()
-    category = serializers.CharField(source='categ.name', read_only=True,
-                                     default=None)
-    price = serializers.DecimalField(source='list_price', max_digits=12,
-                                     decimal_places=2, read_only=True)
+    category = serializers.CharField(
+        source='categ.name', read_only=True, default=None
+    )
+    price = serializers.DecimalField(
+        source='list_price', max_digits=12, decimal_places=2, read_only=True
+    )
     image = serializers.SerializerMethodField()
 
     class Meta:
         model = ProductTemplate
-        fields = ['id', 'slug', 'name', 'default_code', 'category', 'price',
-                  'image']
+        fields = [
+            'id',
+            'slug',
+            'name',
+            'default_code',
+            'category',
+            'price',
+            'image',
+        ]
 
     @extend_schema_field(serializers.CharField())
     def get_slug(self, obj):
@@ -78,7 +88,10 @@ class ProductDetailSerializer(ProductListSerializer):
 
     class Meta(ProductListSerializer.Meta):
         fields = ProductListSerializer.Meta.fields + [
-            'description_sale', 'weight', 'volume', 'is_published',
+            'description_sale',
+            'weight',
+            'volume',
+            'is_published',
         ]
 
 
@@ -99,8 +112,10 @@ class CategoryTreeSerializer(serializers.ModelSerializer):
     @extend_schema_field(serializers.ListField(child=serializers.DictField()))
     def get_children(self, obj):
         return CategoryTreeSerializer(
-            obj.child_id.all().order_by('name'), many=True,
-            context=self.context).data
+            obj.child_id.all().order_by('name'),
+            many=True,
+            context=self.context,
+        ).data
 
 
 class CartLineSerializer(serializers.Serializer):
@@ -110,9 +125,11 @@ class CartLineSerializer(serializers.Serializer):
     product_id = serializers.IntegerField(source='product_id', read_only=True)
     name = serializers.CharField(read_only=True)
     quantity = serializers.IntegerField(
-        source='product_uom_qty', read_only=True)
+        source='product_uom_qty', read_only=True
+    )
     price_unit = serializers.DecimalField(
-        max_digits=12, decimal_places=2, read_only=True)
+        max_digits=12, decimal_places=2, read_only=True
+    )
 
 
 class AddCartItemSerializer(serializers.Serializer):
@@ -170,8 +187,9 @@ class ExpressCheckoutSerializer(serializers.Serializer):
     """
 
     address = serializers.DictField()
-    shipping_method_id = serializers.IntegerField(required=False,
-                                                  allow_null=True,
-                                                  default=None)
-    notes = serializers.CharField(max_length=500, required=False,
-                                  allow_blank=True, default='')
+    shipping_method_id = serializers.IntegerField(
+        required=False, allow_null=True, default=None
+    )
+    notes = serializers.CharField(
+        max_length=500, required=False, allow_blank=True, default=''
+    )

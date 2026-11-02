@@ -33,7 +33,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Referencia, de la secuencia stock.scrap (Odoo name).",
+                        help_text=(
+                            "Referencia, de la secuencia stock.scrap (Odoo"
+                            " name)."
+                        ),
                         max_length=64,
                     ),
                 ),
@@ -50,7 +53,10 @@ class Migration(migrations.Migration):
                     "scrap_qty",
                     models.FloatField(
                         default=1.0,
-                        help_text="Cantidad a desechar (Odoo scrap_qty, computado y almacenado).",
+                        help_text=(
+                            "Cantidad a desechar (Odoo scrap_qty, computado y"
+                            " almacenado)."
+                        ),
                     ),
                 ),
                 (
@@ -74,7 +80,10 @@ class Migration(migrations.Migration):
                     "should_replenish",
                     models.BooleanField(
                         default=False,
-                        help_text="Dispara abastecimiento por lo desechado (Odoo should_replenish).",
+                        help_text=(
+                            "Dispara abastecimiento por lo desechado (Odoo"
+                            " should_replenish)."
+                        ),
                     ),
                 ),
                 (
@@ -89,7 +98,10 @@ class Migration(migrations.Migration):
                 (
                     "location",
                     models.ForeignKey(
-                        help_text="Ubicación origen, interna (Odoo location_id, computado y almacenado).",
+                        help_text=(
+                            "Ubicación origen, interna (Odoo location_id,"
+                            " computado y almacenado)."
+                        ),
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="scraps_out",
                         to="stock.stocklocation",
@@ -142,7 +154,9 @@ class Migration(migrations.Migration):
                 (
                     "product",
                     models.ForeignKey(
-                        help_text="Producto a desechar (Odoo product_id, requerido).",
+                        help_text=(
+                            "Producto a desechar (Odoo product_id, requerido)."
+                        ),
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="scraps",
                         to="product.productproduct",
@@ -151,7 +165,10 @@ class Migration(migrations.Migration):
                 (
                     "product_uom",
                     models.ForeignKey(
-                        help_text="Unidad (Odoo product_uom_id, computado y almacenado).",
+                        help_text=(
+                            "Unidad (Odoo product_uom_id, computado y"
+                            " almacenado)."
+                        ),
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="scraps",
                         to="uom.uom",
@@ -160,7 +177,10 @@ class Migration(migrations.Migration):
                 (
                     "scrap_location",
                     models.ForeignKey(
-                        help_text="Ubicación de desecho, de tipo inventory (Odoo scrap_location_id, computado y almacenado).",
+                        help_text=(
+                            "Ubicación de desecho, de tipo inventory (Odoo"
+                            " scrap_location_id, computado y almacenado)."
+                        ),
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="scraps_in",
                         to="stock.stocklocation",
@@ -179,7 +199,11 @@ class Migration(migrations.Migration):
             name="scrap",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Desecho que originó el movimiento (Odoo scrap_id). Es el inverso que ``stock.scrap.move_ids`` declara (odoo19c: stock/models/stock_scrap.py:37).",
+                help_text=(
+                    "Desecho que originó el movimiento (Odoo scrap_id). Es el"
+                    " inverso que ``stock.scrap.move_ids`` declara (odoo19c:"
+                    " stock/models/stock_scrap.py:37)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="move_ids",
@@ -203,14 +227,18 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre del motivo (Odoo name, requerido y traducible).",
+                        help_text=(
+                            "Nombre del motivo (Odoo name, requerido y"
+                            " traducible)."
+                        ),
                         max_length=64,
                     ),
                 ),
                 (
                     "sequence",
                     models.IntegerField(
-                        default=10, help_text="Orden de presentación (Odoo sequence)."
+                        default=10,
+                        help_text="Orden de presentación (Odoo sequence).",
                     ),
                 ),
                 (

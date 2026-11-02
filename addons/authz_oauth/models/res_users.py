@@ -27,6 +27,7 @@ Métodos de la referencia → aquí:
   2026-08-27: los cuatro se habían portado sin él, y quitarlo no renombra —
   promueve el símbolo a API pública (H-API-581).
 """
+
 import json
 import logging
 
@@ -54,19 +55,26 @@ class OauthAccount(TimeStampedModel):
     """La liga usuario ↔ proveedor. ≙ los campos de ``res_users.py:22-30``."""
 
     user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-        related_name='oauth_account', verbose_name='Usuario',
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='oauth_account',
+        verbose_name='Usuario',
     )
     provider = fields.Many2one(
-        'authz_oauth.OauthProvider', on_delete=models.CASCADE,
-        related_name='accounts', verbose_name='Proveedor OAuth',
+        'authz_oauth.OauthProvider',
+        on_delete=models.CASCADE,
+        related_name='accounts',
+        verbose_name='Proveedor OAuth',
     )
     oauth_uid = fields.Char(
-        max_length=255, verbose_name='OAuth User ID',
+        max_length=255,
+        verbose_name='OAuth User ID',
         help_text='user_id del proveedor OAuth.',
     )
     oauth_access_token = fields.Char(
-        max_length=2048, blank=True, default='',
+        max_length=2048,
+        blank=True,
+        default='',
         verbose_name='Access token OAuth',
         help_text='NO se expone por la API (NO_ACCESS en la referencia).',
     )
@@ -108,17 +116,21 @@ def _auth_oauth_rpc(endpoint, access_token):
     """≙ ``_auth_oauth_rpc`` (res_users.py:47-60)."""
     if SystemParameter.get_param(PARAM_AUTHORIZATION_HEADER, ''):
         response = requests.get(
-            endpoint, headers={'Authorization': 'Bearer %s' % access_token},
-            timeout=10)
+            endpoint,
+            headers={'Authorization': 'Bearer %s' % access_token},
+            timeout=10,
+        )
     else:
         response = requests.get(
-            endpoint, params={'access_token': access_token}, timeout=10)
+            endpoint, params={'access_token': access_token}, timeout=10
+        )
 
     if response.ok:  # nb: could be a successful failure
         return response.json()
 
     auth_challenge = _parse_bearer_challenge(
-        response.headers.get('WWW-Authenticate'))
+        response.headers.get('WWW-Authenticate')
+    )
     if auth_challenge and 'error' in auth_challenge:
         return auth_challenge
 
@@ -130,7 +142,8 @@ def _auth_oauth_validate(provider_id, access_token):
     validación del token, con la clave de sujeto unificada en ``user_id``."""
     oauth_provider = OauthProvider.objects.get(pk=provider_id)
     validation = _auth_oauth_rpc(
-        oauth_provider.validation_endpoint, access_token)
+        oauth_provider.validation_endpoint, access_token
+    )
     if validation.get('error'):
         raise UserError(validation['error'])
     if oauth_provider.data_endpoint:
@@ -138,10 +151,13 @@ def _auth_oauth_validate(provider_id, access_token):
         validation.update(data)
     # unify subject key — mismo orden que la referencia: sub (estándar), id
     # (google v1 / facebook opengraph), user_id (google tokeninfo).
-    subject = next(filter(None, [
-        validation.pop(key, None)
-        for key in ['sub', 'id', 'user_id']
-    ]), None)
+    subject = next(
+        filter(
+            None,
+            [validation.pop(key, None) for key in ['sub', 'id', 'user_id']],
+        ),
+        None,
+    )
     if not subject:
         raise AccessDenied('Missing subject identity')
     validation['user_id'] = subject
@@ -152,7 +168,8 @@ def _generate_signup_values(provider_id, validation, params):
     """≙ ``_generate_signup_values`` (res_users.py:89-102)."""
     oauth_uid = validation['user_id']
     email = validation.get(
-        'email', 'provider_%s_user_%s' % (provider_id, oauth_uid))
+        'email', 'provider_%s_user_%s' % (provider_id, oauth_uid)
+    )
     name = validation.get('name', email)
     return {
         'name': name,
@@ -175,8 +192,7 @@ def _auth_oauth_signin(provider_id, validation, params):
     """
     oauth_uid = str(validation['user_id'])
     account = (
-        OauthAccount.objects
-        .select_related('user')
+        OauthAccount.objects.select_related('user')
         .filter(oauth_uid=oauth_uid, provider_id=provider_id)
         .first()
     )
@@ -186,19 +202,21 @@ def _auth_oauth_signin(provider_id, validation, params):
         return account.user.login
 
     if params.get('no_user_creation') or not signup_open():
-        raise AccessDenied(
-            'OAuth signin failed and signup is not allowed')
+        raise AccessDenied('OAuth signin failed and signup is not allowed')
 
     values = _generate_signup_values(provider_id, validation, params)
     ResUsers = django_apps.get_model('base', 'ResUsers')
     user = ResUsers.objects.create_user(
-        login=values['login'], name=values['name'],
+        login=values['login'],
+        name=values['name'],
     )
     # La credencial vive en el proveedor: sin password local usable.
     user.set_unusable_password()
     user.save(update_fields=['password'])
     OauthAccount.objects.create(
-        user=user, provider_id=provider_id, oauth_uid=oauth_uid,
+        user=user,
+        provider_id=provider_id,
+        oauth_uid=oauth_uid,
         oauth_access_token=values['oauth_access_token'],
     )
     return user.login

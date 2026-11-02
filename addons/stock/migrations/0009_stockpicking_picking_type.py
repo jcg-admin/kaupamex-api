@@ -16,7 +16,10 @@ class Migration(migrations.Migration):
             name="picking_type",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Tipo de operación que gobierna el albarán (Odoo picking_type_id).",
+                help_text=(
+                    "Tipo de operación que gobierna el albarán (Odoo"
+                    " picking_type_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="pickings",

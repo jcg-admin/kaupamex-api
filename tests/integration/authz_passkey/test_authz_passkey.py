@@ -7,6 +7,7 @@ otro dominio. Aquí la capa criptográfica (``_verify_auth`` /
 sus tests hermanos, y se cubre el contrato: challenge en sesión, alta y
 login, passkey desconocida, aislamiento por dueño y campos no expuestos.
 """
+
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -46,9 +47,13 @@ def _elevar(client, user):
     keys = {'', client.session.session_key or ''}
     for key in keys:
         ReauthSession.objects.update_or_create(
-            user_id=user.pk, session_key=key,
-            defaults={'started_at': timezone.now(),
-                      'expires_at': timezone.now() + timedelta(seconds=900)})
+            user_id=user.pk,
+            session_key=key,
+            defaults={
+                'started_at': timezone.now(),
+                'expires_at': timezone.now() + timedelta(seconds=900),
+            },
+        )
 
 
 class TestPasskeyLogin:
@@ -57,26 +62,40 @@ class TestPasskeyLogin:
         resp = api_client.post(OPTIONS_URL)
         assert resp.status_code == 200
         assert 'challenge' in resp.data
-        assert api_client.session.get('webauthn_challenge') == \
-            resp.data['challenge']
+        assert (
+            api_client.session.get('webauthn_challenge')
+            == resp.data['challenge']
+        )
 
     def test_signin_con_passkey_conocida(self, api_client, user):
         PasskeyKey.objects.create(
-            user=user, name='llave', credential_identifier='cred-1',
-            public_key='pk', sign_count=3)
+            user=user,
+            name='llave',
+            credential_identifier='cred-1',
+            public_key='pk',
+            sign_count=3,
+        )
         with patch.object(PasskeyKey, '_verify_auth', return_value=4):
-            resp = api_client.post(SIGNIN_URL, {
-                'webauthn_response': {'id': 'cred-1'},
-            }, format='json')
+            resp = api_client.post(
+                SIGNIN_URL,
+                {
+                    'webauthn_response': {'id': 'cred-1'},
+                },
+                format='json',
+            )
         assert resp.status_code == 200, resp.data
         assert resp.data['login'] == user.login
         key = PasskeyKey.objects.get(credential_identifier='cred-1')
         assert key.sign_count == 4  # el contador avanza (≙ referencia)
 
     def test_passkey_desconocida_403(self, api_client, db):
-        resp = api_client.post(SIGNIN_URL, {
-            'webauthn_response': {'id': 'no-existe'},
-        }, format='json')
+        resp = api_client.post(
+            SIGNIN_URL,
+            {
+                'webauthn_response': {'id': 'no-existe'},
+            },
+            format='json',
+        )
         assert resp.status_code == 403
         assert resp.data['codigo_error'] == 'PASSKEY_ACCESS_DENIED'
 
@@ -91,14 +110,21 @@ class TestPasskeyManagement:
         _elevar(api_client, user)  # cubre la sesión ya materializada
 
         with patch.object(
-            PasskeyKey, '_verify_registration_options',
-            return_value={'credential_id': b'cred-bytes',
-                          'credential_public_key': b'pk-bytes'},
+            PasskeyKey,
+            '_verify_registration_options',
+            return_value={
+                'credential_id': b'cred-bytes',
+                'credential_public_key': b'pk-bytes',
+            },
         ):
-            resp = api_client.post(REGISTER_URL, {
-                'name': 'Mi laptop',
-                'registration': {'id': 'x'},
-            }, format='json')
+            resp = api_client.post(
+                REGISTER_URL,
+                {
+                    'name': 'Mi laptop',
+                    'registration': {'id': 'x'},
+                },
+                format='json',
+            )
         assert resp.status_code == 201, resp.data
         assert resp.data['name'] == 'Mi laptop'
         # Los campos group_system NO salen por la API.
@@ -109,15 +135,20 @@ class TestPasskeyManagement:
     def test_lista_y_borrado_solo_propios(self, api_client, user, db):
         otro = User.objects.create_user(login='otro-pk@kaupamex.mx')
         ajena = PasskeyKey.objects.create(
-            user=otro, name='ajena', credential_identifier='cred-ajena')
+            user=otro, name='ajena', credential_identifier='cred-ajena'
+        )
         propia = PasskeyKey.objects.create(
-            user=user, name='propia', credential_identifier='cred-propia')
+            user=user, name='propia', credential_identifier='cred-propia'
+        )
 
         _elevar(api_client, user)
         resp = api_client.get(KEYS_URL)
         assert resp.status_code == 200
-        payload = resp.data['results'] if isinstance(
-            resp.data, dict) and 'results' in resp.data else resp.data
+        payload = (
+            resp.data['results']
+            if isinstance(resp.data, dict) and 'results' in resp.data
+            else resp.data
+        )
         assert [k['name'] for k in payload] == ['propia']
 
         resp = api_client.delete(f'{KEYS_URL}{ajena.id}/')

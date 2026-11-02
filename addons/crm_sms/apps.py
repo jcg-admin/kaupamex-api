@@ -4,6 +4,7 @@ Sin modelos ni extensiones: la referencia tampoco aporta código Python de
 modelos (ver ``__init__.py``). El config existe para que el addon figure en
 el grafo de manifiestos como el puente ``crm`` + ``sms`` que es.
 """
+
 from django.apps import AppConfig
 
 

@@ -39,6 +39,7 @@ clase, 11 campos, 2 métodos**. Cobertura de este porte:
 Nota colateral medida en la fuente: su ``import re`` (``:3``) no se usa en
 ninguna de sus 60 líneas — aquí ``re`` sí se usa (guard del nombre de tema).
 """
+
 import re
 from pathlib import Path
 
@@ -70,73 +71,119 @@ class WebsiteConfiguratorFeature(TimeStampedModel):
     """
 
     # Atributos de clase de modelo — los tres que la referencia declara
-    # (``odoo19c: addons/website/models/website_configurator_feature.py:10-13``),
+    # (``odoo19c:
+    # addons/website/models/website_configurator_feature.py:10-13``),
     # verbatim.
     _name = 'website.configurator.feature'
     _description = 'Website Configurator Feature'
     _order = 'sequence'
 
     sequence = models.IntegerField(
-        default=0, verbose_name='Secuencia',
-        help_text='Odoo sequence (Integer sin default explícito: la '
-                  'referencia lee 0 cuando no está fijado).',
+        default=0,
+        verbose_name='Secuencia',
+        help_text=(
+            'Odoo sequence (Integer sin default explícito: la '
+            'referencia lee 0 cuando no está fijado).'
+        ),
     )
     name = models.CharField(
-        max_length=255, blank=True, default='', verbose_name='Nombre',
-        help_text='Odoo name (translate=True; la traducción por campo llega '
-                  'con #333).',
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='Nombre',
+        help_text=(
+            'Odoo name (translate=True; la traducción por campo llega '
+            'con #333).'
+        ),
     )
     description = models.CharField(
-        max_length=255, blank=True, default='', verbose_name='Descripción',
-        help_text='Odoo description (translate=True; la traducción por campo '
-                  'llega con #333).',
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='Descripción',
+        help_text=(
+            'Odoo description (translate=True; la traducción por campo '
+            'llega con #333).'
+        ),
     )
     icon = models.CharField(
-        max_length=255, blank=True, default='', verbose_name='Icono',
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='Icono',
         help_text='Odoo icon.',
     )
     iap_page_code = models.CharField(
-        max_length=255, blank=True, default='',
+        max_length=255,
+        blank=True,
+        default='',
         verbose_name='Código de página IAP',
-        help_text='Odoo iap_page_code: "Page code used to tell IAP '
-                  'website_service for which page a snippet list should be '
-                  'generated".',
+        help_text=(
+            'Odoo iap_page_code: "Page code used to tell IAP '
+            'website_service for which page a snippet list should be '
+            'generated".'
+        ),
     )
     website_config_preselection = models.CharField(
-        max_length=255, blank=True, default='',
+        max_length=255,
+        blank=True,
+        default='',
         verbose_name='Preselección por tipo de sitio',
-        help_text='Odoo website_config_preselection: "Comma-separated list '
-                  'of website type/purpose for which this feature should be '
-                  'pre-selected".',
+        help_text=(
+            'Odoo website_config_preselection: "Comma-separated list '
+            'of website type/purpose for which this feature should be '
+            'pre-selected".'
+        ),
     )
     page_view = models.ForeignKey(
-        'base.IrUiView', on_delete=models.CASCADE, null=True, blank=True,
-        related_name='configurator_features', verbose_name='Vista de página',
-        help_text='Odoo page_view_id (ondelete=cascade). La vista plantilla '
-                  'de la página que la feature crea.',
+        'base.IrUiView',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='configurator_features',
+        verbose_name='Vista de página',
+        help_text=(
+            'Odoo page_view_id (ondelete=cascade). La vista plantilla '
+            'de la página que la feature crea.'
+        ),
     )
     module = models.ForeignKey(
-        'authz.Module', on_delete=models.CASCADE, null=True, blank=True,
-        related_name='configurator_features', verbose_name='Módulo',
-        help_text='Odoo module_id (ondelete=cascade, Many2one a '
-                  'ir.module.module — aquí authz.Module, el mismo mapeo que '
-                  'theme_id en website.py). El módulo que la feature '
-                  'instala/activa.',
+        'authz.Module',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='configurator_features',
+        verbose_name='Módulo',
+        help_text=(
+            'Odoo module_id (ondelete=cascade, Many2one a '
+            'ir.module.module — aquí authz.Module, el mismo mapeo que '
+            'theme_id en website.py). El módulo que la feature '
+            'instala/activa.'
+        ),
     )
     feature_url = models.CharField(
-        max_length=255, blank=True, default='', verbose_name='URL',
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='URL',
         help_text='Odoo feature_url.',
     )
     menu_sequence = models.IntegerField(
-        default=0, verbose_name='Secuencia de menú',
-        help_text='Odoo menu_sequence: "If set, a website menu will be '
-                  'created for the feature." Cero = no fijado, la misma '
-                  'semántica de truthiness de la referencia.',
+        default=0,
+        verbose_name='Secuencia de menú',
+        help_text=(
+            'Odoo menu_sequence: "If set, a website menu will be '
+            'created for the feature." Cero = no fijado, la misma '
+            'semántica de truthiness de la referencia.'
+        ),
     )
     menu_company = models.BooleanField(
-        default=False, verbose_name='Bajo el menú Company',
-        help_text='Odoo menu_company: "If set, add the menu as a second '
-                  'level menu, as a child of \'Company\' menu."',
+        default=False,
+        verbose_name='Bajo el menú Company',
+        help_text=(
+            'Odoo menu_company: "If set, add the menu as a second '
+            'level menu, as a child of \'Company\' menu."'
+        ),
     )
 
     class Meta:
@@ -160,9 +207,12 @@ class WebsiteConfiguratorFeature(TimeStampedModel):
         carácter por carácter.
         """
         if bool(self.module_id) == bool(self.page_view_id):
-            raise ValidationError(_(
-                "One and only one of the two fields 'page_view_id' and "
-                "'module_id' should be set"))
+            raise ValidationError(
+                _(
+                    "One and only one of the two fields 'page_view_id' and "
+                    "'module_id' should be set"
+                )
+            )
 
     def clean(self):
         """Puerta de la ``@api.constrains`` de la fuente.
@@ -194,7 +244,9 @@ class WebsiteConfiguratorFeature(TimeStampedModel):
             return False
         svg = None
         for root in _ADDON_ROOTS:
-            candidate = root / theme / 'static' / 'description' / f'{theme}.svg'
+            candidate = (
+                root / theme / 'static' / 'description' / f'{theme}.svg'
+            )
             if candidate.is_file():
                 svg = candidate.read_text()
                 break

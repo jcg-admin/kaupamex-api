@@ -5,11 +5,11 @@
     'version': '1.0',
     'category': 'Sales/Sales',
     'summary': (
-
         'Coste y margen por línea de pedido, y su acumulado en la cabecera'
     ),
     # `depends` MEDIDO da ['base', 'sale'] y la referencia declara
-    # ['sale_management']. La divergencia es de HOGAR: allí el margen se estrena
+    # ['sale_management']. La divergencia es de HOGAR: allí el margen se
+    # estrena
     # en la vista de gestión de ventas; aquí el terminal es la línea de pedido,
     # que vive en `sale`.
     'depends': [

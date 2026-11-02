@@ -17,18 +17,25 @@ class Migration(migrations.Migration):
                 blank=True,
                 db_index=True,
                 default="",
-                help_text="Bank Identifier Code / SWIFT (Odoo bic). A veces se le llama BIC o Swift.",
+                help_text=(
+                    "Bank Identifier Code / SWIFT (Odoo bic). A veces se le"
+                    " llama BIC o Swift."
+                ),
             ),
         ),
         migrations.AlterField(
             model_name="resbank",
             name="city",
-            field=models.CharField(blank=True, default="", help_text="Odoo city."),
+            field=models.CharField(
+                blank=True, default="", help_text="Odoo city."
+            ),
         ),
         migrations.AlterField(
             model_name="resbank",
             name="email",
-            field=models.CharField(blank=True, default="", help_text="Odoo email."),
+            field=models.CharField(
+                blank=True, default="", help_text="Odoo email."
+            ),
         ),
         migrations.AlterField(
             model_name="resbank",
@@ -38,31 +45,42 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="resbank",
             name="phone",
-            field=models.CharField(blank=True, default="", help_text="Odoo phone."),
+            field=models.CharField(
+                blank=True, default="", help_text="Odoo phone."
+            ),
         ),
         migrations.AlterField(
             model_name="resbank",
             name="street",
-            field=models.CharField(blank=True, default="", help_text="Odoo street."),
+            field=models.CharField(
+                blank=True, default="", help_text="Odoo street."
+            ),
         ),
         migrations.AlterField(
             model_name="resbank",
             name="street2",
-            field=models.CharField(blank=True, default="", help_text="Odoo street2."),
+            field=models.CharField(
+                blank=True, default="", help_text="Odoo street2."
+            ),
         ),
         migrations.AlterField(
             model_name="resbank",
             name="zip",
-            field=models.CharField(blank=True, default="", help_text="Odoo zip."),
+            field=models.CharField(
+                blank=True, default="", help_text="Odoo zip."
+            ),
         ),
-    
         migrations.AlterField(
             model_name="resbank",
             name="l10n_mx_edi_code",
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Número de tres dígitos que la ABM asigna a las instituciones bancarias (Odoo l10n_mx_edi_code; ABM = Asociación de Bancos de México).",
+                help_text=(
+                    "Número de tres dígitos que la ABM asigna a las"
+                    " instituciones bancarias (Odoo l10n_mx_edi_code; ABM ="
+                    " Asociación de Bancos de México)."
+                ),
             ),
         ),
         migrations.AlterField(
@@ -71,7 +89,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="CLABE — cifra bancaria estandarizada de México (Odoo l10n_mx_edi_clabe).",
+                help_text=(
+                    "CLABE — cifra bancaria estandarizada de México (Odoo"
+                    " l10n_mx_edi_clabe)."
+                ),
             ),
         ),
     ]

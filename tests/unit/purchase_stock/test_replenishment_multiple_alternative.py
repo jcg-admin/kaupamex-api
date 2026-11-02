@@ -18,6 +18,7 @@ mano lo enfrenta a un proveedor más barato que ganaría por precio si el
 código ignorara ``supplier_id`` y llamara a ``_select_seller`` de todas
 formas.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -49,14 +50,25 @@ def company(db):
 @pytest.fixture
 def warehouse(company):
     view = StockLocation.objects.create(
-        name='WH', usage=StockLocation.USAGE_VIEW, company=company,
-        barcode='RMA-VIEW')
+        name='WH',
+        usage=StockLocation.USAGE_VIEW,
+        company=company,
+        barcode='RMA-VIEW',
+    )
     stock = StockLocation.objects.create(
-        name='WH/Stock', usage=StockLocation.USAGE_INTERNAL,
-        location=view, company=company, barcode='RMA-STOCK')
+        name='WH/Stock',
+        usage=StockLocation.USAGE_INTERNAL,
+        location=view,
+        company=company,
+        barcode='RMA-STOCK',
+    )
     return StockWarehouse.objects.create(
-        name='Main', code='WHR', company=company,
-        view_location=view, lot_stock=stock)
+        name='Main',
+        code='WHR',
+        company=company,
+        view_location=view,
+        lot_stock=stock,
+    )
 
 
 def _orderpoint(company, wh, product, **kwargs):
@@ -71,16 +83,18 @@ def _buy_route(dest):
     """Una ruta con una regla ``action='buy'`` — la que hace efectiva la rama
     de compra del método bajo prueba."""
     route = StockRoute.objects.create(name='Comprar')
-    StockRule.objects.create(name='Comprar', action='buy', route=route,
-                             location_dest=dest)
+    StockRule.objects.create(
+        name='Comprar', action='buy', route=route, location_dest=dest
+    )
     return route
 
 
 def _non_buy_route(dest):
     """Una ruta SIN ninguna regla de compra — la rama de relevo."""
     route = StockRoute.objects.create(name='Mover')
-    StockRule.objects.create(name='Mover', action='pull_push', route=route,
-                             location_dest=dest)
+    StockRule.objects.create(
+        name='Mover', action='pull_push', route=route, location_dest=dest
+    )
     return route
 
 
@@ -90,14 +104,18 @@ def _uom(name):
 
 def _tariff(product, partner, uom, **kwargs):
     return ProductSupplierinfo.objects.create(
-        partner=partner, product_tmpl=product.product_tmpl,
-        product_uom=uom, **kwargs)
+        partner=partner,
+        product_tmpl=product.product_tmpl,
+        product_uom=uom,
+        **kwargs,
+    )
 
 
 class TestReplenishmentMultipleAlternative:
 
     def test_relays_to_the_base_class_when_the_route_is_not_a_buy_route(
-            self, company, warehouse):
+        self, company, warehouse
+    ):
         """Sin regla ``action='buy'`` en la ruta efectiva: el método se
         relega en la implementación previa, que siempre devuelve ``False``
         (``addons/stock/models/stock_orderpoint.py``).
@@ -111,25 +129,39 @@ class TestReplenishmentMultipleAlternative:
         ``scripts/evidence/neutering-replenishment-alternative-buy-route-guard-*.txt``.
         """
         product = make_product(name='Sin compra')
-        would_resolve = ResPartner.objects.create(name='Resolvería si no hubiera guarda')
-        _tariff(product, would_resolve, _uom('Caja de resguardo'), min_qty=1,
-               price=Decimal('1.00'))
-        op = _orderpoint(company, warehouse, product,
-                         route=_non_buy_route(warehouse.lot_stock))
+        would_resolve = ResPartner.objects.create(
+            name='Resolvería si no hubiera guarda'
+        )
+        _tariff(
+            product,
+            would_resolve,
+            _uom('Caja de resguardo'),
+            min_qty=1,
+            price=Decimal('1.00'),
+        )
+        op = _orderpoint(
+            company,
+            warehouse,
+            product,
+            route=_non_buy_route(warehouse.lot_stock),
+        )
         assert op._get_replenishment_multiple_alternative(10) is False
 
     def test_returns_false_when_the_route_is_buy_but_nothing_resolves(
-            self, company, warehouse):
+        self, company, warehouse
+    ):
         """Ruta de compra sin ningún proveedor —ni fijado a mano, ni por
         ``_select_seller``—: ``False`` explícito, no un ``None`` que dependa
         de que el relevo coincida por casualidad."""
         product = make_product(name='Sin proveedor')
-        op = _orderpoint(company, warehouse, product,
-                         route=_buy_route(warehouse.lot_stock))
+        op = _orderpoint(
+            company, warehouse, product, route=_buy_route(warehouse.lot_stock)
+        )
         assert op._get_replenishment_multiple_alternative(10) is False
 
     def test_returns_the_selected_seller_uom_on_a_buy_route(
-            self, company, warehouse):
+        self, company, warehouse
+    ):
         """Con ruta de compra y un proveedor que cubre la cantidad pedida:
         la UOM del proveedor elegido — deliberadamente distinta de la UOM
         base del producto, para que devolver ``self.product_uom`` por error
@@ -139,16 +171,19 @@ class TestReplenishmentMultipleAlternative:
         seller_uom = _uom('Caja de 12')
         assert seller_uom.pk != getattr(base_uom, 'pk', None)
         supplier = ResPartner.objects.create(name='Proveedor')
-        tariff = _tariff(product, supplier, seller_uom, min_qty=1,
-                         price=Decimal('5.00'))
-        op = _orderpoint(company, warehouse, product,
-                         route=_buy_route(warehouse.lot_stock))
+        tariff = _tariff(
+            product, supplier, seller_uom, min_qty=1, price=Decimal('5.00')
+        )
+        op = _orderpoint(
+            company, warehouse, product, route=_buy_route(warehouse.lot_stock)
+        )
         result = op._get_replenishment_multiple_alternative(10)
         assert result == seller_uom
         assert result != base_uom
 
     def test_uses_the_manually_fixed_supplier_without_calling_select_seller(
-            self, company, warehouse):
+        self, company, warehouse
+    ):
         """Con ``supplier_id`` fijado a mano: se usa ese proveedor tal cual,
         sin pasar por ``_select_seller`` — enfrentado a un proveedor más
         barato que ganaría si el código lo ignorara."""
@@ -158,13 +193,27 @@ class TestReplenishmentMultipleAlternative:
         assert fixed_uom.pk != cheaper_uom.pk
         fixed_partner = ResPartner.objects.create(name='Fijo')
         cheap_partner = ResPartner.objects.create(name='Barato')
-        fixed_tariff = _tariff(product, fixed_partner, fixed_uom, min_qty=1,
-                               price=Decimal('50.00'))
-        _tariff(product, cheap_partner, cheaper_uom, min_qty=1,
-               price=Decimal('1.00'))
-        op = _orderpoint(company, warehouse, product,
-                         route=_buy_route(warehouse.lot_stock),
-                         supplier=fixed_tariff)
+        fixed_tariff = _tariff(
+            product,
+            fixed_partner,
+            fixed_uom,
+            min_qty=1,
+            price=Decimal('50.00'),
+        )
+        _tariff(
+            product,
+            cheap_partner,
+            cheaper_uom,
+            min_qty=1,
+            price=Decimal('1.00'),
+        )
+        op = _orderpoint(
+            company,
+            warehouse,
+            product,
+            route=_buy_route(warehouse.lot_stock),
+            supplier=fixed_tariff,
+        )
         result = op._get_replenishment_multiple_alternative(10)
         assert result == fixed_uom
         assert result != cheaper_uom

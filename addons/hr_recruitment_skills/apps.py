@@ -6,6 +6,7 @@ extensiones sobre modelos ajenos (``hr.applicant`` y ``hr.job``), aplicadas
 en ``ready()`` cuando el registro de modelos ya está poblado (mismo patrón
 que ``HrFleetConfig``/``HrSkillsConfig``).
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -21,10 +22,12 @@ class HrRecruitmentSkillsConfig(AppConfig):
     #: nombre de cada archivo espeja el de la referencia
     #: (``odoo19c: hr_recruitment_skills/models/*.py``).
     _EXTENSIONES = {
-        'addons.hr_recruitment_skills.models.hr_applicant':
-            'apply_hr_recruitment_skills_hr_applicant_extensions',
-        'addons.hr_recruitment_skills.models.hr_job':
-            'apply_hr_recruitment_skills_hr_job_extensions',
+        'addons.hr_recruitment_skills.models.hr_applicant': (
+            'apply_hr_recruitment_skills_hr_applicant_extensions'
+        ),
+        'addons.hr_recruitment_skills.models.hr_job': (
+            'apply_hr_recruitment_skills_hr_job_extensions'
+        ),
     }
 
     def ready(self):

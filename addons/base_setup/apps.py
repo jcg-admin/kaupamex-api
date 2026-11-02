@@ -6,6 +6,7 @@ con sus campos (``models/res_config_settings.py``), el proveedor de KPI
 (``models/ir_http.py``) y el alta de usuarios por correo
 (``models/res_users.py``).
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -31,7 +32,8 @@ class BaseSetupConfig(AppConfig):
           ``super()`` de la fuente en este árbol.
         """
         importlib.import_module(
-            'addons.base_setup.models.res_users').apply_base_setup_extensions()
+            'addons.base_setup.models.res_users'
+        ).apply_base_setup_extensions()
         session = importlib.import_module('addons.web.controllers.session')
         ir_http = importlib.import_module('addons.base_setup.models.ir_http')
         session.register_session_info_extension(ir_http.IrHttp.session_info)

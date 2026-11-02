@@ -32,6 +32,7 @@ sólo el primero):
 (``config/settings/base.py``, después de ``addons.account``). Sin ese
 registro Django no descubre esta app ni corre su migración inicial.
 """
+
 import importlib
 
 from django.apps import AppConfig

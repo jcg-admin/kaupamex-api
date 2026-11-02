@@ -8,6 +8,7 @@ action_void`` — ``payment.Payment`` no tiene estado ``authorized``).
 Portación de ``odoo19c: account_payment/models/account_move.py``
 (``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``).
 """
+
 from datetime import date
 from decimal import Decimal
 
@@ -35,13 +36,16 @@ def company():
 @pytest.fixture
 def journal(company):
     return AccountJournal.objects.create(
-        name='Ventas', code='VENAM', type='sale', company=company)
+        name='Ventas', code='VENAM', type='sale', company=company
+    )
 
 
 @pytest.fixture
 def move(company, journal):
     return AccountMove.objects.create(
-        journal=journal, company=company, date=date(2026, 1, 1),
+        journal=journal,
+        company=company,
+        date=date(2026, 1, 1),
         move_type='out_invoice',
     )
 
@@ -53,8 +57,10 @@ def sale_order():
 
 def _payment(sale_order, amount, status):
     return Payment.objects.create(
-        sale_order=sale_order, gateway=Payment.GATEWAY_MERCADOPAGO,
-        amount=amount, status=status,
+        sale_order=sale_order,
+        gateway=Payment.GATEWAY_MERCADOPAGO,
+        amount=amount,
+        status=status,
     )
 
 
@@ -67,14 +73,20 @@ class TestTransactionIds:
         AccountMoveTransactionLink.objects.create(move=move, transaction=tx)
         assert list(move.transaction_ids) == [tx]
 
-    def test_two_invoices_can_share_a_transaction(self, move, sale_order, company, journal):
+    def test_two_invoices_can_share_a_transaction(
+        self, move, sale_order, company, journal
+    ):
         other_move = AccountMove.objects.create(
-            journal=journal, company=company, date=date(2026, 1, 2),
+            journal=journal,
+            company=company,
+            date=date(2026, 1, 2),
             move_type='out_invoice',
         )
         tx = _payment(sale_order, Decimal('300.00'), Payment.STATUS_APPROVED)
         AccountMoveTransactionLink.objects.create(move=move, transaction=tx)
-        AccountMoveTransactionLink.objects.create(move=other_move, transaction=tx)
+        AccountMoveTransactionLink.objects.create(
+            move=other_move, transaction=tx
+        )
         assert list(move.transaction_ids) == [tx]
         assert list(other_move.transaction_ids) == [tx]
 
@@ -96,11 +108,17 @@ class TestAmountPaid:
         assert move.amount_paid == Decimal('0.00')
 
     def test_sums_only_approved(self, move, sale_order):
-        approved = _payment(sale_order, Decimal('75.50'), Payment.STATUS_APPROVED)
+        approved = _payment(
+            sale_order, Decimal('75.50'), Payment.STATUS_APPROVED
+        )
         failed = _payment(sale_order, Decimal('999.00'), Payment.STATUS_FAILED)
-        pending = _payment(sale_order, Decimal('50.00'), Payment.STATUS_PENDING)
+        pending = _payment(
+            sale_order, Decimal('50.00'), Payment.STATUS_PENDING
+        )
         for tx in (approved, failed, pending):
-            AccountMoveTransactionLink.objects.create(move=move, transaction=tx)
+            AccountMoveTransactionLink.objects.create(
+                move=move, transaction=tx
+            )
         assert move.amount_paid == Decimal('75.50')
 
     def test_sums_multiple_approved(self, move, sale_order):

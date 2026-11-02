@@ -8,6 +8,7 @@ canónico. El comportamiento append-only/soft-delete se cubre en
 ``tests/integration/test_soft_delete_contract.py`` (que ya importan desde el
 nuevo hogar).
 """
+
 import core.models as core_models
 from django.db import models as dj_models
 
@@ -44,8 +45,9 @@ def test_hogar_canonico_es_un_archivo_por_mixin():
         AllObjectsManager: 'addons.base.models.soft_delete_mixin',
     }
     for cls, modulo in hogar.items():
-        assert cls.__module__ == modulo, (
-            f'{cls.__name__} se define en {cls.__module__}, no en {modulo}')
+        assert (
+            cls.__module__ == modulo
+        ), f'{cls.__name__} se define en {cls.__module__}, no en {modulo}'
 
 
 def test_abstractos_ya_no_se_definen_en_core():

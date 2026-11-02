@@ -13,6 +13,7 @@ este entorno (la extensión es *trusted* desde PostgreSQL 13). El despacho de
 sonda ``has_trigram`` no la ve, así que un entorno sin permiso de CREATE
 EXTENSION no rompe — pierde el fuzzy por trigramas, no la búsqueda.
 """
+
 from django.contrib.postgres.operations import TrigramExtension
 from django.db import migrations
 

@@ -7,6 +7,7 @@ columna (``root_plan``, ``color``); ``credit``/``debit``/``balance``
 requieren el reverse manager ``lines`` (query real) y quedan fuera de este
 corte, igual que ``clean()`` (usa ``self.lines.exclude(...)``).
 """
+
 from addons.analytic.models import AccountAnalyticAccount, AccountAnalyticPlan
 from addons.base.models import ResPartner
 
@@ -21,25 +22,32 @@ class TestDisplayName:
     ``models/analytic_account.py``)."""
 
     def test_name_only(self):
-        acct = AccountAnalyticAccount(name='Campaña Q3', plan=_plan(1, 'Marketing'))
+        acct = AccountAnalyticAccount(
+            name='Campaña Q3', plan=_plan(1, 'Marketing')
+        )
         assert str(acct) == 'Campaña Q3'
 
     def test_with_code_prefixes_name(self):
         acct = AccountAnalyticAccount(
-            name='Campaña Q3', code='CMP-Q3', plan=_plan(1, 'Marketing'),
+            name='Campaña Q3',
+            code='CMP-Q3',
+            plan=_plan(1, 'Marketing'),
         )
         assert str(acct) == '[CMP-Q3] Campaña Q3'
 
     def test_with_partner_appends_partner_name(self):
         acct = AccountAnalyticAccount(
-            name='Campaña Q3', plan=_plan(1, 'Marketing'),
+            name='Campaña Q3',
+            plan=_plan(1, 'Marketing'),
             partner=ResPartner(pk=1, name='Acme Corp'),
         )
         assert str(acct) == 'Campaña Q3 - Acme Corp'
 
     def test_with_code_and_partner(self):
         acct = AccountAnalyticAccount(
-            name='Campaña Q3', code='CMP-Q3', plan=_plan(1, 'Marketing'),
+            name='Campaña Q3',
+            code='CMP-Q3',
+            plan=_plan(1, 'Marketing'),
             partner=ResPartner(pk=1, name='Acme Corp'),
         )
         assert str(acct) == '[CMP-Q3] Campaña Q3 - Acme Corp'

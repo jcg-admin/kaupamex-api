@@ -11,6 +11,7 @@ produzca la guarda y no la ausencia del objeto. La evidencia de esa medición
 —con la guarda anulada a mano— vive en
 ``scripts/evidence/neutering-html-editor-collaboration-channel-*.txt``.
 """
+
 import re
 
 import pytest
@@ -41,8 +42,9 @@ def _collaboration_channels(channels):
     va aquí, en un solo sitio, para que los tres casos midan lo mismo.
     """
     prefijo = DEFAULT_DB_ALIAS + ':'
-    return [c for c in channels
-            if isinstance(c, str) and c.startswith(prefijo)]
+    return [
+        c for c in channels if isinstance(c, str) and c.startswith(prefijo)
+    ]
 
 
 @pytest.fixture
@@ -53,21 +55,27 @@ def record(db):
 
 @pytest.fixture
 def actor(db):
-    return ResUsers.objects.create_user(login='html-editor-probe@kaupamex.test')
+    return ResUsers.objects.create_user(
+        login='html-editor-probe@kaupamex.test'
+    )
 
 
 class TestTheChannelIsComposedInOnePlace:
     def test_the_string_carries_the_five_parts_of_the_source_tuple(self):
         channel = editor_collaboration_channel('res.partner', 'comment', 42)
         assert channel == '%s:%s:res.partner:comment:42' % (
-            DEFAULT_DB_ALIAS, EDITOR_COLLABORATION)
+            DEFAULT_DB_ALIAS,
+            EDITOR_COLLABORATION,
+        )
 
     def test_the_res_id_is_normalised_to_an_integer(self):
         assert editor_collaboration_channel('a.b', 'c', '42').endswith(':42')
 
     def test_the_pattern_is_the_one_of_the_source(self):
-        match = re.match(EDITOR_COLLABORATION_CHANNEL_REGEX,
-                         'editor_collaboration:res.partner.bank:comment:9')
+        match = re.match(
+            EDITOR_COLLABORATION_CHANNEL_REGEX,
+            'editor_collaboration:res.partner.bank:comment:9',
+        )
         assert match is not None
         assert match[1] == 'res.partner.bank'
         assert match[2] == 'comment'
@@ -79,11 +87,14 @@ class TestTheGuardOnlyAddsWhatTheActorCanReadAndWrite:
 
     def _channels(self, asked, user=None):
         return bus_ws.build_bus_channel_list(
-            list(asked), user=user, authenticated=user is not None)
+            list(asked), user=user, authenticated=user is not None
+        )
 
     def test_without_an_actor_no_collaboration_channel_is_added(self, record):
-        asked = ['editor_collaboration:html_editor.converter.test:html:%d'
-                 % record.pk]
+        asked = [
+            'editor_collaboration:html_editor.converter.test:html:%d'
+            % record.pk
+        ]
         out = self._channels(asked)
         assert not _collaboration_channels(out)
 
@@ -91,7 +102,8 @@ class TestTheGuardOnlyAddsWhatTheActorCanReadAndWrite:
         with user_scope(actor.pk):
             out = self._channels(
                 ['editor_collaboration:no.existe.este.modelo:html:1'],
-                user=actor)
+                user=actor,
+            )
         assert not _collaboration_channels(out)
 
     def test_an_existing_model_with_a_missing_row_is_discarded(self, actor):
@@ -99,11 +111,13 @@ class TestTheGuardOnlyAddsWhatTheActorCanReadAndWrite:
         with user_scope(actor.pk):
             out = self._channels(
                 ['editor_collaboration:html_editor.converter.test:html:999999'],
-                user=actor)
+                user=actor,
+            )
         assert not _collaboration_channels(out)
 
-    def test_a_channel_that_is_not_a_collaboration_one_passes_through(self,
-                                                                      actor):
+    def test_a_channel_that_is_not_a_collaboration_one_passes_through(
+        self, actor
+    ):
         with user_scope(actor.pk):
             out = self._channels(['un_canal_cualquiera'], user=actor)
         assert 'un_canal_cualquiera' in out
@@ -129,19 +143,26 @@ class TestTheGuardIsWhatDecides:
     ausencia del canal y no sobre la ausencia del registro.
     """
 
-    def test_an_actor_without_access_does_not_get_the_channel(self, actor,
-                                                              record):
+    def test_an_actor_without_access_does_not_get_the_channel(
+        self, actor, record
+    ):
         channel = editor_collaboration_channel(
-            'html_editor.converter.test', 'html', record.pk)
+            'html_editor.converter.test', 'html', record.pk
+        )
         with user_scope(actor.pk):
             out = bus_ws.build_bus_channel_list(
-                ['editor_collaboration:html_editor.converter.test:html:%d'
-                 % record.pk],
-                user=actor, authenticated=True)
+                [
+                    'editor_collaboration:html_editor.converter.test:html:%d'
+                    % record.pk
+                ],
+                user=actor,
+                authenticated=True,
+            )
         assert channel not in out, (
             'la guarda de acceso no rechazó el canal: si este caso pasa a '
             'fallar, es que el confinamiento de `_build_bus_channel_list` '
-            'dejó de decidir')
+            'dejó de decidir'
+        )
 
 
 class TestTheSymbolLivesWhereTheSourcePutsIt:
@@ -167,8 +188,9 @@ class TestTheSymbolLivesWhereTheSourcePutsIt:
             seen.append(list(channels))
             return previous(channels, *args, **kwargs)
 
-        monkeypatch.setattr(IrWebsocket, '_build_bus_channel_list',
-                            classmethod(_spy))
+        monkeypatch.setattr(
+            IrWebsocket, '_build_bus_channel_list', classmethod(_spy)
+        )
         with user_scope(actor.pk):
             bus_ws.build_bus_channel_list(['un_canal'], user=actor)
         assert seen == [['un_canal']]

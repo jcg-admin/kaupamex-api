@@ -17,6 +17,7 @@ El caso del error parcial es el que discrimina la decisión más cara de la
 fuente: si **algo** falla, se deshace **todo**. Sin el punto de retorno, la
 primera fila buena quedaría escrita.
 """
+
 import pytest
 
 from addons.base.models.ir_model import IrModelData
@@ -33,39 +34,52 @@ class TestTheHappyPath:
     """La matriz entra y las filas quedan."""
 
     def test_two_rows_become_two_records(self):
-        result = IrModuleCategory.load(['name', 'description'],
-                                        [['Contabilidad', 'a'], ['Ventas', 'b']])
+        result = IrModuleCategory.load(
+            ['name', 'description'], [['Contabilidad', 'a'], ['Ventas', 'b']]
+        )
 
         assert result['messages'] == []
         assert len(result['ids']) == 2
-        assert IrModuleCategory.objects.filter(name__in=('Contabilidad', 'Ventas')).count() == 2
+        assert (
+            IrModuleCategory.objects.filter(
+                name__in=('Contabilidad', 'Ventas')
+            ).count()
+            == 2
+        )
 
     def test_the_external_id_is_assigned(self):
-        result = IrModuleCategory.load(['id', 'name'],
-                                        [['cat_zy', 'Contabilidad']])
+        result = IrModuleCategory.load(
+            ['id', 'name'], [['cat_zy', 'Contabilidad']]
+        )
 
         assert result['messages'] == []
         assert IrModelData.objects.filter(
-            module='__import__', name='cat_zy').exists()
+            module='__import__', name='cat_zy'
+        ).exists()
 
     def test_the_module_of_the_context_prefixes_the_external_id(self):
         with context_scope(module='l10n_zy'):
-            IrModuleCategory.load(['id', 'name'],
-                                   [['cat_zy', 'Contabilidad']])
+            IrModuleCategory.load(['id', 'name'], [['cat_zy', 'Contabilidad']])
 
         assert IrModelData.objects.filter(
-            module='l10n_zy', name='cat_zy').exists()
+            module='l10n_zy', name='cat_zy'
+        ).exists()
 
     def test_a_second_load_of_the_same_external_id_updates(self):
         IrModuleCategory.load(['id', 'name'], [['cat_zy', 'Contabilidad']])
 
         with context_scope(mode='update'):
-            IrModuleCategory.load(['id', 'name'],
-                                  [['cat_zy', 'Contabilidad Nueva']])
+            IrModuleCategory.load(
+                ['id', 'name'], [['cat_zy', 'Contabilidad Nueva']]
+            )
 
-        assert IrModuleCategory.objects.filter(
-            name='Contabilidad Nueva').count() == 1
-        assert IrModuleCategory.objects.filter(name='Contabilidad').count() == 0
+        assert (
+            IrModuleCategory.objects.filter(name='Contabilidad Nueva').count()
+            == 1
+        )
+        assert (
+            IrModuleCategory.objects.filter(name='Contabilidad').count() == 0
+        )
 
 
 @pytest.mark.django_db
@@ -82,7 +96,8 @@ class TestTheFailurePath:
 
         result = IrModuleCategory.load(
             ['name', 'sequence'],
-            [['Contabilidad', '1'], ['Ventas', 'no-soy-un-entero']])
+            [['Contabilidad', '1'], ['Ventas', 'no-soy-un-entero']],
+        )
 
         assert result['ids'] is False
         assert any(m['type'] == 'error' for m in result['messages'])
@@ -91,7 +106,8 @@ class TestTheFailurePath:
     def test_the_message_names_the_row_that_failed(self):
         result = IrModuleCategory.load(
             ['name', 'sequence'],
-            [['Contabilidad', '1'], ['Ventas', 'no-soy-un-entero']])
+            [['Contabilidad', '1'], ['Ventas', 'no-soy-un-entero']],
+        )
 
         errores = [m for m in result['messages'] if m['type'] == 'error']
         assert errores and errores[0]['rows']['from'] == 1
@@ -105,14 +121,17 @@ class TestTheReferencingColumns:
         category = IrModuleCategory.objects.create(name='Contabilidad')
 
         result = IrModuleCategory.load(
-            ['.id', 'name'], [[str(category.pk), 'Contabilidad Nueva']])
+            ['.id', 'name'], [[str(category.pk), 'Contabilidad Nueva']]
+        )
 
         assert result['messages'] == []
         category.refresh_from_db()
         assert category.name == 'Contabilidad Nueva'
 
     def test_an_unknown_database_id_is_reported(self):
-        result = IrModuleCategory.load(['.id', 'name'], [['99999999', 'Fantasma']])
+        result = IrModuleCategory.load(
+            ['.id', 'name'], [['99999999', 'Fantasma']]
+        )
 
         assert any(m['field'] == '.id' for m in result['messages'])
 
@@ -129,7 +148,8 @@ class TestTheResultShape:
     def test_the_limit_stops_and_reports_where(self):
         with context_scope(_import_limit=1):
             result = IrModuleCategory.load(
-                ['name'], [['Contabilidad'], ['Ventas']])
+                ['name'], [['Contabilidad'], ['Ventas']]
+            )
 
         assert result['nextrow'] == 1
         assert IrModuleCategory.objects.filter(name='Ventas').count() == 0

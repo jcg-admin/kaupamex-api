@@ -6,6 +6,7 @@ Import ANTES de ``hr_payroll_structure_type``: ``hr_version.py`` lo importa a
 nivel de módulo (no ``string`` lazy) para el helper
 ``_default_salary_structure_for_company``.
 """
+
 from .hr_payroll_structure_type import HrPayrollStructureType
 from .hr_contract_type import HrContractType
 from .hr_department import HrDepartment
@@ -19,7 +20,15 @@ from .hr_mixin import HrMixin
 from .hr_work_location import HrWorkLocation
 
 __all__ = [
-    'HrContractType', 'HrDepartment', 'HrDepartureReason',
-    'HrEmployee', 'HrEmployeeCategory', 'HrEmployeePublic', 'HrJob', 'HrMixin',
-    'HrPayrollStructureType', 'HrVersion', 'HrWorkLocation',
+    'HrContractType',
+    'HrDepartment',
+    'HrDepartureReason',
+    'HrEmployee',
+    'HrEmployeeCategory',
+    'HrEmployeePublic',
+    'HrJob',
+    'HrMixin',
+    'HrPayrollStructureType',
+    'HrVersion',
+    'HrWorkLocation',
 ]

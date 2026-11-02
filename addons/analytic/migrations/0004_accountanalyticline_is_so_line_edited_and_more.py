@@ -27,7 +27,11 @@ class Migration(migrations.Migration):
             name="order",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo order_id (related=so_line.order_id, store, index). Escribible directo: so_line no existe en este árbol — ver el bloqueo raíz del docstring del módulo.",
+                help_text=(
+                    "Odoo order_id (related=so_line.order_id, store, index)."
+                    " Escribible directo: so_line no existe en este árbol —"
+                    " ver el bloqueo raíz del docstring del módulo."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="timesheet_ids",
@@ -40,7 +44,12 @@ class Migration(migrations.Migration):
             name="timesheet_invoice",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo timesheet_invoice_id (readonly, copy=False, index=btree_not_null). Factura creada a partir de la hoja de horas. El related_name es el timesheet_ids de account.move (odoo19c: account_move.py:185).",
+                help_text=(
+                    "Odoo timesheet_invoice_id (readonly, copy=False,"
+                    " index=btree_not_null). Factura creada a partir de la"
+                    " hoja de horas. El related_name es el timesheet_ids de"
+                    " account.move (odoo19c: account_move.py:185)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="timesheet_ids",
@@ -65,7 +74,11 @@ class Migration(migrations.Migration):
                     ("other_costs", "Other costs"),
                 ],
                 default=None,
-                help_text="Odoo timesheet_invoice_type (compute, store, readonly). Derivación parcial declarada — ver timesheet_invoice_type_for.",
+                help_text=(
+                    "Odoo timesheet_invoice_type (compute, store, readonly)."
+                    " Derivación parcial declarada — ver"
+                    " timesheet_invoice_type_for."
+                ),
                 max_length=20,
                 null=True,
                 verbose_name="Tipo de facturación",

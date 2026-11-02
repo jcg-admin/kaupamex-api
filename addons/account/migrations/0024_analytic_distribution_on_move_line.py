@@ -33,7 +33,9 @@ class Migration(migrations.Migration):
             field=models.JSONField(
                 blank=True,
                 default=dict,
-                help_text='Odoo analytic_distribution: {"id1,id2,...": porcentaje}.',
+                help_text=(
+                    'Odoo analytic_distribution: {"id1,id2,...": porcentaje}.'
+                ),
                 null=True,
                 verbose_name="Distribución analítica",
             ),
@@ -44,7 +46,12 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="product_uom_id",
-                help_text='Odoo product_uom_id ("Unit", account_move_line.py:372). La calcula compute_product_uom_id(), que save() invoca. El domain= de la fuente no tiene analogo declarativo en Django y se acota al elegir filtered_sellers.',
+                help_text=(
+                    'Odoo product_uom_id ("Unit", account_move_line.py:372).'
+                    ' La calcula compute_product_uom_id(), que save() invoca.'
+                    ' El domain= de la fuente no tiene analogo declarativo en'
+                    ' Django y se acota al elegir filtered_sellers.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="move_lines",
@@ -54,7 +61,8 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             sql=AccountMoveLine.analytic_distribution_gin_index_sql(
-                'account_move_line'),
+                'account_move_line'
+            ),
             reverse_sql=(
                 'DROP INDEX IF EXISTS '
                 'account_move_line_analytic_distribution_accounts_gin_index'

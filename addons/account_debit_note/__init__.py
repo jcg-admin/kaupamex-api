@@ -47,6 +47,7 @@ Total: 24 símbolos, 16 portados. Los 8 no portados están documentados en el
 docstring del archivo que los habría alojado, con la medición que sustenta
 la decisión — ninguno se omite en silencio (``porte-completo-no-parcial``).
 """
+
 # Odoo importa aqui ``models``/``wizard``; en Django NO se puede: el
 # ``__init__`` del app corre durante la carga del registro, antes de que
 # ``apps.get_containing_app_config`` este listo, y cualquier modelo

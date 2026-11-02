@@ -15,7 +15,12 @@ class Migration(migrations.Migration):
             name="include_reference",
             field=models.BooleanField(
                 default=False,
-                help_text="Incluye la referencia/comunicación en el código QR (Odoo include_reference). Sin efecto en el puente puro: ``_get_additional_data_field`` sigue devolviendo None hasta que una localización lo sobreescriba.",
+                help_text=(
+                    "Incluye la referencia/comunicación en el código QR (Odoo"
+                    " include_reference). Sin efecto en el puente puro:"
+                    " ``_get_additional_data_field`` sigue devolviendo None"
+                    " hasta que una localización lo sobreescriba."
+                ),
             ),
         ),
         migrations.AddField(
@@ -24,7 +29,11 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 choices=[("none", "Ninguno")],
                 default="none",
-                help_text='Tipo de proxy del método EMV activo (Odoo proxy_type). El único valor del puente es "none" — cada localización agrega los suyos (teléfono, CLABE, RFC…).',
+                help_text=(
+                    'Tipo de proxy del método EMV activo (Odoo proxy_type). El'
+                    ' único valor del puente es "none" — cada localización'
+                    ' agrega los suyos (teléfono, CLABE, RFC…).'
+                ),
                 max_length=32,
             ),
         ),
@@ -34,7 +43,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Valor del proxy (teléfono, CLABE, RFC…) que el método EMV activo usa (Odoo proxy_value).",
+                help_text=(
+                    "Valor del proxy (teléfono, CLABE, RFC…) que el método EMV"
+                    " activo usa (Odoo proxy_value)."
+                ),
                 max_length=255,
             ),
         ),

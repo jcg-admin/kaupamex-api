@@ -6,14 +6,13 @@ regla GLOBAL *"Sales Order multi-company"* con dominio verbatim
 datos** (``0007_seed_sale_security``), con las dos entradas de
 ``base_security``: viva para los tests, histórica para la migración.
 """
+
 from django.db import DEFAULT_DB_ALIAS
 
 from addons.base.models.ir_rule import IrRule as _IrRule
 from addons.base.security.base_security import DOMAIN_MULTICOMPANY, _seed
 
-_RULES = (
-    ('Sales Order multi-company', 'sale.SaleOrder'),
-)
+_RULES = (('Sales Order multi-company', 'sale.SaleOrder'),)
 
 
 def seed(using=DEFAULT_DB_ALIAS):

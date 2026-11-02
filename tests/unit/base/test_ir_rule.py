@@ -16,6 +16,7 @@ se evalúan (``odoo19c: odoo/orm/models.py:4114``); sin regla para el modelo
 no hay restricción (el fail-closed multi-company es la regla sembrada
 ``[('company_id','in',company_ids)]``, no el manager).
 """
+
 import pytest
 
 from addons.base.models import ResCompany
@@ -34,7 +35,8 @@ MODEL = 'base.ResCompany'
 
 def _rule(name, domain='', groups=()):
     rule = IrRule.objects.create(
-        name=name, model_name=MODEL, domain_force=domain)
+        name=name, model_name=MODEL, domain_force=domain
+    )
     if groups:
         rule.groups.set(groups)
     return rule
@@ -47,8 +49,11 @@ _CODES = ('alfa', 'beta', 'gama')
 
 def _visible(group_ids=()):
     q = IrRule._compute_domain(MODEL, mode='read', group_ids=group_ids)
-    return set(ResCompany.objects.filter(code__in=_CODES).filter(q)
-               .values_list('code', flat=True))
+    return set(
+        ResCompany.objects.filter(code__in=_CODES)
+        .filter(q)
+        .values_list('code', flat=True)
+    )
 
 
 @pytest.fixture
@@ -90,8 +95,11 @@ class TestComputeDomain:
     def test_or_de_grupos_and_contra_globales(self, tres_companias):
         g1 = ResGroups.objects.create(name='g1')
         _rule('global no gama', "[('code', '!=', 'gama')]")
-        _rule('grupo gama o alfa', "[('code', 'in', ['gama', 'alfa'])]",
-              groups=[g1])
+        _rule(
+            'grupo gama o alfa',
+            "[('code', 'in', ['gama', 'alfa'])]",
+            groups=[g1],
+        )
         # La global QUITA filas que ninguna regla de grupo puede devolver.
         assert _visible(group_ids=(g1.pk,)) == {'alfa'}
 
@@ -112,7 +120,9 @@ class TestBuildDomain:
         # ``[(1, '=', 1)]`` — el TRUE de ``base_security.xml``.
         rule = _rule('true', "[(1, '=', 1)]")
         q = rule._build_domain({})
-        assert ResCompany.objects.filter(code__in=_CODES).filter(q).count() == 3
+        assert (
+            ResCompany.objects.filter(code__in=_CODES).filter(q).count() == 3
+        )
 
     def test_arbitrary_code_is_rejected_on_save(self):
         """El rechazo se adelantó al ``save``, que es donde la fuente lo pone.
@@ -140,8 +150,11 @@ class TestBuildDomain:
         dos: la union no distinguiria cual de las dos guardas actua, que es
         justo lo que este caso existe para comprobar.
         """
-        rule = IrRule(name='mala', model_name=MODEL,
-                      domain_force="__import__('os').system('id')")
+        rule = IrRule(
+            name='mala',
+            model_name=MODEL,
+            domain_force="__import__('os').system('id')",
+        )
         with pytest.raises(NameError, match='forbidden name'):
             rule._build_domain({})
 
@@ -156,18 +169,20 @@ class TestBuildDomain:
         evaluador rechaza todo». Este dominio usa el MISMO nombre del contexto
         y si tiene que evaluarse.
         """
-        assert safe_eval("[('company_id', 'in', company_ids)]",
-                         {'company_ids': [1, 2]}) == [
-            ('company_id', 'in', [1, 2])]
+        assert safe_eval(
+            "[('company_id', 'in', company_ids)]", {'company_ids': [1, 2]}
+        ) == [('company_id', 'in', [1, 2])]
 
 
 class TestRuleScopedManagerSemantica:
     def test_su_omite_las_reglas(self, tres_companias):
         # Sin compañías activadas la regla sembrada da IN [] → 0 filas…
-        assert (CompanyModuleSubscription.scoped
-                .for_current_company().count() == 0)
+        assert (
+            CompanyModuleSubscription.scoped.for_current_company().count() == 0
+        )
         # …y bajo su las reglas NO se evalúan (models.py:4114 de la fuente).
         with sudo():
-            assert (CompanyModuleSubscription.scoped.for_current_company()
-                    .count()
-                    == CompanyModuleSubscription.objects.count())
+            assert (
+                CompanyModuleSubscription.scoped.for_current_company().count()
+                == CompanyModuleSubscription.objects.count()
+            )

@@ -19,6 +19,7 @@ Lo que se fija aquí:
 (``sale_order_line_id`` y su restricción de unicidad), que vive en
 ``addons/sale/models/product_product.py`` y se porta con esa extensión.
 """
+
 import pytest
 from django.core.exceptions import FieldError
 from django.db.models import ProtectedError
@@ -40,13 +41,16 @@ def attribute_value():
     """Un valor de atributo por-producto — el destino de la FK."""
     attribute = ProductAttribute.objects.create(name='Grabado')
     value = ProductAttributeValue.objects.create(
-        attribute=attribute, name='Personalizado', sequence=0)
+        attribute=attribute, name='Personalizado', sequence=0
+    )
     template = ProductTemplate.objects.create(name='Placa conmemorativa')
     line = ProductTemplateAttributeLine.objects.create(
-        product_tmpl=template, attribute=attribute, sequence=10)
+        product_tmpl=template, attribute=attribute, sequence=10
+    )
     line.values.set([value])
     return ProductTemplateAttributeValue.objects.create(
-        line=line, attribute_value=value)
+        line=line, attribute_value=value
+    )
 
 
 class TestWhatTheBuyerWroteIsStored:
@@ -54,7 +58,8 @@ class TestWhatTheBuyerWroteIsStored:
     def test_the_custom_value_survives_the_reload(self, attribute_value):
         custom = ProductAttributeCustomValue.objects.create(
             custom_product_template_attribute_value_id=attribute_value,
-            custom_value='Para Yemayá, 2026')
+            custom_value='Para Yemayá, 2026',
+        )
 
         again = ProductAttributeCustomValue.objects.get(pk=custom.pk)
         assert again.custom_value == 'Para Yemayá, 2026'
@@ -62,7 +67,8 @@ class TestWhatTheBuyerWroteIsStored:
     def test_an_empty_custom_value_is_allowed(self, attribute_value):
         """La fuente declara ``custom_value`` sin ``required``."""
         custom = ProductAttributeCustomValue.objects.create(
-            custom_product_template_attribute_value_id=attribute_value)
+            custom_product_template_attribute_value_id=attribute_value
+        )
         assert custom.custom_value == ''
 
 
@@ -72,40 +78,53 @@ class TestTheNameHasNoColumn:
         """≙ ``_compute_name`` (``odoo19c: :20-25``)."""
         custom = ProductAttributeCustomValue.objects.create(
             custom_product_template_attribute_value_id=attribute_value,
-            custom_value='  Para Yemayá  ')
+            custom_value='  Para Yemayá  ',
+        )
         assert custom.name == f'{attribute_value}: Para Yemayá'
 
     def test_the_name_is_not_a_model_field(self):
-        declared = {f.name for f in ProductAttributeCustomValue._meta.get_fields()}
+        declared = {
+            f.name for f in ProductAttributeCustomValue._meta.get_fields()
+        }
         assert 'name' not in declared
-        assert 'custom_value' in declared, 'control positivo: el vecino SÍ tiene columna'
+        assert (
+            'custom_value' in declared
+        ), 'control positivo: el vecino SÍ tiene columna'
 
     def test_the_name_cannot_be_filtered(self, attribute_value):
         with pytest.raises(FieldError):
             ProductAttributeCustomValue.objects.filter(name='x').exists()
 
-    def test_what_gets_written_never_reaches_the_database(self, attribute_value):
+    def test_what_gets_written_never_reaches_the_database(
+        self, attribute_value
+    ):
         """``NonStored`` admite asignación y no la persiste — igual que la
         fuente, donde un campo sin almacenar sigue siendo escribible en
         memoria."""
         custom = ProductAttributeCustomValue.objects.create(
             custom_product_template_attribute_value_id=attribute_value,
-            custom_value='original')
+            custom_value='original',
+        )
         custom.name = 'inventado'
         custom.save()
 
         assert custom.name == 'inventado', 'vive en la instancia'
         again = ProductAttributeCustomValue.objects.get(pk=custom.pk)
-        assert again.name == f'{attribute_value}: original', 'no vive en la tabla'
+        assert (
+            again.name == f'{attribute_value}: original'
+        ), 'no vive en la tabla'
 
 
 class TestTheAttributeValueIsProtected:
 
-    def test_deleting_a_personalised_attribute_value_is_refused(self, attribute_value):
+    def test_deleting_a_personalised_attribute_value_is_refused(
+        self, attribute_value
+    ):
         """≙ ``ondelete='restrict'`` (``odoo19c: :17``)."""
         ProductAttributeCustomValue.objects.create(
             custom_product_template_attribute_value_id=attribute_value,
-            custom_value='Para Yemayá')
+            custom_value='Para Yemayá',
+        )
 
         with pytest.raises(ProtectedError):
             attribute_value.delete()

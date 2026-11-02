@@ -5,13 +5,16 @@
     'name': 'Puente QR EMV Merchant-Presented',
     'version': '1.0',
     'category': 'Accounting/Payment',
-    'summary': 'Vocabulario EMV (proxy, referencia, CRC16) sobre '
-               'res.partner.bank, para que localizaciones concretas '
-               'activen su propio método de QR de pago.',
+    'summary': (
+        'Vocabulario EMV (proxy, referencia, CRC16) sobre '
+        'res.partner.bank, para que localizaciones concretas '
+        'activen su propio método de QR de pago.'
+    ),
     # `depends` MEDIDO — y CORREGIDO el 2026-08-14 (#320, :ref:`h-api-564`).
     #
     # Decía `['base']` con esta medición: "el puente no importa nada de
-    # `account`, sólo `base.ResPartnerBank`; `account/models/res_partner_bank.py`
+    # `account`, sólo `base.ResPartnerBank`;
+    # `account/models/res_partner_bank.py`
     # no existe todavía en este árbol". La primera mitad seguía siendo cierta
     # —no hay `import` de `account` aquí—; la segunda quedó obsoleta sin que
     # nadie tocara este archivo: `account/models/res_partner_bank.py` SÍ existe
@@ -34,8 +37,8 @@
     # que se encadena. La referencia lo tenía bien desde el principio:
     # `odoo19c: account_qr_code_emv/__manifest__.py` declara `['account']`.
     'depends': [
-        'account',   # dueño del terminal de la cadena de QR (res_partner_bank)
-        'base',      # ResPartnerBank — la clase que ambos extienden
+        'account',  # dueño del terminal de la cadena de QR (res_partner_bank)
+        'base',  # ResPartnerBank — la clase que ambos extienden
     ],
     # Licencia de la fuente de la que se adapta este addon, tal como su
     # manifest la declara (DEC-KX-03 punto 1): `account_qr_code_emv` en Odoo

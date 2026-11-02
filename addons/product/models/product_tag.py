@@ -31,6 +31,7 @@ Qué NO se porta, con su medición
   llamador; portar el traductor no aporta.
 - **``copy_data``** (añade *"(copia)"* al duplicar): azúcar del cliente web.
 """
+
 import fields
 import models
 
@@ -49,21 +50,28 @@ class ProductTag(ImageMixin, TimeStampedModel):
     name = fields.Char(max_length=255, unique=True, verbose_name='Nombre')
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
     color = fields.Char(
-        max_length=16, default=DEFAULT_TAG_COLOR, verbose_name='Color')
+        max_length=16, default=DEFAULT_TAG_COLOR, verbose_name='Color'
+    )
     visible_to_customers = fields.Boolean(
-        default=True, verbose_name='Visible para el cliente')
+        default=True, verbose_name='Visible para el cliente'
+    )
     product_templates = fields.Many2many(
-        ProductTemplate, blank=True,
+        ProductTemplate,
+        blank=True,
         db_table='product_tag_product_template_rel',
-        related_name='product_tag_ids', verbose_name='Fichas de producto',
+        related_name='product_tag_ids',
+        verbose_name='Fichas de producto',
     )
     product_variants = fields.Many2many(
-        ProductProduct, blank=True,
+        ProductProduct,
+        blank=True,
         db_table='product_tag_product_product_rel',
         related_name='additional_product_tag_ids',
         verbose_name='Variantes de producto',
-        help_text='Sólo variantes sueltas: su ficha debe tener atributos y NO '
-                  'estar ya etiquetada. Ver el docstring del módulo.',
+        help_text=(
+            'Sólo variantes sueltas: su ficha debe tener atributos y NO '
+            'estar ya etiquetada. Ver el docstring del módulo.'
+        ),
     )
 
     class Meta:
@@ -73,7 +81,9 @@ class ProductTag(ImageMixin, TimeStampedModel):
         verbose_name_plural = 'Etiquetas de producto'
         constraints = [
             # ``_name_uniq`` de la fuente.
-            models.UniqueConstraint(fields=['name'], name='product_tag_name_uniq'),
+            models.UniqueConstraint(
+                fields=['name'], name='product_tag_name_uniq'
+            ),
         ]
 
     def __str__(self):
@@ -88,5 +98,6 @@ class ProductTag(ImageMixin, TimeStampedModel):
         alcanzada por las dos vías aparece una sola vez.
         """
         from_templates = ProductProduct.objects.filter(
-            product_tmpl__in=self.product_templates.all())
+            product_tmpl__in=self.product_templates.all()
+        )
         return (from_templates | self.product_variants.all()).distinct()

@@ -10,6 +10,7 @@ grafo de manifiestos (``config/settings/base.py``, ``_local_apps()``), y el
 ``depends: ['hr', 'base']`` de este addon lo ordena después de ``hr`` — que
 es la precondición de sus extensiones (divergencia 3 de ``res_users.py``).
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -29,16 +30,21 @@ class HrHomeworkingConfig(AppConfig):
     #: modelo propio (``hr.employee.location``) y lo importa
     #: ``models/__init__.py`` por el camino normal de Django.
     _EXTENSIONES = {
-        'addons.hr_homeworking.models.hr_employee':
-            'apply_hr_homeworking_hr_employee_extensions',
-        'addons.hr_homeworking.models.hr_employee_public':
-            'apply_hr_homeworking_hr_employee_public_extensions',
-        'addons.hr_homeworking.models.hr_work_location':
-            'apply_hr_homeworking_hr_work_location_extensions',
-        'addons.hr_homeworking.models.res_partner':
-            'apply_hr_homeworking_res_partner_extensions',
-        'addons.hr_homeworking.models.res_users':
-            'apply_hr_homeworking_res_users_extensions',
+        'addons.hr_homeworking.models.hr_employee': (
+            'apply_hr_homeworking_hr_employee_extensions'
+        ),
+        'addons.hr_homeworking.models.hr_employee_public': (
+            'apply_hr_homeworking_hr_employee_public_extensions'
+        ),
+        'addons.hr_homeworking.models.hr_work_location': (
+            'apply_hr_homeworking_hr_work_location_extensions'
+        ),
+        'addons.hr_homeworking.models.res_partner': (
+            'apply_hr_homeworking_res_partner_extensions'
+        ),
+        'addons.hr_homeworking.models.res_users': (
+            'apply_hr_homeworking_res_users_extensions'
+        ),
     }
 
     def ready(self):

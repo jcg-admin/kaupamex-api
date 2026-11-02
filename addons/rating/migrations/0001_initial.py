@@ -36,14 +36,18 @@ class Migration(migrations.Migration):
                     models.BooleanField(
                         db_index=True,
                         default=False,
-                        help_text="True si la fila fue borrada via soft delete.",
+                        help_text=(
+                            "True si la fila fue borrada via soft delete."
+                        ),
                         verbose_name="Eliminado (logico)",
                     ),
                 ),
                 (
                     "deleted_at",
                     models.DateTimeField(
-                        blank=True, null=True, verbose_name="Fecha de borrado logico"
+                        blank=True,
+                        null=True,
+                        verbose_name="Fecha de borrado logico",
                     ),
                 ),
                 (
@@ -78,7 +82,10 @@ class Migration(migrations.Migration):
                             ("CONTENIDO_INAPROPIADO", "Contenido inapropiado"),
                             ("SPAM", "Spam"),
                             ("LANGUAGE_NOT_SUPPORTED", "Idioma no soportado"),
-                            ("NO_RELACIONADA", "No relacionada con el producto"),
+                            (
+                                "NO_RELACIONADA",
+                                "No relacionada con el producto",
+                            ),
                         ],
                         default="",
                         max_length=24,
@@ -211,11 +218,17 @@ class Migration(migrations.Migration):
                 (
                     "action",
                     models.CharField(
-                        choices=[("APPROVE", "Aprobar"), ("REJECT", "Rechazar")],
+                        choices=[
+                            ("APPROVE", "Aprobar"),
+                            ("REJECT", "Rechazar"),
+                        ],
                         max_length=10,
                     ),
                 ),
-                ("reason", models.CharField(blank=True, default="", max_length=24)),
+                (
+                    "reason",
+                    models.CharField(blank=True, default="", max_length=24),
+                ),
                 (
                     "actor",
                     models.ForeignKey(
@@ -250,7 +263,8 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="reviewhelpfulvote",
             constraint=models.UniqueConstraint(
-                fields=("user", "review"), name="unique_helpful_vote_user_review"
+                fields=("user", "review"),
+                name="unique_helpful_vote_user_review",
             ),
         ),
     ]

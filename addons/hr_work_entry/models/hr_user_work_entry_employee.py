@@ -20,6 +20,7 @@ Porte símbolo por símbolo — 4/4 campos, 0 métodos (la fuente no declara)
 - ``employee_id`` → ``employee`` — portado.
 - ``active`` / ``is_checked`` — portados.
 """
+
 import fields
 import models
 
@@ -35,14 +36,20 @@ class HrUserWorkEntryEmployee(TimeStampedModel):
     _description = 'Work Entries Employees'
 
     user = fields.Many2one(
-        ResUsers, on_delete=models.CASCADE, verbose_name='Me',
+        ResUsers,
+        on_delete=models.CASCADE,
+        verbose_name='Me',
         related_name='work_entry_employee_filters',
         default=get_current_uid,
-        help_text='Odoo user_id (required, default=env.user → '
-                  'get_current_uid, ondelete=cascade).',
+        help_text=(
+            'Odoo user_id (required, default=env.user → '
+            'get_current_uid, ondelete=cascade).'
+        ),
     )
     employee = fields.Many2one(
-        'hr.HrEmployee', on_delete=models.CASCADE, verbose_name='Employee',
+        'hr.HrEmployee',
+        on_delete=models.CASCADE,
+        verbose_name='Employee',
         related_name='work_entry_user_filters',
         help_text='Odoo employee_id (required).',
     )
@@ -58,7 +65,9 @@ class HrUserWorkEntryEmployee(TimeStampedModel):
             models.UniqueConstraint(
                 fields=['user', 'employee'],
                 name='user_id_employee_id_unique',
-                violation_error_message='You cannot have the same employee twice.',
+                violation_error_message=(
+                    'You cannot have the same employee twice.'
+                ),
             ),
         ]
 

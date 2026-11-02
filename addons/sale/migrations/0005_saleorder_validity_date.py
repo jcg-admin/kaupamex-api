@@ -16,7 +16,11 @@ class Migration(migrations.Migration):
             field=models.DateField(
                 blank=True,
                 null=True,
-                help_text="Vigencia de la cotización (Odoo validity_date, sale/models/sale_order.py:135). NULL si la empresa no define quotation_validity_days.",
+                help_text=(
+                    "Vigencia de la cotización (Odoo validity_date,"
+                    " sale/models/sale_order.py:135). NULL si la empresa no"
+                    " define quotation_validity_days."
+                ),
             ),
         ),
     ]

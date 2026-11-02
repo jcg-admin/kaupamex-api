@@ -16,6 +16,7 @@ Idempotente (``update_or_create`` por code). Correr:
 
     python manage.py seed_rate_cards
 """
+
 from decimal import Decimal
 from django.core.management.base import BaseCommand
 from addons.delivery.models import CarrierRateCard, Courier
@@ -31,42 +32,81 @@ def _mxn(eur) -> Decimal:
 # (code, name, base_eur, per_kg_eur, transit, environmental, rules).
 # Reglas None = sin límite. allows_hazardous=True salvo que la spec lo prohíba.
 CARRIERS = [
-    ('dhl', 'DHL', '100', '5', 2, CarrierRateCard.ENV_MEDIUM, dict(
-        max_package_weight_kg=Decimal('50'),
-        allows_hazardous=False,                 # spec: "No hazardous materials"
-    )),
-    ('bring', 'Bring', '80', '4', 3, CarrierRateCard.ENV_HIGH, dict(
-        max_package_weight_kg=Decimal('30'),
-        max_total_value=_mxn('5000'),           # spec: "Max total value €5,000"
-        allows_hazardous=True,
-    )),
-    ('fedex', 'FedEx Express', '150', '6', 1, CarrierRateCard.ENV_LOW, dict(
-        max_package_weight_kg=Decimal('70'),
-        max_length_cm=Decimal('120'),           # spec: 120×80×80 cm
-        max_width_cm=Decimal('80'),
-        max_height_cm=Decimal('80'),
-        allows_hazardous=True,
-    )),
-    ('dsv-green', 'DSV Green', '90', '4.50', 4, CarrierRateCard.ENV_HIGH, dict(
-        max_package_weight_kg=Decimal('40'),
-        # spec: "No packages over 100cm in any dimension" → mismo límite/eje.
-        max_length_cm=Decimal('100'),
-        max_width_cm=Decimal('100'),
-        max_height_cm=Decimal('100'),
-        max_total_weight_kg=Decimal('200'),     # spec: "Total shipment ≤ 200kg"
-        allows_hazardous=True,
-    )),
+    (
+        'dhl',
+        'DHL',
+        '100',
+        '5',
+        2,
+        CarrierRateCard.ENV_MEDIUM,
+        dict(
+            max_package_weight_kg=Decimal('50'),
+            allows_hazardous=False,  # spec: "No hazardous materials"
+        ),
+    ),
+    (
+        'bring',
+        'Bring',
+        '80',
+        '4',
+        3,
+        CarrierRateCard.ENV_HIGH,
+        dict(
+            max_package_weight_kg=Decimal('30'),
+            # spec: "Max total value €5,000"
+            max_total_value=_mxn('5000'),
+            allows_hazardous=True,
+        ),
+    ),
+    (
+        'fedex',
+        'FedEx Express',
+        '150',
+        '6',
+        1,
+        CarrierRateCard.ENV_LOW,
+        dict(
+            max_package_weight_kg=Decimal('70'),
+            max_length_cm=Decimal('120'),  # spec: 120×80×80 cm
+            max_width_cm=Decimal('80'),
+            max_height_cm=Decimal('80'),
+            allows_hazardous=True,
+        ),
+    ),
+    (
+        'dsv-green',
+        'DSV Green',
+        '90',
+        '4.50',
+        4,
+        CarrierRateCard.ENV_HIGH,
+        dict(
+            max_package_weight_kg=Decimal('40'),
+            # spec: "No packages over 100cm in any dimension" → mismo
+            # límite/eje.
+            max_length_cm=Decimal('100'),
+            max_width_cm=Decimal('100'),
+            max_height_cm=Decimal('100'),
+            # spec: "Total shipment ≤ 200kg"
+            max_total_weight_kg=Decimal('200'),
+            allows_hazardous=True,
+        ),
+    ),
 ]
 
 
 class Command(BaseCommand):
-    help = 'Seed carriers + rate cards (catálogo canónico DHL/Bring/FedEx/DSV, MXN).'
+    help = (
+        'Seed carriers + rate cards (catálogo canónico DHL/Bring/FedEx/DSV,'
+        ' MXN).'
+    )
 
     def handle(self, *args, **options):
         created = 0
         for code, name, base_eur, per_kg_eur, transit, env, rules in CARRIERS:
             courier, _ = Courier.objects.update_or_create(
-                code=code, defaults={'name': name, 'is_active': True})
+                code=code, defaults={'name': name, 'is_active': True}
+            )
             defaults = {
                 'base_cost': _mxn(base_eur),
                 'cost_per_kg': _mxn(per_kg_eur),
@@ -76,11 +116,17 @@ class Command(BaseCommand):
                 **rules,
             }
             _, was_created = CarrierRateCard.objects.update_or_create(
-                courier=courier, defaults=defaults)
+                courier=courier, defaults=defaults
+            )
             created += int(was_created)
             self.stdout.write(
-                f'  {name}: base {defaults["base_cost"]} + '
-                f'{defaults["cost_per_kg"]}/kg ({"nuevo" if was_created else "actualizado"})')
-        self.stdout.write(self.style.SUCCESS(
-            f'Seed rate cards OK: {len(CARRIERS)} paqueterías '
-            f'(EUR→MXN ×{_EUR_MXN} ilustrativa; {created} nuevas).'))
+                f'  {name}: base {defaults["base_cost"]} +'
+                f' {defaults["cost_per_kg"]}/kg'
+                f' ({"nuevo" if was_created else "actualizado"})'
+            )
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'Seed rate cards OK: {len(CARRIERS)} paqueterías '
+                f'(EUR→MXN ×{_EUR_MXN} ilustrativa; {created} nuevas).'
+            )
+        )

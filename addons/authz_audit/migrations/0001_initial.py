@@ -43,10 +43,16 @@ class Migration(migrations.Migration):
                 (
                     "capability_code",
                     models.CharField(
-                        blank=True, default="", max_length=100, verbose_name="Capacidad"
+                        blank=True,
+                        default="",
+                        max_length=100,
+                        verbose_name="Capacidad",
                     ),
                 ),
-                ("ip_addr", models.GenericIPAddressField(blank=True, null=True)),
+                (
+                    "ip_addr",
+                    models.GenericIPAddressField(blank=True, null=True),
+                ),
                 (
                     "correlation_id",
                     models.CharField(

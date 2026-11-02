@@ -14,6 +14,7 @@ Cierra ademas la deuda de ``CONDITION_OPERATORS``: los cuatro operadores extra
 porque sin sus optimizadores el constructor los rechazaria. Ahora los declara
 cada ``@operator_optimization``, como la fuente.
 """
+
 import warnings
 
 import pytest
@@ -29,7 +30,9 @@ from tools.misc import OrderedSet
 def _sole(domain):
     """La unica condicion del dominio, para asertar sobre ella."""
     conditions = list(domain.iter_conditions())
-    assert len(conditions) == 1, f'se esperaba una condicion, hay {len(conditions)}'
+    assert (
+        len(conditions) == 1
+    ), f'se esperaba una condicion, hay {len(conditions)}'
     return conditions[0]
 
 
@@ -74,10 +77,16 @@ class TestEqualityAsMembership:
     """``=``/``!=`` pasan a ``in``/``not in`` — ≙ ``_operator_equal_as_in``."""
 
     def test_equal_becomes_in(self):
-        assert _sole(DomainCondition('name', '=', 'a').optimize()).operator == 'in'
+        assert (
+            _sole(DomainCondition('name', '=', 'a').optimize()).operator
+            == 'in'
+        )
 
     def test_not_equal_becomes_not_in(self):
-        assert _sole(DomainCondition('name', '!=', 'a').optimize()).operator == 'not in'
+        assert (
+            _sole(DomainCondition('name', '!=', 'a').optimize()).operator
+            == 'not in'
+        )
 
     def test_the_scalar_becomes_a_one_element_set(self):
         result = _sole(DomainCondition('name', '=', 'a').optimize())
@@ -96,7 +105,9 @@ class TestEqualityAsMembership:
         assert list(result.value) == [False]
 
     def test_a_repeated_value_appears_once(self):
-        result = _sole(DomainCondition('name', '=', ['a', 'a', 'b']).optimize())
+        result = _sole(
+            DomainCondition('name', '=', ['a', 'a', 'b']).optimize()
+        )
         assert list(result.value) == ['a', 'b']
 
 
@@ -120,12 +131,18 @@ class TestTheMembershipSet:
     def test_a_domain_value_switches_to_the_any_operator(self):
         """La travesia de relacion no es pertenencia: es ``any``."""
         result = _sole(
-            DomainCondition('partner_id', 'in', Domain('name', '=', 'a')).optimize())
+            DomainCondition(
+                'partner_id', 'in', Domain('name', '=', 'a')
+            ).optimize()
+        )
         assert result.operator == 'any'
 
     def test_a_domain_value_under_not_in_switches_to_not_any(self):
         result = _sole(
-            DomainCondition('partner_id', 'not in', Domain('name', '=', 'a')).optimize())
+            DomainCondition(
+                'partner_id', 'not in', Domain('name', '=', 'a')
+            ).optimize()
+        )
         assert result.operator == 'not any'
 
     def test_an_ordered_set_is_returned_unchanged(self):
@@ -159,5 +176,10 @@ class TestTheHandWrittenDebtIsGone:
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', DeprecationWarning)
             for operator in ('=', '!=', '<>', '=='):
-                result = _sole(DomainCondition('name', operator, 'a').optimize())
-                assert result.operator in ('in', 'not in'), (operator, result.operator)
+                result = _sole(
+                    DomainCondition('name', operator, 'a').optimize()
+                )
+                assert result.operator in ('in', 'not in'), (
+                    operator,
+                    result.operator,
+                )

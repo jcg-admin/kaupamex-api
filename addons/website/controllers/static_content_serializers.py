@@ -4,15 +4,19 @@ from rest_framework import serializers
 from addons.website.models import StaticContent, StaticContentVersion
 
 
-
 class StaticContentVersionSerializer(serializers.ModelSerializer):
     changed_by_username = serializers.SerializerMethodField()
 
     class Meta:
-        model  = StaticContentVersion
+        model = StaticContentVersion
         fields = [
-            'id', 'version', 'title', 'body',
-            'changed_by', 'changed_by_username', 'created_at',
+            'id',
+            'version',
+            'title',
+            'body',
+            'changed_by',
+            'changed_by_username',
+            'created_at',
         ]
 
     @extend_schema_field(OpenApiTypes.STR)
@@ -24,7 +28,14 @@ class StaticContentSerializer(serializers.ModelSerializer):
     versions = StaticContentVersionSerializer(many=True, read_only=True)
 
     class Meta:
-        model  = StaticContent
-        fields = ['id', 'slug', 'title', 'body', 'version',
-                  'updated_at', 'versions']
+        model = StaticContent
+        fields = [
+            'id',
+            'slug',
+            'title',
+            'body',
+            'version',
+            'updated_at',
+            'versions',
+        ]
         read_only_fields = ['version', 'updated_at']

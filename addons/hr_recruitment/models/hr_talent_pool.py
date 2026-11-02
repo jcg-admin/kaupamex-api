@@ -24,6 +24,7 @@ Porte símbolo por símbolo — 9 de 10
      - BLOQUEADO — familia (b): ``ir.actions.act_window`` (framework de
        acciones cliente Odoo, sin equivalente en este stack DRF+React)
 """
+
 from random import randint
 
 import fields
@@ -46,19 +47,28 @@ class HrTalentPool(MailThread, TimeStampedModel):
 
     active = fields.Boolean(default=True, verbose_name='Activo')
     name = fields.Char(
-        verbose_name='Título', help_text='Odoo "Title".',
+        verbose_name='Título',
+        help_text='Odoo "Title".',
     )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_talent_pools', default=get_current_company,
+        'base.ResCompany',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_talent_pools',
+        default=get_current_company,
         verbose_name='Empresa',
     )
     # Odoo pool_manager: domain "[('share', '=', False), ('company_ids', 'in',
     # company_id)]" — filtrado de formulario/DRF, no del modelo (mismo
     # criterio que hr_applicant_refuse_reason.template).
     pool_manager = fields.Many2one(
-        'base.ResUsers', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='managed_talent_pools', default=get_current_user,
+        'base.ResUsers',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='managed_talent_pools',
+        default=get_current_user,
         verbose_name='Responsable de la bolsa',
     )
     # ≙ ``talent_ids`` (Many2many hacia ``hr.applicant``). La referencia
@@ -69,15 +79,21 @@ class HrTalentPool(MailThread, TimeStampedModel):
     # distintos. Aquí se declara UNA vez, con el reverso nombrado
     # ``talent_pools`` — el accesor que ``HrApplicant.talent_pools`` expone.
     talents = fields.Many2many(
-        'hr_recruitment.HrApplicant', related_name='talent_pools',
-        blank=True, verbose_name='Talentos',
+        'hr_recruitment.HrApplicant',
+        related_name='talent_pools',
+        blank=True,
+        verbose_name='Talentos',
         help_text='Odoo talent_ids: los candidatos de esta bolsa.',
     )
-    description = fields.Html(blank=True, default='', verbose_name='Descripción')
+    description = fields.Html(
+        blank=True, default='', verbose_name='Descripción'
+    )
     color = fields.Integer(default=_get_default_color, verbose_name='Color')
     categs = fields.Many2many(
-        'hr_recruitment.HrApplicantCategory', related_name='talent_pools',
-        blank=True, verbose_name='Etiquetas',
+        'hr_recruitment.HrApplicantCategory',
+        related_name='talent_pools',
+        blank=True,
+        verbose_name='Etiquetas',
     )
 
     class Meta:

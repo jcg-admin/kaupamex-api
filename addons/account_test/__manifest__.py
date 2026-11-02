@@ -5,9 +5,11 @@
     'name': 'Accounting Consistency Tests',
     'version': '1.0',
     'category': 'Accounting/Accounting',
-    'summary': 'Pruebas manuales de consistencia contable (Reporting → '
-               'Accounting Tests): consultas SQL/Python guardadas que se '
-               'ejecutan bajo demanda y devuelven las filas inconsistentes.',
+    'summary': (
+        'Pruebas manuales de consistencia contable (Reporting → '
+        'Accounting Tests): consultas SQL/Python guardadas que se '
+        'ejecutan bajo demanda y devuelven las filas inconsistentes.'
+    ),
     # `depends` MEDIDO contra los imports reales de este addon (no copiado de
     # la referencia, que declara solo `['account']` porque su vista cuelga
     # del menú `account.menu_finance_reports` — aquí no se porta menú, ver

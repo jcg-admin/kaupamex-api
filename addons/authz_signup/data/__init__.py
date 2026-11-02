@@ -15,6 +15,7 @@ res_partner.py:186-188 — 144h/4h), la URL del SPA de set-password, y las dos
 plantillas de correo (``set_password_email`` / ``reset_password_email`` de la
 referencia).
 """
+
 from django.db import DEFAULT_DB_ALIAS
 
 from addons.base.models import SystemParameter
@@ -77,6 +78,9 @@ def seed(using=DEFAULT_DB_ALIAS):
         if not SystemParameter.objects.using(using).filter(key=key).exists():
             SystemParameter.objects.using(using).create(key=key, value=value)
     for spec in SIGNUP_TEMPLATES:
-        if not MailTemplate.objects.using(using).filter(
-                name=spec['name']).exists():
+        if (
+            not MailTemplate.objects.using(using)
+            .filter(name=spec['name'])
+            .exists()
+        ):
             MailTemplate.objects.using(using).create(**spec)

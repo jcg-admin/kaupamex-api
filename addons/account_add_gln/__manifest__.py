@@ -15,8 +15,9 @@
     # dos: `account` porque el GLN sólo tiene sentido en el eje de
     # facturación, y ése es el encuadre que la referencia fija.
     'depends': [
-        'base',     # ResPartner — el modelo que este addon extiende
-        'account',  # el eje que da sentido al identificador (fidelidad a la ref)
+        'base',  # ResPartner — el modelo que este addon extiende
+        # el eje que da sentido al identificador (fidelidad a la ref)
+        'account',
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

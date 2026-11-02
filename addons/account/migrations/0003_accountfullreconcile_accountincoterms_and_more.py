@@ -50,21 +50,28 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre del Incoterm (Odoo name, requerido, traducible).",
+                        help_text=(
+                            "Nombre del Incoterm (Odoo name, requerido,"
+                            " traducible)."
+                        ),
                         max_length=255,
                     ),
                 ),
                 (
                     "code",
                     models.CharField(
-                        help_text='Código estándar del Incoterm, ej. "FOB" (Odoo code, requerido).',
+                        help_text=(
+                            'Código estándar del Incoterm, ej. "FOB" (Odoo'
+                            ' code, requerido).'
+                        ),
                         max_length=3,
                     ),
                 ),
                 (
                     "active",
                     models.BooleanField(
-                        default=True, help_text="Ocultar sin eliminar (Odoo active)."
+                        default=True,
+                        help_text="Ocultar sin eliminar (Odoo active).",
                     ),
                 ),
             ],
@@ -81,7 +88,13 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Odoo matching_number: 'P<id>' mientras la conciliación es parcial (id del grupo, asignado por AccountPartialReconcile._update_matching_number); el id de account.full.reconcile como texto cuando es total. Vacío si el apunte no está conciliado.",
+                help_text=(
+                    "Odoo matching_number: 'P<id>' mientras la conciliación es"
+                    " parcial (id del grupo, asignado por"
+                    " AccountPartialReconcile._update_matching_number); el id"
+                    " de account.full.reconcile como texto cuando es total."
+                    " Vacío si el apunte no está conciliado."
+                ),
                 max_length=16,
             ),
         ),
@@ -100,7 +113,9 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre de la etiqueta (Odoo name, requerido).",
+                        help_text=(
+                            "Nombre de la etiqueta (Odoo name, requerido)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -113,28 +128,38 @@ class Migration(migrations.Migration):
                             ("products", "Productos"),
                         ],
                         default="accounts",
-                        help_text="Dónde aplica la etiqueta (Odoo applicability, requerido).",
+                        help_text=(
+                            "Dónde aplica la etiqueta (Odoo applicability,"
+                            " requerido)."
+                        ),
                         max_length=8,
                     ),
                 ),
                 (
                     "color",
                     models.IntegerField(
-                        default=0, help_text="Índice de color en UI (Odoo color)."
+                        default=0,
+                        help_text="Índice de color en UI (Odoo color).",
                     ),
                 ),
                 (
                     "active",
                     models.BooleanField(
                         default=True,
-                        help_text="Etiqueta activa; desactivar en vez de borrar (Odoo active).",
+                        help_text=(
+                            "Etiqueta activa; desactivar en vez de borrar"
+                            " (Odoo active)."
+                        ),
                     ),
                 ),
                 (
                     "country",
                     models.ForeignKey(
                         blank=True,
-                        help_text="País donde aplica, cuando applicability=taxes (Odoo country_id).",
+                        help_text=(
+                            "País donde aplica, cuando applicability=taxes"
+                            " (Odoo country_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="account_tags",
@@ -165,7 +190,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Referencia del estado de cuenta (Odoo name, computado de diario+fecha si no se declara).",
+                        help_text=(
+                            "Referencia del estado de cuenta (Odoo name,"
+                            " computado de diario+fecha si no se declara)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -174,7 +202,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Referencia externa: nombre del archivo importado o de la sincronización en línea (Odoo reference).",
+                        help_text=(
+                            "Referencia externa: nombre del archivo importado"
+                            " o de la sincronización en línea (Odoo"
+                            " reference)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -182,7 +214,10 @@ class Migration(migrations.Migration):
                     "date",
                     models.DateField(
                         blank=True,
-                        help_text="Fecha de la última línea posteada (Odoo date, computado).",
+                        help_text=(
+                            "Fecha de la última línea posteada (Odoo date,"
+                            " computado)."
+                        ),
                         null=True,
                     ),
                 ),
@@ -191,7 +226,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Índice de ordenamiento de la primera línea posteada (Odoo first_line_index, computado — ver simplificación en el docstring del módulo).",
+                        help_text=(
+                            "Índice de ordenamiento de la primera línea"
+                            " posteada (Odoo first_line_index, computado — ver"
+                            " simplificación en el docstring del módulo)."
+                        ),
                         max_length=64,
                     ),
                 ),
@@ -209,7 +248,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Saldo final calculado: balance_start + líneas posteadas (Odoo balance_end, computado).",
+                        help_text=(
+                            "Saldo final calculado: balance_start + líneas"
+                            " posteadas (Odoo balance_end, computado)."
+                        ),
                         max_digits=16,
                     ),
                 ),
@@ -218,7 +260,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Saldo final declarado por el banco (Odoo balance_end_real).",
+                        help_text=(
+                            "Saldo final declarado por el banco (Odoo"
+                            " balance_end_real)."
+                        ),
                         max_digits=16,
                     ),
                 ),
@@ -226,14 +271,21 @@ class Migration(migrations.Migration):
                     "is_complete",
                     models.BooleanField(
                         default=False,
-                        help_text="balance_end == balance_end_real, con líneas posteadas (Odoo is_complete, computado).",
+                        help_text=(
+                            "balance_end == balance_end_real, con líneas"
+                            " posteadas (Odoo is_complete, computado)."
+                        ),
                     ),
                 ),
                 (
                     "is_valid",
                     models.BooleanField(
                         default=True,
-                        help_text="balance_start coincide con el balance_end_real del estado anterior del mismo diario (Odoo is_valid, computado).",
+                        help_text=(
+                            "balance_start coincide con el balance_end_real"
+                            " del estado anterior del mismo diario (Odoo"
+                            " is_valid, computado)."
+                        ),
                     ),
                 ),
                 (
@@ -241,13 +293,19 @@ class Migration(migrations.Migration):
                     models.TextField(
                         blank=True,
                         default="",
-                        help_text="Descripción del problema si no es completo o válido (Odoo problem_description, computado).",
+                        help_text=(
+                            "Descripción del problema si no es completo o"
+                            " válido (Odoo problem_description, computado)."
+                        ),
                     ),
                 ),
                 (
                     "company",
                     models.ForeignKey(
-                        help_text="Empresa (Odoo company_id, related de journal_id.company_id).",
+                        help_text=(
+                            "Empresa (Odoo company_id, related de"
+                            " journal_id.company_id)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="bank_statements",
                         to="base.rescompany",
@@ -257,7 +315,10 @@ class Migration(migrations.Migration):
                     "currency",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Moneda (Odoo currency_id, computado de journal/company).",
+                        help_text=(
+                            "Moneda (Odoo currency_id, computado de"
+                            " journal/company)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="bank_statements",
@@ -267,7 +328,10 @@ class Migration(migrations.Migration):
                 (
                     "journal",
                     models.ForeignKey(
-                        help_text="Diario bancario (Odoo journal_id, computado de las líneas).",
+                        help_text=(
+                            "Diario bancario (Odoo journal_id, computado de"
+                            " las líneas)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="bank_statements",
                         to="account.accountjournal",
@@ -297,7 +361,10 @@ class Migration(migrations.Migration):
                     "sequence",
                     models.IntegerField(
                         default=1,
-                        help_text="Orden dentro del estado de cuenta (Odoo sequence).",
+                        help_text=(
+                            "Orden dentro del estado de cuenta (Odoo"
+                            " sequence)."
+                        ),
                     ),
                 ),
                 (
@@ -305,7 +372,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Número de cuenta bancaria del tercero, previo a su creación como registro (Odoo account_number).",
+                        help_text=(
+                            "Número de cuenta bancaria del tercero, previo a"
+                            " su creación como registro (Odoo account_number)."
+                        ),
                         max_length=64,
                     ),
                 ),
@@ -314,7 +384,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Nombre del tercero tal como llega en el formato electrónico importado, cuando no se puede resolver a un partner (Odoo partner_name).",
+                        help_text=(
+                            "Nombre del tercero tal como llega en el formato"
+                            " electrónico importado, cuando no se puede"
+                            " resolver a un partner (Odoo partner_name)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -323,7 +397,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Tipo de transacción, si el formato importado lo declara (Odoo transaction_type).",
+                        help_text=(
+                            "Tipo de transacción, si el formato importado lo"
+                            " declara (Odoo transaction_type)."
+                        ),
                         max_length=64,
                     ),
                 ),
@@ -332,7 +409,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Etiqueta/descripción de la transacción (Odoo payment_ref).",
+                        help_text=(
+                            "Etiqueta/descripción de la transacción (Odoo"
+                            " payment_ref)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -341,7 +421,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Monto de la transacción, en la moneda del diario (Odoo amount).",
+                        help_text=(
+                            "Monto de la transacción, en la moneda del diario"
+                            " (Odoo amount)."
+                        ),
                         max_digits=16,
                     ),
                 ),
@@ -350,7 +433,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         blank=True,
                         decimal_places=2,
-                        help_text="Monto expresado en foreign_currency (Odoo amount_currency).",
+                        help_text=(
+                            "Monto expresado en foreign_currency (Odoo"
+                            " amount_currency)."
+                        ),
                         max_digits=16,
                         null=True,
                     ),
@@ -359,14 +445,22 @@ class Migration(migrations.Migration):
                     "is_reconciled",
                     models.BooleanField(
                         default=False,
-                        help_text="La línea ya fue conciliada contra sus apuntes (Odoo is_reconciled, computado — aquí bandera explícita que fija el flujo de conciliación).",
+                        help_text=(
+                            "La línea ya fue conciliada contra sus apuntes"
+                            " (Odoo is_reconciled, computado — aquí bandera"
+                            " explícita que fija el flujo de conciliación)."
+                        ),
                     ),
                 ),
                 (
                     "foreign_currency",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Moneda distinta a la del diario, si la transacción es multi-moneda (Odoo foreign_currency_id).",
+                        help_text=(
+                            "Moneda distinta a la del diario, si la"
+                            " transacción es multi-moneda (Odoo"
+                            " foreign_currency_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="bank_statement_lines_foreign",
@@ -376,7 +470,12 @@ class Migration(migrations.Migration):
                 (
                     "move",
                     models.ForeignKey(
-                        help_text="Asiento contable del que esta línea es la extensión bancaria (Odoo move_id, _inherits). journal/company/currency/date/state se delegan a él.",
+                        help_text=(
+                            "Asiento contable del que esta línea es la"
+                            " extensión bancaria (Odoo move_id, _inherits)."
+                            " journal/company/currency/date/state se delegan"
+                            " a él."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="bank_statement_line",
                         to="account.accountmove",
@@ -386,7 +485,9 @@ class Migration(migrations.Migration):
                     "partner",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Tercero de la transacción (Odoo partner_id).",
+                        help_text=(
+                            "Tercero de la transacción (Odoo partner_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="bank_statement_lines",
@@ -397,7 +498,10 @@ class Migration(migrations.Migration):
                     "statement",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Estado de cuenta al que pertenece, si ya fue agrupada (Odoo statement_id).",
+                        help_text=(
+                            "Estado de cuenta al que pertenece, si ya fue"
+                            " agrupada (Odoo statement_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="line_ids",
@@ -427,7 +531,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre del perfil de redondeo (Odoo name, requerido).",
+                        help_text=(
+                            "Nombre del perfil de redondeo (Odoo name,"
+                            " requerido)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -436,7 +543,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.01"),
-                        help_text="Menor moneda circulante distinta de cero (Odoo rounding, ej. 0.05).",
+                        help_text=(
+                            "Menor moneda circulante distinta de cero (Odoo"
+                            " rounding, ej. 0.05)."
+                        ),
                         max_digits=16,
                     ),
                 ),
@@ -461,7 +571,10 @@ class Migration(migrations.Migration):
                             ("HALF-UP", "Más cercano"),
                         ],
                         default="HALF-UP",
-                        help_text="Regla de desempate del redondeo (Odoo rounding_method).",
+                        help_text=(
+                            "Regla de desempate del redondeo (Odoo"
+                            " rounding_method)."
+                        ),
                         max_length=8,
                     ),
                 ),
@@ -469,7 +582,11 @@ class Migration(migrations.Migration):
                     "loss_account",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Cuenta para la pérdida por redondeo (Odoo loss_account_id, company_dependent en la referencia).",
+                        help_text=(
+                            "Cuenta para la pérdida por redondeo (Odoo"
+                            " loss_account_id, company_dependent en la"
+                            " referencia)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="cash_rounding_loss_profiles",
@@ -480,7 +597,11 @@ class Migration(migrations.Migration):
                     "profit_account",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Cuenta para la ganancia por redondeo (Odoo profit_account_id, company_dependent en la referencia).",
+                        help_text=(
+                            "Cuenta para la ganancia por redondeo (Odoo"
+                            " profit_account_id, company_dependent en la"
+                            " referencia)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="cash_rounding_profit_profiles",
@@ -511,13 +632,19 @@ class Migration(migrations.Migration):
                     "sequence",
                     models.IntegerField(
                         default=10,
-                        help_text="Orden de emparejamiento, empresa específica primero (Odoo sequence).",
+                        help_text=(
+                            "Orden de emparejamiento, empresa específica"
+                            " primero (Odoo sequence)."
+                        ),
                     ),
                 ),
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre de la posición fiscal (Odoo name, requerido).",
+                        help_text=(
+                            "Nombre de la posición fiscal (Odoo name,"
+                            " requerido)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -525,7 +652,10 @@ class Migration(migrations.Migration):
                     "active",
                     models.BooleanField(
                         default=True,
-                        help_text="Posición activa; desactivar en vez de borrar (Odoo active).",
+                        help_text=(
+                            "Posición activa; desactivar en vez de borrar"
+                            " (Odoo active)."
+                        ),
                     ),
                 ),
                 (
@@ -533,21 +663,30 @@ class Migration(migrations.Migration):
                     models.TextField(
                         blank=True,
                         default="",
-                        help_text="Menciones legales a imprimir en la factura (Odoo note, Html en la referencia).",
+                        help_text=(
+                            "Menciones legales a imprimir en la factura (Odoo"
+                            " note, Html en la referencia)."
+                        ),
                     ),
                 ),
                 (
                     "auto_apply",
                     models.BooleanField(
                         default=False,
-                        help_text="Aplica automáticamente si el criterio VAT/país coincide (Odoo auto_apply).",
+                        help_text=(
+                            "Aplica automáticamente si el criterio VAT/país"
+                            " coincide (Odoo auto_apply)."
+                        ),
                     ),
                 ),
                 (
                     "vat_required",
                     models.BooleanField(
                         default=False,
-                        help_text="Sólo aplica si el tercero tiene VAT (Odoo vat_required).",
+                        help_text=(
+                            "Sólo aplica si el tercero tiene VAT (Odoo"
+                            " vat_required)."
+                        ),
                     ),
                 ),
                 (
@@ -555,7 +694,9 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Rango de código postal, desde (Odoo zip_from).",
+                        help_text=(
+                            "Rango de código postal, desde (Odoo zip_from)."
+                        ),
                         max_length=24,
                     ),
                 ),
@@ -564,7 +705,9 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Rango de código postal, hasta (Odoo zip_to).",
+                        help_text=(
+                            "Rango de código postal, hasta (Odoo zip_to)."
+                        ),
                         max_length=24,
                     ),
                 ),
@@ -573,7 +716,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="RFC/VAT propio en la región mapeada por esta posición (Odoo foreign_vat).",
+                        help_text=(
+                            "RFC/VAT propio en la región mapeada por esta"
+                            " posición (Odoo foreign_vat)."
+                        ),
                         max_length=32,
                     ),
                 ),
@@ -590,7 +736,10 @@ class Migration(migrations.Migration):
                     "country",
                     models.ForeignKey(
                         blank=True,
-                        help_text="País de entrega requerido para aplicar (Odoo country_id).",
+                        help_text=(
+                            "País de entrega requerido para aplicar (Odoo"
+                            " country_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="fiscal_positions",
@@ -601,7 +750,10 @@ class Migration(migrations.Migration):
                     "country_group",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Grupo de países requerido para aplicar (Odoo country_group_id).",
+                        help_text=(
+                            "Grupo de países requerido para aplicar (Odoo"
+                            " country_group_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="fiscal_positions",
@@ -613,7 +765,10 @@ class Migration(migrations.Migration):
                     models.ManyToManyField(
                         blank=True,
                         db_table="account_fiscal_position_state_rel",
-                        help_text="Estados federales requeridos para aplicar (Odoo state_ids).",
+                        help_text=(
+                            "Estados federales requeridos para aplicar (Odoo"
+                            " state_ids)."
+                        ),
                         related_name="fiscal_positions",
                         to="base.rescountrystate",
                     ),
@@ -623,7 +778,10 @@ class Migration(migrations.Migration):
                     models.ManyToManyField(
                         blank=True,
                         db_table="account_fiscal_position_account_tax_rel",
-                        help_text="Impuestos destino aplicables bajo esta posición (Odoo tax_ids).",
+                        help_text=(
+                            "Impuestos destino aplicables bajo esta posición"
+                            " (Odoo tax_ids)."
+                        ),
                         related_name="fiscal_positions",
                         to="account.accounttax",
                     ),
@@ -651,7 +809,10 @@ class Migration(migrations.Migration):
                 (
                     "account_dest",
                     models.ForeignKey(
-                        help_text="Cuenta a usar en su lugar (Odoo account_dest_id, requerido).",
+                        help_text=(
+                            "Cuenta a usar en su lugar (Odoo account_dest_id,"
+                            " requerido)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="fiscal_position_mappings_dest",
                         to="account.accountaccount",
@@ -660,7 +821,10 @@ class Migration(migrations.Migration):
                 (
                     "account_src",
                     models.ForeignKey(
-                        help_text="Cuenta declarada en el producto (Odoo account_src_id, requerido).",
+                        help_text=(
+                            "Cuenta declarada en el producto (Odoo"
+                            " account_src_id, requerido)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="fiscal_position_mappings_src",
                         to="account.accountaccount",
@@ -670,7 +834,10 @@ class Migration(migrations.Migration):
                     "company",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Empresa (Odoo company_id, related=position_id.company_id, store=True).",
+                        help_text=(
+                            "Empresa (Odoo company_id,"
+                            " related=position_id.company_id, store=True)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="fiscal_position_accounts",
@@ -680,7 +847,10 @@ class Migration(migrations.Migration):
                 (
                     "position",
                     models.ForeignKey(
-                        help_text="Posición fiscal dueña de este mapeo (Odoo position_id, requerido).",
+                        help_text=(
+                            "Posición fiscal dueña de este mapeo (Odoo"
+                            " position_id, requerido)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="account_ids",
                         to="account.accountfiscalposition",
@@ -698,7 +868,10 @@ class Migration(migrations.Migration):
             name="full_reconcile",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Conciliación total que agrupa este apunte (Odoo full_reconcile_id). Nulo mientras no exista match total.",
+                help_text=(
+                    "Conciliación total que agrupa este apunte (Odoo"
+                    " full_reconcile_id). Nulo mientras no exista match total."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="reconciled_line_ids",
@@ -729,7 +902,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Prefijo de código, inicio del rango (Odoo code_prefix_start).",
+                        help_text=(
+                            "Prefijo de código, inicio del rango (Odoo"
+                            " code_prefix_start)."
+                        ),
                         max_length=32,
                     ),
                 ),
@@ -738,7 +914,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Prefijo de código, fin del rango (Odoo code_prefix_end).",
+                        help_text=(
+                            "Prefijo de código, fin del rango (Odoo"
+                            " code_prefix_end)."
+                        ),
                         max_length=32,
                     ),
                 ),
@@ -755,7 +934,12 @@ class Migration(migrations.Migration):
                     "parent",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Padre en la jerarquía (Odoo parent_id, readonly en la referencia: lo recalcula _adapt_parent_account_group, no se asigna a mano).",
+                        help_text=(
+                            "Padre en la jerarquía (Odoo parent_id, readonly"
+                            " en la referencia: lo recalcula"
+                            " _adapt_parent_account_group, no se asigna a"
+                            " mano)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="children",
@@ -785,21 +969,29 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre del grupo de diarios (Odoo name, requerido, traducible).",
+                        help_text=(
+                            "Nombre del grupo de diarios (Odoo name,"
+                            " requerido, traducible)."
+                        ),
                         max_length=255,
                     ),
                 ),
                 (
                     "sequence",
                     models.IntegerField(
-                        default=10, help_text="Orden de presentación (Odoo sequence)."
+                        default=10,
+                        help_text="Orden de presentación (Odoo sequence).",
                     ),
                 ),
                 (
                     "company",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Empresa que puede seleccionar el grupo en filtros de reportes; sin empresa, disponible para todas (Odoo company_id).",
+                        help_text=(
+                            "Empresa que puede seleccionar el grupo en filtros"
+                            " de reportes; sin empresa, disponible para todas"
+                            " (Odoo company_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="journal_groups",
@@ -810,7 +1002,10 @@ class Migration(migrations.Migration):
                     "excluded_journals",
                     models.ManyToManyField(
                         blank=True,
-                        help_text="Diarios excluidos del grupo (Odoo excluded_journal_ids).",
+                        help_text=(
+                            "Diarios excluidos del grupo (Odoo"
+                            " excluded_journal_ids)."
+                        ),
                         related_name="excluded_from_groups",
                         to="account.accountjournal",
                     ),
@@ -854,7 +1049,10 @@ class Migration(migrations.Migration):
                     "end_datetime",
                     models.DateTimeField(
                         blank=True,
-                        help_text="Fin de vigencia; vacío = indefinida (Odoo end_datetime).",
+                        help_text=(
+                            "Fin de vigencia; vacío = indefinida (Odoo"
+                            " end_datetime)."
+                        ),
                         null=True,
                     ),
                 ),
@@ -863,11 +1061,17 @@ class Migration(migrations.Migration):
                     models.CharField(
                         choices=[
                             ("fiscalyear_lock_date", "Candado global"),
-                            ("tax_lock_date", "Candado de declaración de impuestos"),
+                            (
+                                "tax_lock_date",
+                                "Candado de declaración de impuestos",
+                            ),
                             ("sale_lock_date", "Candado de ventas"),
                             ("purchase_lock_date", "Candado de compras"),
                         ],
-                        help_text="Candado que esta excepción modifica (Odoo lock_date_field, requerido).",
+                        help_text=(
+                            "Candado que esta excepción modifica (Odoo"
+                            " lock_date_field, requerido)."
+                        ),
                         max_length=32,
                     ),
                 ),
@@ -875,7 +1079,10 @@ class Migration(migrations.Migration):
                     "lock_date",
                     models.DateField(
                         blank=True,
-                        help_text="Fecha a la que se mueve el candado (Odoo lock_date).",
+                        help_text=(
+                            "Fecha a la que se mueve el candado (Odoo"
+                            " lock_date)."
+                        ),
                         null=True,
                     ),
                 ),
@@ -883,7 +1090,11 @@ class Migration(migrations.Migration):
                     "company_lock_date",
                     models.DateField(
                         blank=True,
-                        help_text="Candado original de la empresa al crear la excepción (Odoo company_lock_date, técnico, no editable).",
+                        help_text=(
+                            "Candado original de la empresa al crear la"
+                            " excepción (Odoo company_lock_date, técnico, no"
+                            " editable)."
+                        ),
                         null=True,
                     ),
                 ),
@@ -900,7 +1111,10 @@ class Migration(migrations.Migration):
                     "user",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Usuario beneficiario; vacío = para todos (Odoo user_id).",
+                        help_text=(
+                            "Usuario beneficiario; vacío = para todos (Odoo"
+                            " user_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="lock_exceptions",
@@ -932,7 +1146,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Importe siempre positivo emparejado por este partial, en moneda de la empresa (Odoo amount).",
+                        help_text=(
+                            "Importe siempre positivo emparejado por este"
+                            " partial, en moneda de la empresa (Odoo amount)."
+                        ),
                         max_digits=16,
                     ),
                 ),
@@ -940,14 +1157,21 @@ class Migration(migrations.Migration):
                     "max_date",
                     models.DateField(
                         blank=True,
-                        help_text="Fecha máxima entre debit_move_id y credit_move_id (Odoo max_date, computado). Se usa para reportes de antigüedad.",
+                        help_text=(
+                            "Fecha máxima entre debit_move_id y credit_move_id"
+                            " (Odoo max_date, computado). Se usa para reportes"
+                            " de antigüedad."
+                        ),
                         null=True,
                     ),
                 ),
                 (
                     "credit_move",
                     models.ForeignKey(
-                        help_text="Apunte del lado haber (Odoo credit_move_id, requerido).",
+                        help_text=(
+                            "Apunte del lado haber (Odoo credit_move_id,"
+                            " requerido)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="matched_credit_ids",
                         to="account.accountmoveline",
@@ -956,7 +1180,10 @@ class Migration(migrations.Migration):
                 (
                     "debit_move",
                     models.ForeignKey(
-                        help_text="Apunte del lado debe (Odoo debit_move_id, requerido).",
+                        help_text=(
+                            "Apunte del lado debe (Odoo debit_move_id,"
+                            " requerido)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="matched_debit_ids",
                         to="account.accountmoveline",
@@ -966,7 +1193,10 @@ class Migration(migrations.Migration):
                     "full_reconcile",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Conciliación total que agrupa este partial, si la hay (Odoo full_reconcile_id).",
+                        help_text=(
+                            "Conciliación total que agrupa este partial, si la"
+                            " hay (Odoo full_reconcile_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="partial_reconcile_ids",
@@ -1009,7 +1239,8 @@ class Migration(migrations.Migration):
                 (
                     "sequence",
                     models.IntegerField(
-                        default=10, help_text="Orden de aplicación (Odoo sequence)."
+                        default=10,
+                        help_text="Orden de aplicación (Odoo sequence).",
                     ),
                 ),
                 (
@@ -1020,7 +1251,10 @@ class Migration(migrations.Migration):
                             ("auto_reconcile", "Automática"),
                         ],
                         default="manual",
-                        help_text="Aplicación manual o automática al validar el extracto (Odoo trigger, requerido).",
+                        help_text=(
+                            "Aplicación manual o automática al validar el"
+                            " extracto (Odoo trigger, requerido)."
+                        ),
                         max_length=16,
                     ),
                 ),
@@ -1028,7 +1262,11 @@ class Migration(migrations.Migration):
                     "can_be_proposed",
                     models.BooleanField(
                         default=False,
-                        help_text="Odoo can_be_proposed (computado, ver compute_can_be_proposed — no automático en save()).",
+                        help_text=(
+                            "Odoo can_be_proposed (computado, ver"
+                            " compute_can_be_proposed — no automático en"
+                            " save())."
+                        ),
                     ),
                 ),
                 (
@@ -1041,7 +1279,10 @@ class Migration(migrations.Migration):
                             ("between", "Está entre"),
                         ],
                         default="",
-                        help_text="Condición sobre el monto del extracto (Odoo match_amount).",
+                        help_text=(
+                            "Condición sobre el monto del extracto (Odoo"
+                            " match_amount)."
+                        ),
                         max_length=8,
                     ),
                 ),
@@ -1075,7 +1316,10 @@ class Migration(migrations.Migration):
                             ("match_regex", "Coincide con regex"),
                         ],
                         default="",
-                        help_text="Condición sobre la etiqueta del extracto (Odoo match_label).",
+                        help_text=(
+                            "Condición sobre la etiqueta del extracto (Odoo"
+                            " match_label)."
+                        ),
                         max_length=16,
                     ),
                 ),
@@ -1084,7 +1328,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Parámetro de match_label (Odoo match_label_param).",
+                        help_text=(
+                            "Parámetro de match_label (Odoo"
+                            " match_label_param)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -1101,7 +1348,10 @@ class Migration(migrations.Migration):
                     "mapped_partner",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo mapped_partner_id (computado, ver compute_mapped_partner_id).",
+                        help_text=(
+                            "Odoo mapped_partner_id (computado, ver"
+                            " compute_mapped_partner_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="+",
@@ -1112,7 +1362,10 @@ class Migration(migrations.Migration):
                     "match_journal_ids",
                     models.ManyToManyField(
                         blank=True,
-                        help_text="Diarios donde aplica la regla (Odoo match_journal_ids).",
+                        help_text=(
+                            "Diarios donde aplica la regla (Odoo"
+                            " match_journal_ids)."
+                        ),
                         related_name="reconcile_models",
                         to="account.accountjournal",
                     ),
@@ -1121,7 +1374,10 @@ class Migration(migrations.Migration):
                     "match_partner_ids",
                     models.ManyToManyField(
                         blank=True,
-                        help_text="Restringe la regla a estos contactos (Odoo match_partner_ids).",
+                        help_text=(
+                            "Restringe la regla a estos contactos (Odoo"
+                            " match_partner_ids)."
+                        ),
                         related_name="+",
                         to=settings.AUTH_USER_MODEL,
                     ),
@@ -1158,7 +1414,9 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Etiqueta de la línea generada (Odoo label).",
+                        help_text=(
+                            "Etiqueta de la línea generada (Odoo label)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -1172,7 +1430,10 @@ class Migration(migrations.Migration):
                             ("regex", "Extraído de la etiqueta"),
                         ],
                         default="percentage",
-                        help_text="Cómo se calcula el monto de la línea (Odoo amount_type, requerido).",
+                        help_text=(
+                            "Cómo se calcula el monto de la línea (Odoo"
+                            " amount_type, requerido)."
+                        ),
                         max_length=24,
                     ),
                 ),
@@ -1180,7 +1441,11 @@ class Migration(migrations.Migration):
                     "amount_string",
                     models.CharField(
                         default="100",
-                        help_text="Valor crudo del monto: porcentaje, fijo, o regex sobre la etiqueta del extracto (Odoo amount_string, requerido).",
+                        help_text=(
+                            "Valor crudo del monto: porcentaje, fijo, o regex"
+                            " sobre la etiqueta del extracto (Odoo"
+                            " amount_string, requerido)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -1188,14 +1453,21 @@ class Migration(migrations.Migration):
                     "amount",
                     models.FloatField(
                         default=0.0,
-                        help_text="amount_string parseado a float (Odoo amount, computado en save() — Odoo lo declara compute+store).",
+                        help_text=(
+                            "amount_string parseado a float (Odoo amount,"
+                            " computado en save() — Odoo lo declara"
+                            " compute+store)."
+                        ),
                     ),
                 ),
                 (
                     "account",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Cuenta destino de la línea generada (Odoo account_id).",
+                        help_text=(
+                            "Cuenta destino de la línea generada (Odoo"
+                            " account_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="reconcile_model_lines",
@@ -1206,7 +1478,11 @@ class Migration(migrations.Migration):
                     "company",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo company_id (related=model_id.company_id, store=True — columna sincronizada en save(), ver divergencia #5).",
+                        help_text=(
+                            "Odoo company_id (related=model_id.company_id,"
+                            " store=True — columna sincronizada en save(), ver"
+                            " divergencia #5)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="reconcile_model_lines",
@@ -1226,7 +1502,9 @@ class Migration(migrations.Migration):
                     "partner",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Contacto de la línea generada (Odoo partner_id).",
+                        help_text=(
+                            "Contacto de la línea generada (Odoo partner_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="+",
@@ -1263,7 +1541,8 @@ class Migration(migrations.Migration):
                 (
                     "sequence",
                     models.IntegerField(
-                        default=10, help_text="Orden de presentación (Odoo sequence)."
+                        default=10,
+                        help_text="Orden de presentación (Odoo sequence).",
                     ),
                 ),
                 (
@@ -1271,7 +1550,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Etiqueta del subtotal previo al grupo (Odoo preceding_subtotal).",
+                        help_text=(
+                            "Etiqueta del subtotal previo al grupo (Odoo"
+                            " preceding_subtotal)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -1280,7 +1562,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Etiqueta en el ticket de punto de venta (Odoo pos_receipt_label).",
+                        help_text=(
+                            "Etiqueta en el ticket de punto de venta (Odoo"
+                            " pos_receipt_label)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -1288,7 +1573,10 @@ class Migration(migrations.Migration):
                     "advance_tax_payment_account",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Cuenta de anticipos considerada en el cierre (Odoo advance_tax_payment_account_id).",
+                        help_text=(
+                            "Cuenta de anticipos considerada en el cierre"
+                            " (Odoo advance_tax_payment_account_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="tax_groups_advance",
@@ -1308,7 +1596,11 @@ class Migration(migrations.Migration):
                     "country",
                     models.ForeignKey(
                         blank=True,
-                        help_text="País de aplicación (Odoo country_id, compute desde la empresa; aquí resuelto en save(), ver _compute_country()).",
+                        help_text=(
+                            "País de aplicación (Odoo country_id, compute"
+                            " desde la empresa; aquí resuelto en save(), ver"
+                            " _compute_country())."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="tax_groups",
@@ -1319,7 +1611,11 @@ class Migration(migrations.Migration):
                     "tax_payable_account",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Cuenta de contrapartida del asiento de cierre cuando el saldo favorece a la autoridad fiscal (Odoo tax_payable_account_id).",
+                        help_text=(
+                            "Cuenta de contrapartida del asiento de cierre"
+                            " cuando el saldo favorece a la autoridad fiscal"
+                            " (Odoo tax_payable_account_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="tax_groups_payable",
@@ -1330,7 +1626,11 @@ class Migration(migrations.Migration):
                     "tax_receivable_account",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Cuenta de contrapartida del asiento de cierre cuando el saldo favorece a la empresa (Odoo tax_receivable_account_id).",
+                        help_text=(
+                            "Cuenta de contrapartida del asiento de cierre"
+                            " cuando el saldo favorece a la empresa (Odoo"
+                            " tax_receivable_account_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="tax_groups_receivable",
@@ -1361,14 +1661,20 @@ class Migration(migrations.Migration):
                     "factor_percent",
                     models.FloatField(
                         default=100,
-                        help_text="Porcentaje del factor aplicado a los apuntes generados (Odoo factor_percent).",
+                        help_text=(
+                            "Porcentaje del factor aplicado a los apuntes"
+                            " generados (Odoo factor_percent)."
+                        ),
                     ),
                 ),
                 (
                     "factor",
                     models.FloatField(
                         default=1.0,
-                        help_text="Factor en fracción (Odoo factor, compute=_compute_factor; resuelto en save()).",
+                        help_text=(
+                            "Factor en fracción (Odoo factor,"
+                            " compute=_compute_factor; resuelto en save())."
+                        ),
                     ),
                 ),
                 (
@@ -1376,15 +1682,24 @@ class Migration(migrations.Migration):
                     models.CharField(
                         choices=[("base", "Base"), ("tax", "Del impuesto")],
                         default="tax",
-                        help_text="Base sobre la que se aplica el factor (Odoo repartition_type, requerido).",
+                        help_text=(
+                            "Base sobre la que se aplica el factor (Odoo"
+                            " repartition_type, requerido)."
+                        ),
                         max_length=8,
                     ),
                 ),
                 (
                     "document_type",
                     models.CharField(
-                        choices=[("invoice", "Factura"), ("refund", "Nota de crédito")],
-                        help_text="Factura o nota de crédito (Odoo document_type, requerido).",
+                        choices=[
+                            ("invoice", "Factura"),
+                            ("refund", "Nota de crédito"),
+                        ],
+                        help_text=(
+                            "Factura o nota de crédito (Odoo document_type,"
+                            " requerido)."
+                        ),
                         max_length=8,
                     ),
                 ),
@@ -1392,21 +1707,35 @@ class Migration(migrations.Migration):
                     "sequence",
                     models.IntegerField(
                         default=1,
-                        help_text="Orden de presentación/emparejamiento (Odoo sequence). Para que las notas de crédito casen bien con la factura, el orden debe coincidir entre document_type=invoice y document_type=refund.",
+                        help_text=(
+                            "Orden de presentación/emparejamiento (Odoo"
+                            " sequence). Para que las notas de crédito casen"
+                            " bien con la factura, el orden debe coincidir"
+                            " entre document_type=invoice y"
+                            " document_type=refund."
+                        ),
                     ),
                 ),
                 (
                     "use_in_tax_closing",
                     models.BooleanField(
                         default=False,
-                        help_text="Entra en el asiento de cierre de IVA (Odoo use_in_tax_closing, compute; resuelto en save()).",
+                        help_text=(
+                            "Entra en el asiento de cierre de IVA (Odoo"
+                            " use_in_tax_closing, compute; resuelto en"
+                            " save())."
+                        ),
                     ),
                 ),
                 (
                     "account",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Cuenta donde se postea el monto de impuesto (Odoo account_id). Vacía cuando repartition_type=base, igual que el _onchange de la referencia.",
+                        help_text=(
+                            "Cuenta donde se postea el monto de impuesto (Odoo"
+                            " account_id). Vacía cuando repartition_type=base,"
+                            " igual que el _onchange de la referencia."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="tax_repartition_lines",
@@ -1417,7 +1746,10 @@ class Migration(migrations.Migration):
                     "company",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Empresa (Odoo company_id, related=tax_id.company_id, store=True).",
+                        help_text=(
+                            "Empresa (Odoo company_id,"
+                            " related=tax_id.company_id, store=True)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="tax_repartition_lines",
@@ -1429,7 +1761,10 @@ class Migration(migrations.Migration):
                     models.ManyToManyField(
                         blank=True,
                         db_table="account_tax_repartition_line_tag_rel",
-                        help_text="Casillas fiscales asociadas (Odoo tag_ids, domain applicability=taxes).",
+                        help_text=(
+                            "Casillas fiscales asociadas (Odoo tag_ids, domain"
+                            " applicability=taxes)."
+                        ),
                         related_name="tax_repartition_lines",
                         to="account.accountaccounttag",
                     ),
@@ -1437,7 +1772,10 @@ class Migration(migrations.Migration):
                 (
                     "tax",
                     models.ForeignKey(
-                        help_text="Impuesto al que pertenece esta línea (Odoo tax_id).",
+                        help_text=(
+                            "Impuesto al que pertenece esta línea (Odoo"
+                            " tax_id)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="repartition_lines",
                         to="account.accounttax",
@@ -1448,7 +1786,12 @@ class Migration(migrations.Migration):
                 "verbose_name": "Línea de reparto de impuesto",
                 "verbose_name_plural": "Líneas de reparto de impuesto",
                 "db_table": "account_tax_repartition_line",
-                "ordering": ["document_type", "repartition_type", "sequence", "id"],
+                "ordering": [
+                    "document_type",
+                    "repartition_type",
+                    "sequence",
+                    "id",
+                ],
             },
         ),
         migrations.AddConstraint(
@@ -1461,13 +1804,15 @@ class Migration(migrations.Migration):
         migrations.AddIndex(
             model_name="accountbankstatement",
             index=models.Index(
-                fields=["journal", "date", "-id"], name="acc_bank_stmt_journal_date_idx"
+                fields=["journal", "date", "-id"],
+                name="acc_bank_stmt_journal_date_idx",
             ),
         ),
         migrations.AddIndex(
             model_name="accountbankstatementline",
             index=models.Index(
-                fields=["statement", "sequence"], name="acc_bank_stmt_line_seq_idx"
+                fields=["statement", "sequence"],
+                name="acc_bank_stmt_line_seq_idx",
             ),
         ),
         migrations.AddConstraint(
@@ -1480,7 +1825,8 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="accountjournalgroup",
             constraint=models.UniqueConstraint(
-                fields=("company", "name"), name="unique_journal_group_name_company"
+                fields=("company", "name"),
+                name="unique_journal_group_name_company",
             ),
         ),
         migrations.AddIndex(

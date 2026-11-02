@@ -62,6 +62,7 @@ de arriba — usan sólo columnas que este árbol ya tiene
 (``AccountMove.company``/``move_type``/``state``,
 ``AccountBankStatement.balance_end``/``balance_end_real``).
 """
+
 from collections import defaultdict
 
 import fields
@@ -92,12 +93,14 @@ class DashboardActionBlocked(NotImplementedError):
 def _blocked(method_name, missing):
     raise DashboardActionBlocked(
         f'{method_name}: bloqueado — {missing} (ver el docstring de '
-        f'account_journal_dashboard.py).')
+        'account_journal_dashboard.py).'
+    )
 
 
 # --------------------------------------------------------------------
 # Campos — ≙ odoo19c: account_journal_dashboard.py:26-40
 # --------------------------------------------------------------------
+
 
 def _add_if_absent(model, name, field):
     """Añade el campo sólo si el modelo no lo tiene ya — mismo helper que
@@ -110,6 +113,7 @@ def _add_if_absent(model, name, field):
 # Métodos con lógica real (12) — ≙ líneas citadas en cada docstring
 # --------------------------------------------------------------------
 
+
 def _compute_current_statement_balance(self):
     """≙ ``_compute_current_statement_balance`` (``:41-45``).
 
@@ -118,7 +122,9 @@ def _compute_current_statement_balance(self):
     """
     last = _last_bank_statement(self)
     self.current_statement_balance = last.balance_end if last else 0
-    self.has_statement_lines = bool(last and last.balance_end != last.balance_end_real)
+    self.has_statement_lines = bool(
+        last and last.balance_end != last.balance_end_real
+    )
 
 
 def _last_bank_statement(self):
@@ -132,8 +138,7 @@ def _last_bank_statement(self):
     if self.type != 'bank':
         return None
     return (
-        AccountBankStatement.objects
-        .filter(journal=self, is_valid=True)
+        AccountBankStatement.objects.filter(journal=self, is_valid=True)
         .order_by('-date', '-pk')
         .first()
     )
@@ -157,7 +162,9 @@ def _compute_has_entries(self):
     publicado?
     """
     has_any = AccountMove.objects.filter(journal=self).exists()
-    has_posted = AccountMove.objects.filter(journal=self, state='posted').exists()
+    has_posted = AccountMove.objects.filter(
+        journal=self, state='posted'
+    ).exists()
     self.has_entries = has_any
     self.has_posted_entries = has_posted
 
@@ -165,15 +172,18 @@ def _compute_has_entries(self):
 def _compute_entries_count(self):
     """≙ ``_compute_entries_count`` (``:241-255``)."""
     self.entries_count = AccountMove.objects.filter(
-        journal=self, state='posted').count()
+        journal=self, state='posted'
+    ).count()
 
 
 def _compute_has_sequence_holes(self):
     """≙ ``_compute_has_sequence_holes`` (``:194-198``) — **bloqueado**, ver
     "Bloqueados como GRUPO" punto 3 del docstring del módulo."""
-    _blocked('_compute_has_sequence_holes',
-             'requiere _query_has_sequence_holes, que depende de la '
-             'cadena de integridad (hash-chain) ausente')
+    _blocked(
+        '_compute_has_sequence_holes',
+        'requiere _query_has_sequence_holes, que depende de la '
+        'cadena de integridad (hash-chain) ausente',
+    )
 
 
 def _query_has_sequence_holes(self):
@@ -213,8 +223,11 @@ def to_check_ids(self):
     subconjunto portable: líneas de estado de cuenta sin conciliar
     (``AccountBankStatementLine.is_reconciled=False``).
     """
-    return list(AccountBankStatementLine.objects.filter(
-        journal=self, is_reconciled=False))
+    return list(
+        AccountBankStatementLine.objects.filter(
+            journal=self, is_reconciled=False
+        )
+    )
 
 
 def action_post_all_entries(self):
@@ -249,7 +262,9 @@ _BLOCKED_DASHBOARD_WIDGET = {
     '_fill_bank_cash_dashboard_data': "widget kanban/OWL ausente",
     '_fill_sale_purchase_dashboard_data': "widget kanban/OWL ausente",
     '_fill_general_dashboard_data': "widget kanban/OWL ausente",
-    '_fill_onboarding_data': "widget kanban/OWL ausente + onboarding action GAP",
+    '_fill_onboarding_data': (
+        "widget kanban/OWL ausente + onboarding action GAP"
+    ),
     '_get_draft_sales_purchases_query': "widget kanban/OWL ausente",
     '_get_to_pay_select': "widget kanban/OWL ausente",
     '_get_open_sale_purchase_query': "widget kanban/OWL ausente",
@@ -263,17 +278,27 @@ _BLOCKED_DASHBOARD_WIDGET = {
 _BLOCKED_ACTIONS = {
     '_get_move_action_context': "ir.actions.act_window ausente",
     'action_create_new': "ir.actions.act_window ausente",
-    '_build_no_journal_error_msg': "ir.actions.act_window ausente (mensaje de error del wizard)",
-    'action_create_vendor_bill': "ir.actions.act_window ausente + datos de muestra",
+    '_build_no_journal_error_msg': (
+        "ir.actions.act_window ausente (mensaje de error del wizard)"
+    ),
+    'action_create_vendor_bill': (
+        "ir.actions.act_window ausente + datos de muestra"
+    ),
     '_select_action_to_open': "ir.actions.act_window ausente",
     'open_action': "ir.actions.act_window ausente",
     'open_payments_action': "ir.actions.act_window ausente",
     'open_action_with_context': "ir.actions.act_window ausente",
     'open_bank_difference_action': "ir.actions.act_window ausente",
     'open_invalid_statements_action': "ir.actions.act_window ausente",
-    '_show_sequence_holes': "ir.actions.act_window ausente + cadena de integridad ausente",
-    'show_sequence_holes': "ir.actions.act_window ausente + cadena de integridad ausente",
-    'show_unhashed_entries': "ir.actions.act_window ausente + cadena de integridad ausente",
+    '_show_sequence_holes': (
+        "ir.actions.act_window ausente + cadena de integridad ausente"
+    ),
+    'show_sequence_holes': (
+        "ir.actions.act_window ausente + cadena de integridad ausente"
+    ),
+    'show_unhashed_entries': (
+        "ir.actions.act_window ausente + cadena de integridad ausente"
+    ),
     'create_bank_statement': "ir.actions.act_window ausente",
     'create_customer_payment': "ir.actions.act_window ausente",
     'create_supplier_payment': "ir.actions.act_window ausente",
@@ -283,6 +308,7 @@ _BLOCKED_ACTIONS = {
 def _make_blocked(method_name, missing):
     def _method(self, *args, **kwargs):
         _blocked(method_name, missing)
+
     _method.__name__ = method_name
     return _method
 
@@ -297,36 +323,83 @@ def apply_account_extensions():
     import tardío desde ``ready()`` es igual de necesario aquí (los campos se
     cuelgan de un modelo cuyo registro debe estar poblado).
     """
-    _add_if_absent(AccountJournal, 'kanban_dashboard', fields.Text(blank=True, default=''))
-    _add_if_absent(AccountJournal, 'kanban_dashboard_graph', fields.Text(blank=True, default=''))
-    _add_if_absent(AccountJournal, 'json_activity_data', fields.Text(blank=True, default=''))
+    _add_if_absent(
+        AccountJournal, 'kanban_dashboard', fields.Text(blank=True, default='')
+    )
+    _add_if_absent(
+        AccountJournal,
+        'kanban_dashboard_graph',
+        fields.Text(blank=True, default=''),
+    )
+    _add_if_absent(
+        AccountJournal,
+        'json_activity_data',
+        fields.Text(blank=True, default=''),
+    )
     # ``compute`` no almacenado en la fuente, como todo el dashboard — la
     # forma stored-con-default de los Boolean/Text de al lado es divergencia
     # heredada del porte; ésta va fiel porque además Django exige
     # max_digits/decimal_places en un DecimalField con columna (fields.E130/2).
-    _add_if_absent(AccountJournal, 'current_statement_balance',
-                   fields.Monetary(store=False, default=0))
-    _add_if_absent(AccountJournal, 'has_statement_lines', fields.Boolean(default=False))
+    _add_if_absent(
+        AccountJournal,
+        'current_statement_balance',
+        fields.Monetary(store=False, default=0),
+    )
+    _add_if_absent(
+        AccountJournal, 'has_statement_lines', fields.Boolean(default=False)
+    )
     _add_if_absent(AccountJournal, 'entries_count', fields.Integer(default=0))
-    _add_if_absent(AccountJournal, 'has_posted_entries', fields.Boolean(default=False))
-    _add_if_absent(AccountJournal, 'has_entries', fields.Boolean(default=False))
-    _add_if_absent(AccountJournal, 'has_sequence_holes', fields.Boolean(default=False))
-    _add_if_absent(AccountJournal, 'has_unhashed_entries', fields.Boolean(default=False))
+    _add_if_absent(
+        AccountJournal, 'has_posted_entries', fields.Boolean(default=False)
+    )
+    _add_if_absent(
+        AccountJournal, 'has_entries', fields.Boolean(default=False)
+    )
+    _add_if_absent(
+        AccountJournal, 'has_sequence_holes', fields.Boolean(default=False)
+    )
+    _add_if_absent(
+        AccountJournal, 'has_unhashed_entries', fields.Boolean(default=False)
+    )
 
-    chain_method(AccountJournal, '_compute_current_statement_balance',
-                 _compute_current_statement_balance)
+    chain_method(
+        AccountJournal,
+        '_compute_current_statement_balance',
+        _compute_current_statement_balance,
+    )
     chain_method(AccountJournal, '_compute_has_entries', _compute_has_entries)
-    chain_method(AccountJournal, '_compute_entries_count', _compute_entries_count)
-    chain_method(AccountJournal, '_compute_has_sequence_holes', _compute_has_sequence_holes)
-    chain_method(AccountJournal, '_query_has_sequence_holes', _query_has_sequence_holes)
+    chain_method(
+        AccountJournal, '_compute_entries_count', _compute_entries_count
+    )
+    chain_method(
+        AccountJournal,
+        '_compute_has_sequence_holes',
+        _compute_has_sequence_holes,
+    )
+    chain_method(
+        AccountJournal, '_query_has_sequence_holes', _query_has_sequence_holes
+    )
     chain_method(AccountJournal, '_get_moves_to_hash', _get_moves_to_hash)
-    chain_method(AccountJournal, '_compute_has_unhashed_entries', _compute_has_unhashed_entries)
-    chain_method(AccountJournal, 'is_sample_action_available', is_sample_action_available)
+    chain_method(
+        AccountJournal,
+        '_compute_has_unhashed_entries',
+        _compute_has_unhashed_entries,
+    )
+    chain_method(
+        AccountJournal,
+        'is_sample_action_available',
+        is_sample_action_available,
+    )
     chain_method(AccountJournal, 'to_check_ids', to_check_ids)
-    chain_method(AccountJournal, 'action_post_all_entries', action_post_all_entries)
+    chain_method(
+        AccountJournal, 'action_post_all_entries', action_post_all_entries
+    )
     if not hasattr(AccountJournal, 'last_statement_id'):
         AccountJournal.last_statement_id = property(last_statement_id)
 
-    for name, missing in {**_BLOCKED_DASHBOARD_WIDGET, **_BLOCKED_ACTIONS}.items():
+    for name, missing in {
+        **_BLOCKED_DASHBOARD_WIDGET,
+        **_BLOCKED_ACTIONS,
+    }.items():
         if not hasattr(AccountJournal, name):
             setattr(AccountJournal, name, _make_blocked(name, missing))

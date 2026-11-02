@@ -29,6 +29,7 @@ se retiran; el modelo ``rating.Review`` anclado a la canónica (sin FK
 espejo) sigue cubierto en ``test_axis_anchor_e4pre.py`` y
 ``test_sale_order_v4a.py``.
 """
+
 from decimal import Decimal
 from uuid import uuid4
 
@@ -51,20 +52,29 @@ User = get_user_model()
 @pytest.fixture
 def producto():
     cat = make_category(name='Cat I2')
-    return make_product(name='Prod I2', price=Decimal('60.00'), stock=9, categ=cat)
+    return make_product(
+        name='Prod I2', price=Decimal('60.00'), stock=9, categ=cat
+    )
 
 
 @pytest.fixture
 def venta(producto):
     """Venta confirmada por el flujo real (nombre de secuencia asignado)."""
     draft = SaleOrder.objects.create(
-        state=SaleOrder.STATE_DRAFT, cart_token=uuid4())
+        state=SaleOrder.STATE_DRAFT, cart_token=uuid4()
+    )
     add_item_to_draft(draft, producto, quantity=1)
     confirm_draft_order(
         draft,
-        address_data={'recipient_name': 'I2', 'street': 'Calle 2',
-                      'city': 'CDMX', 'state': 'CDMX', 'zip_code': '01000'},
-        guest_email='i2@test.mx')
+        address_data={
+            'recipient_name': 'I2',
+            'street': 'Calle 2',
+            'city': 'CDMX',
+            'state': 'CDMX',
+            'zip_code': '01000',
+        },
+        guest_email='i2@test.mx',
+    )
     draft.refresh_from_db()
     return draft
 
@@ -74,33 +84,46 @@ class TestSerializersEmitenIdentidadCanonica:
     def test_guia_solo_canonica_publica_el_nombre_de_la_venta(self, venta):
         courier = Courier.objects.create(name='DHL I2', code='DHL-I2')
         guia = ShipmentGuide.objects.create(
-            sale_order=venta, courier=courier,
-            tracking_number='TRK-I2-1')
+            sale_order=venta, courier=courier, tracking_number='TRK-I2-1'
+        )
         data = ShipmentGuideSerializer(guia).data
         assert data['order_number'] == venta.name
 
 
 class TestReembolsoNotificaDesdeLaCanonica:
 
-    def test_refund_de_pago_solo_canonico_no_pierde_la_notificacion(self, producto):
+    def test_refund_de_pago_solo_canonico_no_pierde_la_notificacion(
+        self, producto
+    ):
         """Antes de I2 el signal atravesaba ``payment.order`` (nullable tras
         E4-pre): un pago sólo-canónico caía al ``except`` y el email se
         perdía en silencio. Ahora notifica desde la canónica."""
         comprador = User.objects.create_user(
-            login='refund.i2@kaupamex.mx', password='x')
+            login='refund.i2@kaupamex.mx', password='x'
+        )
         draft = SaleOrder.objects.create(
-            state=SaleOrder.STATE_DRAFT, partner=comprador)
+            state=SaleOrder.STATE_DRAFT, partner=comprador
+        )
         SaleOrderLine.objects.create(
-            order=draft, product=producto, name=producto.name,
-            product_uom_qty=1, price_unit=producto.lst_price)
+            order=draft,
+            product=producto,
+            name=producto.name,
+            product_uom_qty=1,
+            price_unit=producto.lst_price,
+        )
         draft.action_confirm()
 
         pago = Payment.objects.create(
-            sale_order=draft, gateway=Payment.GATEWAY_MANUAL,
-            status=Payment.STATUS_APPROVED, amount=Decimal('60.00'))
+            sale_order=draft,
+            gateway=Payment.GATEWAY_MANUAL,
+            status=Payment.STATUS_APPROVED,
+            amount=Decimal('60.00'),
+        )
         Refund.objects.create(
-            payment=pago, amount=Decimal('60.00'),
-            status=Refund.STATUS_APPROVED)
+            payment=pago,
+            amount=Decimal('60.00'),
+            status=Refund.STATUS_APPROVED,
+        )
 
         notif = Notification.objects.filter(user=comprador).latest('id')
         assert draft.name in notif.subject
@@ -121,13 +144,15 @@ class TestLosLectoresYaNoAtraviesanElEspejo:
         ``controllers/`` (mapa de H-API-238); el archivo de vistas quedó como
         ``controllers/main.py``.
         """
-        fuente = open('addons/delivery/controllers/serializers.py',
-                      encoding='utf-8').read()
+        fuente = open(
+            'addons/delivery/controllers/serializers.py', encoding='utf-8'
+        ).read()
         assert "source='sale_order.name'" in fuente
         assert "source='order.order_number'" not in fuente
 
     def test_el_dashboard_de_guias_no_atraviesa_el_espejo(self):
-        fuente = open('addons/delivery/controllers/main.py',
-                      encoding='utf-8').read()
+        fuente = open(
+            'addons/delivery/controllers/main.py', encoding='utf-8'
+        ).read()
         assert 'guide.order.order_number' not in fuente
         assert 'guide.sale_order.name' in fuente

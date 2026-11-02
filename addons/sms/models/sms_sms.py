@@ -9,6 +9,7 @@ SMS) queda fuera de scope: aquí ``SmsSms`` es el registro de intención de env�
 y su transición de estado; el transporte real lo cablea el proveedor que se
 integre después (Clausula 5 anti-performativa — no se fabrica el gateway).
 """
+
 import fields
 import models
 
@@ -19,8 +20,8 @@ class SmsSms(TimeStampedModel):
     """``sms.sms`` — un SMS saliente y su estado de envío."""
 
     STATE_PENDING = 'pending'
-    STATE_SENT    = 'sent'
-    STATE_ERROR   = 'error'
+    STATE_SENT = 'sent'
+    STATE_ERROR = 'error'
     STATE_CHOICES = [
         (STATE_PENDING, 'En cola'),
         (STATE_SENT, 'Enviado'),
@@ -28,21 +29,26 @@ class SmsSms(TimeStampedModel):
     ]
 
     # Odoo sms.sms.number (sms_sms.py:40).
-    number     = fields.Char(
-        max_length=32, help_text='Número destino (Odoo sms.sms.number).',
+    number = fields.Char(
+        max_length=32,
+        help_text='Número destino (Odoo sms.sms.number).',
     )
     # Odoo sms.sms.body (sms_sms.py:41).
-    body       = fields.Text(
+    body = fields.Text(
         help_text='Cuerpo del mensaje (Odoo sms.sms.body).',
     )
     # Odoo sms.sms.state (sms_sms.py:44) — colapsado a 3 estados.
-    state      = fields.Selection(
-        max_length=16, choices=STATE_CHOICES, default=STATE_PENDING,
+    state = fields.Selection(
+        max_length=16,
+        choices=STATE_CHOICES,
+        default=STATE_PENDING,
         help_text='Estado de envío (Odoo sms.sms.state, colapsado).',
     )
     # Odoo sms.sms.failure_type (sms_sms.py:54) — motivo de error, texto libre.
     error_code = fields.Char(
-        max_length=64, blank=True, default='',
+        max_length=64,
+        blank=True,
+        default='',
         help_text='Motivo del fallo si state=error (Odoo failure_type).',
     )
 

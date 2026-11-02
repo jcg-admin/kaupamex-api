@@ -12,6 +12,7 @@ paquete, sección "Wiring pendiente"): este ``AppConfig`` sólo se ejecuta si
 ``'addons.account_fleet'`` está en ``INSTALLED_APPS``
 (``config/settings/base.py``, no tocado por este agente).
 """
+
 import importlib
 
 from django.apps import AppConfig

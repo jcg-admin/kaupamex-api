@@ -8,6 +8,7 @@ las cinco posiciones, la composición de atributos y — el caso que hizo ganar 
 
 Son funciones puras sobre lxml: no tocan la BD ni el ORM.
 """
+
 import pytest
 from lxml import etree
 
@@ -30,7 +31,9 @@ def dump(node: etree._Element) -> str:
 class TestLocateNode:
     def test_xpath_encuentra_el_nodo(self):
         source = arch('<doc><a/><b name="x"/></doc>')
-        node = locate_node(source, spec('<xpath expr="//b" position="after"/>'))
+        node = locate_node(
+            source, spec('<xpath expr="//b" position="after"/>')
+        )
         assert node is not None and node.tag == 'b'
 
     def test_xpath_sin_expr_levanta(self):
@@ -41,11 +44,15 @@ class TestLocateNode:
     def test_xpath_invalido_levanta(self):
         source = arch('<doc/>')
         with pytest.raises(ValidationError):
-            locate_node(source, spec('<xpath expr="//[malo" position="after"/>'))
+            locate_node(
+                source, spec('<xpath expr="//[malo" position="after"/>')
+            )
 
     def test_field_compara_solo_el_nombre(self):
         source = arch('<doc><field name="total" widget="monetary"/></doc>')
-        node = locate_node(source, spec('<field name="total" position="after"/>'))
+        node = locate_node(
+            source, spec('<field name="total" position="after"/>')
+        )
         assert node is not None and node.get('widget') == 'monetary'
 
 
@@ -53,25 +60,31 @@ class TestPositions:
     def test_inside_agrega_al_final(self):
         source = arch('<doc><seccion><a/></seccion></doc>')
         result = apply_inheritance_specs(
-            source, spec('<xpath expr="//seccion" position="inside"><b/></xpath>'))
+            source,
+            spec('<xpath expr="//seccion" position="inside"><b/></xpath>'),
+        )
         assert [c.tag for c in result.find('seccion')] == ['a', 'b']
 
     def test_after_inserta_como_hermano(self):
         source = arch('<doc><a/><c/></doc>')
         result = apply_inheritance_specs(
-            source, spec('<xpath expr="//a" position="after"><b/></xpath>'))
+            source, spec('<xpath expr="//a" position="after"><b/></xpath>')
+        )
         assert [c.tag for c in result] == ['a', 'b', 'c']
 
     def test_before_inserta_como_hermano(self):
         source = arch('<doc><a/><c/></doc>')
         result = apply_inheritance_specs(
-            source, spec('<xpath expr="//c" position="before"><b/></xpath>'))
+            source, spec('<xpath expr="//c" position="before"><b/></xpath>')
+        )
         assert [c.tag for c in result] == ['a', 'b', 'c']
 
     def test_replace_outer_sustituye_el_nodo(self):
         source = arch('<doc><viejo texto="1"/></doc>')
         result = apply_inheritance_specs(
-            source, spec('<xpath expr="//viejo" position="replace"><nuevo/></xpath>'))
+            source,
+            spec('<xpath expr="//viejo" position="replace"><nuevo/></xpath>'),
+        )
         assert [c.tag for c in result] == ['nuevo']
 
     def test_replace_outer_con_dolar_cero_conserva_el_original(self):
@@ -80,7 +93,11 @@ class TestPositions:
         source = arch('<doc><viejo/></doc>')
         result = apply_inheritance_specs(
             source,
-            spec('<xpath expr="//viejo" position="replace"><caja>$0</caja></xpath>'))
+            spec(
+                '<xpath expr="//viejo"'
+                ' position="replace"><caja>$0</caja></xpath>'
+            ),
+        )
         caja = result.find('caja')
         assert caja is not None and [c.tag for c in caja] == ['viejo']
 
@@ -91,9 +108,12 @@ class TestPositions:
         source = arch('<doc><nodo><conservar/><descartar/></nodo></doc>')
         result = apply_inheritance_specs(
             source,
-            spec('<xpath expr="//nodo" position="replace" mode="inner">'
-                 '<nuevo><conservar position="move"/></nuevo>'
-                 '</xpath>'))
+            spec(
+                '<xpath expr="//nodo" position="replace" mode="inner">'
+                '<nuevo><conservar position="move"/></nuevo>'
+                '</xpath>'
+            ),
+        )
         nodo = result.find('nodo')
         assert [c.tag for c in nodo] == ['nuevo']
         assert [c.tag for c in nodo.find('nuevo')] == ['conservar']
@@ -103,9 +123,12 @@ class TestPositions:
         source = arch('<doc><a/><b/><destino/></doc>')
         result = apply_inheritance_specs(
             source,
-            spec('<xpath expr="//destino" position="inside">'
-                 '<b position="move"/>'
-                 '</xpath>'))
+            spec(
+                '<xpath expr="//destino" position="inside">'
+                '<b position="move"/>'
+                '</xpath>'
+            ),
+        )
         assert [c.tag for c in result] == ['a', 'destino']
         assert [c.tag for c in result.find('destino')] == ['b']
 
@@ -113,7 +136,11 @@ class TestPositions:
         source = arch('<doc><a/></doc>')
         with pytest.raises(ValueError):
             apply_inheritance_specs(
-                source, spec('<xpath expr="//inexistente" position="after"><b/></xpath>'))
+                source,
+                spec(
+                    '<xpath expr="//inexistente" position="after"><b/></xpath>'
+                ),
+            )
 
 
 class TestAttributes:
@@ -121,27 +148,36 @@ class TestAttributes:
         source = arch('<doc><nodo clase="x"/></doc>')
         result = apply_inheritance_specs(
             source,
-            spec('<xpath expr="//nodo" position="attributes">'
-                 '<attribute name="clase">y</attribute>'
-                 '<attribute name="extra">1</attribute>'
-                 '</xpath>'))
+            spec(
+                '<xpath expr="//nodo" position="attributes">'
+                '<attribute name="clase">y</attribute>'
+                '<attribute name="extra">1</attribute>'
+                '</xpath>'
+            ),
+        )
         nodo = result.find('nodo')
         assert nodo.get('clase') == 'y' and nodo.get('extra') == '1'
 
         result = apply_inheritance_specs(
             result,
-            spec('<xpath expr="//nodo" position="attributes">'
-                 '<attribute name="extra"></attribute>'
-                 '</xpath>'))
+            spec(
+                '<xpath expr="//nodo" position="attributes">'
+                '<attribute name="extra"></attribute>'
+                '</xpath>'
+            ),
+        )
         assert 'extra' not in result.find('nodo').attrib
 
     def test_add_remove_componen_listas(self):
         source = arch('<doc><nodo class="a b c"/></doc>')
         result = apply_inheritance_specs(
             source,
-            spec('<xpath expr="//nodo" position="attributes">'
-                 '<attribute name="class" add="d" remove="b" separator=" "/>'
-                 '</xpath>'))
+            spec(
+                '<xpath expr="//nodo" position="attributes">'
+                '<attribute name="class" add="d" remove="b" separator=" "/>'
+                '</xpath>'
+            ),
+        )
         assert result.find('nodo').get('class') == 'a c d'
 
     def test_expresion_python_exige_separador_booleano(self):
@@ -149,14 +185,20 @@ class TestAttributes:
         with pytest.raises(ValueError):
             apply_inheritance_specs(
                 source,
-                spec('<xpath expr="//nodo" position="attributes">'
-                     '<attribute name="invisible" add="otro" separator=","/>'
-                     '</xpath>'))
+                spec(
+                    '<xpath expr="//nodo" position="attributes">'
+                    '<attribute name="invisible" add="otro" separator=","/>'
+                    '</xpath>'
+                ),
+            )
         result = apply_inheritance_specs(
             arch('<doc><nodo invisible="ctx"/></doc>'),
-            spec('<xpath expr="//nodo" position="attributes">'
-                 '<attribute name="invisible" add="otro" separator=" or "/>'
-                 '</xpath>'))
+            spec(
+                '<xpath expr="//nodo" position="attributes">'
+                '<attribute name="invisible" add="otro" separator=" or "/>'
+                '</xpath>'
+            ),
+        )
         assert result.find('nodo').get('invisible') == '(ctx) or (otro)'
 
 
@@ -166,8 +208,11 @@ class TestDataWrapper:
         source = arch('<doc><a/><b/></doc>')
         result = apply_inheritance_specs(
             source,
-            spec('<data>'
-                 '<xpath expr="//a" position="after"><x/></xpath>'
-                 '<xpath expr="//b" position="replace"><y/></xpath>'
-                 '</data>'))
+            spec(
+                '<data>'
+                '<xpath expr="//a" position="after"><x/></xpath>'
+                '<xpath expr="//b" position="replace"><y/></xpath>'
+                '</data>'
+            ),
+        )
         assert [c.tag for c in result] == ['a', 'x', 'y']

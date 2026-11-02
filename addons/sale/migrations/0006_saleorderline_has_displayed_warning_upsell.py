@@ -15,7 +15,11 @@ class Migration(migrations.Migration):
             name="has_displayed_warning_upsell",
             field=models.BooleanField(
                 default=False,
-                help_text="Odoo has_displayed_warning_upsell (copy=False). Quién la escribe está bloqueado por qty_delivered — ver el docstring del módulo.",
+                help_text=(
+                    "Odoo has_displayed_warning_upsell (copy=False). Quién la"
+                    " escribe está bloqueado por qty_delivered — ver el"
+                    " docstring del módulo."
+                ),
                 verbose_name="Aviso de venta adicional ya mostrado",
             ),
         ),

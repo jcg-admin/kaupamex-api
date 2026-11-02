@@ -26,6 +26,7 @@ La migración de la columna va en la app DUEÑA del modelo
 (``addons/stock/migrations/``) — wiring del orquestador, mismo criterio que
 las columnas que ``hr_timesheet`` cuelga sobre ``analytic``/``project``.
 """
+
 import fields
 import models
 
@@ -41,16 +42,25 @@ def apply_project_stock_stock_picking_extensions():
     da el reverso ``Project.pickings`` que consume
     ``models/project_project.py`` de este mismo addon.
     """
-    extend_model('stock.picking', campos={
-        'project': fields.Many2one(
-            'project.Project', on_delete=models.SET_NULL, null=True,
-            blank=True, related_name='pickings', db_index=True,
-            help_text='Odoo project_id (project_stock). Proyecto al que '
-                      'pertenece el albarán. El domain de la referencia '
-                      '(is_template=False) queda pendiente — ver docstring '
-                      'del módulo.',
-        ),
-    })
+    extend_model(
+        'stock.picking',
+        campos={
+            'project': fields.Many2one(
+                'project.Project',
+                on_delete=models.SET_NULL,
+                null=True,
+                blank=True,
+                related_name='pickings',
+                db_index=True,
+                help_text=(
+                    'Odoo project_id (project_stock). Proyecto al que '
+                    'pertenece el albarán. El domain de la referencia '
+                    '(is_template=False) queda pendiente — ver docstring '
+                    'del módulo.'
+                ),
+            ),
+        },
+    )
 
 
 __all__ = ['apply_project_stock_stock_picking_extensions']

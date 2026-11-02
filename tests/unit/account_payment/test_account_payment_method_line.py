@@ -10,6 +10,7 @@ account_payment_method_line.py`` (``odoo-tools@622ddc2aa5563d12295b4ab7d
 models/account_payment_method_line.py`` para la divergencia de
 ``payment_provider_state`` (sin el valor intermedio ``'test'``).
 """
+
 import pytest
 from django.db import transaction
 
@@ -38,25 +39,29 @@ def company():
 @pytest.fixture
 def journal(company):
     return AccountJournal.objects.create(
-        name='Banco', code='BNKML', type='bank', company=company)
+        name='Banco', code='BNKML', type='bank', company=company
+    )
 
 
 @pytest.fixture
 def method():
     return AccountPaymentMethod.objects.create(
-        name='MercadoPago', code='mercadopago', payment_type='inbound')
+        name='MercadoPago', code='mercadopago', payment_type='inbound'
+    )
 
 
 @pytest.fixture
 def line(method, journal):
     return AccountPaymentMethodLine.objects.create(
-        payment_method=method, journal=journal)
+        payment_method=method, journal=journal
+    )
 
 
 @pytest.fixture
 def gateway():
     return PaymentGateway.objects.create(
-        gateway='MERCADOPAGO', name='MercadoPago', is_active=True)
+        gateway='MERCADOPAGO', name='MercadoPago', is_active=True
+    )
 
 
 class TestPaymentProviderProperty:
@@ -82,7 +87,8 @@ class TestPaymentProviderState:
 
     def test_disabled_when_inactive(self, line):
         inactive = PaymentGateway.objects.create(
-            gateway='PAYPAL', name='PayPal', is_active=False)
+            gateway='PAYPAL', name='PayPal', is_active=False
+        )
         line.payment_provider = inactive
         assert line.payment_provider_state == 'disabled'
 
@@ -92,16 +98,21 @@ class TestComputeNameOverride:
         # ≙ test_account_payment_methods_and_terms.py::
         #   test_name_defaults_to_method_name — la base sigue corriendo.
         line = AccountPaymentMethodLine.objects.create(
-            payment_method=method, journal=journal)
+            payment_method=method, journal=journal
+        )
         assert line.name == method.name
 
-    def test_provider_name_used_when_base_leaves_it_empty(self, journal, gateway):
+    def test_provider_name_used_when_base_leaves_it_empty(
+        self, journal, gateway
+    ):
         # payment_method sin name (cadena vacía) — la base no puede llenar
         # ``name``, así que la extensión de este addon sí.
         method_sin_name = AccountPaymentMethod.objects.create(
-            name='', code='sin-nombre', payment_type='inbound')
+            name='', code='sin-nombre', payment_type='inbound'
+        )
         line = AccountPaymentMethodLine.objects.create(
-            payment_method=method_sin_name, journal=journal)
+            payment_method=method_sin_name, journal=journal
+        )
         assert line.name == ''
         line.payment_provider = gateway
         line.save()  # vuelve a correr _compute_name, ya con el enlace creado
@@ -109,7 +120,8 @@ class TestComputeNameOverride:
 
     def test_explicit_name_not_overridden(self, method, journal, gateway):
         line = AccountPaymentMethodLine.objects.create(
-            payment_method=method, journal=journal, name='Nombre explícito')
+            payment_method=method, journal=journal, name='Nombre explícito'
+        )
         line.payment_provider = gateway
         line.save()
         assert line.name == 'Nombre explícito'
@@ -123,7 +135,8 @@ class TestUnlinkExceptActiveProvider:
 
     def test_delete_allowed_with_inactive_provider(self, line):
         inactive = PaymentGateway.objects.create(
-            gateway='PAYPAL', name='PayPal', is_active=False)
+            gateway='PAYPAL', name='PayPal', is_active=False
+        )
         line.payment_provider = inactive
         pk = line.pk
         line.delete()
@@ -132,7 +145,8 @@ class TestUnlinkExceptActiveProvider:
     def test_delete_blocked_with_active_provider(self, line, gateway):
         line.payment_provider = gateway
         # El `atomic()` interno acota el rollback: el guard corre en
-        # `pre_delete`, DENTRO del bloque atómico que abre `Collector.delete()`,
+        # `pre_delete`, DENTRO del bloque atómico que abre
+        # `Collector.delete()`,
         # así que al propagar la excepción Django marca la transacción para
         # rollback. Sin acotarla, el `filter(...).exists()` de abajo aborta con
         # `TransactionManagementError` en vez de comprobar lo que interesa.

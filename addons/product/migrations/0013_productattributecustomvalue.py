@@ -31,7 +31,9 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Odoo custom_value. Lo que el comprador escribió.",
+                        help_text=(
+                            "Odoo custom_value. Lo que el comprador escribió."
+                        ),
                         max_length=255,
                         verbose_name="Valor personalizado",
                     ),
@@ -40,7 +42,11 @@ class Migration(migrations.Migration):
                     "custom_product_template_attribute_value_id",
                     models.ForeignKey(
                         db_column="custom_product_template_attribute_value_id",
-                        help_text="Odoo custom_product_template_attribute_value_id. El valor de atributo que admite texto libre (is_custom).",
+                        help_text=(
+                            "Odoo custom_product_template_attribute_value_id."
+                            " El valor de atributo que admite texto libre"
+                            " (is_custom)."
+                        ),
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="custom_values",
                         to="product.producttemplateattributevalue",
@@ -52,7 +58,10 @@ class Migration(migrations.Migration):
                 "verbose_name": "Valor personalizado de atributo",
                 "verbose_name_plural": "Valores personalizados de atributo",
                 "db_table": "product_attribute_custom_value",
-                "ordering": ["custom_product_template_attribute_value_id", "id"],
+                "ordering": [
+                    "custom_product_template_attribute_value_id",
+                    "id",
+                ],
             },
             bases=(
                 orm.models.RecordLoaderMixin,

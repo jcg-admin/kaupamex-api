@@ -24,6 +24,7 @@ Las tres siguientes las suma la tarea **#397** (cierre de huecos de porte de
 no repetir la deuda que ``web.export`` (``controllers/export.py``) dejó
 pendiente (usada ahí, sin fila en este catálogo).
 """
+
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
 MODULES = [

@@ -10,6 +10,7 @@ paga (mismo principio que los snapshots de precio de órdenes).
 Estos tests fijan la ESTRUCTURA (DEC-T6). Los montos son **datos** que el
 operador siembra — no se inventan aquí; se usan valores de prueba arbitrarios.
 """
+
 from datetime import timedelta
 from decimal import Decimal
 
@@ -35,8 +36,10 @@ def test_current_returns_active_price_in_window():
     m = _module()
     now = timezone.now()
     price = ModulePrice.objects.create(
-        module=m, billing_cycle=ModulePrice.BillingCycle.MONTHLY,
-        price=Decimal('199.00'), effective_from=now - timedelta(days=1),
+        module=m,
+        billing_cycle=ModulePrice.BillingCycle.MONTHLY,
+        price=Decimal('199.00'),
+        effective_from=now - timedelta(days=1),
     )
     got = ModulePrice.current(m, ModulePrice.BillingCycle.MONTHLY)
     assert got == price
@@ -52,14 +55,18 @@ def test_current_ignores_expired_and_future_rows():
     now = timezone.now()
     # Expirada.
     ModulePrice.objects.create(
-        module=m, billing_cycle=ModulePrice.BillingCycle.MONTHLY,
-        price=Decimal('99.00'), effective_from=now - timedelta(days=30),
+        module=m,
+        billing_cycle=ModulePrice.BillingCycle.MONTHLY,
+        price=Decimal('99.00'),
+        effective_from=now - timedelta(days=30),
         effective_to=now - timedelta(days=1),
     )
     # Futura.
     ModulePrice.objects.create(
-        module=m, billing_cycle=ModulePrice.BillingCycle.MONTHLY,
-        price=Decimal('299.00'), effective_from=now + timedelta(days=1),
+        module=m,
+        billing_cycle=ModulePrice.BillingCycle.MONTHLY,
+        price=Decimal('299.00'),
+        effective_from=now + timedelta(days=1),
     )
     assert ModulePrice.current(m, ModulePrice.BillingCycle.MONTHLY) is None
 
@@ -68,12 +75,16 @@ def test_current_picks_latest_effective_from_on_rate_change():
     m = _module()
     now = timezone.now()
     ModulePrice.objects.create(
-        module=m, billing_cycle=ModulePrice.BillingCycle.ANNUAL,
-        price=Decimal('1990.00'), effective_from=now - timedelta(days=100),
+        module=m,
+        billing_cycle=ModulePrice.BillingCycle.ANNUAL,
+        price=Decimal('1990.00'),
+        effective_from=now - timedelta(days=100),
     )
     newer = ModulePrice.objects.create(
-        module=m, billing_cycle=ModulePrice.BillingCycle.ANNUAL,
-        price=Decimal('2490.00'), effective_from=now - timedelta(days=1),
+        module=m,
+        billing_cycle=ModulePrice.BillingCycle.ANNUAL,
+        price=Decimal('2490.00'),
+        effective_from=now - timedelta(days=1),
     )
     assert ModulePrice.current(m, ModulePrice.BillingCycle.ANNUAL) == newer
 
@@ -82,8 +93,10 @@ def test_current_is_scoped_by_billing_cycle():
     m = _module()
     now = timezone.now()
     ModulePrice.objects.create(
-        module=m, billing_cycle=ModulePrice.BillingCycle.MONTHLY,
-        price=Decimal('199.00'), effective_from=now - timedelta(days=1),
+        module=m,
+        billing_cycle=ModulePrice.BillingCycle.MONTHLY,
+        price=Decimal('199.00'),
+        effective_from=now - timedelta(days=1),
     )
     assert ModulePrice.current(m, ModulePrice.BillingCycle.ANNUAL) is None
 
@@ -93,11 +106,14 @@ def test_apply_current_price_copies_price_and_keeps_cycle():
     m = _module()
     now = timezone.now()
     ModulePrice.objects.create(
-        module=m, billing_cycle=ModulePrice.BillingCycle.MONTHLY,
-        price=Decimal('199.00'), effective_from=now - timedelta(days=1),
+        module=m,
+        billing_cycle=ModulePrice.BillingCycle.MONTHLY,
+        price=Decimal('199.00'),
+        effective_from=now - timedelta(days=1),
     )
     sub = CompanyModuleSubscription(
-        company=company, module=m,
+        company=company,
+        module=m,
         status=CompanyModuleSubscription.Status.TRIAL,
         billing_cycle=ModulePrice.BillingCycle.MONTHLY,
     )
@@ -111,11 +127,14 @@ def test_copied_price_is_immutable_after_rate_change():
     m = _module()
     now = timezone.now()
     old = ModulePrice.objects.create(
-        module=m, billing_cycle=ModulePrice.BillingCycle.MONTHLY,
-        price=Decimal('199.00'), effective_from=now - timedelta(days=10),
+        module=m,
+        billing_cycle=ModulePrice.BillingCycle.MONTHLY,
+        price=Decimal('199.00'),
+        effective_from=now - timedelta(days=10),
     )
     sub = CompanyModuleSubscription(
-        company=company, module=m,
+        company=company,
+        module=m,
         status=CompanyModuleSubscription.Status.TRIAL,
         billing_cycle=ModulePrice.BillingCycle.MONTHLY,
     )
@@ -125,8 +144,10 @@ def test_copied_price_is_immutable_after_rate_change():
     old.effective_to = now
     old.save(update_fields=['effective_to', 'updated_at'])
     ModulePrice.objects.create(
-        module=m, billing_cycle=ModulePrice.BillingCycle.MONTHLY,
-        price=Decimal('249.00'), effective_from=now,
+        module=m,
+        billing_cycle=ModulePrice.BillingCycle.MONTHLY,
+        price=Decimal('249.00'),
+        effective_from=now,
     )
     sub.refresh_from_db()
     assert sub.price == Decimal('199.00')  # no se reescribe retroactivamente
@@ -136,7 +157,8 @@ def test_apply_current_price_without_row_leaves_price_none():
     company = ResCompany.objects.create(code='c3', name='C3')
     m = _module()
     sub = CompanyModuleSubscription(
-        company=company, module=m,
+        company=company,
+        module=m,
         status=CompanyModuleSubscription.Status.TRIAL,
         billing_cycle=ModulePrice.BillingCycle.MONTHLY,
     )

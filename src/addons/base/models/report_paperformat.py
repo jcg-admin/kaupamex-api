@@ -62,6 +62,7 @@ booleano donde el tipo es entero, quirk de su ORM (falsy ≡ "sin valor"). Aquí
 son ``null=True`` con ``default=None``, que es la forma correcta de decir lo
 mismo en Django sin arrastrar el quirk a la columna.
 """
+
 import fields
 import models
 from django.core.exceptions import ValidationError
@@ -258,7 +259,8 @@ PAPER_SIZES = [
 #: Clave → (ancho, alto) en mm, para la derivación de tamaño de impresión.
 _SIZE_BY_KEY = {
     ps['key']: (ps['width'], ps['height'])
-    for ps in PAPER_SIZES if 'width' in ps
+    for ps in PAPER_SIZES
+    if 'width' in ps
 }
 
 ORIENTATION_LANDSCAPE = 'Landscape'
@@ -278,41 +280,55 @@ class ReportPaperformat(models.Model):
 
     name = fields.Char(max_length=120, verbose_name='Nombre')
     default = fields.Boolean(
-        default=False, verbose_name='¿Formato de papel por defecto?')
+        default=False, verbose_name='¿Formato de papel por defecto?'
+    )
     format = fields.Selection(
         max_length=16,
         choices=[(ps['key'], ps['description']) for ps in PAPER_SIZES],
-        default='A4', blank=True,
+        default='A4',
+        blank=True,
         verbose_name='Tamaño de papel',
         help_text='Seleccione el tamaño de papel adecuado.',
     )
     margin_top = fields.Float(default=40, verbose_name='Margen superior (mm)')
-    margin_bottom = fields.Float(default=20, verbose_name='Margen inferior (mm)')
+    margin_bottom = fields.Float(
+        default=20, verbose_name='Margen inferior (mm)'
+    )
     margin_left = fields.Float(default=7, verbose_name='Margen izquierdo (mm)')
     margin_right = fields.Float(default=7, verbose_name='Margen derecho (mm)')
     # La referencia pone ``default=False`` en estos dos enteros — quirk de su
     # ORM donde falsy ≡ "sin valor". Aquí eso se dice con null.
     page_height = fields.Integer(
-        null=True, blank=True, default=None, verbose_name='Alto de página (mm)')
+        null=True, blank=True, default=None, verbose_name='Alto de página (mm)'
+    )
     page_width = fields.Integer(
-        null=True, blank=True, default=None, verbose_name='Ancho de página (mm)')
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name='Ancho de página (mm)',
+    )
     orientation = fields.Selection(
         max_length=16,
         choices=[
             (ORIENTATION_LANDSCAPE, 'Horizontal'),
             (ORIENTATION_PORTRAIT, 'Vertical'),
         ],
-        default=ORIENTATION_LANDSCAPE, verbose_name='Orientación',
+        default=ORIENTATION_LANDSCAPE,
+        verbose_name='Orientación',
     )
     header_line = fields.Boolean(
-        default=False, verbose_name='Mostrar línea de encabezado')
+        default=False, verbose_name='Mostrar línea de encabezado'
+    )
     header_spacing = fields.Integer(
-        default=35, verbose_name='Espaciado del encabezado')
+        default=35, verbose_name='Espaciado del encabezado'
+    )
     disable_shrinking = fields.Boolean(
-        default=False, verbose_name='Desactivar el ajuste inteligente')
+        default=False, verbose_name='Desactivar el ajuste inteligente'
+    )
     dpi = fields.Integer(default=90, verbose_name='DPI de salida')
     css_margins = fields.Boolean(
-        default=False, verbose_name='Usar márgenes CSS')
+        default=False, verbose_name='Usar márgenes CSS'
+    )
 
     class Meta:
         db_table = 'report_paperformat'

@@ -11,6 +11,7 @@ de solo-UI de Odoo (``hidden`` de la vista, ``subtype_xmlid`` de datos XML) se
 conservan como datos planos; la mecanica de notificacion por subtipo la
 consume ``mail.thread`` (``message_post`` + ``mail.followers.subtype_ids``).
 """
+
 import fields
 import models
 from addons.base.models import TimeStampedModel
@@ -24,8 +25,11 @@ class MailMessageSubtype(TimeStampedModel):
         help_text='Nombre del subtipo (Odoo name), p. ej. "Discussions".',
     )
     description = fields.Text(
-        blank=True, default='',
-        help_text='Descripcion mostrada en la notificacion (Odoo description).',
+        blank=True,
+        default='',
+        help_text=(
+            'Descripcion mostrada en la notificacion (Odoo description).'
+        ),
     )
     internal = fields.Boolean(
         default=False,
@@ -35,20 +39,32 @@ class MailMessageSubtype(TimeStampedModel):
         ),
     )
     parent = fields.Many2one(
-        'mail.MailMessageSubtype', on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='children',
-        help_text='Subtipo padre para relaciones cross-modelo (Odoo parent_id).',
+        'mail.MailMessageSubtype',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='children',
+        help_text=(
+            'Subtipo padre para relaciones cross-modelo (Odoo parent_id).'
+        ),
     )
     res_model = fields.Char(
-        max_length=128, blank=True, default='',
+        max_length=128,
+        blank=True,
+        default='',
         help_text=(
             'Modelo al que aplica el subtipo, p. ej. "sale.SaleOrder" (Odoo '
             'res_model). Vacio = aplica a todos los modelos.'
         ),
     )
     relation_field = fields.Char(
-        max_length=128, blank=True, default='',
-        help_text='Campo de relacion para auto-suscripcion cross-modelo (Odoo relation_field).',
+        max_length=128,
+        blank=True,
+        default='',
+        help_text=(
+            'Campo de relacion para auto-suscripcion cross-modelo (Odoo'
+            ' relation_field).'
+        ),
     )
     default = fields.Boolean(
         default=True,
@@ -60,7 +76,9 @@ class MailMessageSubtype(TimeStampedModel):
     )
     hidden = fields.Boolean(
         default=False,
-        help_text='Oculto en la vista de preferencias del seguidor (Odoo hidden).',
+        help_text=(
+            'Oculto en la vista de preferencias del seguidor (Odoo hidden).'
+        ),
     )
 
     class Meta:
@@ -69,7 +87,9 @@ class MailMessageSubtype(TimeStampedModel):
         verbose_name = 'Subtipo de mensaje'
         verbose_name_plural = 'Subtipos de mensaje'
         indexes = [
-            models.Index(fields=['res_model'], name='mail_subtype_res_model_idx'),
+            models.Index(
+                fields=['res_model'], name='mail_subtype_res_model_idx'
+            ),
         ]
 
     def __str__(self) -> str:

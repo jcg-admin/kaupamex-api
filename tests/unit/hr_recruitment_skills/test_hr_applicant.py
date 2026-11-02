@@ -9,11 +9,14 @@ que cerraban el porte del addon.
 
 Toca DB → django_db.
 """
+
 import pytest
 
 from addons.hr.models.hr_job import HrJob
 from addons.hr_recruitment.models.hr_applicant import HrApplicant
-from addons.hr_recruitment_skills.models.hr_applicant_skill import HrApplicantSkill
+from addons.hr_recruitment_skills.models.hr_applicant_skill import (
+    HrApplicantSkill,
+)
 from addons.hr_skills.models.hr_job_skill import HrJobSkill
 from addons.hr_skills.models.hr_skill import HrSkill
 from addons.hr_skills.models.hr_skill_level import HrSkillLevel
@@ -32,7 +35,8 @@ def _skill(skill_type, name='Python'):
 
 def _skill_level(skill_type, name='Nivel', progress=50):
     return HrSkillLevel.objects.create(
-        skill_type=skill_type, name=name, level_progress=progress)
+        skill_type=skill_type, name=name, level_progress=progress
+    )
 
 
 class TestComputeCurrentApplicantSkillIds:
@@ -46,7 +50,9 @@ class TestComputeCurrentApplicantSkillIds:
         level = _skill_level(skill_type)
         applicant = HrApplicant.objects.create()
         a_s = HrApplicantSkill.objects.create(
-            applicant_id=applicant, skill=skill, skill_type=skill_type,
+            applicant_id=applicant,
+            skill=skill,
+            skill_type=skill_type,
             skill_level=level,
         )
 
@@ -73,10 +79,13 @@ class TestComputeMatchingSkillIds:
         level = _skill_level(skill_type, progress=80)
         job = HrJob.objects.create(name='Dev')
         HrJobSkill.objects.create(
-            job=job, skill=skill, skill_type=skill_type, skill_level=level)
+            job=job, skill=skill, skill_type=skill_type, skill_level=level
+        )
         applicant = HrApplicant.objects.create(job=job)
         HrApplicantSkill.objects.create(
-            applicant_id=applicant, skill=skill, skill_type=skill_type,
+            applicant_id=applicant,
+            skill=skill,
+            skill_type=skill_type,
             skill_level=level,
         )
 
@@ -92,7 +101,8 @@ class TestComputeMatchingSkillIds:
         level = _skill_level(skill_type, progress=80)
         job = HrJob.objects.create(name='Dev')
         HrJobSkill.objects.create(
-            job=job, skill=needed, skill_type=skill_type, skill_level=level)
+            job=job, skill=needed, skill_type=skill_type, skill_level=level
+        )
         applicant = HrApplicant.objects.create(job=job)
 
         matching, missing, score = applicant._compute_matching_skill_ids()
@@ -108,15 +118,22 @@ class TestComputeMatchingSkillIds:
         level = _skill_level(skill_type, progress=50)
         other_job = HrJob.objects.create(name='Other')
         HrJobSkill.objects.create(
-            job=other_job, skill=skill, skill_type=skill_type, skill_level=level)
+            job=other_job,
+            skill=skill,
+            skill_type=skill_type,
+            skill_level=level,
+        )
         applicant = HrApplicant.objects.create(job=None)
         HrApplicantSkill.objects.create(
-            applicant_id=applicant, skill=skill, skill_type=skill_type,
+            applicant_id=applicant,
+            skill=skill,
+            skill_type=skill_type,
             skill_level=level,
         )
 
         matching, _missing, score = applicant._compute_matching_skill_ids(
-            matching_job=other_job)
+            matching_job=other_job
+        )
 
         assert list(matching) == [skill]
         assert score == 100
@@ -138,14 +155,17 @@ class TestMapApplicantSkillIdsToTalentSkillIds:
         talent = HrApplicant.objects.create()
         applicant = HrApplicant.objects.create(pool_applicant=talent)
         HrApplicantSkill.objects.create(
-            applicant_id=applicant, skill=skill, skill_type=skill_type,
+            applicant_id=applicant,
+            skill=skill,
+            skill_type=skill_type,
             skill_level=level,
         )
 
         applicant._map_applicant_skill_ids_to_talent_skill_ids()
 
         talent_skills = set(
-            talent.applicant_skill_ids.values_list('skill_id', flat=True))
+            talent.applicant_skill_ids.values_list('skill_id', flat=True)
+        )
         assert talent_skills == {skill.pk}
 
     def test_updates_the_level_on_an_existing_talent_skill(self):
@@ -155,12 +175,16 @@ class TestMapApplicantSkillIdsToTalentSkillIds:
         high = _skill_level(skill_type, name='Alto', progress=90)
         talent = HrApplicant.objects.create()
         HrApplicantSkill.objects.create(
-            applicant_id=talent, skill=skill, skill_type=skill_type,
+            applicant_id=talent,
+            skill=skill,
+            skill_type=skill_type,
             skill_level=low,
         )
         applicant = HrApplicant.objects.create(pool_applicant=talent)
         HrApplicantSkill.objects.create(
-            applicant_id=applicant, skill=skill, skill_type=skill_type,
+            applicant_id=applicant,
+            skill=skill,
+            skill_type=skill_type,
             skill_level=high,
         )
 
@@ -175,7 +199,9 @@ class TestMapApplicantSkillIdsToTalentSkillIds:
         level = _skill_level(skill_type)
         talent = HrApplicant.objects.create()
         HrApplicantSkill.objects.create(
-            applicant_id=talent, skill=stale, skill_type=skill_type,
+            applicant_id=talent,
+            skill=stale,
+            skill_type=skill_type,
             skill_level=level,
         )
         applicant = HrApplicant.objects.create(pool_applicant=talent)
@@ -196,7 +222,9 @@ class TestMapApplicantSkillIdsToTalentSkillIds:
         skill = _skill(skill_type)
         level = _skill_level(skill_type)
         HrApplicantSkill.objects.create(
-            applicant_id=talent, skill=skill, skill_type=skill_type,
+            applicant_id=talent,
+            skill=skill,
+            skill_type=skill_type,
             skill_level=level,
         )
 
@@ -213,11 +241,19 @@ class TestCreate:
         skill = _skill(skill_type)
         level = _skill_level(skill_type)
 
-        [applicant] = HrApplicant.create([
-            {'applicant_skill_ids': [
-                {'skill': skill, 'skill_level': level, 'skill_type': skill_type},
-            ]},
-        ])
+        [applicant] = HrApplicant.create(
+            [
+                {
+                    'applicant_skill_ids': [
+                        {
+                            'skill': skill,
+                            'skill_level': level,
+                            'skill_type': skill_type,
+                        },
+                    ]
+                },
+            ]
+        )
 
         assert applicant.pk is not None
         assert list(
@@ -232,17 +268,30 @@ class TestCreate:
         s2 = _skill(skill_type, name='B')
         level = _skill_level(skill_type)
 
-        [applicant] = HrApplicant.create([{
-            'current_applicant_skill_ids': [
-                {'skill': s1, 'skill_level': level, 'skill_type': skill_type},
-            ],
-            'applicant_skill_ids': [
-                {'skill': s2, 'skill_level': level, 'skill_type': skill_type},
-            ],
-        }])
+        [applicant] = HrApplicant.create(
+            [
+                {
+                    'current_applicant_skill_ids': [
+                        {
+                            'skill': s1,
+                            'skill_level': level,
+                            'skill_type': skill_type,
+                        },
+                    ],
+                    'applicant_skill_ids': [
+                        {
+                            'skill': s2,
+                            'skill_level': level,
+                            'skill_type': skill_type,
+                        },
+                    ],
+                }
+            ]
+        )
 
         skill_pks = set(
-            applicant.applicant_skill_ids.values_list('skill_id', flat=True))
+            applicant.applicant_skill_ids.values_list('skill_id', flat=True)
+        )
         assert skill_pks == {s1.pk, s2.pk}
 
     def test_scalar_fields_are_applied(self):
@@ -250,9 +299,12 @@ class TestCreate:
         assert applicant.partner_name == 'Ada Lovelace'
 
     def test_creates_several_applicants_from_one_call(self):
-        created = HrApplicant.create([
-            {'partner_name': 'Ada'}, {'partner_name': 'Grace'},
-        ])
+        created = HrApplicant.create(
+            [
+                {'partner_name': 'Ada'},
+                {'partner_name': 'Grace'},
+            ]
+        )
         assert [a.partner_name for a in created] == ['Ada', 'Grace']
 
     def test_skill_type_defaults_when_omitted(self):
@@ -263,9 +315,15 @@ class TestCreate:
         skill = _skill(skill_type)
         level = _skill_level(skill_type)
 
-        [applicant] = HrApplicant.create([
-            {'applicant_skill_ids': [{'skill': skill, 'skill_level': level}]},
-        ])
+        [applicant] = HrApplicant.create(
+            [
+                {
+                    'applicant_skill_ids': [
+                        {'skill': skill, 'skill_level': level}
+                    ]
+                },
+            ]
+        )
 
         created = applicant.applicant_skill_ids.get()
         assert created.skill_type_id is not None
@@ -280,9 +338,17 @@ class TestWrite:
         level = _skill_level(skill_type)
         applicant = HrApplicant.objects.create()
 
-        applicant.write({'applicant_skill_ids': [
-            {'skill': skill, 'skill_level': level, 'skill_type': skill_type},
-        ]})
+        applicant.write(
+            {
+                'applicant_skill_ids': [
+                    {
+                        'skill': skill,
+                        'skill_level': level,
+                        'skill_type': skill_type,
+                    },
+                ]
+            }
+        )
 
         assert list(
             applicant.applicant_skill_ids.values_list('skill_id', flat=True),
@@ -296,7 +362,9 @@ class TestWrite:
         level = _skill_level(skill_type)
         applicant = HrApplicant.objects.create()
         HrApplicantSkill.objects.create(
-            applicant_id=applicant, skill=skill, skill_type=skill_type,
+            applicant_id=applicant,
+            skill=skill,
+            skill_type=skill_type,
             skill_level=level,
         )
 
@@ -313,9 +381,17 @@ class TestWrite:
         talent = HrApplicant.objects.create()
         applicant = HrApplicant.objects.create(pool_applicant=talent)
 
-        applicant.write({'applicant_skill_ids': [
-            {'skill': skill, 'skill_level': level, 'skill_type': skill_type},
-        ]})
+        applicant.write(
+            {
+                'applicant_skill_ids': [
+                    {
+                        'skill': skill,
+                        'skill_level': level,
+                        'skill_type': skill_type,
+                    },
+                ]
+            }
+        )
 
         assert list(
             talent.applicant_skill_ids.values_list('skill_id', flat=True),

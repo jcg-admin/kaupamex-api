@@ -5,6 +5,7 @@ DEC-01): la auditoría append-only de autorización (``AuthzEvent``) vive en su
 propio módulo instalable, al estilo Odoo (``account_audit_trail`` separado de
 ``account``). Un despliegue puede omitirlo sin afectar el core de autorización.
 """
+
 from django.apps import AppConfig
 
 

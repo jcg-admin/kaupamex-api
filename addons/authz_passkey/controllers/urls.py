@@ -1,4 +1,5 @@
 """URLs — addons.authz_passkey (passkeys WebAuthn)."""
+
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 

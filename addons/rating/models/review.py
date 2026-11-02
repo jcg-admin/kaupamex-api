@@ -12,66 +12,78 @@ ReviewModerationLog: append-only audit trail.
 ReviewHelpfulVote: voto de "util" por usuario/reseña (UC-REV-02).
 ReviewImage: foto adjunta a una reseña (UC-REV-02 cap6).
 """
+
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from addons.base.models import SoftDeleteModel, TimeStampedModel
 
 
-
 class Review(TimeStampedModel, SoftDeleteModel):
     """Reseña de un producto comprado. UC-REV-01..03."""
-    STATUS_PENDING  = 'PENDING_MODERATION'
+
+    STATUS_PENDING = 'PENDING_MODERATION'
     STATUS_APPROVED = 'APPROVED'
     STATUS_REJECTED = 'REJECTED'
     STATUSES = [
-        (STATUS_PENDING,  'Pendiente de moderación'),
+        (STATUS_PENDING, 'Pendiente de moderación'),
         (STATUS_APPROVED, 'Aprobada'),
         (STATUS_REJECTED, 'Rechazada'),
     ]
 
     REJECT_INAPPROPRIATE = 'CONTENIDO_INAPROPIADO'
-    REJECT_SPAM          = 'SPAM'
-    REJECT_LANGUAGE      = 'LANGUAGE_NOT_SUPPORTED'
-    REJECT_UNRELATED     = 'NO_RELACIONADA'
+    REJECT_SPAM = 'SPAM'
+    REJECT_LANGUAGE = 'LANGUAGE_NOT_SUPPORTED'
+    REJECT_UNRELATED = 'NO_RELACIONADA'
     REJECT_REASONS = [
         (REJECT_INAPPROPRIATE, 'Contenido inapropiado'),
-        (REJECT_SPAM,          'Spam'),
-        (REJECT_LANGUAGE,      'Idioma no soportado'),
-        (REJECT_UNRELATED,     'No relacionada con el producto'),
+        (REJECT_SPAM, 'Spam'),
+        (REJECT_LANGUAGE, 'Idioma no soportado'),
+        (REJECT_UNRELATED, 'No relacionada con el producto'),
     ]
 
-    user    = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
         related_name='reviews',
     )
     product = models.ForeignKey(
-        'product.ProductProduct', on_delete=models.CASCADE,
+        'product.ProductProduct',
+        on_delete=models.CASCADE,
         related_name='reviews',
     )
     # E4-pre (H-API-26): anclaje invertido. La prueba de compra (UC-REV-02)
     # es la venta canónica — NOT NULL/PROTECT. Desde E5 es el único ancla:
     # la FK al espejo se retiró con el addon ``orders``.
     sale_order = models.ForeignKey(
-        'sale.SaleOrder', on_delete=models.PROTECT, related_name='reviews',
+        'sale.SaleOrder',
+        on_delete=models.PROTECT,
+        related_name='reviews',
     )
-    rating  = models.PositiveSmallIntegerField(
+    rating = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)],
     )
-    title   = models.CharField(max_length=120)
-    body    = models.TextField(max_length=2000)
-    status  = models.CharField(
-        max_length=22, choices=STATUSES,
-        default=STATUS_PENDING, db_index=True,
+    title = models.CharField(max_length=120)
+    body = models.TextField(max_length=2000)
+    status = models.CharField(
+        max_length=22,
+        choices=STATUSES,
+        default=STATUS_PENDING,
+        db_index=True,
     )
     reject_reason = models.CharField(
-        max_length=24, choices=REJECT_REASONS,
-        blank=True, default='',
+        max_length=24,
+        choices=REJECT_REASONS,
+        blank=True,
+        default='',
     )
-    moderated_at  = models.DateTimeField(null=True, blank=True)
-    moderated_by  = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name='moderated_reviews',
+    moderated_at = models.DateTimeField(null=True, blank=True)
+    moderated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='moderated_reviews',
     )
     # UC-REV-02 FR-REV-02.02: votos de 'util' acumulados.
     # Increment-only; decrementos no en scope (deduplicacion via
@@ -79,14 +91,14 @@ class Review(TimeStampedModel, SoftDeleteModel):
     helpful_count = models.PositiveIntegerField(default=0, db_index=True)
 
     class Meta:
-        db_table     = 'reviews_review'
-        constraints  = [
+        db_table = 'reviews_review'
+        constraints = [
             models.UniqueConstraint(
                 fields=['user', 'product'],
                 name='unique_review_user_product',
             )
         ]
-        ordering     = ['-created_at']
+        ordering = ['-created_at']
         verbose_name = 'Reseña'
 
     def __str__(self):
@@ -99,26 +111,32 @@ class ReviewModerationLog(TimeStampedModel):
 
     DEC-DOC-007 exception — auditoria append-only no hereda SoftDeleteModel.
     """
+
     ACTION_APPROVE = 'APPROVE'
-    ACTION_REJECT  = 'REJECT'
+    ACTION_REJECT = 'REJECT'
     ACTIONS = [
         (ACTION_APPROVE, 'Aprobar'),
-        (ACTION_REJECT,  'Rechazar'),
+        (ACTION_REJECT, 'Rechazar'),
     ]
 
-    review     = models.ForeignKey(
-        Review, on_delete=models.CASCADE, related_name='moderation_logs',
+    review = models.ForeignKey(
+        Review,
+        on_delete=models.CASCADE,
+        related_name='moderation_logs',
     )
-    action     = models.CharField(max_length=10, choices=ACTIONS)
-    reason     = models.CharField(max_length=24, blank=True, default='')
-    actor      = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name='+',
+    action = models.CharField(max_length=10, choices=ACTIONS)
+    reason = models.CharField(max_length=24, blank=True, default='')
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='+',
     )
 
     class Meta:
-        db_table     = 'reviews_moderation_log'
-        ordering     = ['-created_at']
+        db_table = 'reviews_moderation_log'
+        ordering = ['-created_at']
         verbose_name = 'Auditoria de moderacion'
 
 
@@ -130,18 +148,21 @@ class ReviewHelpfulVote(TimeStampedModel):
     a nivel de BD. Cada creacion incrementa Review.helpful_count via
     ReviewHelpfulVoteView (F() expression, atomica).
     """
-    user   = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
         related_name='helpful_votes',
     )
     review = models.ForeignKey(
-        Review, on_delete=models.CASCADE,
+        Review,
+        on_delete=models.CASCADE,
         related_name='helpful_votes',
     )
 
     class Meta:
-        db_table     = 'reviews_helpful_vote'
-        constraints  = [
+        db_table = 'reviews_helpful_vote'
+        constraints = [
             models.UniqueConstraint(
                 fields=['user', 'review'],
                 name='unique_helpful_vote_user_review',
@@ -160,8 +181,11 @@ class ReviewImage(models.Model):
     Mismo patron de almacenamiento que ProductImage (ImageField local,
     MEDIA_ROOT). Maximo 3 imagenes por reseña — validado en la vista.
     """
-    review     = models.ForeignKey(Review, on_delete=models.CASCADE, related_name='images')
-    image      = models.ImageField(upload_to='reviews/images/')
+
+    review = models.ForeignKey(
+        Review, on_delete=models.CASCADE, related_name='images'
+    )
+    image = models.ImageField(upload_to='reviews/images/')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

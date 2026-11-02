@@ -3,6 +3,7 @@
 La infraestructura PostgreSQL y los fixtures de addons siguen perteneciendo
 al Consumer. Estos casos no consideran aceptado el ORM por pasar checks.
 """
+
 import unittest
 
 from django.db import models
@@ -25,7 +26,9 @@ class JsonDefaultTests(unittest.TestCase):
         first, second = JsonDefaultModel(), JsonDefaultModel()
         self.assertEqual(first.history, {'delete_messages': []})
         self.assertIsNot(first.history, second.history)
-        self.assertIsNot(first.history['delete_messages'], second.history['delete_messages'])
+        self.assertIsNot(
+            first.history['delete_messages'], second.history['delete_messages']
+        )
         first.history['delete_messages'].append('first')
         self.assertEqual(second.history, {'delete_messages': []})
         self.assertEqual(JsonDefaultModel().history, {'delete_messages': []})
@@ -67,13 +70,18 @@ class JsonDefaultTests(unittest.TestCase):
     def test_raw_django_negative_control(self):
         field = models.JSONField(default={'delete_messages': []})
         self.assertIs(field.get_default(), field.get_default())
-        self.assertEqual([error.id for error in field._check_default()], ['fields.E010'])
+        self.assertEqual(
+            [error.id for error in field._check_default()], ['fields.E010']
+        )
 
     def test_related_and_store_metadata_are_preserved(self):
         for stored in (False, True):
             with self.subTest(store=stored):
-                field = Json(related='parent.history', store=stored,
-                             default={'delete_messages': []})
+                field = Json(
+                    related='parent.history',
+                    store=stored,
+                    default={'delete_messages': []},
+                )
                 self.assertEqual(field.related, 'parent.history')
                 self.assertEqual(field.store, stored)
                 self.assertEqual(field.get_default(), {'delete_messages': []})

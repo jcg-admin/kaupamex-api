@@ -25,12 +25,18 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("name", models.CharField(max_length=120, verbose_name="Nombre")),
+                (
+                    "name",
+                    models.CharField(max_length=120, verbose_name="Nombre"),
+                ),
                 (
                     "color",
                     models.IntegerField(
                         default=0,
-                        help_text="Odoo color. Un entero de 1 a 11 repartido al azar al crear.",
+                        help_text=(
+                            "Odoo color. Un entero de 1 a 11 repartido al azar"
+                            " al crear."
+                        ),
                         verbose_name="Color",
                     ),
                 ),
@@ -38,7 +44,10 @@ class Migration(migrations.Migration):
                     "active",
                     models.BooleanField(
                         default=True,
-                        help_text="Permite ocultar la categoría sin borrarla (Odoo active).",
+                        help_text=(
+                            "Permite ocultar la categoría sin borrarla (Odoo"
+                            " active)."
+                        ),
                     ),
                 ),
                 (
@@ -47,7 +56,10 @@ class Migration(migrations.Migration):
                         blank=True,
                         db_index=True,
                         default="",
-                        help_text="Ruta materializada '1/4/9/' — sostiene _parent_store.",
+                        help_text=(
+                            "Ruta materializada '1/4/9/' — sostiene"
+                            " _parent_store."
+                        ),
                         max_length=255,
                         verbose_name="Ruta de ancestros",
                     ),

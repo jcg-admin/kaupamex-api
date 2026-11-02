@@ -27,7 +27,9 @@ class Migration(migrations.Migration):
             ],
             options={
                 "verbose_name": "Asistente de historial de acción de servidor",
-                "verbose_name_plural": "Asistentes de historial de acción de servidor",
+                "verbose_name_plural": (
+                    "Asistentes de historial de acción de servidor"
+                ),
                 "db_table": "server_action_history_wizard",
                 "managed": False,
             },
@@ -38,7 +40,11 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Odoo automated_name. El nombre que la acción se pondría sola; si coincide con name, name se regenera al cambiar de tipo.",
+                help_text=(
+                    "Odoo automated_name. El nombre que la acción se pondría"
+                    " sola; si coincide con name, name se regenera al cambiar"
+                    " de tipo."
+                ),
                 max_length=255,
                 verbose_name="Nombre automático",
             ),
@@ -49,7 +55,11 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 db_table="ir_act_server_group_rel",
-                help_text="Odoo group_ids. Grupos que pueden ejecutar la acción. Vacío = cualquiera con permiso de escritura en el modelo.",
+                help_text=(
+                    "Odoo group_ids. Grupos que pueden ejecutar la acción."
+                    " Vacío = cualquiera con permiso de escritura en el"
+                    " modelo."
+                ),
                 related_name="server_actions",
                 to="base.resgroups",
                 verbose_name="Grupos permitidos",
@@ -71,7 +81,9 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 (
                     "code",
-                    models.TextField(blank=True, default="", verbose_name="Código"),
+                    models.TextField(
+                        blank=True, default="", verbose_name="Código"
+                    ),
                 ),
                 (
                     "action",

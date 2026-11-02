@@ -14,6 +14,7 @@ licencia preservados (DEC-KX-03). Porte completo — 1 de 1 campo.
 ``hr/models/resource.py`` ya declara para resolver "el empleado de este
 recurso, o ``None``".
 """
+
 from orm.model_classes import extend_model
 
 
@@ -35,7 +36,8 @@ def apply_hr_skills_resource_resource_extensions():
     """Cuelga sobre ``resource.resource`` lo que ``hr_skills`` le añade —
     ≙ ``_inherit``."""
     extend_model(
-        'resource', 'ResourceResource',
+        'resource',
+        'ResourceResource',
         propiedades={
             'employee_skill_ids': employee_skill_ids,
         },

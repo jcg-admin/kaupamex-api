@@ -4,6 +4,7 @@ Portación fiel de ``account_journal.py`` (Odoo 18/19, ``type`` idéntico:
 sale/purchase/cash/bank/credit/general). Campos núcleo: ``name``, ``code``,
 ``type``, ``currency``, ``default_account``, ``company``, ``active``.
 """
+
 import fields
 import models
 
@@ -26,11 +27,12 @@ class AccountJournal(models.Model):
     #: (``addons/mail/models/mail_thread.py``); ``portal.mixin`` y
     #: ``mail.alias.mixin.optional`` NO — su porte es la tarea #163 (el hilo
     #: de mail sobre crm.team) y #161 (mail.alias.mixin) respectivamente.
-    _inherit = ['portal.mixin',
-                'mail.alias.mixin.optional',
-                'mail.thread',
-                'mail.activity.mixin',
-                ]
+    _inherit = [
+        'portal.mixin',
+        'mail.alias.mixin.optional',
+        'mail.thread',
+        'mail.activity.mixin',
+    ]
     #: ≙ ``_check_company_auto = True`` (``:51``): la coherencia de empresa se
     #: valida al guardar.
     _check_company_auto = True
@@ -41,8 +43,7 @@ class AccountJournal(models.Model):
     #: asigna la funcion pelada porque alla el consumidor es un recordset,
     #: que es una instancia. Mismo simbolo, misma semantica; lo que cambia
     #: es sobre que se invoca.
-    _check_company_domain = classmethod(
-        models.check_company_domain_parent_of)
+    _check_company_domain = classmethod(models.check_company_domain_parent_of)
     #: ≙ ``_rec_names_search = ['name', 'code']`` (``:53``).
     _rec_names_search = ['name', 'code']
 
@@ -55,35 +56,48 @@ class AccountJournal(models.Model):
         ('general', 'Varios'),
     ]
 
-    name            = fields.Char(
-        max_length=255, help_text='Nombre del diario (Odoo name, requerido).',
+    name = fields.Char(
+        max_length=255,
+        help_text='Nombre del diario (Odoo name, requerido).',
     )
-    code            = fields.Char(
-        max_length=12, help_text='Código corto del diario (Odoo code).',
+    code = fields.Char(
+        max_length=12,
+        help_text='Código corto del diario (Odoo code).',
     )
-    type            = fields.Selection(
-        max_length=12, choices=JOURNAL_TYPES,
+    type = fields.Selection(
+        max_length=12,
+        choices=JOURNAL_TYPES,
         help_text='Tipo de diario (Odoo type, requerido).',
     )
-    currency        = fields.Many2one(
-        'base.ResCurrency', on_delete=models.SET_NULL, null=True, blank=True,
+    currency = fields.Many2one(
+        'base.ResCurrency',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='journals',
         help_text='Moneda del diario (Odoo currency_id).',
     )
     default_account = fields.Many2one(
-        'account.AccountAccount', on_delete=models.SET_NULL, null=True, blank=True,
+        'account.AccountAccount',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='default_for_journals',
         help_text='Cuenta por defecto (Odoo default_account_id).',
     )
-    company         = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, related_name='journals',
+    company = fields.Many2one(
+        'base.ResCompany',
+        on_delete=models.CASCADE,
+        related_name='journals',
         help_text='Empresa (Odoo company_id).',
     )
-    active          = fields.Boolean(
-        default=True, help_text='Diario activo (Odoo active).',
+    active = fields.Boolean(
+        default=True,
+        help_text='Diario activo (Odoo active).',
     )
-    sequence        = fields.Integer(
-        default=10, help_text='Orden del diario (Odoo sequence).',
+    sequence = fields.Integer(
+        default=10,
+        help_text='Orden del diario (Odoo sequence).',
     )
     # ``show_on_dashboard`` y ``color`` los declara la referencia en
     # ``account_journal_dashboard.py:30-31``, un ``_inherit`` del **mismo**
@@ -91,10 +105,12 @@ class AccountJournal(models.Model):
     # aparte de allá es una separación de lectura, no de modelo; el resto de
     # ese archivo (la agregación del tablero) queda pendiente, sucesor #158.
     show_on_dashboard = fields.Boolean(
-        default=True, help_text='Mostrar en el tablero (Odoo show_on_dashboard).',
+        default=True,
+        help_text='Mostrar en el tablero (Odoo show_on_dashboard).',
     )
-    color           = fields.Integer(
-        default=0, help_text='Índice de color (Odoo color).',
+    color = fields.Integer(
+        default=0,
+        help_text='Índice de color (Odoo color).',
     )
 
     # Campos de diario bancario — ≙ ``odoo19c: account_journal.py:245-255``.
@@ -103,7 +119,9 @@ class AccountJournal(models.Model):
     # ``bank_account``, y sin el campo su ``set_linked_journal_id`` no podia
     # hacer lo que la fuente hace.
     company_partner = fields.Many2one(
-        'base.ResPartner', related='company.partner', store=False,
+        'base.ResPartner',
+        related='company.partner',
+        store=False,
         verbose_name='Account Holder',
         help_text='Titular de la cuenta (Odoo company_partner_id).',
     )
@@ -111,8 +129,13 @@ class AccountJournal(models.Model):
     #: la columna tambien. Las FK de arriba son forma A —deuda congelada que
     #: barre #143—; una declaracion NUEVA no la ensancha.
     bank_account_id = fields.Many2one(
-        'base.ResPartnerBank', on_delete=models.RESTRICT, null=True, blank=True,
-        db_index=True, db_column='bank_account_id', related_name='journals',
+        'base.ResPartnerBank',
+        on_delete=models.RESTRICT,
+        null=True,
+        blank=True,
+        db_index=True,
+        db_column='bank_account_id',
+        related_name='journals',
         verbose_name='Bank Account',
         help_text='Cuenta bancaria del diario (Odoo bank_account_id).',
     )
@@ -121,28 +144,40 @@ class AccountJournal(models.Model):
     #: para anadir su origen; aqui las opciones se resuelven al declarar la
     #: clase, asi que la lista base vive en el metodo y el campo la consume.
     bank_statements_source = fields.Selection(
-        max_length=32, default='undefined', verbose_name='Bank Feeds',
+        max_length=32,
+        default='undefined',
+        verbose_name='Bank Feeds',
         choices=[('undefined', 'Undefined Yet')],
-        help_text='Como se registran los extractos bancarios '
-                  '(Odoo bank_statements_source).',
+        help_text=(
+            'Como se registran los extractos bancarios '
+            '(Odoo bank_statements_source).'
+        ),
     )
     bank_acc_number = fields.Char(
-        'Bank Account Number', related='bank_account_id.acc_number',
-        readonly=False)
+        'Bank Account Number',
+        related='bank_account_id.acc_number',
+        readonly=False,
+    )
     #: Forma N de ADR-029: ``related`` sin columna. El ``store=False`` es
     #: explicito porque el gate lo mide, no lo infiere del ``related``.
-    bank_id         = fields.Many2one(
-        'base.ResBank', related='bank_account_id.bank', readonly=False,
-        store=False, verbose_name='Bank', help_text='Banco (Odoo bank_id).',
+    bank_id = fields.Many2one(
+        'base.ResBank',
+        related='bank_account_id.bank',
+        readonly=False,
+        store=False,
+        verbose_name='Bank',
+        help_text='Banco (Odoo bank_id).',
     )
 
     class Meta:
         db_table = 'account_journal'
-        # ≙ ``_order = 'sequence, type, code'`` (odoo19c: account_journal.py:45).
+        # ≙ ``_order = 'sequence, type, code'`` (odoo19c:
+        # account_journal.py:45).
         ordering = ['sequence', 'type', 'code']
         constraints = [
             models.UniqueConstraint(
-                fields=['company', 'code'], name='unique_journal_code_company',
+                fields=['company', 'code'],
+                name='unique_journal_code_company',
             ),
         ]
         verbose_name = 'Diario contable'
@@ -170,8 +205,9 @@ class AccountJournal(models.Model):
         return [('undefined', 'Undefined Yet')]
 
     @classmethod
-    def _get_next_journal_default_code(cls, journal_type, company,
-                                       cache=None, protected_codes=None):
+    def _get_next_journal_default_code(
+        cls, journal_type, company, cache=None, protected_codes=None
+    ):
         """El siguiente codigo libre para un diario de ese tipo.
 
         ≙ ``_get_next_journal_default_code``
@@ -196,10 +232,13 @@ class AccountJournal(models.Model):
         if journal_code_base is None:
             return None
         domain = cls._check_company_domain(company)
-        queryset = cls.objects.all() if domain is None else cls.objects.filter(domain)
+        queryset = (
+            cls.objects.all() if domain is None else cls.objects.filter(domain)
+        )
         existing_codes = set(
-            queryset.filter(code__startswith=journal_code_base)
-            .values_list('code', flat=True)
+            queryset.filter(code__startswith=journal_code_base).values_list(
+                'code', flat=True
+            )
         ) | set(cache or [])
         for num in range(1, 100):
             journal_code = f'{journal_code_base}{num}'

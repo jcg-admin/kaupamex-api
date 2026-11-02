@@ -1,4 +1,5 @@
 """AppConfig — addons.authz_passkey (Odoo auth_passkey)."""
+
 import importlib
 
 from django.apps import AppConfig
@@ -15,8 +16,9 @@ class AuthzPasskeyConfig(AppConfig):
     #: de modelos aún no está poblado (excepción #4 de ``no-lazy-imports``:
     #: llamada de función, no statement ``import``).
     _EXTENSIONS = {
-        'addons.authz_passkey.models.res_users':
-            'apply_authz_passkey_res_users_extensions',
+        'addons.authz_passkey.models.res_users': (
+            'apply_authz_passkey_res_users_extensions'
+        ),
     }
 
     def ready(self):

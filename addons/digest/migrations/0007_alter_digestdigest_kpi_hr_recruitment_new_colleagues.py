@@ -15,7 +15,14 @@ class Migration(migrations.Migration):
             name="kpi_hr_recruitment_new_colleagues",
             field=models.BooleanField(
                 default=False,
-                help_text='Odoo kpi_hr_recruitment_new_colleagues ("New Employees"). Su valor calculado (kpi_hr_recruitment_new_colleagues_value) queda BLOQUEADO por ``_compute_kpi_hr_recruitment_new_colleagues_value`` -- tarea #159, ver docstring del módulo.',
+                help_text=(
+                    'Odoo kpi_hr_recruitment_new_colleagues ("New Employees").'
+                    ' Su valor calculado'
+                    ' (kpi_hr_recruitment_new_colleagues_value) queda'
+                    ' BLOQUEADO por'
+                    ' ``_compute_kpi_hr_recruitment_new_colleagues_value`` --'
+                    ' tarea #159, ver docstring del módulo.'
+                ),
                 verbose_name="Nuevos empleados",
             ),
         ),

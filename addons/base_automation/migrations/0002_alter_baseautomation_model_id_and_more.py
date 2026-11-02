@@ -17,7 +17,9 @@ class Migration(migrations.Migration):
             name="model_id",
             field=models.ForeignKey(
                 db_column="model_id",
-                help_text="Modelo objetivo (Odoo model_id, domain abstract=False).",
+                help_text=(
+                    "Modelo objetivo (Odoo model_id, domain abstract=False)."
+                ),
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="base_automations",
                 to="base.irmodel",

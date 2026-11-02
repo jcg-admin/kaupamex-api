@@ -5,8 +5,10 @@
     'name': 'Código QR de transferencia SEPA',
     'version': '1.0',
     'category': 'Accounting/Payment',
-    'summary': 'Genera los valores del código QR de transferencia SEPA '
-               '(SCT, formato EPC) para una cuenta res.partner.bank.',
+    'summary': (
+        'Genera los valores del código QR de transferencia SEPA '
+        '(SCT, formato EPC) para una cuenta res.partner.bank.'
+    ),
     # `depends` alineado con la referencia, que declara `['account',
     # 'base_iban']`. Hasta 2026-08-13 este campo declaraba sólo `base` porque
     # ninguno de los dos existía en el árbol; los dos existen ya y la
@@ -28,9 +30,9 @@
     # structured_reference.py` — ver "Divergencias declaradas" en
     # `models/res_bank.py`.
     'depends': [
-        'base',        # ResPartnerBank, ResPartner, ResBank
-        'account',     # terminales del bloque QR sobre res.partner.bank
-        'base_iban',   # deriva acc_type='iban' (el segundo check lo exige)
+        'base',  # ResPartnerBank, ResPartner, ResBank
+        'account',  # terminales del bloque QR sobre res.partner.bank
+        'base_iban',  # deriva acc_type='iban' (el segundo check lo exige)
     ],
     # Licencia de la fuente de la que se adapta este addon, tal como su
     # manifest la declara (DEC-KX-03 punto 1): `account_qr_code_sepa` en Odoo

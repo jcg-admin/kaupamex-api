@@ -12,6 +12,7 @@ vista no esté portado; consumidores REST vivos en
 tabla se borra ni migra; la migración de contenido y endpoints va en la
 tarea **#560**.
 """
+
 from django.conf import settings
 from django.db import models
 
@@ -20,14 +21,15 @@ from addons.base.models import TimeStampedModel
 
 class StaticContent(TimeStampedModel):
     """Static content page identified by slug."""
-    slug    = models.SlugField(max_length=80, unique=True)
-    title   = models.CharField(max_length=200)
-    body    = models.TextField()
+
+    slug = models.SlugField(max_length=80, unique=True)
+    title = models.CharField(max_length=200)
+    body = models.TextField()
     version = models.PositiveIntegerField(default=1)
 
     class Meta:
-        db_table     = 'static_content_page'
-        ordering     = ['slug']
+        db_table = 'static_content_page'
+        ordering = ['slug']
         verbose_name = 'Contenido estatico'
 
     def __str__(self):
@@ -36,26 +38,32 @@ class StaticContent(TimeStampedModel):
 
 class StaticContentVersion(TimeStampedModel):
     """Append-only history of static content edits."""
-    content    = models.ForeignKey(
-        StaticContent, on_delete=models.CASCADE, related_name='versions',
+
+    content = models.ForeignKey(
+        StaticContent,
+        on_delete=models.CASCADE,
+        related_name='versions',
     )
-    version    = models.PositiveIntegerField()
-    title      = models.CharField(max_length=200)
-    body       = models.TextField()
+    version = models.PositiveIntegerField()
+    title = models.CharField(max_length=200)
+    body = models.TextField()
     changed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name='+',
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='+',
     )
 
     class Meta:
-        db_table     = 'static_content_version'
-        constraints  = [
+        db_table = 'static_content_version'
+        constraints = [
             models.UniqueConstraint(
                 fields=['content', 'version'],
                 name='unique_static_content_version',
             )
         ]
-        ordering     = ['-version']
+        ordering = ['-version']
         verbose_name = 'Version de contenido'
 
 

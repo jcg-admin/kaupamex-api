@@ -17,7 +17,10 @@ class Migration(migrations.Migration):
             name="account_opening_date",
             field=models.DateField(
                 blank=True,
-                help_text="Fecha del asiento de apertura; desde ella se lleva la contabilidad (Odoo account_opening_date).",
+                help_text=(
+                    "Fecha del asiento de apertura; desde ella se lleva la"
+                    " contabilidad (Odoo account_opening_date)."
+                ),
                 null=True,
                 verbose_name="Opening Entry",
             ),
@@ -27,7 +30,10 @@ class Migration(migrations.Migration):
             name="account_opening_move",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Asiento con el saldo inicial de todas las cuentas de esta empresa (Odoo account_opening_move_id).",
+                help_text=(
+                    "Asiento con el saldo inicial de todas las cuentas de esta"
+                    " empresa (Odoo account_opening_move_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="opening_for_companies",

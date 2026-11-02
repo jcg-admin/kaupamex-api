@@ -1,4 +1,5 @@
-# Adaptado de Odoo Community `sale_management/__manifest__.py` (LGPL-3, odoo19c:)
+# Adaptado de Odoo Community `sale_management/__manifest__.py` (LGPL-3,
+# odoo19c:)
 # — atribución y aviso de licencia preservados (DEC-KX-03).
 {
     'name': 'Gestión de ventas',
@@ -13,9 +14,9 @@
     #
     # `authz` es el gate de capacidad, no dependencia de datos (ver lote 2).
     'depends': [
-        'base',     # ResCompany
+        'base',  # ResCompany
         'product',  # Product — las líneas de la plantilla
-        'sale',     # SaleOrder — lo que este addon gestiona
+        'sale',  # SaleOrder — lo que este addon gestiona
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

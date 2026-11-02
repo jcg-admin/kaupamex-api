@@ -36,28 +36,41 @@ class Migration(migrations.Migration):
                     "sequence",
                     models.PositiveIntegerField(
                         default=0,
-                        help_text="Orden de presentación (Odoo sequence). Se deriva del factor.",
+                        help_text=(
+                            "Orden de presentación (Odoo sequence). Se deriva"
+                            " del factor."
+                        ),
                     ),
                 ),
                 (
                     "relative_factor",
                     models.FloatField(
                         default=1.0,
-                        help_text="Cuánto mayor o menor es esta unidad respecto a su unidad de referencia (Odoo relative_factor).",
+                        help_text=(
+                            "Cuánto mayor o menor es esta unidad respecto a su"
+                            " unidad de referencia (Odoo relative_factor)."
+                        ),
                     ),
                 ),
                 (
                     "active",
                     models.BooleanField(
                         default=True,
-                        help_text="Desmarcar para deshabilitar la unidad sin borrarla (Odoo active).",
+                        help_text=(
+                            "Desmarcar para deshabilitar la unidad sin"
+                            " borrarla (Odoo active)."
+                        ),
                     ),
                 ),
                 (
                     "factor",
                     models.FloatField(
                         default=1.0,
-                        help_text="Cantidad absoluta: producto de la cadena de factores relativos (Odoo factor, compute recursivo almacenado).",
+                        help_text=(
+                            "Cantidad absoluta: producto de la cadena de"
+                            " factores relativos (Odoo factor, compute"
+                            " recursivo almacenado)."
+                        ),
                     ),
                 ),
                 (
@@ -66,7 +79,10 @@ class Migration(migrations.Migration):
                         blank=True,
                         db_index=True,
                         default="",
-                        help_text="Ruta materializada de la jerarquía (Odoo _parent_store).",
+                        help_text=(
+                            "Ruta materializada de la jerarquía (Odoo"
+                            " _parent_store)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -74,7 +90,10 @@ class Migration(migrations.Migration):
                     "relative_uom",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Unidad de referencia de la que cuelga (Odoo relative_uom_id).",
+                        help_text=(
+                            "Unidad de referencia de la que cuelga (Odoo"
+                            " relative_uom_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="related_uoms",
@@ -89,7 +108,9 @@ class Migration(migrations.Migration):
                 "ordering": ["sequence", "relative_uom_id", "id"],
                 "constraints": [
                     models.CheckConstraint(
-                        condition=models.Q(("relative_factor", 0), _negated=True),
+                        condition=models.Q(
+                            ("relative_factor", 0), _negated=True
+                        ),
                         name="uom_uom_factor_gt_zero",
                     )
                 ],

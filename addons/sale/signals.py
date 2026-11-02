@@ -9,6 +9,7 @@ Este módulo las declara para invertir la dirección de dependencia (T-034):
 el núcleo **emite**, el satélite **escucha**. ``sale`` no importa a ningún
 ``sale_*``.
 """
+
 import django.dispatch
 
 # Emitida por ``get_draft_totals`` para recolectar descuentos aplicables al

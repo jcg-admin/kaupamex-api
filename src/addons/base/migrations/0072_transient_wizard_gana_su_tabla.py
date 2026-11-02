@@ -16,6 +16,7 @@ tabla.
 Así que la tabla se crea **sólo en la base** y el estado recibe únicamente el
 cambio de opciones, que es lo que de verdad cambió en él.
 """
+
 import django.db.models.deletion
 from django.db import migrations, models
 
@@ -32,27 +33,46 @@ class Migration(migrations.Migration):
                 migrations.CreateModel(
                     name="ServerActionHistoryWizard",
                     fields=[
-                        ("id", models.BigAutoField(
-                            auto_created=True, primary_key=True,
-                            serialize=False, verbose_name="ID")),
-                        ("action", models.ForeignKey(
-                            blank=True, null=True,
-                            on_delete=django.db.models.deletion.CASCADE,
-                            related_name="history_wizards",
-                            to="base.iractionsserver", verbose_name="Acción")),
-                        ("revision", models.ForeignKey(
-                            blank=True, null=True,
-                            on_delete=django.db.models.deletion.CASCADE,
-                            related_name="wizards",
-                            to="base.iractionsserverhistory",
-                            verbose_name="Revisión")),
+                        (
+                            "id",
+                            models.BigAutoField(
+                                auto_created=True,
+                                primary_key=True,
+                                serialize=False,
+                                verbose_name="ID",
+                            ),
+                        ),
+                        (
+                            "action",
+                            models.ForeignKey(
+                                blank=True,
+                                null=True,
+                                on_delete=django.db.models.deletion.CASCADE,
+                                related_name="history_wizards",
+                                to="base.iractionsserver",
+                                verbose_name="Acción",
+                            ),
+                        ),
+                        (
+                            "revision",
+                            models.ForeignKey(
+                                blank=True,
+                                null=True,
+                                on_delete=django.db.models.deletion.CASCADE,
+                                related_name="wizards",
+                                to="base.iractionsserverhistory",
+                                verbose_name="Revisión",
+                            ),
+                        ),
                     ],
                     options={
                         "db_table": "server_action_history_wizard",
-                        "verbose_name":
-                            "Asistente de historial de acción de servidor",
-                        "verbose_name_plural":
-                            "Asistentes de historial de acción de servidor",
+                        "verbose_name": (
+                            "Asistente de historial de acción de servidor"
+                        ),
+                        "verbose_name_plural": (
+                            "Asistentes de historial de acción de servidor"
+                        ),
                     },
                 ),
             ],
@@ -60,10 +80,12 @@ class Migration(migrations.Migration):
                 migrations.AlterModelOptions(
                     name="serveractionhistorywizard",
                     options={
-                        "verbose_name":
-                            "Asistente de historial de acción de servidor",
-                        "verbose_name_plural":
-                            "Asistentes de historial de acción de servidor",
+                        "verbose_name": (
+                            "Asistente de historial de acción de servidor"
+                        ),
+                        "verbose_name_plural": (
+                            "Asistentes de historial de acción de servidor"
+                        ),
                     },
                 ),
                 # El estado tenía el modelo con SOLO su ``id``: al crearlo
@@ -74,20 +96,25 @@ class Migration(migrations.Migration):
                     model_name="serveractionhistorywizard",
                     name="action",
                     field=models.ForeignKey(
-                        blank=True, null=True,
+                        blank=True,
+                        null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="history_wizards",
-                        to="base.iractionsserver", verbose_name="Acción"),
+                        to="base.iractionsserver",
+                        verbose_name="Acción",
+                    ),
                 ),
                 migrations.AddField(
                     model_name="serveractionhistorywizard",
                     name="revision",
                     field=models.ForeignKey(
-                        blank=True, null=True,
+                        blank=True,
+                        null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="wizards",
                         to="base.iractionsserverhistory",
-                        verbose_name="Revisión"),
+                        verbose_name="Revisión",
+                    ),
                 ),
             ],
         ),

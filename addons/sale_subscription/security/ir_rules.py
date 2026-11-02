@@ -8,16 +8,21 @@ para sus modelos con ``company_id`` — regla GLOBAL con dominio verbatim
 datos** (``0002_seed_subscription_security``), con las dos entradas de
 ``base_security``: viva para los tests, histórica para la migración.
 """
+
 from django.db import DEFAULT_DB_ALIAS
 
 from addons.base.models.ir_rule import IrRule as _IrRule
 from addons.base.security.base_security import DOMAIN_MULTICOMPANY, _seed
 
 _RULES = (
-    ('Company Module Subscription multi-company',
-     'sale_subscription.CompanyModuleSubscription'),
-    ('Subscription Invoice multi-company',
-     'sale_subscription.SubscriptionInvoice'),
+    (
+        'Company Module Subscription multi-company',
+        'sale_subscription.CompanyModuleSubscription',
+    ),
+    (
+        'Subscription Invoice multi-company',
+        'sale_subscription.SubscriptionInvoice',
+    ),
 )
 
 

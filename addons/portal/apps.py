@@ -1,4 +1,5 @@
 """AppConfig — addons.portal (Odoo portal)."""
+
 import importlib
 
 from django.apps import AppConfig
@@ -22,5 +23,6 @@ class PortalConfig(AppConfig):
         #
         # ``importlib.import_module`` es la excepción #4 sancionada para
         # ``ready()``: es una llamada de función, no un statement ``import``.
-        importlib.import_module(f'{self.name}.models.res_partner') \
-            .apply_portal_partner_extensions()
+        importlib.import_module(
+            f'{self.name}.models.res_partner'
+        ).apply_portal_partner_extensions()

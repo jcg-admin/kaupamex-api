@@ -51,13 +51,15 @@ El **orden** sí se porta verbatim: la fuente desenlaza y *después* llama a
 esta función devuelve ``None``, así que el anterior corre a continuación y su
 resultado es el que vuelve al llamador.
 """
+
 from addons.account.wizard.account_move_reversal import AccountMoveReversal
 from addons.analytic.models import AccountAnalyticLine
 from orm.method_chain import chain_method
 
 
-def reverse_moves(cls, moves, date=None, reason=None, journal=None,
-                  is_modify=False):
+def reverse_moves(
+    cls, moves, date=None, reason=None, journal=None, is_modify=False
+):
     """≙ ``reverse_moves`` (``odoo19c: account_move_reversal.py:6-15``).
 
     Cuando la reversión es "rehacer" (``is_modify``), los apuntes de hoja de
@@ -69,9 +71,11 @@ def reverse_moves(cls, moves, date=None, reason=None, journal=None,
     """
     if not is_modify:
         return None
-    invoices = [m for m in moves
-                if getattr(m, 'move_type', None) == 'out_invoice'
-                and m.pk is not None]
+    invoices = [
+        m
+        for m in moves
+        if getattr(m, 'move_type', None) == 'out_invoice' and m.pk is not None
+    ]
     if invoices:
         AccountAnalyticLine.objects.filter(
             timesheet_invoice__in=invoices,
@@ -100,8 +104,9 @@ def apply_sale_timesheet_account_move_reversal_extensions():
     ``@classmethod``; ``chain_method`` detecta el envoltorio y lo reinstala
     igual (``src/orm/method_chain.py:141-143``).
     """
-    chain_method(AccountMoveReversal, 'reverse_moves',
-                 classmethod(reverse_moves))
+    chain_method(
+        AccountMoveReversal, 'reverse_moves', classmethod(reverse_moves)
+    )
 
 
 __all__ = ['apply_sale_timesheet_account_move_reversal_extensions']

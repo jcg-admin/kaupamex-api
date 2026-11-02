@@ -8,6 +8,7 @@ ruta se declara con ``@http.route`` sobre el método; aquí la declara el
 ``URLconf`` de Django. Es la misma pieza en el sitio que este stack le da —
 mismo criterio que ``addons/bus/controllers/urls.py``.
 """
+
 from . import main
 
 __all__ = ['main']

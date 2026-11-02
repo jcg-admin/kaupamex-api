@@ -14,6 +14,7 @@ guard explícito que valida los dos campos que alimentan el método, y
 ``odoo19c: :311-316``), que hace que una sucursal herede el cierre de su
 matriz.
 """
+
 import datetime
 
 import pytest
@@ -33,7 +34,8 @@ class TestComputeFiscalyearDatesCalendarYear:
     """Cierre por omisión de la fuente: 31 de diciembre (≙ ``:74-75``)."""
 
     def test_a_date_in_the_middle_of_the_year_maps_to_the_calendar_year(
-            self, company):
+        self, company
+    ):
         result = company.compute_fiscalyear_dates(datetime.date(2026, 6, 15))
         assert result == {
             'date_from': datetime.date(2026, 1, 1),
@@ -71,23 +73,28 @@ class TestComputeFiscalyearDatesStaggeredClose:
         company = ResCompany.objects.create(name='Kaupamex cierre junio')
         company.fiscalyear_last_day = 30
         company.fiscalyear_last_month = '6'
-        company.save(update_fields=[
-            'fiscalyear_last_day', 'fiscalyear_last_month'])
+        company.save(
+            update_fields=['fiscalyear_last_day', 'fiscalyear_last_month']
+        )
         return company
 
     def test_before_the_close_the_year_started_the_previous_calendar_year(
-            self, staggered_company):
+        self, staggered_company
+    ):
         result = staggered_company.compute_fiscalyear_dates(
-            datetime.date(2026, 5, 1))
+            datetime.date(2026, 5, 1)
+        )
         assert result == {
             'date_from': datetime.date(2025, 7, 1),
             'date_to': datetime.date(2026, 6, 30),
         }
 
     def test_after_the_close_the_year_closes_the_next_calendar_year(
-            self, staggered_company):
+        self, staggered_company
+    ):
         result = staggered_company.compute_fiscalyear_dates(
-            datetime.date(2026, 7, 1))
+            datetime.date(2026, 7, 1)
+        )
         assert result == {
             'date_from': datetime.date(2026, 7, 1),
             'date_to': datetime.date(2027, 6, 30),
@@ -104,8 +111,9 @@ class TestComputeFiscalyearDatesDelegatesToDateUtils:
         default = company.compute_fiscalyear_dates(datetime.date(2026, 6, 15))
         company.fiscalyear_last_day = 31
         company.fiscalyear_last_month = '3'
-        company.save(update_fields=[
-            'fiscalyear_last_day', 'fiscalyear_last_month'])
+        company.save(
+            update_fields=['fiscalyear_last_day', 'fiscalyear_last_month']
+        )
         changed = company.compute_fiscalyear_dates(datetime.date(2026, 6, 15))
         assert changed != default
         assert changed == {
@@ -114,10 +122,13 @@ class TestComputeFiscalyearDatesDelegatesToDateUtils:
         }
 
     def test_it_is_the_same_algorithm_as_date_utils_get_fiscal_year(
-            self, company):
+        self, company
+    ):
         expected_from, expected_to = date_utils.get_fiscal_year(
-            datetime.date(2026, 6, 15), day=company.fiscalyear_last_day,
-            month=int(company.fiscalyear_last_month))
+            datetime.date(2026, 6, 15),
+            day=company.fiscalyear_last_day,
+            month=int(company.fiscalyear_last_month),
+        )
         result = company.compute_fiscalyear_dates(datetime.date(2026, 6, 15))
         assert result == {'date_from': expected_from, 'date_to': expected_to}
 
@@ -128,12 +139,12 @@ class TestCheckFiscalyearLastDay:
 
     def test_a_valid_day_for_the_month_does_not_raise(self, company):
         company.fiscalyear_last_day = 30
-        company.fiscalyear_last_month = '4'   # abril tiene 30 días
+        company.fiscalyear_last_month = '4'  # abril tiene 30 días
         company._check_fiscalyear_last_day()
 
     def test_a_day_that_does_not_exist_in_the_month_raises(self, company):
         company.fiscalyear_last_day = 31
-        company.fiscalyear_last_month = '4'   # abril NO tiene 31
+        company.fiscalyear_last_month = '4'  # abril NO tiene 31
         with pytest.raises(ValidationError):
             company._check_fiscalyear_last_day()
 
@@ -151,7 +162,8 @@ class TestCheckFiscalyearLastDay:
             company._check_fiscalyear_last_day()
 
     def test_control_without_calling_the_guard_the_bad_value_survives(
-            self, company):
+        self, company
+    ):
         """CONTROL — el guard NO está enganchado a ``save()`` (a propósito):
         sin llamarlo explícitamente, un día imposible (31 de abril) se
         persiste sin lanzar nada. Es lo que discrimina "el guard existe y
@@ -159,8 +171,9 @@ class TestCheckFiscalyearLastDay:
         """
         company.fiscalyear_last_day = 31
         company.fiscalyear_last_month = '4'
-        company.save(update_fields=[
-            'fiscalyear_last_day', 'fiscalyear_last_month'])
+        company.save(
+            update_fields=['fiscalyear_last_day', 'fiscalyear_last_month']
+        )
         reloaded = ResCompany.objects.get(pk=company.pk)
         assert reloaded.fiscalyear_last_day == 31
         with pytest.raises(ValidationError):
@@ -181,8 +194,9 @@ class TestRootDelegation:
         root = ResCompany.objects.create(name='Matriz')
         root.fiscalyear_last_day = 30
         root.fiscalyear_last_month = '9'
-        root.save(update_fields=[
-            'fiscalyear_last_day', 'fiscalyear_last_month'])
+        root.save(
+            update_fields=['fiscalyear_last_day', 'fiscalyear_last_month']
+        )
         branch = ResCompany.objects.create(name='Sucursal', parent=root)
         # Antes de la delegación, la sucursal trae el default de la fuente.
         assert branch.fiscalyear_last_day == 31

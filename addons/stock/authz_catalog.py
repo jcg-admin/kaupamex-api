@@ -13,6 +13,7 @@ Por qué estos códigos son de este addon:
   dueño en la referencia: ``odoo19c: addons/stock/__manifest__.py`` declara
   ``category: 'Supply Chain/Inventory'`` (``odoo-tools@622ddc2a``).
 """
+
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
 MODULES = [

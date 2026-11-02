@@ -15,6 +15,7 @@ No depende de ``account`` porque esta migración sólo escribe en
 standalone; ``reconciled_inv()``/las consultas de ``code_exec`` son texto
 o código ejecutado en runtime, no columnas de esta migración).
 """
+
 from django.db import migrations
 
 from addons.account_test.data import seed_accounting_assert_tests

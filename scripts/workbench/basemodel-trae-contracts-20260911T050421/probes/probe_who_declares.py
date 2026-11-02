@@ -49,6 +49,7 @@ def main():
     sys.path.insert(0, str(root / 'src'))
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.testing')
     import django
+
     django.setup()
     from django.db import models as dj
     from django.db.models.query import QuerySet

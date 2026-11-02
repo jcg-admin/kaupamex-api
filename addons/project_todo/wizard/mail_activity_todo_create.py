@@ -63,6 +63,7 @@ Divergencias declaradas
    la notificación pertenece al cliente React.
 4. **``_('...')`` en español**, criterio del árbol para textos de usuario.
 """
+
 from django.utils import timezone
 
 from addons.mail.models.mail_activity import MailActivity

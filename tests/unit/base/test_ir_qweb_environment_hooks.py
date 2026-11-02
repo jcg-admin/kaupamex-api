@@ -11,13 +11,17 @@ existían: lo destapó ``http_routing`` (#261) al colgar su override con
 ``wrap_method``, que exige una implementación previa. Estos casos miden lo
 que aquel párrafo afirmaba.
 """
+
 import base64
 import math
 
 import pytest
 
 from addons.base.models.ir_template_expressions import (
-    IrTemplateExpressions, QwebJSON, keep_query, qwebJSON,
+    IrTemplateExpressions,
+    QwebJSON,
+    keep_query,
+    qwebJSON,
 )
 from orm.environments import context_scope
 from tools import config
@@ -40,8 +44,11 @@ class TestTemplateCacheKeys:
     def test_the_five_keys_of_the_source_in_order(self):
         base = _base_link('_get_template_cache_keys')
         assert base(IrTemplateExpressions()) == [
-            'lang', 'inherit_branding', 'inherit_branding_auto',
-            'edit_translations', 'profile',
+            'lang',
+            'inherit_branding',
+            'inherit_branding_auto',
+            'edit_translations',
+            'profile',
         ]
 
     def test_the_installed_chain_starts_with_the_five(self):
@@ -50,8 +57,11 @@ class TestTemplateCacheKeys:
         ahí, en su orden."""
         keys = IrTemplateExpressions()._get_template_cache_keys()
         assert keys[:5] == [
-            'lang', 'inherit_branding', 'inherit_branding_auto',
-            'edit_translations', 'profile',
+            'lang',
+            'inherit_branding',
+            'inherit_branding_auto',
+            'edit_translations',
+            'profile',
         ]
 
 
@@ -122,7 +132,8 @@ class TestQwebJSON:
 
     def test_the_callers_default_still_applies(self):
         payload = qwebJSON.dumps(
-            {'n': {1, 2}}, default=lambda obj: sorted(obj))
+            {'n': {1, 2}}, default=lambda obj: sorted(obj)
+        )
         assert payload == '{"n": [1, 2]}'
 
     def test_it_is_the_script_safe_dumps(self):
@@ -145,8 +156,7 @@ class TestConvertedImageDataUri:
         el WEBP original, sin reventar."""
         source = base64.b64encode(b'RIFF....WEBP')
         with context_scope(webp_as_jpg=True):
-            uri = IrTemplateExpressions()._get_converted_image_data_uri(
-                source)
+            uri = IrTemplateExpressions()._get_converted_image_data_uri(source)
         assert uri.startswith('data:image/webp;base64,')
 
 

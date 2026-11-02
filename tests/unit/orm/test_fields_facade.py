@@ -11,6 +11,7 @@ Estos casos fijan las tres propiedades que el defecto violaba: que la fachada
 exporte lo que la referencia exporta, que un addon pueda publicar en ella
 después del arranque, y que ningún addon necesite cruzarla.
 """
+
 import ast
 import pathlib
 
@@ -23,15 +24,26 @@ import fields
 #: y en su día ``parse_field_expr``) llevan su veredicto en el docstring de la
 #: fachada — dos son divergencia/bloqueo declarados, uno tiene sucesor abierto.
 PUBLIC_SURFACE = (
-    'Boolean', 'Json',
-    'Integer', 'Float', 'Monetary',
-    'Char', 'Text', 'Html',
+    'Boolean',
+    'Json',
+    'Integer',
+    'Float',
+    'Monetary',
+    'Char',
+    'Text',
+    'Html',
     'Selection',
-    'Date', 'Datetime',
-    'Many2one', 'Many2many', 'One2many',
-    'Many2oneReference', 'Reference',
-    'Properties', 'PropertiesDefinition',
-    'Binary', 'Image',
+    'Date',
+    'Datetime',
+    'Many2one',
+    'Many2many',
+    'One2many',
+    'Many2oneReference',
+    'Reference',
+    'Properties',
+    'PropertiesDefinition',
+    'Binary',
+    'Image',
     'Command',
     'parse_field_expr',
 )
@@ -41,7 +53,8 @@ PUBLIC_SURFACE = (
 OWN_SURFACE = ('NonStored',)
 
 #: Publicados por ``base_sparse_field`` en su ``ready()``, no por el núcleo
-#: (≙ ``fields.Serialized = Serialized`` en la cola de su ``models/fields.py``).
+#: (≙ ``fields.Serialized = Serialized`` en la cola de su
+#: ``models/fields.py``).
 INJECTED_SURFACE = ('Serialized', 'Sparse')
 
 
@@ -50,7 +63,7 @@ def test_facade_exports_the_public_surface(name):
     """Cada nombre de la superficie es alcanzable como ``fields.<name>``."""
     assert hasattr(fields, name), (
         f'{name} no está en la fachada; un addon tendría que cruzar la '
-        f'frontera para usarlo'
+        'frontera para usarlo'
     )
 
 
@@ -64,7 +77,7 @@ def test_addon_can_publish_into_the_facade_after_startup(name):
     """
     assert hasattr(fields, name), (
         f'{name} lo publica base_sparse_field en ready(); si no está aquí, '
-        f'la inyección apunta a la capa equivocada (H-API-604)'
+        'la inyección apunta a la capa equivocada (H-API-604)'
     )
 
 
@@ -104,12 +117,16 @@ def test_no_addon_crosses_the_facade_boundary():
         medidos += 1
         try:
             arbol = ast.parse(ruta.read_text())
-        except SyntaxError:                       # pragma: no cover
+        except SyntaxError:  # pragma: no cover
             continue
         for nodo in ast.walk(arbol):
-            if isinstance(nodo, ast.ImportFrom) and nodo.module and (
-                nodo.module.startswith('orm.fields')
-                or nodo.module == 'orm.commands'
+            if (
+                isinstance(nodo, ast.ImportFrom)
+                and nodo.module
+                and (
+                    nodo.module.startswith('orm.fields')
+                    or nodo.module == 'orm.commands'
+                )
             ):
                 prohibidos.append(f'{ruta.relative_to(raiz)}: {nodo.module}')
 

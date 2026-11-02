@@ -28,22 +28,35 @@ class Migration(migrations.Migration):
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("name", models.CharField(max_length=80, unique=True)),
-                ("code", models.CharField(db_index=True, max_length=20, unique=True)),
+                (
+                    "code",
+                    models.CharField(
+                        db_index=True, max_length=20, unique=True
+                    ),
+                ),
                 (
                     "tracking_url_template",
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="URL template with {tracking_number} placeholder.",
+                        help_text=(
+                            "URL template with {tracking_number} placeholder."
+                        ),
                         max_length=255,
                     ),
                 ),
-                ("is_active", models.BooleanField(db_index=True, default=True)),
+                (
+                    "is_active",
+                    models.BooleanField(db_index=True, default=True),
+                ),
                 (
                     "webhook_secret",
                     models.BinaryField(
                         blank=True,
-                        help_text="Per-courier webhook secret, Fernet-encrypted (LOG-04).",
+                        help_text=(
+                            "Per-courier webhook secret, Fernet-encrypted"
+                            " (LOG-04)."
+                        ),
                         null=True,
                     ),
                 ),
@@ -74,7 +87,10 @@ class Migration(migrations.Migration):
                 ("state", models.CharField(max_length=100)),
                 ("zip_code", models.CharField(max_length=10)),
                 ("country", models.CharField(default="MX", max_length=2)),
-                ("phone", models.CharField(blank=True, default="", max_length=20)),
+                (
+                    "phone",
+                    models.CharField(blank=True, default="", max_length=20),
+                ),
             ],
             options={
                 "verbose_name": "Dirección de entrega",
@@ -127,17 +143,24 @@ class Migration(migrations.Migration):
                     models.BooleanField(
                         db_index=True,
                         default=False,
-                        help_text="True si la fila fue borrada via soft delete.",
+                        help_text=(
+                            "True si la fila fue borrada via soft delete."
+                        ),
                         verbose_name="Eliminado (logico)",
                     ),
                 ),
                 (
                     "deleted_at",
                     models.DateTimeField(
-                        blank=True, null=True, verbose_name="Fecha de borrado logico"
+                        blank=True,
+                        null=True,
+                        verbose_name="Fecha de borrado logico",
                     ),
                 ),
-                ("tracking_number", models.CharField(db_index=True, max_length=80)),
+                (
+                    "tracking_number",
+                    models.CharField(db_index=True, max_length=80),
+                ),
                 (
                     "tracking_url",
                     models.URLField(blank=True, default="", max_length=500),
@@ -159,7 +182,10 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("delivered_at", models.DateTimeField(blank=True, null=True)),
-                ("estimated_delivery", models.DateTimeField(blank=True, null=True)),
+                (
+                    "estimated_delivery",
+                    models.DateTimeField(blank=True, null=True),
+                ),
                 ("notes", models.TextField(blank=True, default="")),
             ],
             options={
@@ -190,12 +216,17 @@ class Migration(migrations.Migration):
                         help_text="Costo de envío. 0 = gratis.",
                         max_digits=10,
                         validators=[
-                            django.core.validators.MinValueValidator(Decimal("0"))
+                            django.core.validators.MinValueValidator(
+                                Decimal("0")
+                            )
                         ],
                     ),
                 ),
                 ("estimated_days", models.PositiveSmallIntegerField()),
-                ("is_active", models.BooleanField(db_index=True, default=True)),
+                (
+                    "is_active",
+                    models.BooleanField(db_index=True, default=True),
+                ),
                 (
                     "free_threshold",
                     models.DecimalField(
@@ -223,24 +254,35 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("name", models.CharField(max_length=100)),
-                ("zip_code_prefix", models.CharField(max_length=5, unique=True)),
+                (
+                    "zip_code_prefix",
+                    models.CharField(max_length=5, unique=True),
+                ),
                 ("is_active", models.BooleanField(default=True)),
                 (
                     "estimated_days_min",
                     models.PositiveSmallIntegerField(
                         blank=True,
-                        help_text="Días hábiles mínimos de entrega en la zona.",
+                        help_text=(
+                            "Días hábiles mínimos de entrega en la zona."
+                        ),
                         null=True,
-                        validators=[django.core.validators.MinValueValidator(1)],
+                        validators=[
+                            django.core.validators.MinValueValidator(1)
+                        ],
                     ),
                 ),
                 (
                     "estimated_days_max",
                     models.PositiveSmallIntegerField(
                         blank=True,
-                        help_text="Días hábiles máximos de entrega en la zona.",
+                        help_text=(
+                            "Días hábiles máximos de entrega en la zona."
+                        ),
                         null=True,
-                        validators=[django.core.validators.MinValueValidator(1)],
+                        validators=[
+                            django.core.validators.MinValueValidator(1)
+                        ],
                     ),
                 ),
                 (
@@ -248,11 +290,16 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         blank=True,
                         decimal_places=2,
-                        help_text="Costo de envío específico de la zona. Vacío = usar el del método.",
+                        help_text=(
+                            "Costo de envío específico de la zona. Vacío ="
+                            " usar el del método."
+                        ),
                         max_digits=10,
                         null=True,
                         validators=[
-                            django.core.validators.MinValueValidator(Decimal("0"))
+                            django.core.validators.MinValueValidator(
+                                Decimal("0")
+                            )
                         ],
                     ),
                 ),
@@ -261,11 +308,16 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         blank=True,
                         decimal_places=2,
-                        help_text="Compra mínima para envío gratis en la zona. Vacío = usar el del método de envío.",
+                        help_text=(
+                            "Compra mínima para envío gratis en la zona. Vacío"
+                            " = usar el del método de envío."
+                        ),
                         max_digits=10,
                         null=True,
                         validators=[
-                            django.core.validators.MinValueValidator(Decimal("0"))
+                            django.core.validators.MinValueValidator(
+                                Decimal("0")
+                            )
                         ],
                     ),
                 ),
@@ -288,8 +340,14 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("base_cost", models.DecimalField(decimal_places=2, max_digits=10)),
-                ("cost_per_kg", models.DecimalField(decimal_places=2, max_digits=10)),
+                (
+                    "base_cost",
+                    models.DecimalField(decimal_places=2, max_digits=10),
+                ),
+                (
+                    "cost_per_kg",
+                    models.DecimalField(decimal_places=2, max_digits=10),
+                ),
                 ("transit_days", models.PositiveSmallIntegerField()),
                 (
                     "environmental",
@@ -300,7 +358,9 @@ class Migration(migrations.Migration):
                             ("high", "Alta"),
                         ],
                         default="medium",
-                        help_text="Rating ambiental (mayor es mejor en el ranking).",
+                        help_text=(
+                            "Rating ambiental (mayor es mejor en el ranking)."
+                        ),
                         max_length=6,
                     ),
                 ),
@@ -341,7 +401,10 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("allows_hazardous", models.BooleanField(default=False)),
-                ("is_active", models.BooleanField(db_index=True, default=True)),
+                (
+                    "is_active",
+                    models.BooleanField(db_index=True, default=True),
+                ),
                 (
                     "courier",
                     models.OneToOneField(

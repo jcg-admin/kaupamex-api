@@ -7,6 +7,7 @@ accesible como ``addons.purchase_requisition.wizard.PurchaseRequisition…``.
 
 El orden espeja ``odoo19c: addons/purchase_requisition/wizard/__init__.py``.
 """
+
 from .purchase_requisition_alternative_warning import (
     PurchaseRequisitionAlternativeWarning,
 )

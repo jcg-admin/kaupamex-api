@@ -24,7 +24,9 @@ class Migration(migrations.Migration):
             name="kpi_crm_opportunities_won",
             field=models.BooleanField(
                 default=False,
-                help_text='Odoo kpi_crm_opportunities_won ("Opportunities Won").',
+                help_text=(
+                    'Odoo kpi_crm_opportunities_won ("Opportunities Won").'
+                ),
                 verbose_name="Oportunidades ganadas",
             ),
         ),

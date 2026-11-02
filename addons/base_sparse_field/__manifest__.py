@@ -5,8 +5,10 @@
     'name': 'Campos dispersos',
     'version': '1.0',
     'category': 'Hidden',
-    'summary': 'Campos casi siempre nulos que comparten un único campo '
-               'serializado en vez de gastar una columna cada uno.',
+    'summary': (
+        'Campos casi siempre nulos que comparten un único campo '
+        'serializado en vez de gastar una columna cada uno.'
+    ),
     # `depends` idéntico al de la referencia y MEDIDO contra los imports
     # reales: este addon sólo necesita el campo base del ORM.
     'depends': [

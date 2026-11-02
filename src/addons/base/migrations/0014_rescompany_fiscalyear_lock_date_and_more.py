@@ -15,7 +15,11 @@ class Migration(migrations.Migration):
             name="fiscalyear_lock_date",
             field=models.DateField(
                 blank=True,
-                help_text="Cualquier asiento hasta esta fecha inclusive se pospone a una fecha posterior, según la secuencia de su diario (Odoo fiscalyear_lock_date).",
+                help_text=(
+                    "Cualquier asiento hasta esta fecha inclusive se pospone a"
+                    " una fecha posterior, según la secuencia de su diario"
+                    " (Odoo fiscalyear_lock_date)."
+                ),
                 null=True,
                 verbose_name="Candado global",
             ),
@@ -25,7 +29,11 @@ class Migration(migrations.Migration):
             name="hard_lock_date",
             field=models.DateField(
                 blank=True,
-                help_text="Cualquier asiento hasta esta fecha inclusive se pospone a una fecha posterior. Este candado es irreversible y no admite ninguna excepción (Odoo hard_lock_date).",
+                help_text=(
+                    "Cualquier asiento hasta esta fecha inclusive se pospone a"
+                    " una fecha posterior. Este candado es irreversible y no"
+                    " admite ninguna excepción (Odoo hard_lock_date)."
+                ),
                 null=True,
                 verbose_name="Candado duro",
             ),
@@ -35,7 +43,11 @@ class Migration(migrations.Migration):
             name="purchase_lock_date",
             field=models.DateField(
                 blank=True,
-                help_text="Cualquier asiento de compra anterior a esta fecha inclusive se pospone a una fecha posterior (Odoo purchase_lock_date).",
+                help_text=(
+                    "Cualquier asiento de compra anterior a esta fecha"
+                    " inclusive se pospone a una fecha posterior (Odoo"
+                    " purchase_lock_date)."
+                ),
                 null=True,
                 verbose_name="Candado de compras",
             ),
@@ -45,7 +57,11 @@ class Migration(migrations.Migration):
             name="sale_lock_date",
             field=models.DateField(
                 blank=True,
-                help_text="Cualquier asiento de venta anterior a esta fecha inclusive se pospone a una fecha posterior (Odoo sale_lock_date).",
+                help_text=(
+                    "Cualquier asiento de venta anterior a esta fecha"
+                    " inclusive se pospone a una fecha posterior (Odoo"
+                    " sale_lock_date)."
+                ),
                 null=True,
                 verbose_name="Candado de ventas",
             ),
@@ -55,7 +71,12 @@ class Migration(migrations.Migration):
             name="tax_lock_date",
             field=models.DateField(
                 blank=True,
-                help_text="Cualquier asiento con impuestos hasta esta fecha inclusive se pospone a una fecha posterior. Se fija automáticamente al publicar el asiento de cierre fiscal (Odoo tax_lock_date).",
+                help_text=(
+                    "Cualquier asiento con impuestos hasta esta fecha"
+                    " inclusive se pospone a una fecha posterior. Se fija"
+                    " automáticamente al publicar el asiento de cierre fiscal"
+                    " (Odoo tax_lock_date)."
+                ),
                 null=True,
                 verbose_name="Candado de declaración de impuestos",
             ),

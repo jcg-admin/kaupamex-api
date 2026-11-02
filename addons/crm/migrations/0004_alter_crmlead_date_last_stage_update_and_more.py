@@ -17,7 +17,9 @@ class Migration(migrations.Migration):
                 blank=True,
                 db_index=True,
                 editable=False,
-                help_text="Último cambio de etapa (Odoo date_last_stage_update).",
+                help_text=(
+                    "Último cambio de etapa (Odoo date_last_stage_update)."
+                ),
                 null=True,
                 verbose_name="Last Stage Update",
             ),
@@ -63,7 +65,10 @@ class Migration(migrations.Migration):
                 db_index=True,
                 default="",
                 editable=False,
-                help_text="Dominio del correo, para buscar duplicados por coincidencia exacta (Odoo email_domain_criterion).",
+                help_text=(
+                    "Dominio del correo, para buscar duplicados por"
+                    " coincidencia exacta (Odoo email_domain_criterion)."
+                ),
                 max_length=255,
                 verbose_name="Email Domain Criterion",
             ),
@@ -101,7 +106,10 @@ class Migration(migrations.Migration):
                 decimal_places=2,
                 default=0,
                 editable=False,
-                help_text="Ingreso prorrateado por probabilidad (Odoo prorated_revenue).",
+                help_text=(
+                    "Ingreso prorrateado por probabilidad (Odoo"
+                    " prorated_revenue)."
+                ),
                 max_digits=16,
                 verbose_name="Prorated Revenue",
             ),
@@ -113,7 +121,10 @@ class Migration(migrations.Migration):
                 decimal_places=2,
                 default=0,
                 editable=False,
-                help_text="Ingreso recurrente mensual (Odoo recurring_revenue_monthly).",
+                help_text=(
+                    "Ingreso recurrente mensual (Odoo"
+                    " recurring_revenue_monthly)."
+                ),
                 max_digits=16,
                 verbose_name="Expected MRR",
             ),
@@ -125,7 +136,10 @@ class Migration(migrations.Migration):
                 decimal_places=2,
                 default=0,
                 editable=False,
-                help_text="MRR prorrateado (Odoo recurring_revenue_monthly_prorated).",
+                help_text=(
+                    "MRR prorrateado (Odoo"
+                    " recurring_revenue_monthly_prorated)."
+                ),
                 max_digits=16,
                 verbose_name="Prorated MRR",
             ),
@@ -137,7 +151,9 @@ class Migration(migrations.Migration):
                 decimal_places=2,
                 default=0,
                 editable=False,
-                help_text="Recurrente prorrateado (Odoo recurring_revenue_prorated).",
+                help_text=(
+                    "Recurrente prorrateado (Odoo recurring_revenue_prorated)."
+                ),
                 max_digits=16,
                 verbose_name="Prorated Recurring Revenues",
             ),
@@ -146,7 +162,11 @@ class Migration(migrations.Migration):
             model_name="crmlead",
             name="won_status",
             field=models.CharField(
-                choices=[("won", "Won"), ("lost", "Lost"), ("pending", "Pending")],
+                choices=[
+                    ("won", "Won"),
+                    ("lost", "Lost"),
+                    ("pending", "Pending"),
+                ],
                 default="pending",
                 editable=False,
                 help_text="Ganada, perdida o en curso (Odoo won_status).",

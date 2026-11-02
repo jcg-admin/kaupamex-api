@@ -12,6 +12,7 @@ Estos casos fijan los tres invariantes del cambio: (a) ``isinstance`` distingue
 (c) la deconstrucción sigue apuntando a ``django.db.models.TextField``, que es
 lo que deja ``makemigrations --check`` en *No changes detected*.
 """
+
 from django.apps import apps
 from django.db import connection, models
 
@@ -29,9 +30,9 @@ def test_isinstance_tells_html_apart_from_text():
     text_field = Text(blank=True, default='')
 
     assert isinstance(html_field, Html)
-    assert not isinstance(text_field, Html), (
-        'un Text pasa como Html: la clase sigue siendo un alias (H-API-700)'
-    )
+    assert not isinstance(
+        text_field, Html
+    ), 'un Text pasa como Html: la clase sigue siendo un alias (H-API-700)'
     # La otra dirección se conserva: todo Html sigue siendo un TextField.
     assert isinstance(html_field, models.TextField)
 
@@ -50,12 +51,14 @@ def test_existing_model_keeps_its_text_column():
     así que el caso es lógica pura contra el modelo real ya registrado.
     """
     report_header = apps.get_model('base', 'ResCompany')._meta.get_field(
-        'report_header')
+        'report_header'
+    )
 
     assert isinstance(report_header, Html)
     assert report_header.get_internal_type() == 'TextField'
     assert report_header.db_type(connection) == Text(
-        blank=True, default='').db_type(connection)
+        blank=True, default=''
+    ).db_type(connection)
 
 
 def test_deconstruct_points_to_textfield():
@@ -66,7 +69,8 @@ def test_deconstruct_points_to_textfield():
     ``AlterField`` por cada campo HTML del árbol.
     """
     _name, path, args, kwargs = fields.Html(
-        blank=True, default='').deconstruct()
+        blank=True, default=''
+    ).deconstruct()
 
     assert path == 'django.db.models.TextField'
     assert args == []

@@ -12,6 +12,7 @@ casos declaran su propio modelo concreto — el mismo recurso que usa la suite
 de la fuente (``odoo19c: addons/html_editor/tests/`` declara sus modelos de
 prueba en ``models/test_models.py``).
 """
+
 import fields
 import models
 import pytest
@@ -109,10 +110,16 @@ class TestCreateDropsTheIncomingHistory:
         assert callable(HistoryProbe.create)
 
     def test_the_history_that_arrives_from_outside_is_discarded(self, tables):
-        record, = HistoryProbe.create([{
-            'body': '<p>a</p>',
-            'html_field_history': {'body': [{'patch': 'FALSO',
-                                             'revision_id': 99}]}}])
+        (record,) = HistoryProbe.create(
+            [
+                {
+                    'body': '<p>a</p>',
+                    'html_field_history': {
+                        'body': [{'patch': 'FALSO', 'revision_id': 99}]
+                    },
+                }
+            ]
+        )
         record.refresh_from_db()
         assert record.html_field_history is None
 
@@ -121,8 +128,8 @@ class TestCreateDropsTheIncomingHistory:
         # que repite el descarte. Sin esa repetición el camino de Django
         # dejaría entrar el historial falso.
         record = HistoryProbe.objects.create(
-            body='<p>a</p>',
-            html_field_history={'body': [{'patch': 'FALSO'}]})
+            body='<p>a</p>', html_field_history={'body': [{'patch': 'FALSO'}]}
+        )
         record.refresh_from_db()
         assert record.html_field_history is None
 
@@ -134,7 +141,7 @@ class TestWriteGeneratesTheRevision:
         assert callable(HistoryProbe.write)
 
     def test_changing_the_versioned_field_inserts_a_revision(self, tables):
-        record, = HistoryProbe.create([{'body': '<p>uno</p>'}])
+        (record,) = HistoryProbe.create([{'body': '<p>uno</p>'}])
         record.write(body='<p>dos</p>')
         record.refresh_from_db()
         assert record.body == '<p>dos</p>'
@@ -144,7 +151,7 @@ class TestWriteGeneratesTheRevision:
         assert revisions[0]['patch']
 
     def test_the_revision_id_grows_by_one_on_each_change(self, tables):
-        record, = HistoryProbe.create([{'body': '<p>uno</p>'}])
+        (record,) = HistoryProbe.create([{'body': '<p>uno</p>'}])
         record.write(body='<p>dos</p>')
         record.write(body='<p>tres</p>')
         record.refresh_from_db()
@@ -153,22 +160,24 @@ class TestWriteGeneratesTheRevision:
         assert ids == [2, 1]
 
     def test_writing_the_same_content_adds_no_revision(self, tables):
-        record, = HistoryProbe.create([{'body': '<p>uno</p>'}])
+        (record,) = HistoryProbe.create([{'body': '<p>uno</p>'}])
         record.write(body='<p>uno</p>')
         record.refresh_from_db()
         assert not (record.html_field_history or {}).get('body')
 
     def test_writing_a_non_versioned_field_adds_no_revision(self, tables):
-        record, = HistoryProbe.create([{'body': '<p>uno</p>'}])
+        (record,) = HistoryProbe.create([{'body': '<p>uno</p>'}])
         record.write(label='otra cosa')
         record.refresh_from_db()
         assert record.label == 'otra cosa'
         assert not (record.html_field_history or {}).get('body')
 
     def test_the_history_cannot_be_written_from_outside(self, tables):
-        record, = HistoryProbe.create([{'body': '<p>uno</p>'}])
-        record.write(body='<p>dos</p>',
-                     html_field_history={'body': [{'patch': 'FALSO'}]})
+        (record,) = HistoryProbe.create([{'body': '<p>uno</p>'}])
+        record.write(
+            body='<p>dos</p>',
+            html_field_history={'body': [{'patch': 'FALSO'}]},
+        )
         record.refresh_from_db()
         assert record.html_field_history['body'][0]['patch'] != 'FALSO'
 
@@ -181,21 +190,21 @@ class TestTheGuardOnTheVersionedFieldType:
     """
 
     def test_versioning_a_non_html_field_is_refused(self, tables):
-        record, = UnversionableProbe.create([{'body': 'uno'}])
+        (record,) = UnversionableProbe.create([{'body': 'uno'}])
         with pytest.raises(ValidationError):
             record.write(body='dos')
 
 
 class TestTheRestoreRoundTrip:
     def test_the_content_comes_back_at_the_asked_revision(self, tables):
-        record, = HistoryProbe.create([{'body': '<p>uno</p>'}])
+        (record,) = HistoryProbe.create([{'body': '<p>uno</p>'}])
         record.write(body='<p>dos</p>')
         record.refresh_from_db()
         restored = record.html_field_history_get_content_at_revision('body', 1)
         assert restored == '<p>uno</p>'
 
     def test_the_metadata_carries_no_patch(self, tables):
-        record, = HistoryProbe.create([{'body': '<p>uno</p>'}])
+        (record,) = HistoryProbe.create([{'body': '<p>uno</p>'}])
         record.write(body='<p>dos</p>')
         record.refresh_from_db()
         for revision in record.html_field_history_metadata['body']:

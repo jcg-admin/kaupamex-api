@@ -6,6 +6,7 @@ Adaptación fiel de Odoo resource/models/{resource_resource,
 resource_calendar_leaves,resource_mixin,res_users}.py
 (odoo-tools@622ddc2a, odoo19c:, LGPL-3).
 """
+
 from datetime import datetime, timezone as dt_timezone
 
 import pytest
@@ -13,7 +14,10 @@ from django.db import IntegrityError, transaction
 
 from addons.base.models import ResCompany, ResUsers
 from addons.resource.models import (
-    ResourceCalendar, ResourceCalendarLeaves, ResourceMixin, ResourceResource,
+    ResourceCalendar,
+    ResourceCalendarLeaves,
+    ResourceMixin,
+    ResourceResource,
 )
 
 pytestmark = pytest.mark.django_db
@@ -27,7 +31,10 @@ def company():
 @pytest.fixture
 def calendar(company):
     calendar = ResourceCalendar.objects.create(
-        name='Horario estándar', company=company, is_default=True, tz='UTC',
+        name='Horario estándar',
+        company=company,
+        is_default=True,
+        tz='UTC',
     )
     calendar.create_default_attendances()
     return calendar
@@ -39,23 +46,34 @@ class TestResourceResourceDefaults:
         assert resource.calendar_id == calendar.pk
 
     def test_save_does_not_override_explicit_calendar(self, company, calendar):
-        other = ResourceCalendar.objects.create(name='Otro', company=company, tz='UTC')
+        other = ResourceCalendar.objects.create(
+            name='Otro', company=company, tz='UTC'
+        )
         resource = ResourceResource.objects.create(
-            name='Ana', company=company, calendar=other,
+            name='Ana',
+            company=company,
+            calendar=other,
         )
         assert resource.calendar_id == other.pk
 
-    def test_save_inherits_tz_from_calendar_when_no_user(self, company, calendar):
-        resource = ResourceResource.objects.create(name='Máquina', company=company)
+    def test_save_inherits_tz_from_calendar_when_no_user(
+        self, company, calendar
+    ):
+        resource = ResourceResource.objects.create(
+            name='Máquina', company=company
+        )
         assert resource.tz == 'UTC'
 
     def test_save_falls_back_to_calendar_tz_when_user_has_no_tz(
-            self, company, calendar):
+        self, company, calendar
+    ):
         """Sin ``tz`` en el partner del usuario, gana el del calendario."""
         user = ResUsers.objects.create_user(login='ana@kaupamex.mx')
         assert not user.tz, 'el partner recién creado no debería traer tz'
         resource = ResourceResource.objects.create(
-            name='Ana', company=company, user=user,
+            name='Ana',
+            company=company,
+            user=user,
         )
         assert resource.tz == calendar.tz
 
@@ -72,22 +90,31 @@ class TestResourceResourceDefaults:
         user.tz = 'America/Mexico_City'
         user.save()
         resource = ResourceResource.objects.create(
-            name='Beto', company=company, user=user,
+            name='Beto',
+            company=company,
+            user=user,
         )
-        assert calendar.tz == 'UTC', 'el calendario debe diferir, si no no prueba nada'
+        assert (
+            calendar.tz == 'UTC'
+        ), 'el calendario debe diferir, si no no prueba nada'
         assert resource.tz == 'America/Mexico_City'
 
     def test_time_efficiency_must_be_positive(self, company):
         with pytest.raises(IntegrityError):
             with transaction.atomic():
                 ResourceResource.objects.create(
-                    name='Inválido', company=company, tz='UTC', time_efficiency=0,
+                    name='Inválido',
+                    company=company,
+                    tz='UTC',
+                    time_efficiency=0,
                 )
 
 
 class TestResourceResourceFlexibility:
     def test_is_fully_flexible_without_calendar(self, company):
-        resource = ResourceResource.objects.create(name='Libre', company=company, tz='UTC')
+        resource = ResourceResource.objects.create(
+            name='Libre', company=company, tz='UTC'
+        )
         assert resource.is_fully_flexible is True
         assert resource.is_flexible is True
 
@@ -95,14 +122,20 @@ class TestResourceResourceFlexibility:
         calendar.flexible_hours = True
         calendar.save()
         resource = ResourceResource.objects.create(
-            name='Ana', company=company, calendar=calendar, tz='UTC',
+            name='Ana',
+            company=company,
+            calendar=calendar,
+            tz='UTC',
         )
         assert resource.is_fully_flexible is False
         assert resource.is_flexible is True
 
     def test_is_flexible_false_with_fixed_calendar(self, company, calendar):
         resource = ResourceResource.objects.create(
-            name='Ana', company=company, calendar=calendar, tz='UTC',
+            name='Ana',
+            company=company,
+            calendar=calendar,
+            tz='UTC',
         )
         assert resource.is_flexible is False
 
@@ -111,7 +144,11 @@ class TestResourceUserExtension:
     def test_resource_resources_reverse_accessor(self, company, calendar):
         user = ResUsers.objects.create_user(login='beto@kaupamex.mx')
         resource = ResourceResource.objects.create(
-            name='Beto', company=company, calendar=calendar, user=user, tz='UTC',
+            name='Beto',
+            company=company,
+            calendar=calendar,
+            user=user,
+            tz='UTC',
         )
         assert list(user.resource_resources.all()) == [resource]
         assert user.resource_calendar.pk == calendar.pk
@@ -122,9 +159,14 @@ class TestResourceUserExtension:
 
 
 class TestResourceCalendarLeaves:
-    def test_save_syncs_calendar_and_company_from_resource(self, company, calendar):
+    def test_save_syncs_calendar_and_company_from_resource(
+        self, company, calendar
+    ):
         resource = ResourceResource.objects.create(
-            name='Ana', company=company, calendar=calendar, tz='UTC',
+            name='Ana',
+            company=company,
+            calendar=calendar,
+            tz='UTC',
         )
         leave = ResourceCalendarLeaves.objects.create(
             resource=resource,

@@ -8,6 +8,10 @@ registro de modelos aún no está poblado y colgar sobre
 ``hr.HrEmployee``/``base.ResUsers`` fallaría con ``AppRegistryNotReady``
 (mismo criterio que ``addons.account_fleet.models``).
 """
-from addons.hr_homeworking.models.hr_homeworking import DAYS, HrEmployeeLocation
+
+from addons.hr_homeworking.models.hr_homeworking import (
+    DAYS,
+    HrEmployeeLocation,
+)
 
 __all__ = ['DAYS', 'HrEmployeeLocation']

@@ -34,12 +34,12 @@ Dos guardas del porte, cada una anulada y vuelta a correr:
    la fila, ``_predict_nextval`` no tendria de donde leer y
    ``test_standard_uses_a_native_sequence`` cae con ``UndefinedTable``.
 """
+
 from datetime import date, timedelta
 
 import pytest
 from django.db import connection, transaction
-from django.db.utils import (IntegrityError, OperationalError,
-                             ProgrammingError)
+from django.db.utils import IntegrityError, OperationalError, ProgrammingError
 
 from addons.base.models.res_company import ResCompany
 from addons.base.models.ir_sequence import (
@@ -54,27 +54,37 @@ from exceptions import UserError
 @pytest.fixture
 def standard(db):
     return IrSequence.objects.create(
-        name='Factura', code='factura', implementation='standard',
-        prefix='F/%(year)s/', padding=4)
+        name='Factura',
+        code='factura',
+        implementation='standard',
+        prefix='F/%(year)s/',
+        padding=4,
+    )
 
 
 @pytest.fixture
 def no_gap(db):
     return IrSequence.objects.create(
-        name='Folio fiscal', code='folio', implementation='no_gap',
-        prefix='FF-', padding=5)
+        name='Folio fiscal',
+        code='folio',
+        implementation='no_gap',
+        prefix='FF-',
+        padding=5,
+    )
 
 
 # --------------------------------------------------------------------------
 # La secuencia nativa — lo que la divergencia retirada decia que no aplicaba
 # --------------------------------------------------------------------------
 
+
 def test_standard_uses_a_native_sequence(standard):
     """La fila NO lleva el contador: lo lleva PostgreSQL."""
     with connection.cursor() as cursor:
         cursor.execute(
             "select count(*) from pg_sequences where sequencename = %s",
-            ['ir_sequence_%03d' % standard.pk])
+            ['ir_sequence_%03d' % standard.pk],
+        )
         assert cursor.fetchone()[0] == 1
 
 
@@ -100,26 +110,28 @@ def test_dropping_the_row_drops_the_sequence(standard):
     with connection.cursor() as cursor:
         cursor.execute(
             "select count(*) from pg_sequences where sequencename = %s",
-            [seq_name])
+            [seq_name],
+        )
         assert cursor.fetchone()[0] == 0
 
 
 def test_a_zero_step_is_refused(db):
     """≙ la guarda de ``_create_sequence``: *"Step must not be zero."*"""
     with pytest.raises(UserError):
-        IrSequence.objects.create(
-            name='Rota', code='rota', number_increment=0)
+        IrSequence.objects.create(name='Rota', code='rota', number_increment=0)
 
 
 # --------------------------------------------------------------------------
 # no_gap — el contador en la fila, y su candado
 # --------------------------------------------------------------------------
 
+
 def test_no_gap_has_no_native_sequence(no_gap):
     with connection.cursor() as cursor:
         cursor.execute(
             "select count(*) from pg_sequences where sequencename = %s",
-            ['ir_sequence_%03d' % no_gap.pk])
+            ['ir_sequence_%03d' % no_gap.pk],
+        )
         assert cursor.fetchone()[0] == 0
 
 
@@ -143,7 +155,8 @@ def test_the_lock_refuses_a_second_reader():
     D de ``metrica-decide-la-conclusion.md``.
     """
     seq = IrSequence.objects.create(
-        name='Con candado', code='candado', implementation='no_gap')
+        name='Con candado', code='candado', implementation='no_gap'
+    )
     tabla = connection.ops.quote_name(seq._meta.db_table)
     otra = connection.copy()
     otra.connect()
@@ -152,8 +165,11 @@ def test_the_lock_refuses_a_second_reader():
             tenedor.execute('begin')
             tenedor.execute(
                 f'select number_next from {tabla} where id = %s '
-                f'for update nowait', [seq.pk])
-            # La fila esta tomada: el consumo del folio debe FALLAR, no esperar.
+                'for update nowait',
+                [seq.pk],
+            )
+            # La fila esta tomada: el consumo del folio debe FALLAR, no
+            # esperar.
             with pytest.raises((OperationalError, ProgrammingError)):
                 seq.next_by_id()
             tenedor.execute('rollback')
@@ -165,6 +181,7 @@ def test_the_lock_refuses_a_second_reader():
 # --------------------------------------------------------------------------
 # El rango de fecha — lo que hace que el folio reinicie por ejercicio
 # --------------------------------------------------------------------------
+
 
 def test_the_range_is_created_on_demand(standard):
     standard.use_date_range = True
@@ -186,7 +203,8 @@ def test_the_range_has_its_own_native_sequence(standard):
     with connection.cursor() as cursor:
         cursor.execute(
             "select count(*) from pg_sequences where sequencename = %s",
-            ['ir_sequence_%03d_%03d' % (standard.pk, rango.pk)])
+            ['ir_sequence_%03d_%03d' % (standard.pk, rango.pk)],
+        )
         assert cursor.fetchone()[0] == 1
 
 
@@ -195,9 +213,15 @@ def test_two_ranges_number_apart(standard):
     standard.use_date_range = True
     standard.save()
     anterior = IrSequenceDateRange.objects.create(
-        sequence=standard, date_from=date(2025, 1, 1), date_to=date(2025, 12, 31))
+        sequence=standard,
+        date_from=date(2025, 1, 1),
+        date_to=date(2025, 12, 31),
+    )
     actual = IrSequenceDateRange.objects.create(
-        sequence=standard, date_from=date(2026, 1, 1), date_to=date(2026, 12, 31))
+        sequence=standard,
+        date_from=date(2026, 1, 1),
+        date_to=date(2026, 12, 31),
+    )
     assert standard._next(sequence_date=date(2025, 6, 1)).endswith('0001')
     assert standard._next(sequence_date=date(2025, 6, 2)).endswith('0002')
     assert standard._next(sequence_date=date(2026, 6, 1)).endswith('0001')
@@ -214,8 +238,8 @@ def test_a_new_range_is_trimmed_by_its_neighbour(standard):
     if hoy >= later_from:
         later_from = hoy + timedelta(days=1)
     IrSequenceDateRange.objects.create(
-        sequence=standard, date_from=later_from,
-        date_to=date(hoy.year, 12, 31))
+        sequence=standard, date_from=later_from, date_to=date(hoy.year, 12, 31)
+    )
     nuevo = standard._create_date_range_seq(hoy)
     assert nuevo.date_to == later_from - timedelta(days=1)
 
@@ -223,24 +247,34 @@ def test_a_new_range_is_trimmed_by_its_neighbour(standard):
 def test_two_identical_ranges_are_refused(standard):
     """≙ ``_unique_range_per_sequence``, con su nombre conservado."""
     IrSequenceDateRange.objects.create(
-        sequence=standard, date_from=date(2026, 1, 1), date_to=date(2026, 12, 31))
+        sequence=standard,
+        date_from=date(2026, 1, 1),
+        date_to=date(2026, 12, 31),
+    )
     with pytest.raises(IntegrityError):
         with transaction.atomic():
             IrSequenceDateRange.objects.create(
-                sequence=standard, date_from=date(2026, 1, 1),
-                date_to=date(2026, 12, 31))
+                sequence=standard,
+                date_from=date(2026, 1, 1),
+                date_to=date(2026, 12, 31),
+            )
 
 
 # --------------------------------------------------------------------------
 # Interpolacion — los quince tokens, no siete
 # --------------------------------------------------------------------------
 
+
 def test_the_fifteen_tokens_resolve(db):
     seq = IrSequence.objects.create(
-        name='Todos', code='todos',
-        prefix='%(year)s%(month)s%(day)s%(y)s%(doy)s%(woy)s%(weekday)s'
-               '%(h24)s%(h12)s%(min)s%(sec)s%(isoyear)s%(isoy)s%(isoweek)s/',
-        padding=1)
+        name='Todos',
+        code='todos',
+        prefix=(
+            '%(year)s%(month)s%(day)s%(y)s%(doy)s%(woy)s%(weekday)s'
+            '%(h24)s%(h12)s%(min)s%(sec)s%(isoyear)s%(isoy)s%(isoweek)s/'
+        ),
+        padding=1,
+    )
     salida = seq._next()
     assert salida.endswith('/1')
 
@@ -248,14 +282,18 @@ def test_the_fifteen_tokens_resolve(db):
 def test_the_range_and_current_forms_resolve(db):
     """Cada token tiene tres formas; la version anterior portaba una."""
     seq = IrSequence.objects.create(
-        name='Formas', code='formas',
-        prefix='%(range_year)s-%(current_year)s-%(year)s/', padding=2)
+        name='Formas',
+        code='formas',
+        prefix='%(range_year)s-%(current_year)s-%(year)s/',
+        padding=2,
+    )
     assert seq._next().endswith('/01')
 
 
 def test_a_bad_token_is_refused(db):
     seq = IrSequence.objects.create(
-        name='Mala', code='mala', prefix='%(no_existe)s/')
+        name='Mala', code='mala', prefix='%(no_existe)s/'
+    )
     with pytest.raises(UserError):
         seq._next()
 
@@ -263,9 +301,12 @@ def test_a_bad_token_is_refused(db):
 def test_next_by_code_prefers_the_company_sequence(db):
     company = ResCompany.objects.create(name='L1 de prueba')
     IrSequence.objects.create(name='Global', code='compartido', prefix='G-')
-    IrSequence.objects.create(name='De company', code='compartido',
-                              prefix='E-', company=company)
-    assert IrSequence.next_by_code('compartido', company=company).startswith('E-')
+    IrSequence.objects.create(
+        name='De company', code='compartido', prefix='E-', company=company
+    )
+    assert IrSequence.next_by_code('compartido', company=company).startswith(
+        'E-'
+    )
     assert IrSequence.next_by_code('compartido').startswith('G-')
 
 

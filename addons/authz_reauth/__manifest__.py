@@ -30,8 +30,9 @@
     # declarar ambas fija el ciclo en el grafo. Cuál de las dos se invierte lo
     # decide la tarea #322 — ver H-API-562.
     'depends': [
-        'base',         # ResUsers, ResCompany, SystemParameter (el TTL)
-        'authz_audit',  # AuthzEvent — cada elevación deja rastro (reauth.py:16-17)
+        'base',  # ResUsers, ResCompany, SystemParameter (el TTL)
+        # AuthzEvent — cada elevación deja rastro (reauth.py:16-17)
+        'authz_audit',
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

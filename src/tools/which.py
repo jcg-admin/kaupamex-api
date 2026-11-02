@@ -26,13 +26,24 @@ en ``tests/unit/tools/test_which.py``, que la suite sí corre; un doctest en el
 docstring no lo ejecuta nadie en este árbol y sería un control que no puede
 fallar (``metrica-decide-la-conclusion.md``, sub-patrón D).
 """
+
 import sys
 from os import F_OK, R_OK, W_OK, X_OK, access, defpath, environ, pathsep
 from os.path import dirname, exists, join, split
 
 __docformat__ = 'restructuredtext en'
-__all__ = ['F_OK', 'R_OK', 'W_OK', 'X_OK', 'defpath', 'defpathext', 'dirname',
-           'pathsep', 'which', 'which_files']
+__all__ = [
+    'F_OK',
+    'R_OK',
+    'W_OK',
+    'X_OK',
+    'defpath',
+    'defpathext',
+    'dirname',
+    'pathsep',
+    'which',
+    'which_files',
+]
 
 #: ``errno.ENOENT`` sin importar ``errno`` — verbatim de la fuente.
 ENOENT = 2
@@ -46,9 +57,11 @@ if windows:
     defpath.insert(0, '.')
     # Dado el desorden habitual del PATH en Windows, se eliminan duplicados.
     seen = set()
-    defpath = [directory for directory in defpath
-               if directory.lower() not in seen
-               and not seen.add(directory.lower())]
+    defpath = [
+        directory
+        for directory in defpath
+        if directory.lower() not in seen and not seen.add(directory.lower())
+    ]
     del seen
 
     defpathext = [''] + environ.get(
@@ -111,7 +124,9 @@ def which(file, mode=F_OK | X_OK, path=None, pathext=None):
     """
     path = next(which_files(file, mode, path, pathext), None)
     if path is None:
-        raise IOError(ENOENT,
-                      '%s not found' % (mode & X_OK and 'command' or 'file'),
-                      file)
+        raise IOError(
+            ENOENT,
+            '%s not found' % (mode & X_OK and 'command' or 'file'),
+            file,
+        )
     return path

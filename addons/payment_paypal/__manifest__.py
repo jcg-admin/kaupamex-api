@@ -1,4 +1,5 @@
-# Adaptado de Odoo Community `payment_paypal/__manifest__.py` (LGPL-3, odoo19c:)
+# Adaptado de Odoo Community `payment_paypal/__manifest__.py` (LGPL-3,
+# odoo19c:)
 # — atribución y aviso de licencia preservados (DEC-KX-03).
 {
     'name': 'Proveedor de pago: PayPal',

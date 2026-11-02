@@ -121,6 +121,7 @@ Símbolo de la fuente               Portado    Nota
 use: retirarlo sería decidir por su autor que el símbolo sobra, y el símbolo
 es API del módulo (sin guion bajo). Su ausencia rompería a quien lo importe.
 """
+
 import re
 from difflib import SequenceMatcher, unified_diff
 
@@ -201,7 +202,9 @@ def apply_patch(initial_content, patch):
 
         metadata_split = metadata.split(PATCH_OPERATION_LINE_AT)
         operation_type = metadata_split[0]
-        lines_index_range = metadata_split[1] if len(metadata_split) > 1 else ""
+        lines_index_range = (
+            metadata_split[1] if len(metadata_split) > 1 else ""
+        )
         # Hay que quitar el carácter PATCH_OPERATION_CONTENT del rango.
         lines_index_range = lines_index_range.split(PATCH_OPERATION_CONTENT)[0]
         indexes = lines_index_range.split(",")
@@ -237,8 +240,12 @@ def generate_comparison(new_content, old_content):
 
     :return: string: el contenido de la comparación
     """
-    new_content = _remove_html_attribute(new_content, HTML_ATTRIBUTES_TO_REMOVE)
-    old_content = _remove_html_attribute(old_content, HTML_ATTRIBUTES_TO_REMOVE)
+    new_content = _remove_html_attribute(
+        new_content, HTML_ATTRIBUTES_TO_REMOVE
+    )
+    old_content = _remove_html_attribute(
+        old_content, HTML_ATTRIBUTES_TO_REMOVE
+    )
 
     if new_content == old_content:
         return new_content
@@ -255,7 +262,9 @@ def generate_comparison(new_content, old_content):
 
         metadata_split = metadata.split(PATCH_OPERATION_LINE_AT)
         operation_type = metadata_split[0]
-        lines_index_range = metadata_split[1] if len(metadata_split) > 1 else ""
+        lines_index_range = (
+            metadata_split[1] if len(metadata_split) > 1 else ""
+        )
         lines_index_range = lines_index_range.split(PATCH_OPERATION_CONTENT)[0]
         indexes = lines_index_range.split(",")
         start_index = int(indexes[0]) if len(indexes) else 0
@@ -322,10 +331,9 @@ def generate_comparison(new_content, old_content):
                 )
                 if not re.search(EMPTY_OPERATION_TAG, addition_flagged_line):
                     comparison.insert(start_index, addition_flagged_line)
-                elif (
-                    line.split(">")[0] != comparison[start_index].split(">")[0]
-                    or line.startswith("/")
-                ):
+                elif line.split(">")[0] != comparison[start_index].split(">")[
+                    0
+                ] or line.startswith("/"):
                     comparison.insert(start_index, line)
 
     final_comparison = LINE_SEPARATOR.join(comparison)
@@ -420,15 +428,21 @@ def _patch_generator(new_content, old_content):
             patch_content = LINE_SEPARATOR + LINE_SEPARATOR.join(
                 patch_content_line
             )
-            yield str(patch_operation) + PATCH_OPERATION_CONTENT + patch_content
+            yield str(
+                patch_operation
+            ) + PATCH_OPERATION_CONTENT + patch_content
         else:
             yield str(patch_operation)
 
 
 def generate_patch(new_content, old_content):
     """Une en una cadena todas las operaciones de :func:`_patch_generator`."""
-    new_content = _remove_html_attribute(new_content, HTML_ATTRIBUTES_TO_REMOVE)
-    old_content = _remove_html_attribute(old_content, HTML_ATTRIBUTES_TO_REMOVE)
+    new_content = _remove_html_attribute(
+        new_content, HTML_ATTRIBUTES_TO_REMOVE
+    )
+    old_content = _remove_html_attribute(
+        old_content, HTML_ATTRIBUTES_TO_REMOVE
+    )
 
     return OPERATION_SEPARATOR.join(
         list(_patch_generator(new_content, old_content))
@@ -438,9 +452,7 @@ def generate_patch(new_content, old_content):
 def _remove_html_attribute(html_content, attributes_to_remove):
     """Retira del HTML los atributos nombrados, con su valor entrecomillado."""
     for attribute in attributes_to_remove:
-        html_content = re.sub(
-            r' %s="[^"]*"' % attribute, "", html_content
-        )
+        html_content = re.sub(r' %s="[^"]*"' % attribute, "", html_content)
 
     return html_content
 
@@ -478,8 +490,11 @@ def _indent(content):
 
     :return: string: el contenido indentado
     """
-    content = "<document>" + _remove_html_attribute(
-        content, HTML_ATTRIBUTES_TO_REMOVE) + "</document>"
+    content = (
+        "<document>"
+        + _remove_html_attribute(content, HTML_ATTRIBUTES_TO_REMOVE)
+        + "</document>"
+    )
     # ``html.fromstring`` tolera el HTML mal formado que una persona escribe
     # en un campo de texto enriquecido; ``etree.fromstring`` levantaría.
     root = html.fromstring(content, parser=html.HTMLParser(encoding='utf-8'))
@@ -506,10 +521,12 @@ def generate_unified_diff(new_content, old_content):
     old_content = _indent(old_content)
 
     return OPERATION_SEPARATOR.join(
-        list(unified_diff(
-            old_content.split(OPERATION_SEPARATOR),
-            new_content.split(OPERATION_SEPARATOR),
-            fromfile='old',
-            tofile='new'
-        ))
+        list(
+            unified_diff(
+                old_content.split(OPERATION_SEPARATOR),
+                new_content.split(OPERATION_SEPARATOR),
+                fromfile='old',
+                tofile='new',
+            )
+        )
     )

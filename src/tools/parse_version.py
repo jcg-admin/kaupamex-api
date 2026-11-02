@@ -43,6 +43,7 @@ auto-verificacion) **no se porta como bloque**: su contenido es el nucleo de
 alguien ejecuta el archivo a mano no esta en ninguna suite, y por tanto no
 puede fallar cuando debe.
 """
+
 import re
 
 #: Parte la cadena en sus componentes: numero, palabra, punto o guion.
@@ -70,7 +71,7 @@ def _parse_version_parts(s):
         if not part or part == '.':
             continue
         if part[:1] in '0123456789':
-            yield part.zfill(8)    # relleno para que comparen como numeros
+            yield part.zfill(8)  # relleno para que comparen como numeros
         else:
             yield '*' + part
 
@@ -109,7 +110,7 @@ def parse_version(s: str) -> tuple[str, ...]:
     parts: list[str] = []
     for part in _parse_version_parts((s or '0.1').lower()):
         if part.startswith('*'):
-            if part < '*final':   # quita el '-' que precede a una pre-release
+            if part < '*final':  # quita el '-' que precede a una pre-release
                 while parts and parts[-1] == '*final-':
                     parts.pop()
             # quita los ceros finales de cada serie de partes numericas

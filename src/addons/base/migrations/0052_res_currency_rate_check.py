@@ -29,7 +29,9 @@ class Migration(migrations.Migration):
             name="company",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Empresa (Odoo company_id). Null = la tasa aplica a todas.",
+                help_text=(
+                    "Empresa (Odoo company_id). Null = la tasa aplica a todas."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="currency_rates",
@@ -50,7 +52,10 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=12,
                 default=Decimal("1.0"),
-                help_text="Tasa por unidad de la moneda de tasa 1 (Odoo rate). Es la ÚNICA de las tres que se almacena.",
+                help_text=(
+                    "Tasa por unidad de la moneda de tasa 1 (Odoo rate). Es la"
+                    " ÚNICA de las tres que se almacena."
+                ),
                 max_digits=24,
             ),
         ),
@@ -59,7 +64,9 @@ class Migration(migrations.Migration):
             constraint=models.CheckConstraint(
                 condition=models.Q(("rate__gt", 0)),
                 name="res_currency_rate_currency_rate_check",
-                violation_error_message="El tipo de cambio debe ser estrictamente positivo.",
+                violation_error_message=(
+                    "El tipo de cambio debe ser estrictamente positivo."
+                ),
             ),
         ),
     ]

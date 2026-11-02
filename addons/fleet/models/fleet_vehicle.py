@@ -76,6 +76,7 @@ Divergencias documentadas
    ``action_accept_driver_change``): tiene lógica de negocio real (reasigna
    conductor), no sólo navegación.
 """
+
 from datetime import date
 
 import fields
@@ -127,147 +128,255 @@ class FleetVehicle(MailThread, TimeStampedModel):
         ('expired', 'Vencido'),
         ('closed', 'Cerrado'),
     ]
-    FRAME_TYPES = [('diamant', 'Diamante'), ('trapez', 'Trapecio'), ('wave', 'Wave')]
+    FRAME_TYPES = [
+        ('diamant', 'Diamante'),
+        ('trapez', 'Trapecio'),
+        ('wave', 'Wave'),
+    ]
     RANGE_UNITS = [('km', 'km'), ('mi', 'mi')]
 
     name = fields.Char(
-        max_length=255, blank=True, default='',
-        help_text='Marca/Modelo/Placa. Odoo name (compute + store): se '
-                  'almacena para poder ordenar y buscar por texto. Lo '
-                  'calcula save() con compute_vehicle_name().',
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=(
+            'Marca/Modelo/Placa. Odoo name (compute + store): se '
+            'almacena para poder ordenar y buscar por texto. Lo '
+            'calcula save() con compute_vehicle_name().'
+        ),
     )
-    description = fields.Html(blank=True, default='', help_text='Odoo description.')
+    description = fields.Html(
+        blank=True, default='', help_text='Odoo description.'
+    )
     active = fields.Boolean(default=True, help_text='Odoo active.')
     manager = fields.Many2one(
-        'base.ResUsers', on_delete=models.SET_NULL, null=True, blank=True,
+        'base.ResUsers',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='fleet_vehicles_managed',
-        help_text='Gestor de flota (Odoo manager_id). El ``domain=`` de la '
-                   'referencia (grupo fleet.fleet_group_user) no se porta '
-                   '— ver punto 5 del docstring del módulo.',
+        help_text=(
+            'Gestor de flota (Odoo manager_id). El ``domain=`` de la '
+            'referencia (grupo fleet.fleet_group_user) no se porta '
+            '— ver punto 5 del docstring del módulo.'
+        ),
     )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='fleet_vehicles', help_text='Odoo company_id.',
+        'base.ResCompany',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='fleet_vehicles',
+        help_text='Odoo company_id.',
     )
     license_plate = fields.Char(
-        max_length=32, blank=True, default='',
+        max_length=32,
+        blank=True,
+        default='',
         help_text='Placa (Odoo license_plate).',
     )
     vin_sn = fields.Char(
-        max_length=64, blank=True, default='',
+        max_length=64,
+        blank=True,
+        default='',
         help_text='Número de chasís/VIN (Odoo vin_sn).',
     )
     driver = fields.Many2one(
-        'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,
+        'base.ResPartner',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='fleet_vehicles_driven',
         help_text='Conductor actual (Odoo driver_id).',
     )
     future_driver = fields.Many2one(
-        'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,
+        'base.ResPartner',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='fleet_vehicles_future_driven',
         help_text='Próximo conductor (Odoo future_driver_id).',
     )
     model = fields.Many2one(
-        'fleet.FleetVehicleModel', on_delete=models.PROTECT,
-        related_name='vehicles', help_text='Odoo model_id (required).',
+        'fleet.FleetVehicleModel',
+        on_delete=models.PROTECT,
+        related_name='vehicles',
+        help_text='Odoo model_id (required).',
     )
     # related='model_id.brand_id', store=True, readonly=False (punto 2).
     brand = fields.Many2one(
-        'fleet.FleetVehicleModelBrand', on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='vehicles_by_brand',
+        'fleet.FleetVehicleModelBrand',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='vehicles_by_brand',
         help_text='Odoo brand_id (related+store; ver sync_fields_from_model).',
     )
     next_assignation_date = fields.Date(
-        null=True, blank=True, help_text='Odoo next_assignation_date.',
+        null=True,
+        blank=True,
+        help_text='Odoo next_assignation_date.',
     )
-    order_date = fields.Date(null=True, blank=True, help_text='Odoo order_date.')
+    order_date = fields.Date(
+        null=True, blank=True, help_text='Odoo order_date.'
+    )
     acquisition_date = fields.Date(
-        null=True, blank=True, default=date.today,
+        null=True,
+        blank=True,
+        default=date.today,
         help_text='Fecha de alta (Odoo acquisition_date).',
     )
     write_off_date = fields.Date(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text='Fecha de baja de placas (Odoo write_off_date).',
     )
     contract_date_start = fields.Date(
-        null=True, blank=True, default=date.today,
+        null=True,
+        blank=True,
+        default=date.today,
         help_text='Odoo contract_date_start.',
     )
-    color = fields.Char(max_length=50, blank=True, default='', help_text='Odoo color (sync).')
-    state = fields.Many2one(
-        'fleet.FleetVehicleState', on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='vehicles',
-        help_text='Estado del kanban (Odoo state_id). Sin default — ver '
-                   'punto 5 del docstring del módulo.',
+    color = fields.Char(
+        max_length=50, blank=True, default='', help_text='Odoo color (sync).'
     )
-    location = fields.Char(max_length=150, blank=True, default='', help_text='Odoo location.')
-    seats = fields.Integer(null=True, blank=True, help_text='Odoo seats (sync).')
-    model_year = fields.Integer(null=True, blank=True, help_text='Odoo model_year (sync).')
-    doors = fields.Integer(null=True, blank=True, help_text='Odoo doors (sync).')
+    state = fields.Many2one(
+        'fleet.FleetVehicleState',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='vehicles',
+        help_text=(
+            'Estado del kanban (Odoo state_id). Sin default — ver '
+            'punto 5 del docstring del módulo.'
+        ),
+    )
+    location = fields.Char(
+        max_length=150, blank=True, default='', help_text='Odoo location.'
+    )
+    seats = fields.Integer(
+        null=True, blank=True, help_text='Odoo seats (sync).'
+    )
+    model_year = fields.Integer(
+        null=True, blank=True, help_text='Odoo model_year (sync).'
+    )
+    doors = fields.Integer(
+        null=True, blank=True, help_text='Odoo doors (sync).'
+    )
     tags = fields.Many2many(
-        'fleet.FleetVehicleTag', blank=True,
-        db_table='fleet_vehicle_vehicle_tag_rel', related_name='vehicles',
+        'fleet.FleetVehicleTag',
+        blank=True,
+        db_table='fleet_vehicle_vehicle_tag_rel',
+        related_name='vehicles',
         help_text='Odoo tag_ids.',
     )
     odometer_unit = fields.Selection(
-        max_length=10, choices=ODOMETER_UNITS, default='kilometers',
+        max_length=10,
+        choices=ODOMETER_UNITS,
+        default='kilometers',
         help_text='Odoo odometer_unit.',
     )
     transmission = fields.Selection(
-        max_length=9, choices=TRANSMISSIONS, null=True, blank=True,
+        max_length=9,
+        choices=TRANSMISSIONS,
+        null=True,
+        blank=True,
         help_text='Odoo transmission (sync).',
     )
     fuel_type = fields.Selection(
-        max_length=23, choices=FUEL_TYPES, null=True, blank=True,
+        max_length=23,
+        choices=FUEL_TYPES,
+        null=True,
+        blank=True,
         help_text='Odoo fuel_type (sync de default_fuel_type).',
     )
     power_unit = fields.Selection(
-        max_length=10, choices=POWER_UNITS, default='power',
+        max_length=10,
+        choices=POWER_UNITS,
+        default='power',
         help_text='Odoo power_unit.',
     )
-    horsepower = fields.Float(null=True, blank=True, help_text='Odoo horsepower (sync).')
-    horsepower_tax = fields.Float(null=True, blank=True, help_text='Odoo horsepower_tax (sync).')
-    power = fields.Float(null=True, blank=True, help_text='Potencia en kW (Odoo power, sync).')
+    horsepower = fields.Float(
+        null=True, blank=True, help_text='Odoo horsepower (sync).'
+    )
+    horsepower_tax = fields.Float(
+        null=True, blank=True, help_text='Odoo horsepower_tax (sync).'
+    )
+    power = fields.Float(
+        null=True, blank=True, help_text='Potencia en kW (Odoo power, sync).'
+    )
     co2 = fields.Float(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text='Emisiones CO₂ (Odoo co2, sync de default_co2).',
     )
     co2_standard = fields.Char(
-        max_length=150, blank=True, default='', help_text='Odoo co2_standard (sync).',
+        max_length=150,
+        blank=True,
+        default='',
+        help_text='Odoo co2_standard (sync).',
     )
     category = fields.Many2one(
-        'fleet.FleetVehicleModelCategory', on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='vehicles',
-        help_text='Odoo category_id (related+store; ver sync_fields_from_model).',
+        'fleet.FleetVehicleModelCategory',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='vehicles',
+        help_text=(
+            'Odoo category_id (related+store; ver sync_fields_from_model).'
+        ),
     )
     car_value = fields.Float(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text='Valor de catálogo con IVA (Odoo car_value).',
     )
     net_car_value = fields.Float(
-        null=True, blank=True, help_text='Valor de compra (Odoo net_car_value).',
+        null=True,
+        blank=True,
+        help_text='Valor de compra (Odoo net_car_value).',
     )
-    residual_value = fields.Float(null=True, blank=True, help_text='Odoo residual_value.')
-    plan_to_change_car = fields.Boolean(default=False, help_text='Odoo plan_to_change_car.')
-    plan_to_change_bike = fields.Boolean(default=False, help_text='Odoo plan_to_change_bike.')
+    residual_value = fields.Float(
+        null=True, blank=True, help_text='Odoo residual_value.'
+    )
+    plan_to_change_car = fields.Boolean(
+        default=False, help_text='Odoo plan_to_change_car.'
+    )
+    plan_to_change_bike = fields.Boolean(
+        default=False, help_text='Odoo plan_to_change_bike.'
+    )
     frame_type = fields.Selection(
-        max_length=7, choices=FRAME_TYPES, null=True, blank=True,
+        max_length=7,
+        choices=FRAME_TYPES,
+        null=True,
+        blank=True,
         help_text='Odoo frame_type (bicicletas).',
     )
     electric_assistance = fields.Boolean(
-        default=False, help_text='Odoo electric_assistance (sync).',
+        default=False,
+        help_text='Odoo electric_assistance (sync).',
     )
-    frame_size = fields.Float(null=True, blank=True, help_text='Odoo frame_size.')
+    frame_size = fields.Float(
+        null=True, blank=True, help_text='Odoo frame_size.'
+    )
     vehicle_properties = fields.Properties(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         definition='model.vehicle_properties_definition',
-        help_text='Propiedades dinámicas del vehículo (Odoo vehicle_properties). '
-                   'Sin validación de esquema contra model.vehicle_properties_'
-                   'definition (deferido).',
+        help_text=(
+            'Propiedades dinámicas del vehículo (Odoo vehicle_properties). '
+            'Sin validación de esquema contra model.vehicle_properties_'
+            'definition (deferido).'
+        ),
     )
-    vehicle_range = fields.Integer(null=True, blank=True, help_text='Odoo vehicle_range (sync).')
+    vehicle_range = fields.Integer(
+        null=True, blank=True, help_text='Odoo vehicle_range (sync).'
+    )
     range_unit = fields.Selection(
-        max_length=2, choices=RANGE_UNITS, default='km', help_text='Odoo range_unit (sync).',
+        max_length=2,
+        choices=RANGE_UNITS,
+        default='km',
+        help_text='Odoo range_unit (sync).',
     )
 
     class Meta:
@@ -291,7 +400,11 @@ class FleetVehicle(MailThread, TimeStampedModel):
         **marca** o el **modelo** no repropaga a los vehículos ya guardados —
         divergencia declarada, del mismo tipo que la del punto 2.
         """
-        brand_name = self.model.brand.name if self.model_id and self.model.brand_id else ''
+        brand_name = (
+            self.model.brand.name
+            if self.model_id and self.model.brand_id
+            else ''
+        )
         model_name = self.model.name if self.model_id else ''
         plate = self.license_plate or 'Sin placa'
         return f'{brand_name}/{model_name}/{plate}'
@@ -341,7 +454,10 @@ class FleetVehicle(MailThread, TimeStampedModel):
         if not value:
             return
         FleetVehicleOdometer.objects.create(
-            value=value, date=date.today(), vehicle=self, driver=self.driver,
+            value=value,
+            date=date.today(),
+            vehicle=self,
+            driver=self.driver,
         )
 
     # --- contadores agregados (compute) → @property ------------------------
@@ -378,7 +494,8 @@ class FleetVehicle(MailThread, TimeStampedModel):
         """Espeja ``FleetVehicleLogContract.has_open_contract`` para este
         vehículo: ¿tiene algún contrato ``open`` vigente?"""
         return self.log_contracts.filter(
-            state='open', expiration_date__gte=date.today(),
+            state='open',
+            expiration_date__gte=date.today(),
         ).exists()
 
     @property
@@ -413,7 +530,9 @@ class FleetVehicle(MailThread, TimeStampedModel):
         )
         if not latest or self.contract_renewal_overdue:
             return False
-        delay = int(SystemParameter.get_param('fleet.delay_alert_contract', default=30))
+        delay = int(
+            SystemParameter.get_param('fleet.delay_alert_contract', default=30)
+        )
         return (latest.expiration_date - date.today()).days < delay
 
     # --- sincronización model → vehicle (punto 2) ---------------------------
@@ -441,7 +560,9 @@ class FleetVehicle(MailThread, TimeStampedModel):
     def create_driver_history(self):
         """``create_driver_history`` — registra la asignación actual."""
         FleetVehicleAssignationLog.objects.create(
-            vehicle=self, driver=self.driver, date_start=date.today(),
+            vehicle=self,
+            driver=self.driver,
+            date_start=date.today(),
         )
 
     def accept_driver_change(self):
@@ -455,9 +576,12 @@ class FleetVehicle(MailThread, TimeStampedModel):
         el filtro cruza la relación real ``model__vehicle_type``.
         """
         type(self).objects.filter(
-            driver=self.future_driver, model__vehicle_type=self.vehicle_type,
+            driver=self.future_driver,
+            model__vehicle_type=self.vehicle_type,
         ).exclude(pk=self.pk).update(
-            driver=None, plan_to_change_car=False, plan_to_change_bike=False,
+            driver=None,
+            plan_to_change_car=False,
+            plan_to_change_bike=False,
         )
         self.plan_to_change_bike = False
         self.plan_to_change_car = False
@@ -487,8 +611,10 @@ class FleetVehicle(MailThread, TimeStampedModel):
         previous_driver_id = None
         if not creating:
             previous_driver_id = (
-                type(self).objects.filter(pk=self.pk)
-                .values_list('driver_id', flat=True).first()
+                type(self)
+                .objects.filter(pk=self.pk)
+                .values_list('driver_id', flat=True)
+                .first()
             )
         # ``name`` es columna, como en la referencia: se calcula aquí. Si el
         # llamador acotó las columnas con update_fields, hay que añadirla —
@@ -497,7 +623,9 @@ class FleetVehicle(MailThread, TimeStampedModel):
         self.name = self.compute_vehicle_name()
         update_fields = kwargs.get('update_fields')
         if update_fields:
-            kwargs['update_fields'] = list(dict.fromkeys([*update_fields, 'name']))
+            kwargs['update_fields'] = list(
+                dict.fromkeys([*update_fields, 'name'])
+            )
         super().save(*args, **kwargs)
         if self.driver_id and self.driver_id != previous_driver_id:
             self.create_driver_history()

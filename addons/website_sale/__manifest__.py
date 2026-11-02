@@ -22,15 +22,15 @@
     # Porte PARCIAL declarado: es la Capa 2 de la campaña (tarea #204), y el
     # servicio de carrito todavía vive en `sale` (tarea #101).
     'depends': [
-        'product',      # Product — el catálogo que se navega
-        'sale',         # SaleOrder — el carrito ES el pedido en borrador
-        'delivery',     # DeliveryCarrier — la elección de envío en el checkout
-        'sale_loyalty', # el cupón aplicado en el carrito
-        'website',      # el sitio que hospeda la tienda
+        'product',  # Product — el catálogo que se navega
+        'sale',  # SaleOrder — el carrito ES el pedido en borrador
+        'delivery',  # DeliveryCarrier — la elección de envío en el checkout
+        'sale_loyalty',  # el cupón aplicado en el carrito
+        'website',  # el sitio que hospeda la tienda
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',
-    'application': True,   # módulo vendible del catálogo L0
+    'application': True,  # módulo vendible del catálogo L0
     'installable': True,
     'auto_install': False,
 }

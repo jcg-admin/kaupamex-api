@@ -35,12 +35,12 @@ Los controles que discriminan
   ``@api.constrains`` y **medido sin ningún llamador**. Que el colector lo vea
   es lo que prueba que el marcador dejó de ser decorativo.
 """
+
 import pytest
 
 from orm import registry
 from orm.decorators import constrains, ondelete, onchange
-from orm.registry import (constraint_methods, ondelete_methods,
-                          onchange_methods)
+from orm.registry import constraint_methods, ondelete_methods, onchange_methods
 
 
 class _Marked:
@@ -171,9 +171,12 @@ class TestItWarnsAboutADeclaredNameThatIsNotAWriteableField:
 
         assert 'is not a field name' in caplog.text
 
-    def test_the_warning_names_the_model_the_method_and_the_field(self, caplog):
+    def test_the_warning_names_the_model_the_method_and_the_field(
+        self, caplog
+    ):
         """EL CONTROL de que el aviso sirva: sin las tres piezas no localiza
         la errata, que es para lo único que existe."""
+
         @constrains('campo_con_errata')
         def _check_typo(self):
             return None
@@ -187,6 +190,7 @@ class TestItWarnsAboutADeclaredNameThatIsNotAWriteableField:
     def test_a_real_field_does_not_warn(self, caplog):
         """EL CONTROL POSITIVO: sin él, un aviso que se emitiera SIEMPRE
         pasaría los dos casos de arriba igual de verde."""
+
         @constrains('name')
         def _check_name(self):
             return None
@@ -258,7 +262,8 @@ class TestTheCollectorsAreDerivedAndClearable:
 
     def test_clearing_makes_the_next_read_see_a_method_added_after(self):
         assert '_check_gamma' not in {
-            m.__name__ for m in constraint_methods(_Marked)}
+            m.__name__ for m in constraint_methods(_Marked)
+        }
 
         @constrains('gamma')
         def _check_gamma(self):
@@ -268,7 +273,8 @@ class TestTheCollectorsAreDerivedAndClearable:
         try:
             registry.clear_marked_methods()
             assert '_check_gamma' in {
-                m.__name__ for m in constraint_methods(_Marked)}
+                m.__name__ for m in constraint_methods(_Marked)
+            }
         finally:
             del _Marked._check_gamma
             registry.clear_marked_methods()

@@ -8,6 +8,7 @@ el terminado como **entrada** con costo = materia prima valuada + mano de obra
 (``workorders`` × ``costs_hour``). Réplica del efecto de ``_generate_moves`` +
 ``_cal_price``/``_run_manufacture`` de Odoo ``mrp`` sobre la valoración.
 """
+
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -28,7 +29,9 @@ def generate_moves(production, stock_location, production_location):
       fabricar (qty = ``product_qty``).
     """
     if production.bom is None:
-        raise ValidationError('La orden requiere una BoM para generar movimientos.')
+        raise ValidationError(
+            'La orden requiere una BoM para generar movimientos.'
+        )
 
     # Sin ``name``: ``stock.move`` **no declara ese campo** en la fuente — su
     # etiqueta es ``description_picking`` (calculada desde el producto) y su
@@ -41,20 +44,27 @@ def generate_moves(production, stock_location, production_location):
     for line in production.bom.bom_line_ids.all():
         qty = line.product_qty * production.product_qty
         move = StockMove.objects.create(
-            product=line.product, product_uom_qty=qty,
-            location=stock_location, location_dest=production_location,
+            product=line.product,
+            product_uom_qty=qty,
+            location=stock_location,
+            location_dest=production_location,
         )
         MrpProductionMove.objects.create(
-            production=production, move=move, role=MrpProductionMove.ROLE_RAW,
+            production=production,
+            move=move,
+            role=MrpProductionMove.ROLE_RAW,
         )
 
     finished = StockMove.objects.create(
         product=production.product,
         product_uom_qty=production.product_qty,
-        location=production_location, location_dest=stock_location,
+        location=production_location,
+        location_dest=stock_location,
     )
     MrpProductionMove.objects.create(
-        production=production, move=finished, role=MrpProductionMove.ROLE_FINISHED,
+        production=production,
+        move=finished,
+        role=MrpProductionMove.ROLE_FINISHED,
     )
     return production
 
@@ -67,8 +77,13 @@ def produce(production):
     ``unit_cost = (materia prima + mano de obra) / product_qty``. Devuelve ese
     costo unitario — el **costo real de fabricación** del producto.
     """
-    if production.state not in (production.STATE_CONFIRMED, production.STATE_PROGRESS):
-        raise ValidationError('Solo una orden confirmada/en progreso se produce.')
+    if production.state not in (
+        production.STATE_CONFIRMED,
+        production.STATE_PROGRESS,
+    ):
+        raise ValidationError(
+            'Solo una orden confirmada/en progreso se produce.'
+        )
 
     raw_cost = Decimal('0.00')
     for move in production.move_raw_ids():

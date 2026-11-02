@@ -17,7 +17,12 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="serialization_field_id",
-                help_text="Si está puesto, el campo se guarda dentro de la estructura dispersa del campo de serialización en vez de tener columna propia. No se puede cambiar después de crearlo.",
+                help_text=(
+                    "Si está puesto, el campo se guarda dentro de la"
+                    " estructura dispersa del campo de serialización en vez de"
+                    " tener columna propia. No se puede cambiar después de"
+                    " crearlo."
+                ),
                 limit_choices_to={"ttype": "serialized"},
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,

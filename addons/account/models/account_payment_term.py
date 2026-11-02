@@ -75,6 +75,7 @@ plazo existen, mismo patrón que ``AccountMove.compute_amount_total()``
 ``AccountPaymentTerm._check_lines`` es el mismo caso a nivel del padre:
 valida la suma de porcentajes de ``line_ids``, así que también es explícito.
 """
+
 import calendar
 from datetime import timedelta
 from decimal import ROUND_HALF_UP, Decimal
@@ -140,48 +141,63 @@ def _currency_round(currency, amount):
 class AccountPaymentTerm(models.Model):
     """``account.payment.term`` — plazo de pago (distribución en cuotas)."""
 
-    name                          = fields.Char(
+    name = fields.Char(
         max_length=255,
         help_text='Nombre del plazo de pago (Odoo name, requerido).',
     )
-    active                        = fields.Boolean(
+    active = fields.Boolean(
         default=True,
         help_text='Si es falso, oculta el plazo sin borrarlo (Odoo active).',
     )
-    note                          = fields.Html(
-        blank=True, default='',
+    note = fields.Html(
+        blank=True,
+        default='',
         help_text='Descripción para la factura (Odoo note).',
     )
-    company                       = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, related_name='payment_terms',
-        null=True, blank=True,
+    company = fields.Many2one(
+        'base.ResCompany',
+        on_delete=models.CASCADE,
+        related_name='payment_terms',
+        null=True,
+        blank=True,
         help_text='Empresa (Odoo company_id; sin compañía = plazo global).',
     )
-    sequence                      = fields.Integer(
-        default=10, help_text='Orden de presentación (Odoo sequence).',
+    sequence = fields.Integer(
+        default=10,
+        help_text='Orden de presentación (Odoo sequence).',
     )
-    display_on_invoice             = fields.Boolean(
+    display_on_invoice = fields.Boolean(
         default=True,
-        help_text='Muestra las fechas de las cuotas en la factura (Odoo display_on_invoice).',
+        help_text=(
+            'Muestra las fechas de las cuotas en la factura (Odoo'
+            ' display_on_invoice).'
+        ),
     )
-    discount_percentage            = fields.Monetary(
-        max_digits=5, decimal_places=2, default=Decimal('2.0'),
+    discount_percentage = fields.Monetary(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('2.0'),
         help_text='% de descuento por pronto pago (Odoo discount_percentage).',
     )
-    discount_days                  = fields.Integer(
+    discount_days = fields.Integer(
         default=10,
-        help_text='Días antes de que expire el pronto pago (Odoo discount_days).',
+        help_text=(
+            'Días antes de que expire el pronto pago (Odoo discount_days).'
+        ),
     )
     early_pay_discount_computation = fields.Selection(
-        max_length=8, choices=EARLY_PAY_DISCOUNT_COMPUTATIONS, default='included',
+        max_length=8,
+        choices=EARLY_PAY_DISCOUNT_COMPUTATIONS,
+        default='included',
         help_text=(
             'Tratamiento fiscal del descuento (Odoo early_pay_discount_'
             'computation). Valor por defecto fijo — la derivación BE/NL por '
             'país de la compañía no está portada (ver docstring del módulo).'
         ),
     )
-    early_discount                 = fields.Boolean(
-        default=False, help_text='Activa el pronto pago (Odoo early_discount).',
+    early_discount = fields.Boolean(
+        default=False,
+        help_text='Activa el pronto pago (Odoo early_discount).',
     )
 
     class Meta:
@@ -200,23 +216,34 @@ class AccountPaymentTerm(models.Model):
         una única línea al 100%. Explícito — ver docstring del módulo
         (sibling-dependiente, no se dispara solo con ``save()``)."""
         total_percent = sum(
-            (line.value_amount for line in self.line_ids.all() if line.value == 'percent'),
+            (
+                line.value_amount
+                for line in self.line_ids.all()
+                if line.value == 'percent'
+            ),
             Decimal('0'),
         )
         if total_percent != Decimal('100'):
             raise ValidationError(
-                _('El plazo de pago debe tener al menos una línea de '
-                  'porcentaje y la suma de los porcentajes debe ser 100%.'))
+                _(
+                    'El plazo de pago debe tener al menos una línea de '
+                    'porcentaje y la suma de los porcentajes debe ser 100%.'
+                )
+            )
         line_count = self.line_ids.count()
         if line_count > 1 and self.early_discount:
             raise ValidationError(
-                _('El pronto pago sólo puede usarse con plazos de pago de '
-                  'una única línea al 100%.'))
+                _(
+                    'El pronto pago sólo puede usarse con plazos de pago de '
+                    'una única línea al 100%.'
+                )
+            )
         if self.early_discount and self.discount_percentage <= 0:
             raise ValidationError(_('El % de pronto pago debe ser positivo.'))
         if self.early_discount and self.discount_days <= 0:
             raise ValidationError(
-                _('Los días de pronto pago deben ser positivos.'))
+                _('Los días de pronto pago deben ser positivos.')
+            )
 
     # -- Odoo _get_amount_due_after_discount ----------------------------------
     def _get_amount_due_after_discount(self, total_amount, untaxed_amount):
@@ -249,9 +276,17 @@ class AccountPaymentTerm(models.Model):
             return False
         return date_ref + timedelta(days=self.discount_days or 0)
 
-    # -- Odoo _compute_terms ---------------------------------------------------
-    def _compute_terms(self, date_ref, currency, tax_amount, tax_amount_currency,
-                        sign, untaxed_amount, untaxed_amount_currency):
+    # -- Odoo _compute_terms --------
+    def _compute_terms(
+        self,
+        date_ref,
+        currency,
+        tax_amount,
+        tax_amount_currency,
+        sign,
+        untaxed_amount,
+        untaxed_amount_currency,
+    ):
         """Distribución del plazo en cuotas (Odoo ``_compute_terms``).
 
         Firma sin ``company``/``cash_rounding`` (ver docstring del módulo):
@@ -263,15 +298,22 @@ class AccountPaymentTerm(models.Model):
         total_amount = tax_amount + untaxed_amount
         total_amount_currency = tax_amount_currency + untaxed_amount_currency
         rate = (
-            abs(total_amount_currency / total_amount) if total_amount else Decimal('0')
+            abs(total_amount_currency / total_amount)
+            if total_amount
+            else Decimal('0')
         )
 
         pay_term = {
             'total_amount': total_amount,
-            'discount_percentage': self.discount_percentage if self.early_discount else Decimal('0'),
+            'discount_percentage': (
+                self.discount_percentage
+                if self.early_discount
+                else Decimal('0')
+            ),
             'discount_date': (
                 date_ref + timedelta(days=self.discount_days or 0)
-                if self.early_discount else False
+                if self.early_discount
+                else False
             ),
             'discount_balance': Decimal('0'),
             'line_ids': [],
@@ -281,14 +323,24 @@ class AccountPaymentTerm(models.Model):
             discount_percentage = self.discount_percentage / Decimal('100')
             if self.early_pay_discount_computation in ('excluded', 'mixed'):
                 pay_term['discount_balance'] = _currency_round(
-                    company_currency, total_amount - untaxed_amount * discount_percentage)
+                    company_currency,
+                    total_amount - untaxed_amount * discount_percentage,
+                )
                 pay_term['discount_amount_currency'] = _currency_round(
-                    currency, total_amount_currency - untaxed_amount_currency * discount_percentage)
+                    currency,
+                    total_amount_currency
+                    - untaxed_amount_currency * discount_percentage,
+                )
             else:
                 pay_term['discount_balance'] = _currency_round(
-                    company_currency, total_amount * (Decimal('1') - discount_percentage))
+                    company_currency,
+                    total_amount * (Decimal('1') - discount_percentage),
+                )
                 pay_term['discount_amount_currency'] = _currency_round(
-                    currency, total_amount_currency * (Decimal('1') - discount_percentage))
+                    currency,
+                    total_amount_currency
+                    * (Decimal('1') - discount_percentage),
+                )
 
         residual_amount = total_amount
         residual_amount_currency = total_amount_currency
@@ -307,15 +359,26 @@ class AccountPaymentTerm(models.Model):
                 term_vals['foreign_amount'] = residual_amount_currency
             elif line.value == 'fixed':
                 term_vals['company_amount'] = (
-                    sign * _currency_round(company_currency, line.value_amount / rate)
-                    if rate else Decimal('0')
+                    sign
+                    * _currency_round(
+                        company_currency, line.value_amount / rate
+                    )
+                    if rate
+                    else Decimal('0')
                 )
-                term_vals['foreign_amount'] = sign * _currency_round(currency, line.value_amount)
+                term_vals['foreign_amount'] = sign * _currency_round(
+                    currency, line.value_amount
+                )
             else:
                 line_amount = _currency_round(
-                    company_currency, total_amount * (line.value_amount / Decimal('100')))
+                    company_currency,
+                    total_amount * (line.value_amount / Decimal('100')),
+                )
                 line_amount_currency = _currency_round(
-                    currency, total_amount_currency * (line.value_amount / Decimal('100')))
+                    currency,
+                    total_amount_currency
+                    * (line.value_amount / Decimal('100')),
+                )
                 term_vals['company_amount'] = line_amount
                 term_vals['foreign_amount'] = line_amount_currency
 
@@ -325,7 +388,7 @@ class AccountPaymentTerm(models.Model):
 
         return pay_term
 
-    # -- Odoo _get_amount_by_date ----------------------------------------------
+    # -- Odoo _get_amount_by_date --------
     @api.model
     def _get_amount_by_date(self, terms):
         """Agrupa las cuotas de ``_compute_terms`` por fecha (Odoo
@@ -334,7 +397,9 @@ class AccountPaymentTerm(models.Model):
         amount_by_date = {}
         for term in terms_lines:
             key = term['date']
-            results = amount_by_date.setdefault(key, {'date': key, 'amount': Decimal('0')})
+            results = amount_by_date.setdefault(
+                key, {'date': key, 'amount': Decimal('0')}
+            )
             results['amount'] += term['foreign_amount']
         return amount_by_date
 
@@ -342,30 +407,46 @@ class AccountPaymentTerm(models.Model):
 class AccountPaymentTermLine(models.Model):
     """``account.payment.term.line`` — cuota de un plazo de pago."""
 
-    value                    = fields.Selection(
-        max_length=8, choices=VALUE_TYPES, default='percent',
+    value = fields.Selection(
+        max_length=8,
+        choices=VALUE_TYPES,
+        default='percent',
         help_text='Tipo de valuación de la cuota (Odoo value, requerido).',
     )
-    value_amount             = fields.Monetary(
-        max_digits=7, decimal_places=2, default=Decimal('100.0'),
+    value_amount = fields.Monetary(
+        max_digits=7,
+        decimal_places=2,
+        default=Decimal('100.0'),
         help_text='Importe/porcentaje de la cuota (Odoo value_amount).',
     )
-    delay_type               = fields.Selection(
-        max_length=32, choices=DELAY_TYPES, default='days_after',
-        help_text='Base del cómputo de la fecha de vencimiento (Odoo delay_type).',
+    delay_type = fields.Selection(
+        max_length=32,
+        choices=DELAY_TYPES,
+        default='days_after',
+        help_text=(
+            'Base del cómputo de la fecha de vencimiento (Odoo delay_type).'
+        ),
     )
-    days_next_month          = fields.Char(
-        max_length=2, blank=True, default='10',
-        help_text='Día del mes siguiente (Odoo days_next_month, sólo con '
-                   'delay_type=days_end_of_month_on_the).',
+    days_next_month = fields.Char(
+        max_length=2,
+        blank=True,
+        default='10',
+        help_text=(
+            'Día del mes siguiente (Odoo days_next_month, sólo con '
+            'delay_type=days_end_of_month_on_the).'
+        ),
     )
-    nb_days                  = fields.Integer(
-        default=0, help_text='Días de la cuota (Odoo nb_days).',
+    nb_days = fields.Integer(
+        default=0,
+        help_text='Días de la cuota (Odoo nb_days).',
     )
-    payment                  = fields.Many2one(
-        'account.AccountPaymentTerm', on_delete=models.CASCADE,
+    payment = fields.Many2one(
+        'account.AccountPaymentTerm',
+        on_delete=models.CASCADE,
         related_name='line_ids',
-        help_text='Plazo de pago al que pertenece (Odoo payment_id, requerido).',
+        help_text=(
+            'Plazo de pago al que pertenece (Odoo payment_id, requerido).'
+        ),
     )
 
     class Meta:
@@ -384,7 +465,9 @@ class AccountPaymentTermLine(models.Model):
         if self.delay_type == 'days_after_end_of_month':
             return _end_of_month(due_date) + timedelta(days=self.nb_days)
         if self.delay_type == 'days_after_end_of_next_month':
-            return _end_of_month(_shift_month(due_date, 1)) + timedelta(days=self.nb_days)
+            return _end_of_month(_shift_month(due_date, 1)) + timedelta(
+                days=self.nb_days
+            )
         if self.delay_type == 'days_end_of_month_on_the':
             try:
                 days_next_month = int(self.days_next_month)
@@ -403,13 +486,20 @@ class AccountPaymentTermLine(models.Model):
                 raise ValidationError(_('Los días deben estar entre 0 y 31.'))
         else:
             raise ValidationError(
-                _('Los días deben ser un número entre 0 y 31.'))
+                _('Los días deben ser un número entre 0 y 31.')
+            )
 
     # -- Odoo _check_percent (constrains value, value_amount) ----------------
     def _check_percent(self):
-        if self.value == 'percent' and (self.value_amount < 0 or self.value_amount > 100):
+        if self.value == 'percent' and (
+            self.value_amount < 0 or self.value_amount > 100
+        ):
             raise ValidationError(
-                _('El porcentaje de las líneas del plazo de pago debe estar entre 0 y 100.'))
+                _(
+                    'El porcentaje de las líneas del plazo de pago debe estar'
+                    ' entre 0 y 100.'
+                )
+            )
 
     # -- Odoo _compute_display_days_next_month --------------------------------
     @property
@@ -429,7 +519,9 @@ class AccountPaymentTermLine(models.Model):
         """Días por defecto de una línea nueva: los de la línea anterior + 30
         (Odoo ``_compute_days``). Explícito — requiere que ``payment.line_ids``
         ya exista completo; no se auto-invoca en ``save()``."""
-        siblings = list(self.payment.line_ids.exclude(pk=self.pk).order_by('id'))
+        siblings = list(
+            self.payment.line_ids.exclude(pk=self.pk).order_by('id')
+        )
         if not self.nb_days and siblings:
             self.nb_days = siblings[-1].nb_days + 30
 
@@ -441,7 +533,9 @@ class AccountPaymentTermLine(models.Model):
         if self.value == 'fixed':
             self.value_amount = Decimal('0')
             return
-        siblings = self.payment.line_ids.exclude(pk=self.pk).filter(value='percent')
+        siblings = self.payment.line_ids.exclude(pk=self.pk).filter(
+            value='percent'
+        )
         amount = sum((s.value_amount for s in siblings), Decimal('0'))
         self.value_amount = Decimal('100') - amount
 

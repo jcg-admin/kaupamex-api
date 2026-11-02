@@ -15,6 +15,7 @@ disolvió con el addon ``cart`` (ver ``test_cart.py``) y no tiene sucesor en
 ``sale.serializers`` (que sólo serializa la orden ya confirmada). La clase se
 retira; el resto del módulo (servicios del draft, sin HTTP) se conserva.
 """
+
 import uuid
 
 import pytest
@@ -35,7 +36,12 @@ from addons.sale.services import (
     update_draft_item_quantity,
     get_or_create_draft_order,
 )
-from tests.factories.product_factory import get_stock, make_category, make_product, set_stock
+from tests.factories.product_factory import (
+    get_stock,
+    make_category,
+    make_product,
+    set_stock,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -50,7 +56,8 @@ class TestDraftSaleOrderV2:
     def test_sale_order_persists_as_draft_with_cart_token(self):
         token = uuid.uuid4()
         order = SaleOrder.objects.create(
-            state=SaleOrder.STATE_DRAFT, cart_token=token)
+            state=SaleOrder.STATE_DRAFT, cart_token=token
+        )
         order.refresh_from_db()
         assert order.state == SaleOrder.STATE_DRAFT
         assert order.cart_token == token
@@ -61,7 +68,8 @@ class TestDraftSaleOrderV2:
         SaleOrder.objects.create(state=SaleOrder.STATE_DRAFT, cart_token=token)
         with pytest.raises(IntegrityError):
             SaleOrder.objects.create(
-                state=SaleOrder.STATE_DRAFT, cart_token=token)
+                state=SaleOrder.STATE_DRAFT, cart_token=token
+            )
 
     def test_cart_token_is_optional_multiple_null_allowed(self):
         a = SaleOrder.objects.create(state=SaleOrder.STATE_DRAFT)
@@ -74,7 +82,8 @@ class TestGetOrCreateDraftOrderS2:
 
     def test_authenticated_user_gets_single_draft(self):
         user = User.objects.create_user(
-            login='draft-s2@kaupamex.mx', password='x')
+            login='draft-s2@kaupamex.mx', password='x'
+        )
         a, created_a = get_or_create_draft_order(user=user)
         b, created_b = get_or_create_draft_order(user=user)
         assert created_a is True and created_b is False
@@ -110,7 +119,8 @@ class TestUnDraftPorPartnerEnLaBase:
 
     def test_segundo_draft_del_mismo_partner_es_rechazado(self):
         user = User.objects.create_user(
-            login='h309-dup@kaupamex.mx', password='x')
+            login='h309-dup@kaupamex.mx', password='x'
+        )
         SaleOrder.objects.create(partner=user, state=SaleOrder.STATE_DRAFT)
         with pytest.raises(IntegrityError):
             SaleOrder.objects.create(partner=user, state=SaleOrder.STATE_DRAFT)
@@ -119,11 +129,13 @@ class TestUnDraftPorPartnerEnLaBase:
         """El índice sólo cubre ``draft``: confirmar no bloquea el siguiente
         carrito, que es justo el flujo normal del comprador recurrente."""
         user = User.objects.create_user(
-            login='h309-sale@kaupamex.mx', password='x')
+            login='h309-sale@kaupamex.mx', password='x'
+        )
         SaleOrder.objects.create(partner=user, state=SaleOrder.STATE_SALE)
         SaleOrder.objects.create(partner=user, state=SaleOrder.STATE_SALE)
         draft = SaleOrder.objects.create(
-            partner=user, state=SaleOrder.STATE_DRAFT)
+            partner=user, state=SaleOrder.STATE_DRAFT
+        )
         assert draft.pk is not None
 
     def test_carritos_anonimos_quedan_fuera_del_indice(self):
@@ -135,20 +147,27 @@ class TestUnDraftPorPartnerEnLaBase:
 
     def test_dos_partners_distintos_tienen_su_propio_draft(self):
         u1 = User.objects.create_user(
-            login='h309-u1@kaupamex.mx', password='x')
+            login='h309-u1@kaupamex.mx', password='x'
+        )
         u2 = User.objects.create_user(
-            login='h309-u2@kaupamex.mx', password='x')
+            login='h309-u2@kaupamex.mx', password='x'
+        )
         SaleOrder.objects.create(partner=u1, state=SaleOrder.STATE_DRAFT)
         SaleOrder.objects.create(partner=u2, state=SaleOrder.STATE_DRAFT)
-        assert SaleOrder.objects.filter(
-            state=SaleOrder.STATE_DRAFT, partner__isnull=False).count() == 2
+        assert (
+            SaleOrder.objects.filter(
+                state=SaleOrder.STATE_DRAFT, partner__isnull=False
+            ).count()
+            == 2
+        )
 
 
 @pytest.fixture
 def draft_product(db):
     cat = make_category(name='Cat Draft')
-    return make_product(name='Prod Draft S2b', price=Decimal('100.00'),
-                        stock=5, categ=cat)
+    return make_product(
+        name='Prod Draft S2b', price=Decimal('100.00'), stock=5, categ=cat
+    )
 
 
 class TestDraftItemOperationsS2b:
@@ -191,10 +210,19 @@ class TestDraftTotalsS2c:
     """Paridad del contrato de totales (13 claves) con el histórico."""
 
     CART_TOTALS_KEYS = {
-        'subtotal', 'discount', 'subtotal_net', 'tax_included',
-        'shipping_cost', 'total', 'free_shipping_threshold',
-        'free_shipping_remaining', 'free_shipping_applied',
-        'amount_untaxed', 'amount_tax', 'amount_total', 'item_count',
+        'subtotal',
+        'discount',
+        'subtotal_net',
+        'tax_included',
+        'shipping_cost',
+        'total',
+        'free_shipping_threshold',
+        'free_shipping_remaining',
+        'free_shipping_applied',
+        'amount_untaxed',
+        'amount_tax',
+        'amount_total',
+        'item_count',
     }
 
     def test_totals_contract_keys_match_cart(self, draft_product):
@@ -221,7 +249,9 @@ class TestDraftItemUpdateRemoveS2c2:
         line, _ = add_item_to_draft(order, draft_product, quantity=1)
         updated = update_draft_item_quantity(order, line.pk, 4)
         assert updated.product_uom_qty == 4
-        assert updated.price_unit * updated.product_uom_qty == Decimal('400.00')
+        assert updated.price_unit * updated.product_uom_qty == Decimal(
+            '400.00'
+        )
 
     def test_update_quantity_respects_stock(self, draft_product):
         order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
@@ -254,7 +284,8 @@ class TestSaleOrderLineMethodsV2:
         rate = get_setting('iva_rate')
         total = Decimal('200.00')
         expected_tax = (total * rate / (Decimal('1') + rate)).quantize(
-            Decimal('0.01'))
+            Decimal('0.01')
+        )
         assert line.price_total == total
         assert line.price_tax == expected_tax
         assert line.price_subtotal == total - expected_tax
@@ -288,7 +319,8 @@ class TestMergeDraftOrdersS2c2b:
 
     def test_merge_moves_items_and_deletes_anon_draft(self, draft_product):
         user = User.objects.create_user(
-            login='merge-s2c@kaupamex.mx', password='x')
+            login='merge-s2c@kaupamex.mx', password='x'
+        )
         token = uuid.uuid4()
         anon, _ = get_or_create_draft_order(cart_token=token)
         add_item_to_draft(anon, draft_product, quantity=2)
@@ -302,7 +334,8 @@ class TestMergeDraftOrdersS2c2b:
 
     def test_merge_caps_quantity_to_stock(self, draft_product):
         user = User.objects.create_user(
-            login='merge-cap@kaupamex.mx', password='x')
+            login='merge-cap@kaupamex.mx', password='x'
+        )
         auth, _ = get_or_create_draft_order(user=user)
         add_item_to_draft(auth, draft_product, quantity=4)
         token = uuid.uuid4()
@@ -316,7 +349,8 @@ class TestMergeDraftOrdersS2c2b:
 
     def test_merge_skips_out_of_stock(self, draft_product):
         user = User.objects.create_user(
-            login='merge-skip@kaupamex.mx', password='x')
+            login='merge-skip@kaupamex.mx', password='x'
+        )
         token = uuid.uuid4()
         anon, _ = get_or_create_draft_order(cart_token=token)
         add_item_to_draft(anon, draft_product, quantity=1)
@@ -324,13 +358,18 @@ class TestMergeDraftOrdersS2c2b:
 
         order, skipped = merge_draft_orders(user, token)
         assert order.order_line.count() == 0
-        assert skipped == [{'product_id': draft_product.pk,
-                            'product_name': draft_product.name,
-                            'reason': 'OUT_OF_STOCK'}]
+        assert skipped == [
+            {
+                'product_id': draft_product.pk,
+                'product_name': draft_product.name,
+                'reason': 'OUT_OF_STOCK',
+            }
+        ]
 
     def test_merge_without_anon_draft_returns_auth_draft(self):
         user = User.objects.create_user(
-            login='merge-noop@kaupamex.mx', password='x')
+            login='merge-noop@kaupamex.mx', password='x'
+        )
         order, skipped = merge_draft_orders(user, uuid.uuid4())
         assert order.partner_id == user.pk
         assert skipped == []

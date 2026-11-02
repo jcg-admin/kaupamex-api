@@ -10,6 +10,7 @@ El contrato publicado **no cambia** respecto de la versión que serializaba la
 tabla ``SiteSettings``: mismos nombres de campo, mismos tipos, mismos
 validadores. Lo que cambió es dónde aterrizan los valores.
 """
+
 import json
 from decimal import Decimal
 
@@ -18,7 +19,14 @@ from rest_framework import serializers
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base_setup.models import SiteConfigSettings
 
-_SOCIAL_KEYS = {'facebook', 'instagram', 'twitter', 'youtube', 'tiktok', 'whatsapp'}
+_SOCIAL_KEYS = {
+    'facebook',
+    'instagram',
+    'twitter',
+    'youtube',
+    'tiktok',
+    'whatsapp',
+}
 
 #: Las redes sociales son un JSON suelto, no un campo con política: van al
 #: mismo destino de parámetro, con la clave prefijada por su dominio dueño.
@@ -34,14 +42,23 @@ class SiteSettingsSerializer(serializers.Serializer):
     """
 
     iva_rate = serializers.DecimalField(
-        max_digits=5, decimal_places=4,
-        min_value=Decimal('0'), max_value=Decimal('1'), required=False)
-    payment_timeout_minutes = serializers.IntegerField(min_value=1, required=False)
+        max_digits=5,
+        decimal_places=4,
+        min_value=Decimal('0'),
+        max_value=Decimal('1'),
+        required=False,
+    )
+    payment_timeout_minutes = serializers.IntegerField(
+        min_value=1, required=False
+    )
     min_stock_threshold = serializers.IntegerField(min_value=0, required=False)
     free_shipping_threshold = serializers.DecimalField(
-        max_digits=10, decimal_places=2, min_value=Decimal('0'), required=False)
+        max_digits=10, decimal_places=2, min_value=Decimal('0'), required=False
+    )
     support_email = serializers.EmailField(required=False, allow_blank=True)
-    phone = serializers.CharField(max_length=30, required=False, allow_blank=True)
+    phone = serializers.CharField(
+        max_length=30, required=False, allow_blank=True
+    )
     address = serializers.CharField(required=False, allow_blank=True)
     social_links = serializers.JSONField(required=False)
 
@@ -72,8 +89,11 @@ class SiteSettingsSerializer(serializers.Serializer):
         el almacén, decida la forma publicada.
         """
         state = SiteConfigSettings.current_values()
-        values = {name: state[name] for name in SiteSettingsSerializer().fields
-                  if name in state}
+        values = {
+            name: state[name]
+            for name in SiteSettingsSerializer().fields
+            if name in state
+        }
         raw = SystemParameter.get_param(SOCIAL_LINKS_KEY)
         values['social_links'] = json.loads(raw) if raw else {}
         return SiteSettingsSerializer(values).data
@@ -91,10 +111,14 @@ class SiteSettingsSerializer(serializers.Serializer):
 
         state = SiteConfigSettings.current_values()
         state.update(validated)
-        form = SiteConfigSettings(**{
-            name: value for name, value in state.items()
-            if name in {f.name for f in SiteConfigSettings._meta.get_fields()}
-        })
+        form = SiteConfigSettings(
+            **{
+                name: value
+                for name, value in state.items()
+                if name
+                in {f.name for f in SiteConfigSettings._meta.get_fields()}
+            }
+        )
         form.apply_values()
 
         if social is not None:
@@ -121,4 +145,5 @@ class BaseSetupDataSerializer(serializers.Serializer):
     active_users = serializers.IntegerField(min_value=0)
     pending_count = serializers.IntegerField(min_value=0)
     pending_users = serializers.ListField(
-        child=serializers.ListField(), allow_empty=True)
+        child=serializers.ListField(), allow_empty=True
+    )

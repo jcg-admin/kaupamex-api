@@ -6,6 +6,7 @@ exitoso hasta donde el mecanismo llega termina en 500
 de reportes existe, falta el ``ReportSpec`` del cheque); los tests lo
 confirman como el terminal esperado, no como una regresión.
 """
+
 from datetime import timedelta
 from decimal import Decimal
 
@@ -31,9 +32,13 @@ def _elevate(client, user):
     """DEC-12: ``finance.record`` es sensible — sembrar la ventana de
     reautenticación fresca para la sesión ya abierta por ``force_login``."""
     ReauthSession.objects.update_or_create(
-        user_id=user.pk, session_key=client.session.session_key or '',
-        defaults={'started_at': timezone.now(),
-                  'expires_at': timezone.now() + timedelta(seconds=900)})
+        user_id=user.pk,
+        session_key=client.session.session_key or '',
+        defaults={
+            'started_at': timezone.now(),
+            'expires_at': timezone.now() + timedelta(seconds=900),
+        },
+    )
 
 
 @pytest.fixture
@@ -44,7 +49,8 @@ def company(db):
 @pytest.fixture
 def journal(company):
     row = AccountJournal.objects.create(
-        name='Banco', code='BNK', type='bank', company=company)
+        name='Banco', code='BNK', type='bank', company=company
+    )
     settings = CheckPrintingJournalSettings.ensure_for(row)
     settings.layout = 'account_check_printing.some_report'
     settings.save(update_fields=['layout'])
@@ -53,8 +59,11 @@ def journal(company):
 
 def _payment(journal, company, **kwargs):
     defaults = {
-        'amount': Decimal('100.00'), 'payment_type': 'outbound',
-        'partner_type': 'supplier', 'journal': journal, 'company': company,
+        'amount': Decimal('100.00'),
+        'payment_type': 'outbound',
+        'partner_type': 'supplier',
+        'journal': journal,
+        'company': company,
         'state': 'draft',
     }
     defaults.update(kwargs)
@@ -63,7 +72,8 @@ def _payment(journal, company, **kwargs):
 
 class TestPrintChecksHappyPath:
     def test_numbers_posts_and_marks_sent_then_blocks_on_render(
-            self, admin_client, admin_user, journal, company):
+        self, admin_client, admin_user, journal, company
+    ):
         payment = _payment(journal, company)
         _elevate(admin_client, admin_user)
 
@@ -74,10 +84,15 @@ class TestPrintChecksHappyPath:
         )
 
         assert resp.status_code == 500
-        assert resp.data['codigo_error'] == 'CHECK_PRINTING_REPORT_ENGINE_PENDING'
+        assert (
+            resp.data['codigo_error'] == 'CHECK_PRINTING_REPORT_ENGINE_PENDING'
+        )
         assert resp.data['payments'] == [
-            {'payment_id': payment.pk, 'check_number': '00042',
-             'state': 'in_process'},
+            {
+                'payment_id': payment.pk,
+                'check_number': '00042',
+                'state': 'in_process',
+            },
         ]
         # Side effects reales, ya persistidos — no sólo en la respuesta.
         payment.refresh_from_db()
@@ -89,7 +104,8 @@ class TestPrintChecksHappyPath:
 
 class TestPrintChecksErrors:
     def test_non_numeric_next_check_number_is_400(
-            self, admin_client, admin_user, journal, company):
+        self, admin_client, admin_user, journal, company
+    ):
         payment = _payment(journal, company)
         _elevate(admin_client, admin_user)
 
@@ -103,9 +119,11 @@ class TestPrintChecksErrors:
         assert resp.data['codigo_error'] == 'CHECK_NUMBER_NOT_NUMERIC'
 
     def test_missing_check_layout_is_422(
-            self, admin_client, admin_user, company):
+        self, admin_client, admin_user, company
+    ):
         journal_sin_layout = AccountJournal.objects.create(
-            name='Banco 2', code='BK2', type='bank', company=company)
+            name='Banco 2', code='BK2', type='bank', company=company
+        )
         payment = _payment(journal_sin_layout, company)
         _elevate(admin_client, admin_user)
 
@@ -119,10 +137,12 @@ class TestPrintChecksErrors:
         assert resp.data['codigo_error'] == 'CHECK_LAYOUT_NOT_CONFIGURED'
 
     def test_duplicate_number_within_journal_is_409(
-            self, admin_client, admin_user, journal, company):
+        self, admin_client, admin_user, journal, company
+    ):
         committed = _payment(journal, company, state='in_process')
         CheckPrintingPaymentInfo.objects.create(
-            payment=committed, check_number='00043')
+            payment=committed, check_number='00043'
+        )
         contender = _payment(journal, company, state='draft')
         CheckPrintingPaymentInfo.for_payment(contender, create=True)
         _elevate(admin_client, admin_user)

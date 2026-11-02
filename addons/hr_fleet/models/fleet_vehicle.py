@@ -61,6 +61,7 @@ Divergencias declaradas
    porta en ``driver``).
 5. **``sudo()`` → acceso directo** — sin usuario ambiente.
 """
+
 import fields
 import models
 from django.db.models.signals import pre_save
@@ -79,21 +80,25 @@ def _employee_for_partner(partner_id, company_id):
     if not partner_id:
         return None
     return HrEmployee.objects.filter(
-        work_contact_id=partner_id, company_id=company_id,
+        work_contact_id=partner_id,
+        company_id=company_id,
     ).first()
 
 
 def _compute_driver_employee_id(self):
     """≙ ``_compute_driver_employee_id``
     (``odoo19c: hr_fleet/models/fleet_vehicle.py:27-40``)."""
-    self.driver_employee = _employee_for_partner(self.driver_id, self.company_id)
+    self.driver_employee = _employee_for_partner(
+        self.driver_id, self.company_id
+    )
     return self.driver_employee
 
 
 def _compute_future_driver_employee_id(self):
     """≙ ``_compute_future_driver_employee_id`` (``:42-54``)."""
     self.future_driver_employee = _employee_for_partner(
-        self.future_driver_id, self.company_id,
+        self.future_driver_id,
+        self.company_id,
     )
     return self.future_driver_employee
 
@@ -131,9 +136,11 @@ def _update_create_write_vals(self, vals):
         # El camino inverso, sólo si el empleado es único.
         employee = None
         if vals['driver']:
-            employees = list(HrEmployee.objects.filter(
-                work_contact=vals['driver'],
-            )[:2])
+            employees = list(
+                HrEmployee.objects.filter(
+                    work_contact=vals['driver'],
+                )[:2]
+            )
             if len(employees) == 1:
                 employee = employees[0]
         vals['driver_employee'] = employee
@@ -150,9 +157,11 @@ def _update_create_write_vals(self, vals):
     elif 'future_driver' in vals:
         employee = None
         if vals['future_driver']:
-            employees = list(HrEmployee.objects.filter(
-                work_contact=vals['future_driver'],
-            )[:2])
+            employees = list(
+                HrEmployee.objects.filter(
+                    work_contact=vals['future_driver'],
+                )[:2]
+            )
             if len(employees) == 1:
                 employee = employees[0]
         vals['future_driver_employee'] = employee
@@ -163,8 +172,11 @@ def driver_employee_name(self):
     return self.driver_employee.name if self.driver_employee_id else ''
 
 
-@receiver(pre_save, sender=FleetVehicle,
-          dispatch_uid='hr_fleet.vehicle_pre_save_sync_employee')
+@receiver(
+    pre_save,
+    sender=FleetVehicle,
+    dispatch_uid='hr_fleet.vehicle_pre_save_sync_employee',
+)
 def _vehicle_pre_save(sender, instance, **kwargs):
     """El ``create``/``write`` de la referencia (``:104-120``), medido por
     diff contra BD (divergencia 1): sincroniza los pares
@@ -176,23 +188,36 @@ def _vehicle_pre_save(sender, instance, **kwargs):
     # sincronizar aquí no persistiría). El llamador que toque un lado del
     # par debe incluir ambos lados en su ``update_fields``.
     update_fields = kwargs.get('update_fields')
-    synced_fields = {'driver', 'driver_employee', 'future_driver',
-                     'future_driver_employee', 'mobility_card'}
+    synced_fields = {
+        'driver',
+        'driver_employee',
+        'future_driver',
+        'future_driver_employee',
+        'mobility_card',
+    }
     if update_fields is not None and not (set(update_fields) & synced_fields):
         return
 
     old = {}
     if instance.pk is not None:
-        old = (FleetVehicle.objects.filter(pk=instance.pk)
-               .values('driver_id', 'driver_employee_id',
-                       'future_driver_employee_id', 'future_driver_id')
-               .first()) or {}
+        old = (
+            FleetVehicle.objects.filter(pk=instance.pk)
+            .values(
+                'driver_id',
+                'driver_employee_id',
+                'future_driver_employee_id',
+                'future_driver_id',
+            )
+            .first()
+        ) or {}
 
     # ≙ la rama del ``write`` que desuscribe al conductor saliente
     # (``:110-120``) — con los valores VIEJOS, como la referencia.
     old_driver_employee_id = old.get('driver_employee_id')
-    if (old_driver_employee_id
-            and instance.driver_employee_id != old_driver_employee_id):
+    if (
+        old_driver_employee_id
+        and instance.driver_employee_id != old_driver_employee_id
+    ):
         partners_to_unsubscribe = []
         if old.get('driver_id'):
             partners_to_unsubscribe.append(old['driver_id'])
@@ -212,14 +237,19 @@ def _vehicle_pre_save(sender, instance, **kwargs):
         partner_id = getattr(instance, f'{partner_attr}_id')
         if employee_id != old.get(f'{employee_attr}_id'):
             employee = getattr(instance, employee_attr)
-            setattr(instance, partner_attr,
-                    employee.work_contact if employee else None)
+            setattr(
+                instance,
+                partner_attr,
+                employee.work_contact if employee else None,
+            )
         elif partner_id != old.get(f'{partner_attr}_id'):
             employee = None
             if partner_id:
-                employees = list(HrEmployee.objects.filter(
-                    work_contact_id=partner_id,
-                )[:2])
+                employees = list(
+                    HrEmployee.objects.filter(
+                        work_contact_id=partner_id,
+                    )[:2]
+                )
                 if len(employees) == 1:
                     employee = employees[0]
             setattr(instance, employee_attr, employee)
@@ -235,33 +265,47 @@ def apply_hr_fleet_fleet_vehicle_extensions():
     columnas nuevas esperan su migración en ``fleet/migrations/`` (ver
     ``__init__.py`` del addon)."""
     extend_model(
-        'fleet', 'FleetVehicle',
+        'fleet',
+        'FleetVehicle',
         campos={
             'mobility_card': fields.Char(
-                blank=True, default='',
+                blank=True,
+                default='',
                 verbose_name='Tarjeta de movilidad',
-                help_text='Odoo mobility_card (compute+store — lo refresca '
-                          'el receptor pre_save de hr_fleet).',
+                help_text=(
+                    'Odoo mobility_card (compute+store — lo refresca '
+                    'el receptor pre_save de hr_fleet).'
+                ),
             ),
             'driver_employee': fields.Many2one(
-                'hr.HrEmployee', on_delete=models.SET_NULL, null=True,
-                blank=True, related_name='car_ids',
+                'hr.HrEmployee',
+                on_delete=models.SET_NULL,
+                null=True,
+                blank=True,
+                related_name='car_ids',
                 verbose_name='Driver (Employee)',
-                help_text='Odoo driver_employee_id (compute+store; su índice '
-                          'btree_not_null no se fabrica — divergencia 2). El '
-                          'related_name conserva el nombre del One2many '
-                          'car_ids de la referencia (hr_fleet/employee.py).',
+                help_text=(
+                    'Odoo driver_employee_id (compute+store; su índice '
+                    'btree_not_null no se fabrica — divergencia 2). El '
+                    'related_name conserva el nombre del One2many '
+                    'car_ids de la referencia (hr_fleet/employee.py).'
+                ),
             ),
             'future_driver_employee': fields.Many2one(
-                'hr.HrEmployee', on_delete=models.SET_NULL, null=True,
-                blank=True, related_name='future_car_ids',
+                'hr.HrEmployee',
+                on_delete=models.SET_NULL,
+                null=True,
+                blank=True,
+                related_name='future_car_ids',
                 verbose_name='Future Driver (Employee)',
                 help_text='Odoo future_driver_employee_id (compute+store).',
             ),
         },
         metodos={
             '_compute_driver_employee_id': _compute_driver_employee_id,
-            '_compute_future_driver_employee_id': _compute_future_driver_employee_id,
+            '_compute_future_driver_employee_id': (
+                _compute_future_driver_employee_id
+            ),
             '_compute_mobility_card': _compute_mobility_card,
             '_update_create_write_vals': _update_create_write_vals,
         },

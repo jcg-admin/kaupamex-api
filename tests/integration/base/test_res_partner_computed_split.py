@@ -31,6 +31,7 @@ Los otros dos **no existían**:
 
 Qué haría fallar a cada control se declara en cada caso.
 """
+
 import pytest
 
 from django.contrib.auth import get_user_model
@@ -58,12 +59,15 @@ class TestPrivatePublicSplit:
     """
 
     def test_the_commercial_partner_field_still_reads(self, db):
-        company = ResPartner.objects.create(name='Kaupamex SA', is_company=True)
+        company = ResPartner.objects.create(
+            name='Kaupamex SA', is_company=True
+        )
         who = ResPartner.objects.create(name='Ana', parent=company)
         assert who.commercial_partner_id == company
 
-    def test_overriding_the_property_compute_changes_the_read(self, db,
-                                                              monkeypatch):
+    def test_overriding_the_property_compute_changes_the_read(
+        self, db, monkeypatch
+    ):
         """CONTROL de la partición, y tiene que hacerse SOBREESCRIBIENDO.
 
         Comparar ``who.X == who._compute_X()`` **no discrimina**: si el
@@ -74,15 +78,22 @@ class TestPrivatePublicSplit:
         cómputo y leer el field. Si la property no delega, la lectura ignora
         el override y el punto de extensión es decorativo.
         """
-        company = ResPartner.objects.create(name='Kaupamex SA', is_company=True)
-        who = ResPartner.objects.create(name='Ana', parent=company,
-                                        street='Reforma 1', city='CDMX')
-        monkeypatch.setattr(ResPartner, '_compute_contact_address',
-                            lambda self: 'DESDE EL ADDON')
+        company = ResPartner.objects.create(
+            name='Kaupamex SA', is_company=True
+        )
+        who = ResPartner.objects.create(
+            name='Ana', parent=company, street='Reforma 1', city='CDMX'
+        )
+        monkeypatch.setattr(
+            ResPartner,
+            '_compute_contact_address',
+            lambda self: 'DESDE EL ADDON',
+        )
         assert who.contact_address == 'DESDE EL ADDON'
 
-    def test_overriding_the_stored_compute_changes_the_column(self, db,
-                                                              monkeypatch):
+    def test_overriding_the_stored_compute_changes_the_column(
+        self, db, monkeypatch
+    ):
         """El mismo control para los dos que ahora tienen columna.
 
         La diferencia con el de arriba es CUÁNDO se observa: un computado
@@ -94,12 +105,17 @@ class TestPrivatePublicSplit:
         movería el valor y este caso caería, que es justo lo que se pide de
         un punto de extensión.
         """
-        company = ResPartner.objects.create(name='Kaupamex SA', is_company=True)
+        company = ResPartner.objects.create(
+            name='Kaupamex SA', is_company=True
+        )
         who = ResPartner.objects.create(name='Ana', parent=company)
         monkeypatch.setattr(
-            ResPartner, '_compute_commercial_company_name',
-            lambda self: setattr(self, 'commercial_company_name',
-                                 'DESDE EL ADDON'))
+            ResPartner,
+            '_compute_commercial_company_name',
+            lambda self: setattr(
+                self, 'commercial_company_name', 'DESDE EL ADDON'
+            ),
+        )
         who.save()
         who.refresh_from_db()
         assert who.commercial_company_name == 'DESDE EL ADDON'
@@ -117,8 +133,9 @@ class TestIsPublic:
     def test_a_partner_whose_user_is_public_is_public(self, db):
         """El eje — es lo único que distingue al visitante anónimo de un
         cliente real."""
-        user = User.objects.create_user(login='anon@kaupamex.mx',
-                                        password='Secreta-123')
+        user = User.objects.create_user(
+            login='anon@kaupamex.mx', password='Secreta-123'
+        )
         group = ResGroups.objects.create(name='visitante', user_type='public')
         user.group_ids.add(group)
         assert user.partner.is_public is True
@@ -127,8 +144,9 @@ class TestIsPublic:
         """CONTROL — sin la pregunta por ``_is_public`` cualquier partner con
         usuario saldría público, y el visitante anónimo dejaría de ser
         distinguible."""
-        user = User.objects.create_user(login='ana@kaupamex.mx',
-                                        password='Secreta-123')
+        user = User.objects.create_user(
+            login='ana@kaupamex.mx', password='Secreta-123'
+        )
         group = ResGroups.objects.create(name='staff', user_type='internal')
         user.group_ids.add(group)
         assert user.partner.is_public is False

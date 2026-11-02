@@ -5,12 +5,15 @@ wizard/``.
 declarado, aplicado tarde desde ``HrRecruitmentConfig.ready()`` (el modelo
 destino no existe — ver su propio docstring).
 """
+
 from .applicant_refuse_reason import ApplicantGetRefuseReason
 from .applicant_send_mail import ApplicantSendMail
 from .job_add_applicants import JobAddApplicants
 from .talent_pool_add_applicants import TalentPoolAddApplicants
 
 __all__ = [
-    'ApplicantGetRefuseReason', 'ApplicantSendMail', 'JobAddApplicants',
+    'ApplicantGetRefuseReason',
+    'ApplicantSendMail',
+    'JobAddApplicants',
     'TalentPoolAddApplicants',
 ]

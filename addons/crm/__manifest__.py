@@ -15,8 +15,8 @@
     #
     # `authz` es el gate de capacidad, no dependencia de datos (ver lote 2).
     'depends': [
-        'base',        # ResPartner, ResUsers, ResCompany
-        'mail',        # MailThread — el hilo de seguimiento
+        'base',  # ResPartner, ResUsers, ResCompany
+        'mail',  # MailThread — el hilo de seguimiento
         'sales_team',  # CrmTeam — el equipo al que se asigna
     ],
     'author': 'Odoo S.A.',

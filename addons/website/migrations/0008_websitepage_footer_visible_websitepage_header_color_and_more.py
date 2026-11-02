@@ -15,7 +15,9 @@ class Migration(migrations.Migration):
             name="footer_visible",
             field=models.BooleanField(
                 default=True,
-                help_text="La página dibuja el pie del sitio (Odoo footer_visible).",
+                help_text=(
+                    "La página dibuja el pie del sitio (Odoo footer_visible)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -24,7 +26,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Color o clase de fondo de la cabecera en esta página (Odoo header_color).",
+                help_text=(
+                    "Color o clase de fondo de la cabecera en esta página"
+                    " (Odoo header_color)."
+                ),
                 max_length=64,
             ),
         ),
@@ -33,7 +38,10 @@ class Migration(migrations.Migration):
             name="header_overlay",
             field=models.BooleanField(
                 default=False,
-                help_text="El contenido de la página pasa por debajo de la cabecera (Odoo header_overlay).",
+                help_text=(
+                    "El contenido de la página pasa por debajo de la cabecera"
+                    " (Odoo header_overlay)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -42,7 +50,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Color o clase del texto de la cabecera en esta página (Odoo header_text_color).",
+                help_text=(
+                    "Color o clase del texto de la cabecera en esta página"
+                    " (Odoo header_text_color)."
+                ),
                 max_length=64,
             ),
         ),
@@ -51,7 +62,10 @@ class Migration(migrations.Migration):
             name="header_visible",
             field=models.BooleanField(
                 default=True,
-                help_text="La página dibuja la cabecera del sitio (Odoo header_visible).",
+                help_text=(
+                    "La página dibuja la cabecera del sitio (Odoo"
+                    " header_visible)."
+                ),
             ),
         ),
     ]

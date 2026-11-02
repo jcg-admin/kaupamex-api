@@ -15,7 +15,16 @@ class Migration(migrations.Migration):
             name="posted_before",
             field=models.BooleanField(
                 default=False,
-                help_text="Verdadero desde la primera vez que el asiento se publica, y ya no vuelve a False (Odoo posted_before, account_move.py:321). Es lo que distingue un borrador que nunca existió contablemente de uno que sí — la guarda del rastro de auditoría restringido sólo protege el segundo. El copy=False de la fuente no tiene análogo: este ORM no tiene copia de registro (mismo desenlace que sale_timesheet/sale_order_line.py).",
+                help_text=(
+                    "Verdadero desde la primera vez que el asiento se publica,"
+                    " y ya no vuelve a False (Odoo posted_before,"
+                    " account_move.py:321). Es lo que distingue un borrador"
+                    " que nunca existió contablemente de uno que sí — la"
+                    " guarda del rastro de auditoría restringido sólo protege"
+                    " el segundo. El copy=False de la fuente no tiene análogo:"
+                    " este ORM no tiene copia de registro (mismo desenlace que"
+                    " sale_timesheet/sale_order_line.py)."
+                ),
             ),
         ),
     ]

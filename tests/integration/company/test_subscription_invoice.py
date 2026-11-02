@@ -8,6 +8,7 @@ Capa de persistencia que el ``company/billing.py`` sin estado no tenía
 Diseño: :ref:`diseno-motor-facturacion-recurrente-l0`. Los montos son datos de
 prueba arbitrarios (no se inventan precios de negocio).
 """
+
 from decimal import Decimal
 
 import pytest
@@ -27,9 +28,11 @@ pytestmark = pytest.mark.django_db
 def _active_sub(company, code, price):
     m = Module.objects.create(code=code, name=code)
     sub = CompanyModuleSubscription(
-        company=company, module=m,
+        company=company,
+        module=m,
         status=CompanyModuleSubscription.Status.ACTIVE,
-        billing_cycle='monthly', price=Decimal(price),
+        billing_cycle='monthly',
+        price=Decimal(price),
     )
     sub.save()
     return sub
@@ -51,8 +54,12 @@ def test_invoice_freezes_amount_and_defaults_to_draft():
     sub = _active_sub(c, 'catalogue', '199.00')
     run = SubscriptionBillingRun.objects.create(period='2026-08')
     inv = SubscriptionInvoice.objects.create(
-        company=c, subscription=sub, run=run, period='2026-08',
-        amount=sub.price, currency='MXN',
+        company=c,
+        subscription=sub,
+        run=run,
+        period='2026-08',
+        amount=sub.price,
+        currency='MXN',
     )
     assert inv.status == SubscriptionInvoice.Status.DRAFT
     assert inv.amount == Decimal('199.00')
@@ -64,13 +71,19 @@ def test_invoice_idempotent_per_subscription_and_period():
     sub = _active_sub(c, 'catalogue', '199.00')
     run = SubscriptionBillingRun.objects.create(period='2026-08')
     SubscriptionInvoice.objects.create(
-        company=c, subscription=sub, run=run, period='2026-08',
+        company=c,
+        subscription=sub,
+        run=run,
+        period='2026-08',
         amount=sub.price,
     )
     # Reintentar la corrida por el mismo periodo NO debe duplicar la factura.
     with pytest.raises(IntegrityError):
         SubscriptionInvoice.objects.create(
-            company=c, subscription=sub, run=run, period='2026-08',
+            company=c,
+            subscription=sub,
+            run=run,
+            period='2026-08',
             amount=sub.price,
         )
 
@@ -81,10 +94,18 @@ def test_invoice_same_subscription_different_period_is_allowed():
     run1 = SubscriptionBillingRun.objects.create(period='2026-08')
     run2 = SubscriptionBillingRun.objects.create(period='2026-09')
     SubscriptionInvoice.objects.create(
-        company=c, subscription=sub, run=run1, period='2026-08', amount=sub.price,
+        company=c,
+        subscription=sub,
+        run=run1,
+        period='2026-08',
+        amount=sub.price,
     )
     SubscriptionInvoice.objects.create(
-        company=c, subscription=sub, run=run2, period='2026-09', amount=sub.price,
+        company=c,
+        subscription=sub,
+        run=run2,
+        period='2026-09',
+        amount=sub.price,
     )
     assert SubscriptionInvoice.objects.filter(subscription=sub).count() == 2
 
@@ -99,7 +120,11 @@ def test_run_reverse_relation_to_invoices():
     sub = _active_sub(c, 'catalogue', '199.00')
     run = SubscriptionBillingRun.objects.create(period='2026-08')
     inv = SubscriptionInvoice.objects.create(
-        company=c, subscription=sub, run=run, period='2026-08', amount=sub.price,
+        company=c,
+        subscription=sub,
+        run=run,
+        period='2026-08',
+        amount=sub.price,
     )
     assert list(run.invoices.all()) == [inv]
     assert list(sub.invoices.all()) == [inv]

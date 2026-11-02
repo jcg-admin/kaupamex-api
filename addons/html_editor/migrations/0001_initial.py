@@ -26,7 +26,10 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("name", models.CharField(blank=True, default="", max_length=255)),
+                (
+                    "name",
+                    models.CharField(blank=True, default="", max_length=255),
+                ),
             ],
             options={
                 "verbose_name": "Html Editor Converter Subtest",
@@ -55,7 +58,10 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("char", models.CharField(blank=True, default="", max_length=255)),
+                (
+                    "char",
+                    models.CharField(blank=True, default="", max_length=255),
+                ),
                 ("integer", models.IntegerField(default=0)),
                 ("float", models.FloatField(default=0.0)),
                 (
@@ -63,7 +69,9 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         blank=True,
                         decimal_places=2,
-                        help_text="Odoo numeric = fields.Float(digits=(16, 2)).",
+                        help_text=(
+                            "Odoo numeric = fields.Float(digits=(16, 2))."
+                        ),
                         max_digits=16,
                         null=True,
                     ),
@@ -80,13 +88,20 @@ class Migration(migrations.Migration):
                             ("B", "Qu'il était supposé arriver à Toronto"),
                             (
                                 "C",
-                                "Qu'est-ce qu'il fout ce maudit pancake, tabernacle ?",
+                                (
+                                    "Qu'est-ce qu'il fout ce maudit pancake,"
+                                    " tabernacle ?"
+                                ),
                             ),
                             ("D", "La réponse D"),
                         ],
                         max_length=1,
                         null=True,
-                        verbose_name="Lorsqu'un pancake prend l'avion à destination de Toronto et qu'il fait une escale technique à St Claude, on dit:",
+                        verbose_name=(
+                            "Lorsqu'un pancake prend l'avion à destination de"
+                            " Toronto et qu'il fait une escale technique à St"
+                            " Claude, on dit:"
+                        ),
                     ),
                 ),
                 ("html", models.TextField(blank=True, default="")),

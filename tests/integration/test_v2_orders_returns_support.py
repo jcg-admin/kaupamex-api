@@ -12,24 +12,26 @@ devoluciones y Q&A de producto (no existen en la referencia, sin analisis
 que los sustente), y direccion/transportista/POST-de-orden (existen, pero
 sobre el carrito, no sobre la orden).
 """
+
 import pytest
 from addons.helpdesk.models import SupportTicket
 
 pytestmark = pytest.mark.integration
 
 # ─── URLs v2 ────────────────────────────────────────────────────────────────
-V2_ORDERS_BASE          = '/api/v2/orders/'
-V2_PRODUCTS_BASE        = '/api/v2/products/'
-V2_ADMIN_REVIEWS_BASE   = '/api/v2/admin/reviews/'
-V2_SUPPORT_BASE         = '/api/v2/support/tickets/'
+V2_ORDERS_BASE = '/api/v2/orders/'
+V2_PRODUCTS_BASE = '/api/v2/products/'
+V2_ADMIN_REVIEWS_BASE = '/api/v2/admin/reviews/'
+V2_SUPPORT_BASE = '/api/v2/support/tickets/'
 
 # ─── URLs v1 (dual-run) ──────────────────────────────────────────────────────
-V1_ORDER_CANCEL_URL         = '/api/v2/orders/{n}/cancellations/'
-V1_REVIEW_EDIT_URL          = '/api/v2/products/{pid}/reviews/{pk}/'
-V1_SUPPORT_CLOSE_URL        = '/api/v2/support/tickets/{id}/status/'
+V1_ORDER_CANCEL_URL = '/api/v2/orders/{n}/cancellations/'
+V1_REVIEW_EDIT_URL = '/api/v2/products/{pid}/reviews/{pk}/'
+V1_SUPPORT_CLOSE_URL = '/api/v2/support/tickets/{id}/status/'
 
 
 # ─── Fixtures ────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def ticket(db, user):
@@ -52,6 +54,7 @@ def closed_ticket(db, user):
 
 # ─── Orders Tier A ──────────────────────────────────────────────────────────
 
+
 class TestOrderCancellationsV2:
     def test_unauthenticated_returns_401(self, api_client):
         url = V2_ORDERS_BASE + 'ORD-0001/cancellations/'
@@ -67,11 +70,13 @@ class TestOrderCancellationsV2:
 # ─── Dirección y transportista — RETIRADOS: la referencia los pone en el
 #     carrito, no en la orden ─────────────────────────────────────────────────
 #
-# ``orders/<n>/shipping-address/`` y ``orders/<n>/shipping-method/`` afirman una
+# ``orders/<n>/shipping-address/`` y ``orders/<n>/shipping-method/``
+# afirman una
 # forma que la referencia contradice. Medido sobre ``odoo-tools@622ddc2a``:
 #
 # - ``odoo19c: addons/website_sale/controllers/main.py:1494-1499`` —
-#   ``shop_update_address`` arranca con ``if not (order_sudo := request.cart)``:
+# ``shop_update_address`` arranca con ``if not (order_sudo :=
+# request.cart)``:
 #   opera **el carrito en sesión**, no una orden identificada por número.
 # - ``odoo19c: addons/website_sale/controllers/delivery.py:34`` —
 #   ``/shop/set_delivery_method``, mismo patrón sobre el carrito.
@@ -79,7 +84,8 @@ class TestOrderCancellationsV2:
 # No hay en todo el árbol una mutación de dirección o transportista sobre una
 # orden ya confirmada: una vez confirmada, esos datos son del documento. La
 # forma correcta es ``carrito → dirección → transportista → confirmar``, y su
-# puerto es T-006/T-008 de la iniciativa ``crear-website-sale-raiz-escaparate``,
+# puerto es T-006/T-008 de la iniciativa
+# ``crear-website-sale-raiz-escaparate``,
 # que trae sus propios tests contra la forma de la referencia. Mantener estos
 # dos aquí perpetuaba la forma vieja como si fuera el objetivo.
 
@@ -104,6 +110,7 @@ class TestOrderCancellationsV2:
 
 # ─── Reviews Tier B ─────────────────────────────────────────────────────────
 
+
 class TestReviewDetailV2:
     def test_patch_without_edit_suffix_returns_401(self, api_client):
         url = V2_PRODUCTS_BASE + '1/reviews/1/'
@@ -119,17 +126,23 @@ class TestReviewDetailV2:
 class TestAdminReviewStatusV2:
     def test_unauthenticated_returns_401(self, api_client):
         url = V2_ADMIN_REVIEWS_BASE + '1/status/'
-        r = api_client.patch(url, {'action': 'approve'}, content_type='application/json')
+        r = api_client.patch(
+            url, {'action': 'approve'}, content_type='application/json'
+        )
         assert r.status_code == 401
 
     def test_non_admin_returns_403(self, auth_client):
         url = V2_ADMIN_REVIEWS_BASE + '1/status/'
-        r = auth_client.patch(url, {'action': 'approve'}, content_type='application/json')
+        r = auth_client.patch(
+            url, {'action': 'approve'}, content_type='application/json'
+        )
         assert r.status_code == 403
 
     def test_invalid_action_returns_400(self, admin_auth_client):
         url = V2_ADMIN_REVIEWS_BASE + '999/status/'
-        r = admin_auth_client.patch(url, {'action': 'delete'}, content_type='application/json')
+        r = admin_auth_client.patch(
+            url, {'action': 'delete'}, content_type='application/json'
+        )
         assert r.status_code == 400
         assert r.data['codigo_error'] == 'INVALID_ACTION'
 
@@ -148,28 +161,37 @@ class TestAdminReviewStatusV2:
 
 # ─── Support Tier B ─────────────────────────────────────────────────────────
 
+
 class TestSupportTicketStatusV2:
     def test_unauthenticated_returns_401(self, api_client):
         url = V2_SUPPORT_BASE + '1/status/'
-        r = api_client.patch(url, {'action': 'close'}, content_type='application/json')
+        r = api_client.patch(
+            url, {'action': 'close'}, content_type='application/json'
+        )
         assert r.status_code == 401
 
     def test_invalid_action_returns_400(self, auth_client, ticket):
         url = V2_SUPPORT_BASE + f'{ticket.pk}/status/'
-        r = auth_client.patch(url, {'action': 'delete'}, content_type='application/json')
+        r = auth_client.patch(
+            url, {'action': 'delete'}, content_type='application/json'
+        )
         assert r.status_code == 400
         assert r.data['codigo_error'] == 'INVALID_ACTION'
 
     def test_close_ticket(self, auth_client, ticket):
         url = V2_SUPPORT_BASE + f'{ticket.pk}/status/'
-        r = auth_client.patch(url, {'action': 'close'}, content_type='application/json')
+        r = auth_client.patch(
+            url, {'action': 'close'}, content_type='application/json'
+        )
         assert r.status_code == 200
         ticket.refresh_from_db()
         assert ticket.status == SupportTicket.Status.CLOSED
 
     def test_reopen_ticket(self, auth_client, closed_ticket):
         url = V2_SUPPORT_BASE + f'{closed_ticket.pk}/status/'
-        r = auth_client.patch(url, {'action': 'reopen'}, content_type='application/json')
+        r = auth_client.patch(
+            url, {'action': 'reopen'}, content_type='application/json'
+        )
         assert r.status_code == 200
         closed_ticket.refresh_from_db()
         assert closed_ticket.status == SupportTicket.Status.OPEN

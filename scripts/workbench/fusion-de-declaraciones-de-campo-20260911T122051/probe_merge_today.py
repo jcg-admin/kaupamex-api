@@ -1,5 +1,7 @@
 """Que hace HOY nuestro arbol ante una redeclaracion. Sin inferir."""
+
 import django
+
 django.setup()
 
 from django.db import models as dj
@@ -38,6 +40,11 @@ if elegido is not None:
     print('  compute  =', getattr(elegido, 'compute', '<AUSENTE>'))
     print('  inverse  =', getattr(elegido, 'inverse', '<AUSENTE>'))
 print()
-print('¿la subclase creo COLUMNA para label?',
-      'label' in {f.name for f in OverrideProbe._meta.get_fields()})
-print('base declara NonStored?', isinstance(vars(BaseProbe).get('label'), NonStored))
+print(
+    '¿la subclase creo COLUMNA para label?',
+    'label' in {f.name for f in OverrideProbe._meta.get_fields()},
+)
+print(
+    'base declara NonStored?',
+    isinstance(vars(BaseProbe).get('label'), NonStored),
+)

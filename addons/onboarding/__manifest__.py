@@ -18,7 +18,7 @@
     # panel).
     'depends': [
         'base',  # base.ResCompany (FK `company` en Progress/-Step) +
-                 # orm.environments.get_current_company (compañía ambiente)
+        # orm.environments.get_current_company (compañía ambiente)
     ],
     # Licencia de la fuente de la que se adapta este addon, tal como su
     # manifest la declara (DEC-KX-03 punto 1): `onboarding` en Odoo Community

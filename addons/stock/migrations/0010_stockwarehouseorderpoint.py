@@ -33,7 +33,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Nombre de la regla; lo genera la secuencia ``stock.orderpoint`` (Odoo name, copy=False, readonly).",
+                        help_text=(
+                            "Nombre de la regla; lo genera la secuencia"
+                            " ``stock.orderpoint`` (Odoo name, copy=False,"
+                            " readonly)."
+                        ),
                         max_length=64,
                     ),
                 ),
@@ -42,7 +46,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         choices=[("auto", "Auto"), ("manual", "Manual")],
                         default="auto",
-                        help_text="Auto lo corre el planificador; manual, una persona (Odoo trigger).",
+                        help_text=(
+                            "Auto lo corre el planificador; manual, una"
+                            " persona (Odoo trigger)."
+                        ),
                         max_length=8,
                     ),
                 ),
@@ -50,14 +57,20 @@ class Migration(migrations.Migration):
                     "active",
                     models.BooleanField(
                         default=True,
-                        help_text="Al desmarcarlo se oculta la regla sin borrarla (Odoo active).",
+                        help_text=(
+                            "Al desmarcarlo se oculta la regla sin borrarla"
+                            " (Odoo active)."
+                        ),
                     ),
                 ),
                 (
                     "snoozed_until",
                     models.DateField(
                         blank=True,
-                        help_text="Oculta hasta el próximo planificador; sólo válido en reglas manuales (Odoo snoozed_until).",
+                        help_text=(
+                            "Oculta hasta el próximo planificador; sólo válido"
+                            " en reglas manuales (Odoo snoozed_until)."
+                        ),
                         null=True,
                     ),
                 ),
@@ -65,35 +78,52 @@ class Migration(migrations.Migration):
                     "product_min_qty",
                     models.FloatField(
                         default=0.0,
-                        help_text='Existencia mínima que dispara el reabastecimiento (Odoo product_min_qty, digits="Product Unit").',
+                        help_text=(
+                            'Existencia mínima que dispara el reabastecimiento'
+                            ' (Odoo product_min_qty, digits="Product Unit").'
+                        ),
                     ),
                 ),
                 (
                     "product_max_qty",
                     models.FloatField(
                         default=0.0,
-                        help_text="Existencia a la que se quiere volver al reabastecer (Odoo product_max_qty, compute+store, readonly=False).",
+                        help_text=(
+                            "Existencia a la que se quiere volver al"
+                            " reabastecer (Odoo product_max_qty,"
+                            " compute+store, readonly=False)."
+                        ),
                     ),
                 ),
                 (
                     "qty_to_order_computed",
                     models.FloatField(
                         default=0.0,
-                        help_text="Cantidad que el cálculo propone pedir (Odoo qty_to_order_computed, compute+store).",
+                        help_text=(
+                            "Cantidad que el cálculo propone pedir (Odoo"
+                            " qty_to_order_computed, compute+store)."
+                        ),
                     ),
                 ),
                 (
                     "qty_to_order_manual",
                     models.FloatField(
                         default=0.0,
-                        help_text="Cantidad fijada a mano; si no es cero, gana sobre la calculada (Odoo qty_to_order_manual).",
+                        help_text=(
+                            "Cantidad fijada a mano; si no es cero, gana sobre"
+                            " la calculada (Odoo qty_to_order_manual)."
+                        ),
                     ),
                 ),
                 (
                     "deadline_date",
                     models.DateField(
                         blank=True,
-                        help_text="Fecha antes de la cual hay que pedir para no caer bajo el mínimo (Odoo deadline_date, compute+store, readonly).",
+                        help_text=(
+                            "Fecha antes de la cual hay que pedir para no caer"
+                            " bajo el mínimo (Odoo deadline_date,"
+                            " compute+store, readonly)."
+                        ),
                         null=True,
                     ),
                 ),
@@ -109,7 +139,10 @@ class Migration(migrations.Migration):
                 (
                     "location",
                     models.ForeignKey(
-                        help_text="Ubicación cuya existencia se vigila (Odoo location_id, compute+store, requerido).",
+                        help_text=(
+                            "Ubicación cuya existencia se vigila (Odoo"
+                            " location_id, compute+store, requerido)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="orderpoint_ids",
                         to="stock.stocklocation",
@@ -118,7 +151,10 @@ class Migration(migrations.Migration):
                 (
                     "product",
                     models.ForeignKey(
-                        help_text="Producto que se reabastece (Odoo product_id, requerido).",
+                        help_text=(
+                            "Producto que se reabastece (Odoo product_id,"
+                            " requerido)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="orderpoint_ids",
                         to="product.productproduct",
@@ -128,7 +164,10 @@ class Migration(migrations.Migration):
                     "replenishment_uom",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Múltiplo al que se redondea la cantidad a pedir; vacío no redondea (Odoo replenishment_uom_id).",
+                        help_text=(
+                            "Múltiplo al que se redondea la cantidad a pedir;"
+                            " vacío no redondea (Odoo replenishment_uom_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="orderpoint_ids",
@@ -139,7 +178,10 @@ class Migration(migrations.Migration):
                     "route",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Ruta elegida a mano; vacío usa la que resulte del producto y la ubicación (Odoo route_id).",
+                        help_text=(
+                            "Ruta elegida a mano; vacío usa la que resulte del"
+                            " producto y la ubicación (Odoo route_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="orderpoint_ids",
@@ -149,7 +191,10 @@ class Migration(migrations.Migration):
                 (
                     "warehouse",
                     models.ForeignKey(
-                        help_text="Almacén (Odoo warehouse_id, compute+store, requerido).",
+                        help_text=(
+                            "Almacén (Odoo warehouse_id, compute+store,"
+                            " requerido)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="orderpoint_ids",
                         to="stock.stockwarehouse",
@@ -165,7 +210,10 @@ class Migration(migrations.Migration):
                     models.UniqueConstraint(
                         fields=("product", "location", "company"),
                         name="stock_orderpoint_product_location_check",
-                        violation_error_message="A replenishment rule already exists for this product on this location.",
+                        violation_error_message=(
+                            "A replenishment rule already exists for this"
+                            " product on this location."
+                        ),
                     )
                 ],
             },

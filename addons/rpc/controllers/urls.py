@@ -5,6 +5,7 @@ con un mensaje útil (*"Did you mean POST /json/2/<model>/<method>?"*). Se
 conservan las dos: el catch-all es lo que convierte un error de forma en un
 mensaje accionable en vez de un 404 mudo del router.
 """
+
 from django.urls import path, re_path
 
 from .json2 import json2_404, json2_rpc

@@ -4,8 +4,12 @@
     'name': 'Despacho genérico por modelo y método',
     'version': '1.0',
     'category': 'Extra Tools',
-    'summary': 'POST /json/2/<model>/<method> — el endpoint programático a los modelos',
-    # `depends` MEDIDO contra los imports reales de este addon: `base` aporta el
+    'summary': (
+        'POST /json/2/<model>/<method> — el endpoint programático a los'
+        ' modelos'
+    ),
+    # `depends` MEDIDO contra los imports reales de este addon: `base`
+    # aporta el
     # registro por nombre (`orm.registry`) y `authz` el segundo gate
     # (`HasCapability`). La referencia declara sólo `["base"]` porque allá el
     # control de acceso vive en el ORM, no en la vista.

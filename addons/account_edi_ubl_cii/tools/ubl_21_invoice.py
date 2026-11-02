@@ -13,6 +13,7 @@ para forzar el orden de los nodos.
 árbol el paquete raíz es ``addons`` (no ``odoo.addons``), así que la forma
 equivalente es un import relativo del mismo paquete.
 """
+
 from . import ubl_21_common as cac
 from . import ubl_21_extensions as ext
 

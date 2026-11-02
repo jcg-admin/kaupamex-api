@@ -84,10 +84,10 @@ B6_PORTED_PAGES = [
 #: un porte futuro los encuentre por grep; NO deben existir como métodos
 #: hasta que su bloqueador se cierre.
 B6_BLOCKED = [
-    'action_dashboard_redirect',   # #467
-    'get_client_action_url',       # #488
-    'get_client_action',           # #488
-    'button_go_website',           # #488
+    'action_dashboard_redirect',  # #467
+    'get_client_action_url',  # #488
+    'get_client_action',  # #488
+    'button_go_website',  # #488
 ]
 
 
@@ -95,8 +95,11 @@ class TestB6Coverage:
     """La cobertura declarada del bloque es la real."""
 
     def test_the_ported_methods_exist(self):
-        missing = [name for name in B6_PORTED + B6_PORTED_ROUTING + B6_PORTED_PAGES
-                   if not callable(getattr(Website, name, None))]
+        missing = [
+            name
+            for name in B6_PORTED + B6_PORTED_ROUTING + B6_PORTED_PAGES
+            if not callable(getattr(Website, name, None))
+        ]
         assert missing == []
 
     def test_the_blocked_methods_are_not_silently_stubbed(self):
@@ -117,7 +120,8 @@ def _make_website(**overrides):
     if 'user' not in overrides:
         existing = ResUsers.objects.filter(login='b6@kaupamex.test').first()
         values['user'] = existing or ResUsers.objects.create_user(
-            login='b6@kaupamex.test')
+            login='b6@kaupamex.test'
+        )
     values.update(overrides)
     website = Website(**values)
     website.save()
@@ -127,9 +131,12 @@ def _make_website(**overrides):
 class TestCdn:
     def test_matching_filter_rewrites_against_cdn_base(self):
         website = _make_website(
-            cdn_activated=True, cdn_url='https://cdn.example.test')
-        assert (website.get_cdn_url('/web/assets/app.js')
-                == 'https://cdn.example.test/web/assets/app.js')
+            cdn_activated=True, cdn_url='https://cdn.example.test'
+        )
+        assert (
+            website.get_cdn_url('/web/assets/app.js')
+            == 'https://cdn.example.test/web/assets/app.js'
+        )
 
     def test_non_matching_uri_comes_back_untouched(self):
         website = _make_website(cdn_url='https://cdn.example.test')
@@ -151,12 +158,15 @@ class TestPlausible:
 
     def test_share_url_composes_when_operator_configured_a_server(self):
         website = _make_website(
-            plausible_site='b6.example.test', plausible_shared_key='k3y')
+            plausible_site='b6.example.test', plausible_shared_key='k3y'
+        )
         SystemParameter.set_param(
-            'website.plausible_server', 'https://plausible.example.test')
+            'website.plausible_server', 'https://plausible.example.test'
+        )
         share_url = website._get_plausible_share_url()
         assert share_url.startswith(
-            'https://plausible.example.test/share/b6.example.test')
+            'https://plausible.example.test/share/b6.example.test'
+        )
         assert 'auth=k3y' in share_url
 
 
@@ -164,13 +174,16 @@ class TestUniqueKeyAndPath:
     def test_get_unique_key_prefixes_website_module(self):
         website = _make_website()
         assert website.get_unique_key('home') == 'website.home'
-        assert (website.get_unique_key('home', template_module='blog')
-                == 'blog.home')
+        assert (
+            website.get_unique_key('home', template_module='blog')
+            == 'blog.home'
+        )
 
     def test_get_unique_key_suffixes_on_collision(self):
         website = _make_website()
         IrUiView.objects.create(
-            name='Home', type='template', key='website.home', arch_db='<t/>')
+            name='Home', type='template', key='website.home', arch_db='<t/>'
+        )
         assert website.get_unique_key('home') == 'website.home-1'
 
     def test_get_unique_path_returns_free_path_untouched(self):
@@ -185,7 +198,11 @@ class TestCachedValues:
         website = _make_website(homepage_url='/shop')
         values = website._get_cached_values()
         assert set(values) == {
-            'user_id', 'company_id', 'default_lang_id', 'homepage_url'}
+            'user_id',
+            'company_id',
+            'default_lang_id',
+            'homepage_url',
+        }
         assert values['homepage_url'] == '/shop'
         assert values['company_id'] == website.company_id
 
@@ -200,8 +217,10 @@ class TestCanonicalUrl:
         request = RequestFactory().get('/pages/privacy?x=1')
         set_current_request(request)
         try:
-            assert (website._get_canonical_url()
-                    == 'https://b6.example.test/pages/privacy?x=1')
+            assert (
+                website._get_canonical_url()
+                == 'https://b6.example.test/pages/privacy?x=1'
+            )
         finally:
             set_current_request(None)
 
@@ -217,15 +236,20 @@ class TestHtmlFields:
         assert (IrUiView, 'arch_db') in pairs
         # Los tres Html declarados por este mismo modelo.
         website_fields = {name for model, name in pairs if model is Website}
-        assert {'custom_code_head', 'custom_code_footer',
-                'robots_txt'} <= website_fields
+        assert {
+            'custom_code_head',
+            'custom_code_footer',
+            'robots_txt',
+        } <= website_fields
 
     def test_blacklisted_models_are_excluded(self):
         blacklist_tables = {
             name.replace('.', '_')
-            for name in Website._get_html_fields_blacklist()}
-        tables = {model._meta.db_table
-                  for model, _name in Website._get_html_fields()}
+            for name in Website._get_html_fields_blacklist()
+        }
+        tables = {
+            model._meta.db_table for model, _name in Website._get_html_fields()
+        }
         assert not tables & blacklist_tables
 
 
@@ -233,15 +257,21 @@ class TestMenuCache:
     def test_record_like_route_disables_the_cache(self):
         website = _make_website()
         WebsiteMenu.objects.create(
-            name='Producto', route='/shop/producto-42', key=f'm-{website.pk}',
-            website=website)
+            name='Producto',
+            route='/shop/producto-42',
+            key=f'm-{website.pk}',
+            website=website,
+        )
         assert website.is_menu_cache_disabled() is True
 
     def test_plain_routes_keep_the_cache(self):
         website = _make_website()
         WebsiteMenu.objects.create(
-            name='Contacto', route='/contactus', key=f'c-{website.pk}',
-            website=website)
+            name='Contacto',
+            route='/contactus',
+            key=f'c-{website.pk}',
+            website=website,
+        )
         assert website.is_menu_cache_disabled() is False
 
 

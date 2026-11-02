@@ -6,8 +6,9 @@
     'version': '1.0',
     'category': 'Hidden/Tools',
     'summary': (
-        'ConfigurablePasswordPolicyValidator: longitud y complejidad mínimas '
-        'configurables por SystemParameter, cableado a AUTH_PASSWORD_VALIDATORS'
+        'ConfigurablePasswordPolicyValidator: longitud y complejidad mínimas'
+        ' configurables por SystemParameter, cableado a'
+        ' AUTH_PASSWORD_VALIDATORS'
     ),
     # `depends` MEDIDO contra los imports reales (`validators.py:22`,
     # `data.py:17`). La referencia declara ['base_setup', 'web']; ninguno

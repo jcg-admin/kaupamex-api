@@ -1,4 +1,5 @@
 """Tests — addons ``crm`` + ``sale_crm`` (oportunidad ↔ orden)."""
+
 from decimal import Decimal
 
 import pytest
@@ -29,8 +30,12 @@ def test_crm_lead_with_stage_and_team(db):
     stage = CrmStage.objects.create(name='Ganada', sequence=5, is_won=True)
     team = CrmTeam.objects.create(name='Ventas')
     lead = CrmLead.objects.create(
-        name='Oportunidad Y', type=CrmLead.TYPE_OPPORTUNITY, stage_id=stage, team_id=team,
-        expected_revenue=Decimal('5000.00'), probability=Decimal('40.00'),
+        name='Oportunidad Y',
+        type=CrmLead.TYPE_OPPORTUNITY,
+        stage_id=stage,
+        team_id=team,
+        expected_revenue=Decimal('5000.00'),
+        probability=Decimal('40.00'),
     )
     assert lead.stage_id.is_won is True
     assert lead.team_id.name == 'Ventas'
@@ -38,7 +43,9 @@ def test_crm_lead_with_stage_and_team(db):
 
 
 def test_sale_order_opportunity_link_and_count(db):
-    lead = CrmLead.objects.create(name='Op con órdenes', type=CrmLead.TYPE_OPPORTUNITY)
+    lead = CrmLead.objects.create(
+        name='Op con órdenes', type=CrmLead.TYPE_OPPORTUNITY
+    )
     o1 = SaleOrder.objects.create()
     o2 = SaleOrder.objects.create()
     SaleOrderOpportunity.objects.create(order=o1, opportunity=lead)

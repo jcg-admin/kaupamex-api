@@ -4,6 +4,7 @@ Soft-delete contract tests for addons.contact.ContactMessage (P-03).
 DEC-DOC-007: ContactMessage inherits from SoftDeleteModel to preserve
 audit trail (PII + commercial contact history).
 """
+
 import pytest
 from addons.crm.models import ContactMessage
 from addons.base.models import SoftDeleteModel

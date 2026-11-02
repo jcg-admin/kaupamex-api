@@ -16,10 +16,14 @@ igual y sin el costo de la transacción por test.
 > desalentaba escribir aquí un test con base, que es justo lo que el control
 > de la migración 0005 necesita.
 """
+
 import pytest
 from django.core.exceptions import ValidationError
 
-from addons.analytic.models import AccountAnalyticPlan, AccountAnalyticApplicability
+from addons.analytic.models import (
+    AccountAnalyticPlan,
+    AccountAnalyticApplicability,
+)
 
 
 def _plan(pk, name, parent=None, **kwargs):
@@ -88,32 +92,39 @@ class TestApplicabilityScore:
 
     def test_no_kwargs_no_company_gives_zero(self):
         rule = AccountAnalyticApplicability(
-            business_domain='general', applicability='mandatory',
+            business_domain='general',
+            applicability='mandatory',
         )
         assert rule._get_score() == 0
 
     def test_company_set_and_company_id_kwarg_adds_half_point(self):
         rule = AccountAnalyticApplicability(
-            pk=1, business_domain='general', applicability='mandatory',
+            pk=1,
+            business_domain='general',
+            applicability='mandatory',
             company_id=7,
         )
         assert rule._get_score(company_id=7) == 0.5
 
     def test_matching_business_domain_adds_one_point(self):
         rule = AccountAnalyticApplicability(
-            business_domain='general', applicability='mandatory',
+            business_domain='general',
+            applicability='mandatory',
         )
         assert rule._get_score(business_domain='general') == 1
 
     def test_mismatching_business_domain_subtracts_one_point(self):
         rule = AccountAnalyticApplicability(
-            business_domain='general', applicability='mandatory',
+            business_domain='general',
+            applicability='mandatory',
         )
         assert rule._get_score(business_domain='other') == -1
 
     def test_combines_company_bonus_and_domain_match(self):
         rule = AccountAnalyticApplicability(
-            pk=1, business_domain='general', applicability='mandatory',
+            pk=1,
+            business_domain='general',
+            applicability='mandatory',
             company_id=7,
         )
         assert rule._get_score(company_id=7, business_domain='general') == 1.5
@@ -134,6 +145,7 @@ class TestApplicabilityRequiredFields:
 
     def test_clean_passes_with_both_fields(self):
         rule = AccountAnalyticApplicability(
-            business_domain='general', applicability='optional',
+            business_domain='general',
+            applicability='optional',
         )
         rule.clean()  # no debe lanzar

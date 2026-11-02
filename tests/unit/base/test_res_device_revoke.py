@@ -38,10 +38,14 @@ que es otra cosa, y está bien que la mida — lo que no valdría es no saberlo.
 que borra por prefijo lo declara y no borra nada con los otros motores; aquí
 se mide el que ``config/settings/base.py:675`` configura.
 """
+
 import pytest
 
-from addons.base.models.res_device import (ResDevice, ResDeviceLog,
-                                           delete_sessions_from_identifiers)
+from addons.base.models.res_device import (
+    ResDevice,
+    ResDeviceLog,
+    delete_sessions_from_identifiers,
+)
 from addons.base.models.res_partner import ResPartner
 from addons.base.models.res_users import ResUsers
 from django.contrib.sessions.backends.db import SessionStore
@@ -65,8 +69,12 @@ def _make_session():
 
 def _make_log(user, session_key, platform='linux', browser='firefox'):
     return ResDeviceLog.objects.create(
-        session_identifier=session_key, platform=platform, browser=browser,
-        user_id=user.pk, revoked=False)
+        session_identifier=session_key,
+        platform=platform,
+        browser=browser,
+        user_id=user.pk,
+        revoked=False,
+    )
 
 
 class _Request:

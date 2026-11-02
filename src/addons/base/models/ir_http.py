@@ -109,6 +109,7 @@ Qué NO se porta, con su medición
   con esa nota, en vez de omitirlo: su valor está en existir.
 - **``RequestUID``**: marcador interno de su sistema de peticiones.
 """
+
 import logging
 import os
 import re
@@ -128,14 +129,16 @@ _logger = logging.getLogger(__name__)
 #:
 #: Vive **aquí** y no en un ``src/http.py`` nuevo porque este archivo ya es el
 #: hogar declarado del enlace petición→entorno en este árbol: es donde vive
-#: ``CompanyContextMiddleware``, que hace el papel de ``ir.http._authenticate``.
+#: ``CompanyContextMiddleware``, que hace el papel de
+#: ``ir.http._authenticate``.
 #: Crear un ``src/http.py`` para una sola variable abriría una raíz espejada
 #: entera —enrutado, despacho, sesiones— por un ContextVar.
 #:
 #: ``ContextVar`` y no un global, por la misma razón que los tres ejes del
 #: entorno (``orm.environments``) — y con el modelo de concurrencia **medido**,
 #: no supuesto. ``setup/gunicorn.conf.py`` declara **prefork síncrono**:
-#: ``workers = 4`` y ``threads = 1`` por defecto, y su propio comentario prohíbe
+#: ``workers = 4`` y ``threads = 1`` por defecto, y su propio comentario
+#: prohíbe
 #: pasar a un worker asíncrono sin ADR. Es decir, cada worker es un proceso que
 #: atiende **una petición a la vez en el mismo hilo**, y ese hilo se reutiliza
 #: para la petición siguiente.
@@ -168,6 +171,7 @@ def get_current_request():
 def set_current_request(request):
     """Fija la petición en curso (o la limpia con ``None``)."""
     _current_request.set(request)
+
 
 #: Extensiones cuyo tipo MIME sirve la web — verbatim de la fuente. En modo
 #: ``path`` la extensión se preserva en vez de convertirse en parte del slug.
@@ -236,8 +240,7 @@ class IrHttp(models.Model):
         decomposed = unicodedata.normalize('NFKD', value or '')
         # Quitar las marcas combinantes: 'é' pasa a 'e', no a 'e-'.
         cleaned = ''.join(
-            char for char in decomposed
-            if unicodedata.category(char) != 'Mn'
+            char for char in decomposed if unicodedata.category(char) != 'Mn'
         )
         slug = _NON_WORD.sub('-', cleaned).strip('-').lower()
         slug = unicodedata.normalize('NFC', slug)
@@ -317,7 +320,11 @@ class IrHttp(models.Model):
         ``get_current_request() is not None``: fuera de una petición (cron,
         shell) no hay transporte de cookies y la respuesta es ``False``.
         """
-        return True if cookie_type == 'required' else get_current_request() is not None
+        return (
+            True
+            if cookie_type == 'required'
+            else get_current_request() is not None
+        )
 
 
 class CompanyContextMiddleware:
@@ -418,7 +425,9 @@ class CompanyContextMiddleware:
 
     def __call__(self, request):
         user = getattr(request, 'user', None)
-        authenticated = user is not None and getattr(user, 'is_authenticated', False)
+        authenticated = user is not None and getattr(
+            user, 'is_authenticated', False
+        )
         permitted = ()
         if authenticated:
             # Permitido = compañía propia + la pertenencia N (``company_ids``

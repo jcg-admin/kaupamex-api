@@ -31,6 +31,7 @@ El censo de la referencia NO se mide aquí: este archivo, como su hermano
 instalados, que es lo que existe sin depender de que ``odoo-tools`` esté
 montado. El censo vive en el hallazgo, con su comando.
 """
+
 import importlib.util
 import json
 from pathlib import Path
@@ -117,7 +118,10 @@ class TestTheViewLanguageIsXml:
         XML no sobreviviera al viaje por JSON.
         """
         view = IrUiView.objects.create(
-            name='wire', type='template', key='test.wire', mode=MODE_PRIMARY,
+            name='wire',
+            type='template',
+            key='test.wire',
+            mode=MODE_PRIMARY,
             arch_db='<doc><a t-esc="x"/></doc>',
         )
         arch = view.get_combined_arch()

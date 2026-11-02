@@ -7,11 +7,11 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("project", "0003_projecttasktype_sms_template"),
-        (
-            "stock",
+        ("project",
+         "0003_projecttasktype_sms_template"),
+        ("stock",
             "0016_rename_stock_move_product_location_idx_stock_move_product_loc_idx",
-        ),
+         ),
     ]
 
     operations = [
@@ -20,7 +20,12 @@ class Migration(migrations.Migration):
             name="project",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo project_id (project_stock). Proyecto al que pertenece el albarán. El domain de la referencia (is_template=False) queda pendiente — ver docstring del módulo.",
+                help_text=(
+                    "Odoo project_id (project_stock). Proyecto al que"
+                    " pertenece el albarán. El domain de la referencia"
+                    " (is_template=False) queda pendiente — ver docstring del"
+                    " módulo."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="pickings",

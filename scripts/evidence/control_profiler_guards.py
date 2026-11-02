@@ -4,13 +4,21 @@ Cada guarda se anula en el propio archivo, se corre la suite, se mide que cae,
 y se restaura verificando la identidad del archivo por sha256 — nunca con
 ``git checkout``, que sobre un archivo sin seguir no restaura nada.
 """
+
 import hashlib
 import pathlib
 import subprocess
 import sys
 
 FUENTE = pathlib.Path('src/tools/profiler.py')
-SUITE = ['uv', 'run', 'pytest', 'tests/unit/tools/test_profiler.py', '-q', '--reuse-db']
+SUITE = [
+    'uv',
+    'run',
+    'pytest',
+    'tests/unit/tools/test_profiler.py',
+    '-q',
+    '--reuse-db',
+]
 
 GUARDAS = {
     'guarda del marco (PeriodicCollector.add)': (
@@ -48,7 +56,10 @@ def main():
         finally:
             FUENTE.write_text(original)
         vuelta = hashlib.sha256(FUENTE.read_bytes()).hexdigest()
-        print(f'restaurado: sha256 {"IGUAL" if vuelta == huella else "DISTINTO"} ({vuelta})\n')
+        print(
+            'restaurado: sha256'
+            f' {"IGUAL" if vuelta == huella else "DISTINTO"} ({vuelta})\n'
+        )
 
 
 if __name__ == '__main__':

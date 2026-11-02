@@ -10,6 +10,7 @@ class AuthzTimeoutConfig(AppConfig):
     métodos que cuelga de ``res.groups``, ``res.users`` y ``auth_totp.device``.
     Por eso su única responsabilidad al arrancar es aplicar esas extensiones.
     """
+
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'addons.authz_timeout'
     verbose_name = 'Autorización — Candado por tiempo de sesión'
@@ -20,12 +21,15 @@ class AuthzTimeoutConfig(AppConfig):
     #: modelos aún no está poblado (excepción #4 de ``no-lazy-imports``:
     #: llamada de función, no statement ``import``).
     _EXTENSIONES = {
-        'addons.authz_timeout.models.res_groups':
-            'apply_authz_timeout_res_groups_extensions',
-        'addons.authz_timeout.models.res_users':
-            'apply_authz_timeout_res_users_extensions',
-        'addons.authz_timeout.models.auth_totp_device':
-            'apply_authz_timeout_auth_totp_device_extensions',
+        'addons.authz_timeout.models.res_groups': (
+            'apply_authz_timeout_res_groups_extensions'
+        ),
+        'addons.authz_timeout.models.res_users': (
+            'apply_authz_timeout_res_users_extensions'
+        ),
+        'addons.authz_timeout.models.auth_totp_device': (
+            'apply_authz_timeout_auth_totp_device_extensions'
+        ),
     }
 
     #: Registradores de señal — misma vía tardía que las extensiones, y por la
@@ -35,8 +39,9 @@ class AuthzTimeoutConfig(AppConfig):
     #: absoluto, y la referencia la obtiene de su propio almacén de sesión
     #: (``session.create_time``), que Django no expone.
     _SIGNALS = {
-        'addons.authz_timeout.models.ir_http':
-            'register_authz_timeout_signals',
+        'addons.authz_timeout.models.ir_http': (
+            'register_authz_timeout_signals'
+        ),
     }
 
     #: Extensiones del cuerpo de sesión — misma vía tardía, distinta razón: el
@@ -45,8 +50,9 @@ class AuthzTimeoutConfig(AppConfig):
     #: ``extend_model`` sino registrándose en su lista. Es el sustituto de la
     #: cadena de ``super()`` que la fuente obtiene con ``_inherit``.
     _SESSION_INFO = {
-        'addons.authz_timeout.models.ir_http':
-            'register_authz_timeout_session_info',
+        'addons.authz_timeout.models.ir_http': (
+            'register_authz_timeout_session_info'
+        ),
     }
 
     def ready(self):

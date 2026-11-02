@@ -10,6 +10,7 @@ Módulo aparte de ``urls.py`` (carrito) y ``shop_urls.py`` (vitrina) porque
 cuelga de su propio prefijo. Los tres son de la misma familia; lo que cambia
 es el momento del flujo que sirven.
 """
+
 from django.urls import path
 
 from addons.website_sale.controllers.payment import express_checkout

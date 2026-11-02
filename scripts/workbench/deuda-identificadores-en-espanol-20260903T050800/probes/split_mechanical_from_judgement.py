@@ -18,6 +18,7 @@ Por eso el reparto no es por raiz sino por FORMA:
 *Ciega a:* la frase sin conectores (``test_producto_borrado_falla``), que cae
 en «mecanica» y no lo es; es una cota inferior de la clase que exige juicio.
 """
+
 import collections
 import pathlib
 import sys
@@ -28,16 +29,36 @@ sys.path.insert(0, str(RAIZ / 'scripts'))
 #: Conectores del lexico del gate. Se listan porque son el DISCRIMINADOR de
 #: esta sonda, no porque sean deuda distinta: su presencia dice «esto es una
 #: frase», que es lo unico que la sonda decide.
-CONNECTORS = {'de', 'el', 'la', 'los', 'las', 'del', 'con', 'por', 'para',
-              'en', 'una', 'un', 'que', 'al', 'y', 'o', 'su', 'sus'}
+CONNECTORS = {
+    'de',
+    'el',
+    'la',
+    'los',
+    'las',
+    'del',
+    'con',
+    'por',
+    'para',
+    'en',
+    'una',
+    'un',
+    'que',
+    'al',
+    'y',
+    'o',
+    'su',
+    'sus',
+}
 
 
 def main():
     try:
         from check_identifier_language import spanish_words_in
     except ImportError as exc:
-        print(f'ERROR — falta el lexico del gate: {exc}\n'
-              'NO se emite conteo.', file=sys.stderr)
+        print(
+            f'ERROR — falta el lexico del gate: {exc}\nNO se emite conteo.',
+            file=sys.stderr,
+        )
         raise SystemExit(2) from exc
 
     baseline = RAIZ / 'scripts' / 'identifier_language_baseline.txt'
@@ -56,10 +77,14 @@ def main():
 
     total = len(mechanical) + len(judgement)
     print(f'total: {total}')
-    print(f'  mecanica (sin conector): {len(mechanical):5d}  '
-          f'{len(mechanical) * 100 // total} %')
-    print(f'  juicio   (con conector): {len(judgement):5d}  '
-          f'{len(judgement) * 100 // total} %')
+    print(
+        f'  mecanica (sin conector): {len(mechanical):5d}  '
+        f'{len(mechanical) * 100 // total} %'
+    )
+    print(
+        f'  juicio   (con conector): {len(judgement):5d}  '
+        f'{len(judgement) * 100 // total} %'
+    )
 
     for etiqueta, grupo in (('mecanica', mechanical), ('juicio', judgement)):
         por_raiz = collections.Counter(a.split('/', 1)[0] for a, _ in grupo)

@@ -18,7 +18,11 @@ class Migration(migrations.Migration):
             name="sequence_number",
             field=models.IntegerField(
                 default=0,
-                help_text='Parte numérica del nombre, como entero. El "último" se obtiene con MAX sobre esta columna, nunca ordenando el nombre — ver H-API-339 (Odoo sequence_number).',
+                help_text=(
+                    'Parte numérica del nombre, como entero. El "último" se'
+                    ' obtiene con MAX sobre esta columna, nunca ordenando el'
+                    ' nombre — ver H-API-339 (Odoo sequence_number).'
+                ),
             ),
         ),
         migrations.AlterField(
@@ -28,14 +32,23 @@ class Migration(migrations.Migration):
                 blank=True,
                 db_index=True,
                 default="",
-                help_text="Parte no numérica del nombre — p. ej. ``INV/VTA/2026/``. Es la forma consultable del prefijo (Odoo sequence_prefix).",
+                help_text=(
+                    "Parte no numérica del nombre — p. ej. ``INV/VTA/2026/``."
+                    " Es la forma consultable del prefijo (Odoo"
+                    " sequence_prefix)."
+                ),
                 max_length=128,
             ),
         ),
         migrations.AddIndex(
             model_name="accountmove",
             index=models.Index(
-                fields=["journal", "-sequence_prefix", "-sequence_number", "name"],
+                fields=[
+                    "journal",
+                    "-sequence_prefix",
+                    "-sequence_number",
+                    "name",
+                ],
                 name="account_move_sequence_idx",
             ),
         ),

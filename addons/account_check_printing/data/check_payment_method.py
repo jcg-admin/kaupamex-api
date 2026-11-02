@@ -29,13 +29,16 @@ DRF-view en este pase). La capacidad que invocaría
 referencia (mismo criterio que ``account/data/account_tags.py``: son datos,
 no cadenas de interfaz de este puerto).
 """
+
 #: Nombre del identificador externo, sin el módulo — ≙ el ``id`` del
 #: ``<record>`` de la referencia.
 CHECK_PAYMENT_METHOD_XMLID_NAME = 'account_payment_method_check'
 
 #: Identificador externo completo, tal como lo citaría el código de este
 #: addon (``account_check_printing.account_payment_method_check``).
-CHECK_PAYMENT_METHOD_XMLID = f'account_check_printing.{CHECK_PAYMENT_METHOD_XMLID_NAME}'
+CHECK_PAYMENT_METHOD_XMLID = (
+    f'account_check_printing.{CHECK_PAYMENT_METHOD_XMLID_NAME}'
+)
 
 #: Los tres campos del ``<record>`` de la referencia.
 CHECK_PAYMENT_METHOD_NAME = 'Checks'
@@ -60,22 +63,39 @@ def seed_check_payment_method(apps, alias):
     IrModelData = apps.get_model('base', 'IrModelData')
     label = AccountPaymentMethod._meta.label
 
-    row = IrModelData.objects.using(alias).filter(
-        module='account_check_printing', name=CHECK_PAYMENT_METHOD_XMLID_NAME).first()
+    row = (
+        IrModelData.objects.using(alias)
+        .filter(
+            module='account_check_printing',
+            name=CHECK_PAYMENT_METHOD_XMLID_NAME,
+        )
+        .first()
+    )
     existing = None
     if row is not None:
-        existing = AccountPaymentMethod.objects.using(alias).filter(pk=row.res_id).first()
+        existing = (
+            AccountPaymentMethod.objects.using(alias)
+            .filter(pk=row.res_id)
+            .first()
+        )
     if existing is None:
-        existing = AccountPaymentMethod.objects.using(alias).filter(
-            code=CHECK_PAYMENT_METHOD_CODE,
-            payment_type=CHECK_PAYMENT_METHOD_PAYMENT_TYPE).first()
+        existing = (
+            AccountPaymentMethod.objects.using(alias)
+            .filter(
+                code=CHECK_PAYMENT_METHOD_CODE,
+                payment_type=CHECK_PAYMENT_METHOD_PAYMENT_TYPE,
+            )
+            .first()
+        )
     if existing is None:
         existing = AccountPaymentMethod.objects.using(alias).create(
             name=CHECK_PAYMENT_METHOD_NAME,
             code=CHECK_PAYMENT_METHOD_CODE,
-            payment_type=CHECK_PAYMENT_METHOD_PAYMENT_TYPE)
+            payment_type=CHECK_PAYMENT_METHOD_PAYMENT_TYPE,
+        )
     IrModelData.objects.using(alias).update_or_create(
-        module='account_check_printing', name=CHECK_PAYMENT_METHOD_XMLID_NAME,
+        module='account_check_printing',
+        name=CHECK_PAYMENT_METHOD_XMLID_NAME,
         defaults={'model': label, 'res_id': existing.pk, 'noupdate': True},
     )
     return existing
@@ -97,16 +117,20 @@ def seed_bank_journal_check_sequences(apps, alias):
     AccountJournal = apps.get_model('account', 'AccountJournal')
     IrSequence = apps.get_model('base', 'IrSequence')
     CheckPrintingJournalSettings = apps.get_model(
-        'account_check_printing', 'CheckPrintingJournalSettings')
+        'account_check_printing', 'CheckPrintingJournalSettings'
+    )
 
     for journal in AccountJournal.objects.using(alias).filter(type='bank'):
-        settings, _created = CheckPrintingJournalSettings.objects.using(alias).get_or_create(
-            journal=journal)
+        settings, _created = CheckPrintingJournalSettings.objects.using(
+            alias
+        ).get_or_create(journal=journal)
         if settings.sequence_id:
             continue
         sequence = IrSequence.objects.using(alias).create(
             name=f'{journal.name}: Check Number Sequence',
-            implementation='no_gap', padding=5, number_increment=1,
+            implementation='no_gap',
+            padding=5,
+            number_increment=1,
             company=journal.company,
         )
         settings.sequence = sequence

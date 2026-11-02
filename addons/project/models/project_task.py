@@ -6,6 +6,7 @@ dentro de un proyecto. Núcleo portable: ``name``/``description``/``priority``/
 ``date_deadline``. Se omite la maquinaria de horas/timesheets/recurrencia de
 Odoo (Clausula 5 — no existe en este stack).
 """
+
 from django.conf import settings
 import fields
 import models
@@ -17,8 +18,8 @@ class ProjectTask(TimeStampedModel):
     """``project.task`` — tarea de un proyecto."""
 
     STATE_IN_PROGRESS = 'in_progress'
-    STATE_DONE        = 'done'
-    STATE_CANCEL      = 'cancel'
+    STATE_DONE = 'done'
+    STATE_CANCEL = 'cancel'
     STATE_CHOICES = [
         (STATE_IN_PROGRESS, 'En progreso'),
         (STATE_DONE, 'Terminada'),
@@ -27,40 +28,61 @@ class ProjectTask(TimeStampedModel):
 
     PRIORITY_CHOICES = [('0', 'Normal'), ('1', 'Alta')]
 
-    project       = fields.Many2one(
-        'project.Project', on_delete=models.CASCADE, related_name='tasks',
+    project = fields.Many2one(
+        'project.Project',
+        on_delete=models.CASCADE,
+        related_name='tasks',
         help_text='Proyecto (Odoo project_id).',
     )
-    name          = fields.Char(
-        max_length=255, help_text='Título de la tarea (Odoo project.task.name).',
+    name = fields.Char(
+        max_length=255,
+        help_text='Título de la tarea (Odoo project.task.name).',
     )
-    description   = fields.Text(
-        blank=True, default='', help_text='Descripción (Odoo description).',
+    description = fields.Text(
+        blank=True,
+        default='',
+        help_text='Descripción (Odoo description).',
     )
-    priority      = fields.Selection(
-        max_length=1, choices=PRIORITY_CHOICES, default='0',
+    priority = fields.Selection(
+        max_length=1,
+        choices=PRIORITY_CHOICES,
+        default='0',
         help_text='Prioridad (Odoo priority).',
     )
-    active        = fields.Boolean(
-        default=True, help_text='Tarea activa (Odoo active).',
+    active = fields.Boolean(
+        default=True,
+        help_text='Tarea activa (Odoo active).',
     )
-    sequence      = fields.Integer(
-        default=10, help_text='Orden (Odoo sequence).',
+    sequence = fields.Integer(
+        default=10,
+        help_text='Orden (Odoo sequence).',
     )
-    stage         = fields.Many2one(
-        'project.ProjectTaskType', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='tasks', help_text='Etapa (Odoo stage_id).',
+    stage = fields.Many2one(
+        'project.ProjectTaskType',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='tasks',
+        help_text='Etapa (Odoo stage_id).',
     )
-    state         = fields.Selection(
-        max_length=16, choices=STATE_CHOICES, default=STATE_IN_PROGRESS,
+    state = fields.Selection(
+        max_length=16,
+        choices=STATE_CHOICES,
+        default=STATE_IN_PROGRESS,
         help_text='Estado (Odoo state).',
     )
-    assignee      = fields.Many2one(
-        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='project_tasks', help_text='Responsable (Odoo user_ids).',
+    assignee = fields.Many2one(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='project_tasks',
+        help_text='Responsable (Odoo user_ids).',
     )
     date_deadline = fields.Date(
-        null=True, blank=True, help_text='Fecha límite (Odoo date_deadline).',
+        null=True,
+        blank=True,
+        help_text='Fecha límite (Odoo date_deadline).',
     )
 
     class Meta:

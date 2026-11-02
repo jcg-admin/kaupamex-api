@@ -27,7 +27,8 @@ class Migration(migrations.Migration):
                 (
                     "number",
                     models.CharField(
-                        help_text="Número destino (Odoo sms.sms.number).", max_length=32
+                        help_text="Número destino (Odoo sms.sms.number).",
+                        max_length=32,
                     ),
                 ),
                 (
@@ -45,7 +46,9 @@ class Migration(migrations.Migration):
                             ("error", "Error"),
                         ],
                         default="pending",
-                        help_text="Estado de envío (Odoo sms.sms.state, colapsado).",
+                        help_text=(
+                            "Estado de envío (Odoo sms.sms.state, colapsado)."
+                        ),
                         max_length=16,
                     ),
                 ),
@@ -54,7 +57,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Motivo del fallo si state=error (Odoo failure_type).",
+                        help_text=(
+                            "Motivo del fallo si state=error (Odoo"
+                            " failure_type)."
+                        ),
                         max_length=64,
                     ),
                 ),
@@ -83,19 +89,26 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre de la plantilla (Odoo sms.template.name).",
+                        help_text=(
+                            "Nombre de la plantilla (Odoo sms.template.name)."
+                        ),
                         max_length=100,
                     ),
                 ),
                 (
                     "body",
                     models.TextField(
-                        help_text="Cuerpo con placeholders {campo} (Odoo sms.template.body)."
+                        help_text=(
+                            "Cuerpo con placeholders {campo} (Odoo"
+                            " sms.template.body)."
+                        )
                     ),
                 ),
                 (
                     "active",
-                    models.BooleanField(default=True, help_text="Plantilla activa."),
+                    models.BooleanField(
+                        default=True, help_text="Plantilla activa."
+                    ),
                 ),
             ],
             options={

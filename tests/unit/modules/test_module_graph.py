@@ -9,8 +9,11 @@ from modules import module_graph
 
 
 def graph_of(monkeypatch, dependencies):
-    monkeypatch.setattr(module_graph, 'load_manifest',
-                        lambda name: {'depends': dependencies.get(name, [])})
+    monkeypatch.setattr(
+        module_graph,
+        'load_manifest',
+        lambda name: {'depends': dependencies.get(name, [])},
+    )
     graph = module_graph.ModuleGraph()
     graph.extend(list(dependencies))
     return graph
@@ -69,8 +72,11 @@ def test_depth_does_not_reuse_a_stale_memo_after_dependencies_change(
 
 def test_missing_dependency_is_reported_without_inventing_a_cycle(monkeypatch):
     graph = graph_of(monkeypatch, {'sale': ['absent']})
-    monkeypatch.setattr(module_graph, 'get_module_path',
-                        lambda name: None if name == 'absent' else '/fixture')
+    monkeypatch.setattr(
+        module_graph,
+        'get_module_path',
+        lambda name: None if name == 'absent' else '/fixture',
+    )
     assert graph.missing() == {'sale': ['absent']}
     assert graph.cycles() == []
 

@@ -4,7 +4,8 @@
 # Este addon NO tiene paquete `models/`, y es una decisión, no un olvido. Se
 # declara al triar la tarea #81, cuando la familia authz_* entró por primera
 # vez en el alcance de `check_porte_completo` (#80) y sus dos archivos de la
-# referencia salieron como ARCHIVO NO PORTADO sin nada escrito que lo explicara.
+# referencia salieron como ARCHIVO NO PORTADO sin nada escrito que lo
+# explicara.
 #
 # La referencia importa 2 archivos; el mapa completo, sin omisiones:
 #

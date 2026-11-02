@@ -49,6 +49,7 @@ de pasos que la barra de progreso del cliente Odoo consume. Sin
 Sucesor registrado: tarea **#124** (sembrar los jobs de cron), donde se decide
 si el planificador de este árbol lleva contador de progreso.
 """
+
 from addons.stock.models import StockLot
 
 

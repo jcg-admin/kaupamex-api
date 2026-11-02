@@ -32,6 +32,7 @@ Adaptación fiel de Odoo hr/models/hr_payroll_structure_type.py
        referencia es un filtro de UI, no una restricción de datos — mismo
        criterio que ``hr_contract_type.py`` en este mismo tramo.
 """
+
 import fields
 import models
 
@@ -77,25 +78,41 @@ class HrPayrollStructureType(TimeStampedModel):
     _description = 'Salary Structure Type'
 
     name = fields.Char(
-        'Tipo de estructura salarial', blank=True,
-        default='', help_text='Nombre del tipo de estructura salarial (Odoo name).',
+        'Tipo de estructura salarial',
+        blank=True,
+        default='',
+        help_text='Nombre del tipo de estructura salarial (Odoo name).',
     )
     country = fields.Many2one(
-        'base.ResCountry', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_payroll_structure_types', default=_default_country,
+        'base.ResCountry',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_payroll_structure_types',
+        default=_default_country,
         verbose_name='País',
-        help_text='País de la compañía activa al crear el registro (Odoo country_id).',
+        help_text=(
+            'País de la compañía activa al crear el registro (Odoo'
+            ' country_id).'
+        ),
     )
 
     # ≙ ``default_resource_calendar_id`` (``odoo19c: :8-10``). El nombre pierde
-    # el sufijo ``_id`` por la convención de este árbol; el ``default`` resuelve
+    # el sufijo ``_id`` por la convención de este árbol; el ``default``
+    # resuelve
     # el calendario de la compañía activa.
     default_resource_calendar = fields.Many2one(
-        'resource.ResourceCalendar', on_delete=models.SET_NULL, null=True,
-        blank=True, related_name='hr_payroll_structure_types',
-        default=_default_resource_calendar, verbose_name='Horario de trabajo',
-        help_text='Horario por defecto del tipo de estructura salarial '
-                  '(Odoo default_resource_calendar_id).',
+        'resource.ResourceCalendar',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_payroll_structure_types',
+        default=_default_resource_calendar,
+        verbose_name='Horario de trabajo',
+        help_text=(
+            'Horario por defecto del tipo de estructura salarial '
+            '(Odoo default_resource_calendar_id).'
+        ),
     )
 
     class Meta:

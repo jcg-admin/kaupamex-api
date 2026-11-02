@@ -9,6 +9,7 @@ Por qué estos códigos son de este addon:
 
 - ``backups`` — ``auto_backup`` ejecuta y expone los respaldos.
 """
+
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
 MODULES = [

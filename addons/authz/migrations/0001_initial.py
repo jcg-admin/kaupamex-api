@@ -28,7 +28,10 @@ class Migration(migrations.Migration):
                 (
                     "model_label",
                     models.CharField(
-                        help_text="``app_label.model`` en minúsculas, p.ej. ``orders.order``.",
+                        help_text=(
+                            "``app_label.model`` en minúsculas, p.ej."
+                            " ``orders.order``."
+                        ),
                         max_length=100,
                         verbose_name="Modelo",
                     ),
@@ -37,11 +40,18 @@ class Migration(migrations.Migration):
                     "domain",
                     models.JSONField(
                         default=dict,
-                        help_text="Filtro ORM serializado; los valores ``$user``/``$company`` se resuelven en runtime al pk del usuario / id de su company.",
+                        help_text=(
+                            "Filtro ORM serializado; los valores"
+                            " ``$user``/``$company`` se resuelven en runtime"
+                            " al pk del usuario / id de su company."
+                        ),
                         verbose_name="Dominio",
                     ),
                 ),
-                ("perm_read", models.BooleanField(default=True, verbose_name="Leer")),
+                (
+                    "perm_read",
+                    models.BooleanField(default=True, verbose_name="Leer"),
+                ),
                 (
                     "perm_write",
                     models.BooleanField(default=True, verbose_name="Escribir"),
@@ -54,7 +64,10 @@ class Migration(migrations.Migration):
                     "perm_unlink",
                     models.BooleanField(default=True, verbose_name="Borrar"),
                 ),
-                ("is_active", models.BooleanField(default=True, verbose_name="Activa")),
+                (
+                    "is_active",
+                    models.BooleanField(default=True, verbose_name="Activa"),
+                ),
             ],
             options={
                 "verbose_name": "Regla de acceso",
@@ -80,13 +93,18 @@ class Migration(migrations.Migration):
                 (
                     "code",
                     models.CharField(
-                        help_text="Formato 'dominio.verbo' (p.ej. orders.refund).",
+                        help_text=(
+                            "Formato 'dominio.verbo' (p.ej. orders.refund)."
+                        ),
                         max_length=100,
                         unique=True,
                         verbose_name="Código",
                     ),
                 ),
-                ("name", models.CharField(max_length=150, verbose_name="Nombre")),
+                (
+                    "name",
+                    models.CharField(max_length=150, verbose_name="Nombre"),
+                ),
                 (
                     "description",
                     models.TextField(
@@ -96,18 +114,26 @@ class Migration(migrations.Migration):
                 (
                     "category",
                     models.CharField(
-                        blank=True, default="", max_length=50, verbose_name="Categoría"
+                        blank=True,
+                        default="",
+                        max_length=50,
+                        verbose_name="Categoría",
                     ),
                 ),
                 (
                     "is_sensitive",
                     models.BooleanField(
                         default=False,
-                        help_text="Su uso exitoso se audita en AuthzEvent (DEC-07).",
+                        help_text=(
+                            "Su uso exitoso se audita en AuthzEvent (DEC-07)."
+                        ),
                         verbose_name="Sensible",
                     ),
                 ),
-                ("is_active", models.BooleanField(default=True, verbose_name="Activa")),
+                (
+                    "is_active",
+                    models.BooleanField(default=True, verbose_name="Activa"),
+                ),
             ],
             options={
                 "verbose_name": "Capacidad",
@@ -132,7 +158,9 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 (
                     "reason",
-                    models.TextField(blank=True, default="", verbose_name="Motivo"),
+                    models.TextField(
+                        blank=True, default="", verbose_name="Motivo"
+                    ),
                 ),
             ],
             options={
@@ -156,13 +184,22 @@ class Migration(migrations.Migration):
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("code", models.SlugField(unique=True, verbose_name="Código")),
-                ("name", models.CharField(max_length=100, verbose_name="Nombre")),
-                ("is_active", models.BooleanField(default=True, verbose_name="Activo")),
+                (
+                    "name",
+                    models.CharField(max_length=100, verbose_name="Nombre"),
+                ),
+                (
+                    "is_active",
+                    models.BooleanField(default=True, verbose_name="Activo"),
+                ),
                 (
                     "is_application",
                     models.BooleanField(
                         default=False,
-                        help_text="Vendible (top-level) vs módulo técnico (dependencia interna).",
+                        help_text=(
+                            "Vendible (top-level) vs módulo técnico"
+                            " (dependencia interna)."
+                        ),
                         verbose_name="App vendible",
                     ),
                 ),
@@ -178,13 +215,19 @@ class Migration(migrations.Migration):
                 (
                     "category",
                     models.CharField(
-                        blank=True, default="", max_length=50, verbose_name="Categoría"
+                        blank=True,
+                        default="",
+                        max_length=50,
+                        verbose_name="Categoría",
                     ),
                 ),
                 (
                     "version",
                     models.CharField(
-                        blank=True, default="", max_length=20, verbose_name="Versión"
+                        blank=True,
+                        default="",
+                        max_length=20,
+                        verbose_name="Versión",
                     ),
                 ),
                 (
@@ -197,7 +240,10 @@ class Migration(migrations.Migration):
                     "auto_install",
                     models.BooleanField(
                         default=False,
-                        help_text="Se activa solo cuando sus dependencias están presentes.",
+                        help_text=(
+                            "Se activa solo cuando sus dependencias están"
+                            " presentes."
+                        ),
                         verbose_name="Auto-instalar",
                     ),
                 ),
@@ -224,7 +270,10 @@ class Migration(migrations.Migration):
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("code", models.SlugField(unique=True, verbose_name="Código")),
-                ("name", models.CharField(max_length=100, verbose_name="Nombre")),
+                (
+                    "name",
+                    models.CharField(max_length=100, verbose_name="Nombre"),
+                ),
             ],
             options={
                 "verbose_name": "Rol",
@@ -249,7 +298,9 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 (
                     "expires_at",
-                    models.DateTimeField(blank=True, null=True, verbose_name="Expira"),
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="Expira"
+                    ),
                 ),
             ],
             options={
@@ -310,7 +361,9 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 (
                     "expires_at",
-                    models.DateTimeField(blank=True, null=True, verbose_name="Expira"),
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="Expira"
+                    ),
                 ),
                 (
                     "capability",

@@ -47,6 +47,7 @@ esa divergencia y devuelve ``b''`` cuando el archivo falta. Por eso los casos
 miden **la RUTA que se elige**, que es la decisión portada, y no los bytes
 —que dependen de un despliegue de assets que este repo no hace.
 """
+
 from base64 import b64decode
 
 import pytest
@@ -66,6 +67,7 @@ def es_svg_generado(avatar):
     except Exception:
         return False
 
+
 pytestmark = pytest.mark.integration
 
 
@@ -77,18 +79,21 @@ class TestPlaceholderPath:
         assert who._avatar_get_placeholder_path().endswith('company_image.png')
 
     def test_a_delivery_address_gets_the_truck(self, db):
-        who = ResPartner.objects.create(name='Bodega Norte',
-                                        type=ResPartner.TYPE_DELIVERY)
+        who = ResPartner.objects.create(
+            name='Bodega Norte', type=ResPartner.TYPE_DELIVERY
+        )
         assert who._avatar_get_placeholder_path().endswith('truck.png')
 
     def test_an_invoice_address_gets_the_bill(self, db):
-        who = ResPartner.objects.create(name='Facturacion',
-                                        type=ResPartner.TYPE_INVOICE)
+        who = ResPartner.objects.create(
+            name='Facturacion', type=ResPartner.TYPE_INVOICE
+        )
         assert who._avatar_get_placeholder_path().endswith('bill.png')
 
     def test_an_other_address_gets_the_puzzle_piece(self, db):
-        who = ResPartner.objects.create(name='Otra',
-                                        type=ResPartner.TYPE_OTHER)
+        who = ResPartner.objects.create(
+            name='Otra', type=ResPartner.TYPE_OTHER
+        )
         assert who._avatar_get_placeholder_path().endswith('puzzle.png')
 
     def test_a_plain_contact_falls_back_to_the_mixin(self, db):
@@ -102,8 +107,9 @@ class TestPlaceholderPath:
         """CONTROL del ORDEN de la cascada: la fuente pregunta ``is_company``
         ANTES que el tipo. Una empresa marcada como dirección de entrega es un
         edificio, no un camión. Sin el orden, saldría el camión."""
-        who = ResPartner.objects.create(name='Filial SA', is_company=True,
-                                        type=ResPartner.TYPE_DELIVERY)
+        who = ResPartner.objects.create(
+            name='Filial SA', is_company=True, type=ResPartner.TYPE_DELIVERY
+        )
         assert who._avatar_get_placeholder_path().endswith('company_image.png')
 
 
@@ -115,7 +121,9 @@ class TestAvatarRouting:
         who = ResPartner.objects.create(name='Ana Ruiz')
         assert es_svg_generado(who._compute_avatar('image_1920'))
 
-    def test_a_delivery_address_takes_the_placeholder_not_the_initial(self, db):
+    def test_a_delivery_address_takes_the_placeholder_not_the_initial(
+        self, db
+    ):
         """Rama 2, y es el eje del bloque — sin este reenrutado una bodega
         saldría con una «B» sobre un color aleatorio, que no dice nada.
 
@@ -124,15 +132,18 @@ class TestAvatarRouting:
         mixin lo devuelve en base64 y un ``b'svg' not in`` en crudo pasaría
         siempre, midiendo la codificación en vez de la rama.
         """
-        who = ResPartner.objects.create(name='Bodega Norte',
-                                        type=ResPartner.TYPE_DELIVERY)
-        assert not es_svg_generado(who._compute_avatar('image_1920')), (
-            'una direccion de entrega no toma la inicial del mixin')
+        who = ResPartner.objects.create(
+            name='Bodega Norte', type=ResPartner.TYPE_DELIVERY
+        )
+        assert not es_svg_generado(
+            who._compute_avatar('image_1920')
+        ), 'una direccion de entrega no toma la inicial del mixin'
 
     def test_an_address_with_its_own_image_keeps_it(self, db):
         """Rama 3 — con imagen propia, la imagen gana al relleno."""
-        who = ResPartner.objects.create(name='Bodega Norte',
-                                        type=ResPartner.TYPE_DELIVERY)
+        who = ResPartner.objects.create(
+            name='Bodega Norte', type=ResPartner.TYPE_DELIVERY
+        )
         who.image_1920 = b'PNGFALSO'
         assert who._compute_avatar('image_1920') == b'PNGFALSO'
 
@@ -141,6 +152,7 @@ class TestAvatarRouting:
         mixin si hay usuario interno **o** si el tipo es ``contact``. Sin ese
         ``or``, una persona sin cuenta caería al relleno gris en vez de a su
         inicial."""
-        who = ResPartner.objects.create(name='Ana Ruiz',
-                                        type=ResPartner.TYPE_CONTACT)
+        who = ResPartner.objects.create(
+            name='Ana Ruiz', type=ResPartner.TYPE_CONTACT
+        )
         assert es_svg_generado(who._compute_avatar('image_1920'))

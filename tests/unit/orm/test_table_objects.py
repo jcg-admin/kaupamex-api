@@ -21,6 +21,7 @@ Medido antes de construir (``scripts/workbench/table-object-naming-*``):
 ese instante ``_meta`` **aun no existe** — de ahi que el registro vaya a una
 lista de clase y no a ``Meta.constraints``.
 """
+
 import pytest
 from django.db import connection
 from django.db import models as django_models
@@ -52,11 +53,13 @@ class TestTheNamingProtocol:
 
     def test_a_name_without_leading_underscore_is_rejected(self):
         with pytest.raises(AssertionError, match="guion bajo|start with"):
+
             class Holder:
                 name_uniq = Constraint('unique (name)')
 
     def test_a_mangled_name_is_rejected(self):
         with pytest.raises(AssertionError, match="mangle"):
+
             class Holder:
                 __name_uniq = Constraint('unique (name)')
 
@@ -105,7 +108,9 @@ class TestTheViolationMessage:
 
     def test_a_plain_string_comes_back_verbatim(self):
         obj = Constraint('unique (name)', 'El nombre debe ser unico')
-        assert obj.get_error_message(_FakeModel()) == 'El nombre debe ser unico'
+        assert (
+            obj.get_error_message(_FakeModel()) == 'El nombre debe ser unico'
+        )
 
     def test_a_callable_receives_the_environment_and_the_diagnostics(self):
         seen = {}
@@ -122,22 +127,30 @@ class TestTheViolationMessage:
         assert seen == {'env': 'ENTORNO', 'diagnostics': 'DIAG'}
 
     def test_without_a_message_it_is_the_empty_string(self):
-        assert Constraint('unique (name)').get_error_message(_FakeModel()) == ''
+        assert (
+            Constraint('unique (name)').get_error_message(_FakeModel()) == ''
+        )
 
 
 class TestTheDefinitions:
     """``get_definition`` — su forma difiere entre las tres subclases."""
 
     def test_a_constraint_returns_its_sql_verbatim(self):
-        assert Constraint('CHECK (x > 0)').get_definition(None) == 'CHECK (x > 0)'
+        assert (
+            Constraint('CHECK (x > 0)').get_definition(None) == 'CHECK (x > 0)'
+        )
 
     def test_an_index_wraps_its_definition_with_the_keyword(self):
-        assert Index('(group_id, active)').get_definition(None) == \
-            'INDEX (group_id, active)'
+        assert (
+            Index('(group_id, active)').get_definition(None)
+            == 'INDEX (group_id, active)'
+        )
 
     def test_a_unique_index_declares_its_uniqueness(self):
-        assert UniqueIndex('(group_id)').get_definition(None) == \
-            'UNIQUE INDEX (group_id)'
+        assert (
+            UniqueIndex('(group_id)').get_definition(None)
+            == 'UNIQUE INDEX (group_id)'
+        )
 
     def test_an_index_definition_may_be_callable_on_the_registry(self):
         obj = Index(lambda registry: f'({registry})')
@@ -276,7 +289,9 @@ class TestIndexSplitsByTheShapeOfTheCall:
         """
         obj = Index('(active) WHERE active IS TRUE')
         assert isinstance(obj, Index)
-        assert obj.get_definition(None) == 'INDEX (active) WHERE active IS TRUE'
+        assert (
+            obj.get_definition(None) == 'INDEX (active) WHERE active IS TRUE'
+        )
 
     def test_a_positional_callable_is_the_table_object(self):
         """La fuente admite un invocable que recibe el registro."""
@@ -304,8 +319,11 @@ class TestIndexSplitsByTheShapeOfTheCall:
 
     def test_a_condition_travels_to_the_django_branch(self):
         """La forma que los indices parciales del arbol usan."""
-        obj = Index(fields=['active'], name='x_idx',
-                    condition=django_models.Q(active=True))
+        obj = Index(
+            fields=['active'],
+            name='x_idx',
+            condition=django_models.Q(active=True),
+        )
         assert type(obj) is django_models.Index
         assert obj.condition == django_models.Q(active=True)
 

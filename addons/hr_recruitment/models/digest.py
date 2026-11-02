@@ -43,6 +43,7 @@ Divergencias declaradas — de forma, no de alcance
   mismo identificador externo y mensaje; si el grupo no está sembrado,
   ``has_group`` es falso y la guarda niega — fail-closed.
 """
+
 import fields
 from exceptions import AccessError
 from orm.environments import get_current_user
@@ -58,7 +59,6 @@ GROUP_HR_RECRUITMENT_USER = 'hr_recruitment.group_hr_recruitment_user'
 ACTION_OPEN_MY_EMPLOYEES = 'hr.open_view_employee_list_my'
 
 
-
 def _compute_kpi_hr_recruitment_new_colleagues_value(self, start, end):
     """≙ ``_compute_kpi_hr_recruitment_new_colleagues_value`` (``:12-17``).
 
@@ -69,8 +69,10 @@ def _compute_kpi_hr_recruitment_new_colleagues_value(self, start, end):
     user = get_current_user()
     if not (user is not None and user.has_group(GROUP_HR_RECRUITMENT_USER)):
         raise AccessError(
-            _("Do not have access, skip this data for user's digest email"))
+            _("Do not have access, skip this data for user's digest email")
+        )
     return self._calculate_company_based_kpi('hr.employee', start, end)
+
 
 def _compute_kpis_actions(self, previous, company, user):
     """≙ ``_compute_kpis_actions`` de ``hr_recruitment`` (``:19-22``).
@@ -94,24 +96,32 @@ def apply_hr_recruitment_digest_extensions():
     implementación previa ya devolvió, para agregarle su clave.
     """
     extend_model(
-        'digest', 'DigestDigest',
+        'digest',
+        'DigestDigest',
         campos={
             'kpi_hr_recruitment_new_colleagues': fields.Boolean(
-                default=False, verbose_name='Nuevos empleados',
-                help_text='Odoo kpi_hr_recruitment_new_colleagues ("New '
-                          'Employees").',
+                default=False,
+                verbose_name='Nuevos empleados',
+                help_text=(
+                    'Odoo kpi_hr_recruitment_new_colleagues ("New Employees").'
+                ),
             ),
             'kpi_hr_recruitment_new_colleagues_value': fields.Integer(
-                store=False, null=True, blank=True,
+                store=False,
+                null=True,
+                blank=True,
                 verbose_name='Nuevos empleados (valor)',
-                help_text='Odoo kpi_hr_recruitment_new_colleagues_value — '
-                          'compute sin store; lo sirve '
-                          '_compute_kpi_hr_recruitment_new_colleagues_value.',
+                help_text=(
+                    'Odoo kpi_hr_recruitment_new_colleagues_value — '
+                    'compute sin store; lo sirve '
+                    '_compute_kpi_hr_recruitment_new_colleagues_value.'
+                ),
             ),
         },
         metodos={
-            '_compute_kpi_hr_recruitment_new_colleagues_value':
-                _compute_kpi_hr_recruitment_new_colleagues_value,
+            '_compute_kpi_hr_recruitment_new_colleagues_value': (
+                _compute_kpi_hr_recruitment_new_colleagues_value
+            ),
         },
         overrides={
             '_compute_kpis_actions': _compute_kpis_actions,

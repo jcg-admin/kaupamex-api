@@ -20,6 +20,7 @@ Lo que se verifica:
 
 No toca DB: el middleware no persiste nada — ése es justo el cambio.
 """
+
 import pytest
 from django.http import HttpResponse
 from django.test import RequestFactory
@@ -46,16 +47,18 @@ def test_opens_the_correlation_and_exposes_it():
         return HttpResponse(status=200)
 
     response = CorrelationIdMiddleware(get_response)(
-        RequestFactory().get('/api/v2/catalogue/products/'))
+        RequestFactory().get('/api/v2/catalogue/products/')
+    )
 
-    assert visto['en_la_vista']                              # hay correlación
-    assert visto['en_el_request'] == visto['en_la_vista']    # y es la misma
+    assert visto['en_la_vista']  # hay correlación
+    assert visto['en_el_request'] == visto['en_la_vista']  # y es la misma
     assert response['X-Correlation-Id'] == visto['en_la_vista']
 
 
 def test_clears_the_correlation_after_the_response():
     CorrelationIdMiddleware(lambda request: HttpResponse(status=200))(
-        RequestFactory().get('/x'))
+        RequestFactory().get('/x')
+    )
 
     assert get_correlation_id() is None
 
@@ -76,8 +79,8 @@ def test_does_not_break_the_response_if_the_header_cannot_be_set():
             raise TypeError('esta respuesta no admite cabeceras')
 
     response = CorrelationIdMiddleware(
-        lambda request: RespuestaSinCabeceras(status=200))(
-            RequestFactory().get('/x'))
+        lambda request: RespuestaSinCabeceras(status=200)
+    )(RequestFactory().get('/x'))
 
     assert response.status_code == 200
     assert get_correlation_id() is None

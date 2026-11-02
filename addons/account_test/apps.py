@@ -33,6 +33,7 @@ Sin esos dos registros Django no descubre esta app ni corre su migración
 inicial, y el endpoint no es alcanzable — el modelo/controlador/seed sí
 existen y son autocontenidos.
 """
+
 from django.apps import AppConfig
 
 

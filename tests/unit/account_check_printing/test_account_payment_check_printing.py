@@ -5,6 +5,7 @@ Requiere ``addons.account_check_printing`` en ``INSTALLED_APPS`` (fuera del
 alcance de este porte — ver ``__init__.py`` del paquete) para que la
 migración cree sus tablas.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -35,13 +36,17 @@ def company(db):
 @pytest.fixture
 def journal(company):
     return AccountJournal.objects.create(
-        name='Banco', code='BNK', type='bank', company=company)
+        name='Banco', code='BNK', type='bank', company=company
+    )
 
 
 def _payment(journal, company, **kwargs):
     defaults = {
-        'amount': Decimal('100.00'), 'payment_type': 'outbound',
-        'partner_type': 'supplier', 'journal': journal, 'company': company,
+        'amount': Decimal('100.00'),
+        'payment_type': 'outbound',
+        'partner_type': 'supplier',
+        'journal': journal,
+        'company': company,
     }
     defaults.update(kwargs)
     return AccountPayment.objects.create(**defaults)
@@ -63,7 +68,10 @@ class TestForPayment:
         payment = _payment(journal, company)
         CheckPrintingPaymentInfo.for_payment(payment, create=True)
         CheckPrintingPaymentInfo.for_payment(payment, create=True)
-        assert CheckPrintingPaymentInfo.objects.filter(payment=payment).count() == 1
+        assert (
+            CheckPrintingPaymentInfo.objects.filter(payment=payment).count()
+            == 1
+        )
 
 
 class TestCleanValidation:
@@ -94,8 +102,11 @@ class TestAmountInWords:
         # 'MXN' al crear ``company`` — ``get_or_create``, nunca ``create``
         # directo, para no violar el ``unique=True`` de ``ResCurrency.name``.
         currency, _created = ResCurrency.objects.get_or_create(
-            name='MXN', defaults={'symbol': '$'})
-        payment = _payment(journal, company, currency=currency, amount=Decimal('100.00'))
+            name='MXN', defaults={'symbol': '$'}
+        )
+        payment = _payment(
+            journal, company, currency=currency, amount=Decimal('100.00')
+        )
         row = CheckPrintingPaymentInfo.for_payment(payment, create=True)
         assert row.amount_in_words() == 'CIEN PESOS 00/100 M.N.'
 
@@ -148,34 +159,55 @@ class TestUniqueness:
     def test_conflict_between_two_committed_payments(self, journal, company):
         p1 = _payment(journal, company, state='in_process')
         p2 = _payment(journal, company, state='in_process')
-        CheckPrintingPaymentInfo.objects.create(payment=p1, check_number='00042')
-        CheckPrintingPaymentInfo.objects.create(payment=p2, check_number='00042')
+        CheckPrintingPaymentInfo.objects.create(
+            payment=p1, check_number='00042'
+        )
+        CheckPrintingPaymentInfo.objects.create(
+            payment=p2, check_number='00042'
+        )
         with pytest.raises(ValidationError):
             CheckPrintingPaymentInfo.validate_check_number_uniqueness(p2)
 
     def test_no_conflict_when_the_other_is_cancelled(self, journal, company):
         p1 = _payment(journal, company, state='canceled')
         p2 = _payment(journal, company, state='in_process')
-        CheckPrintingPaymentInfo.objects.create(payment=p1, check_number='00042')
-        CheckPrintingPaymentInfo.objects.create(payment=p2, check_number='00042')
-        CheckPrintingPaymentInfo.validate_check_number_uniqueness(p2)  # no debe alzar
+        CheckPrintingPaymentInfo.objects.create(
+            payment=p1, check_number='00042'
+        )
+        CheckPrintingPaymentInfo.objects.create(
+            payment=p2, check_number='00042'
+        )
+        CheckPrintingPaymentInfo.validate_check_number_uniqueness(
+            p2
+        )  # no debe alzar
 
     def test_no_conflict_across_different_journals(self, company):
         journal_a = AccountJournal.objects.create(
-            name='Banco A', code='BKA', type='bank', company=company)
+            name='Banco A', code='BKA', type='bank', company=company
+        )
         journal_b = AccountJournal.objects.create(
-            name='Banco B', code='BKB', type='bank', company=company)
+            name='Banco B', code='BKB', type='bank', company=company
+        )
         p1 = _payment(journal_a, company, state='in_process')
         p2 = _payment(journal_b, company, state='in_process')
-        CheckPrintingPaymentInfo.objects.create(payment=p1, check_number='00042')
-        CheckPrintingPaymentInfo.objects.create(payment=p2, check_number='00042')
-        CheckPrintingPaymentInfo.validate_check_number_uniqueness(p2)  # no debe alzar
+        CheckPrintingPaymentInfo.objects.create(
+            payment=p1, check_number='00042'
+        )
+        CheckPrintingPaymentInfo.objects.create(
+            payment=p2, check_number='00042'
+        )
+        CheckPrintingPaymentInfo.validate_check_number_uniqueness(
+            p2
+        )  # no debe alzar
 
 
 class TestAssignCheckNumberOnPost:
     def test_none_for_a_non_check_payment(self, journal, company):
         payment = _payment(journal, company)
-        assert CheckPrintingPaymentInfo.assign_check_number_on_post(payment) is None
+        assert (
+            CheckPrintingPaymentInfo.assign_check_number_on_post(payment)
+            is None
+        )
 
     def test_assigns_when_manual_sequencing(self, journal, company):
         # `ensure_for` y no `objects.create`: con el addon cableado, la señal
@@ -204,9 +236,11 @@ class TestPreparePrintChecks:
 
     def test_raises_across_different_journals(self, company):
         journal_a = AccountJournal.objects.create(
-            name='Banco A', code='BKA', type='bank', company=company)
+            name='Banco A', code='BKA', type='bank', company=company
+        )
         journal_b = AccountJournal.objects.create(
-            name='Banco B', code='BKB', type='bank', company=company)
+            name='Banco B', code='BKB', type='bank', company=company
+        )
         p1 = _payment(journal_a, company)
         p2 = _payment(journal_b, company)
         CheckPrintingPaymentInfo.for_payment(p1, create=True)
@@ -221,7 +255,9 @@ class TestPreparePrintChecks:
         assert result['mode'] == 'wizard'
         assert result['next_check_number'] == '1'
 
-    def test_print_mode_with_manual_sequencing_needs_a_layout(self, journal, company):
+    def test_print_mode_with_manual_sequencing_needs_a_layout(
+        self, journal, company
+    ):
         # `ensure_for` y no `objects.create`: con el addon cableado, la señal
         # `post_save` ya creó la fila de ajustes al nacer el diario de banco,
         # así que un `create` choca con el UNIQUE de `journal_id`.
@@ -276,6 +312,8 @@ class TestChecksToPrintQueryset:
 
     def test_excludes_already_sent(self, journal, company):
         payment = _payment(journal, company, state='in_process')
-        row = CheckPrintingPaymentInfo.objects.create(payment=payment, is_sent=True)
+        row = CheckPrintingPaymentInfo.objects.create(
+            payment=payment, is_sent=True
+        )
         qs = CheckPrintingPaymentInfo.checks_to_print_queryset(journal)
         assert row not in qs

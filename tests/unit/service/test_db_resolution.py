@@ -5,6 +5,7 @@ cambiando **sólo** ``NAME`` (F-DJ-02: ``ConnectionHandler`` construye una
 conexión por alias al primer uso; cada entrada debe ser un dict completo).
 Función pura — sin DB ni I/O.
 """
+
 from service.db import (
     build_company_alias,
     build_company_databases,
@@ -53,8 +54,14 @@ def test_filter_keeps_only_company_db_shape():
     # == db_filter de Odoo: descarta schemas del sistema y de negocio L0,
     # queda sólo company_<N>_db. Preserva el orden de entrada.
     raw = [
-        'company_2_db', 'information_schema', 'kaupamex_core', 'company_10_db',
-        'mysql', 'company_db', 'companyx_db', 'performance_schema',
+        'company_2_db',
+        'information_schema',
+        'kaupamex_core',
+        'company_10_db',
+        'mysql',
+        'company_db',
+        'companyx_db',
+        'performance_schema',
     ]
     assert filter_company_dbs(raw) == ['company_2_db', 'company_10_db']
 
@@ -71,26 +78,33 @@ DBS = ['company_2_db', 'company_5_db', 'company_10_db']
 def test_db_filter_matches_subdomain_via_percent_d():
     # dbfilter '^company_%d_db$' + host '5.kaupamex.mx' -> domain '5' ->
     # regex '^company_5_db$' -> matchea company_5_db.
-    assert db_filter(DBS, '5.kaupamex.mx', dbfilter=r'^company_%d_db$') == ['company_5_db']
+    assert db_filter(DBS, '5.kaupamex.mx', dbfilter=r'^company_%d_db$') == [
+        'company_5_db'
+    ]
 
 
 def test_db_filter_strips_www_and_port():
     # 'www.10.kaupamex.mx:8000' -> quita puerto y www -> '10.kaupamex.mx' ->
     # domain '10' -> company_10_db.
-    got = db_filter(DBS, 'www.10.kaupamex.mx:8000', dbfilter=r'^company_%d_db$')
+    got = db_filter(
+        DBS, 'www.10.kaupamex.mx:8000', dbfilter=r'^company_%d_db$'
+    )
     assert got == ['company_10_db']
 
 
 def test_db_filter_percent_h_uses_full_host():
-    # %h = host completo (sin puerto/www). Con host '2' el regex '^company_%h_db$'
+    # %h = host completo (sin puerto/www). Con host '2' el regex
+    # '^company_%h_db$'
     # da '^company_2_db$'.
     assert db_filter(DBS, '2', dbfilter=r'^company_%h_db$') == ['company_2_db']
 
 
 def test_db_filter_whitelist_when_no_dbfilter():
-    # Sin dbfilter, con db_name (lista blanca == --database): intersección ordenada.
-    assert db_filter(DBS, 'x', dbfilter='', db_name=['company_5_db', 'company_2_db']) \
-        == ['company_2_db', 'company_5_db']
+    # Sin dbfilter, con db_name (lista blanca == --database):
+    # intersección ordenada.
+    assert db_filter(
+        DBS, 'x', dbfilter='', db_name=['company_5_db', 'company_2_db']
+    ) == ['company_2_db', 'company_5_db']
 
 
 def test_db_filter_passthrough_without_config():

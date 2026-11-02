@@ -92,6 +92,7 @@ Lo que este archivo NO trae, y por qué
    / ``act_url`` existen desde el porte de ``ir_actions.py``: las dos causas
    dejaron de existir y el bloqueo quedó caduco. Ver :ref:`h-api-1081`.
 """
+
 import base64
 import datetime
 import json
@@ -126,5 +127,10 @@ GC_RETENTION_DAYS = 30
 #: Campos de traza: pesados y rara vez necesarios al listar. La referencia los
 #: marca ``prefetch=False``; aquí el manager por defecto los difiere.
 _TRACE_FIELDS = (
-    'init_stack_trace', 'sql', 'traces_async', 'traces_sync', 'others', 'qweb',
+    'init_stack_trace',
+    'sql',
+    'traces_async',
+    'traces_sync',
+    'others',
+    'qweb',
 )

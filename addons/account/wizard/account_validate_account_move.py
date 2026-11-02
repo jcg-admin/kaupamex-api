@@ -71,6 +71,7 @@ Divergencias declaradas en ``validate_move``
   (``ir.actions.act_window_close``) es navegación del cliente Odoo, fuera
   de alcance — misma exclusión que ``AccountDebitNoteWizard``.
 """
+
 from django.utils import timezone
 
 from addons.account.models.account_move import AccountMove
@@ -101,17 +102,20 @@ class ValidateAccountMove(TransientModel):
         """
         if moves is not None:
             queryset = AccountMove.objects.filter(
-                pk__in=[m.pk for m in moves], state='draft')
+                pk__in=[m.pk for m in moves], state='draft'
+            )
         elif journal is not None:
             queryset = AccountMove.objects.filter(
-                journal=journal, state='draft')
+                journal=journal, state='draft'
+            )
         else:
             raise UserError(_("Missing 'active_model' in context."))
 
         selected = [move for move in queryset if move.line_ids.exists()]
         if not selected:
-            raise UserError(_(
-                'There are no journal items in the draft state to post.'))
+            raise UserError(
+                _('There are no journal items in the draft state to post.')
+            )
         return selected
 
     @classmethod
@@ -144,10 +148,13 @@ class ValidateAccountMove(TransientModel):
         if not force_post:
             future_moves = cls._compute_display_force_post(moves)
             if future_moves:
-                raise UserError(_(
-                    'Hay asientos con fecha futura. Usa "Forzar" para '
-                    'publicarlos ahora (la publicación diferida auto_post '
-                    'no está portada).'))
+                raise UserError(
+                    _(
+                        'Hay asientos con fecha futura. Usa "Forzar" para '
+                        'publicarlos ahora (la publicación diferida auto_post '
+                        'no está portada).'
+                    )
+                )
         posted = []
         for move in moves:
             move.post()

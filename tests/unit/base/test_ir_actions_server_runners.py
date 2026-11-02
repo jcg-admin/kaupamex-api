@@ -22,15 +22,17 @@ no la forma del resultado.
 El caso del aviso es el control que discrimina el guardián de ``_run``: sin él
 una acción mal configurada se ejecutaría igual, y ningún otro caso lo notaría.
 """
+
 import pytest
 
 from addons.base.models.ir_actions import (
-    IrActionsServer, ServerActionWithWarningsError)
+    IrActionsServer,
+    ServerActionWithWarningsError,
+)
 from addons.base.models.ir_model import IrModel, IrModelFields
 from addons.base.models.ir_sequence import IrSequence
 from addons.base.models.res_partner import ResPartner
 from orm.environments import context_scope, sudo
-
 
 #: El modelo de prueba es ``ResPartner`` y no cualquiera: los corredores
 #: llaman ``write`` y ``copy``, que en la referencia viven en ``BaseModel``
@@ -62,17 +64,21 @@ def _partner_model():
     #: ``get_or_create``: la reflexión de modelos ya siembra la fila, y
     #: ``ir_model.model`` es único.
     row, _created = IrModel.objects.get_or_create(
-        model=PARTNER, defaults={'name': 'Contacto'})
+        model=PARTNER, defaults={'name': 'Contacto'}
+    )
     return row
 
 
 def _field(model_row, name, ttype='char'):
-    #: ``state='base'`` porque la restricción ``ir_model_fields_name_manual_field``
+    #: ``state='base'`` porque la restricción
+    #: ``ir_model_fields_name_manual_field``
     #: exige el prefijo ``x_`` en los campos manuales, y estos reflejan campos
     #: reales del modelo.
     row, _created = IrModelFields.objects.get_or_create(
-        model=PARTNER, name=name,
-        defaults={'model_id': model_row, 'ttype': ttype, 'state': 'base'})
+        model=PARTNER,
+        name=name,
+        defaults={'model_id': model_row, 'ttype': ttype, 'state': 'base'},
+    )
     return row
 
 
@@ -113,14 +119,28 @@ class TestMulti:
         partner = ResPartner.objects.create(name='Zylandia')
         model_row = _partner_model()
         parent = _action(state='multi', model_name=PARTNER)
-        _action(name='Segunda', state='object_write', sequence=2,
-                model_name=PARTNER, crud_model_id=model_row,
-                update_field_id=_field(model_row, 'name'),
-                update_path='name', value='Segunda escribio', parent=parent)
-        _action(name='Primera', state='object_write', sequence=1,
-                model_name=PARTNER, crud_model_id=model_row,
-                update_field_id=_field(model_row, 'name'),
-                update_path='name', value='Primera escribio', parent=parent)
+        _action(
+            name='Segunda',
+            state='object_write',
+            sequence=2,
+            model_name=PARTNER,
+            crud_model_id=model_row,
+            update_field_id=_field(model_row, 'name'),
+            update_path='name',
+            value='Segunda escribio',
+            parent=parent,
+        )
+        _action(
+            name='Primera',
+            state='object_write',
+            sequence=1,
+            model_name=PARTNER,
+            crud_model_id=model_row,
+            update_field_id=_field(model_row, 'name'),
+            update_path='name',
+            value='Primera escribio',
+            parent=parent,
+        )
 
         with context_scope(active_model=PARTNER, active_id=partner.pk):
             parent.run()
@@ -137,10 +157,14 @@ class TestObjectWrite:
         model_row = _partner_model()
         kwargs.setdefault('update_path', 'name')
         return _action(
-            state='object_write', model_name=PARTNER,
+            state='object_write',
+            model_name=PARTNER,
             crud_model_id=model_row,
-            update_field_id=_field(model_row, kwargs.pop('field', 'name'), ttype),
-            **kwargs)
+            update_field_id=_field(
+                model_row, kwargs.pop('field', 'name'), ttype
+            ),
+            **kwargs,
+        )
 
     def test_a_char_value_lands_in_the_record(self):
         partner = ResPartner.objects.create(name='Zylandia')
@@ -155,8 +179,11 @@ class TestObjectWrite:
     def test_a_boolean_field_reads_update_boolean_value(self):
         partner = ResPartner.objects.create(name='Zylandia')
         action = self._write_action(
-            ttype='boolean', field='is_company',
-            update_path='is_company', update_boolean_value='true')
+            ttype='boolean',
+            field='is_company',
+            update_path='is_company',
+            update_boolean_value='true',
+        )
 
         with context_scope(active_model=PARTNER, active_id=partner.pk):
             action.run()
@@ -167,18 +194,23 @@ class TestObjectWrite:
     def test_an_integer_field_is_coerced(self):
         model_row = _partner_model()
         action = _action(
-            state='object_write', model_name=PARTNER,
+            state='object_write',
+            model_name=PARTNER,
             crud_model_id=model_row,
             update_field_id=_field(model_row, 'color', 'integer'),
-            update_path='color', value='42')
+            update_path='color',
+            value='42',
+        )
 
         assert action._eval_value()[action.pk] == 42
 
     def test_a_sequence_evaluation_asks_the_sequence(self):
         sequence = IrSequence.objects.create(
-            name='Numeración', code='zy.test', prefix='ZY-', padding=3)
+            name='Numeración', code='zy.test', prefix='ZY-', padding=3
+        )
         action = self._write_action(
-            value='', evaluation_type='sequence', sequence_id=sequence)
+            value='', evaluation_type='sequence', sequence_id=sequence
+        )
 
         assert action._eval_value()[action.pk].startswith('ZY-')
 
@@ -186,8 +218,11 @@ class TestObjectWrite:
         """``update_path='country_group_ids.name'`` no es el campo local."""
         model_row = _partner_model()
         action = _action(
-            state='object_write', model_name=PARTNER,
-            crud_model_id=model_row, update_path='name')
+            state='object_write',
+            model_name=PARTNER,
+            crud_model_id=model_row,
+            update_path='name',
+        )
 
         chain, stringified = action._get_relation_chain('update_path')
 
@@ -203,8 +238,11 @@ class TestObjectCreate:
         model_row = _partner_model()
         anchor = ResPartner.objects.create(name='Zylandia')
         action = _action(
-            state='object_create', model_name=PARTNER,
-            crud_model_id=model_row, value='Nuevo contacto')
+            state='object_create',
+            model_name=PARTNER,
+            crud_model_id=model_row,
+            value='Nuevo contacto',
+        )
 
         with context_scope(active_model=PARTNER, active_id=anchor.pk):
             action.run()
@@ -220,7 +258,8 @@ class TestObjectCopy:
         partner = ResPartner.objects.create(name='Zylandia')
         model_row = _partner_model()
         action = _action(
-            state='object_copy', model_name=PARTNER, crud_model_id=model_row)
+            state='object_copy', model_name=PARTNER, crud_model_id=model_row
+        )
         action.resource_ref = partner
         action.save()
 
@@ -237,8 +276,12 @@ class TestTheWarningGuardOfRun:
 
     def test_an_action_with_warnings_refuses_to_run(self):
         parent = _action(state='multi', model_name=PARTNER)
-        _action(name='Hija', state='multi', model_name='base.ResCountry',
-                parent=parent)
+        _action(
+            name='Hija',
+            state='multi',
+            model_name='base.ResCountry',
+            parent=parent,
+        )
 
         assert parent.warning
         with pytest.raises(ServerActionWithWarningsError):

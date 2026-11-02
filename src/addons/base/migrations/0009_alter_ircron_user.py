@@ -17,7 +17,15 @@ class Migration(migrations.Migration):
             name="user",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Usuario de ejecución (Odoo user_id — ahí required con default=env.user; aquí nullable porque no hay contexto de request implícito al registrar la tarea). El runner lo aplica con orm.environments.user_scope, así que get_current_user() dentro del método invocado lo devuelve. Caveat: IrRule.eval_context aún no cae a ese usuario — ver docstring del módulo.",
+                help_text=(
+                    "Usuario de ejecución (Odoo user_id — ahí required con"
+                    " default=env.user; aquí nullable porque no hay contexto"
+                    " de request implícito al registrar la tarea). El runner"
+                    " lo aplica con orm.environments.user_scope, así que"
+                    " get_current_user() dentro del método invocado lo"
+                    " devuelve. Caveat: IrRule.eval_context aún no cae a ese"
+                    " usuario — ver docstring del módulo."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="ir_crons",

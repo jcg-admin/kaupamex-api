@@ -32,7 +32,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 choices=[("undefined", "Undefined Yet")],
                 default="undefined",
-                help_text="Como se registran los extractos bancarios (Odoo bank_statements_source).",
+                help_text=(
+                    "Como se registran los extractos bancarios (Odoo"
+                    " bank_statements_source)."
+                ),
                 max_length=32,
                 verbose_name="Bank Feeds",
             ),
@@ -53,7 +56,9 @@ class Migration(migrations.Migration):
                     "company_id",
                     models.ForeignKey(
                         db_column="company_id",
-                        help_text="Empresa cuyo ejercicio se abre (Odoo company_id).",
+                        help_text=(
+                            "Empresa cuyo ejercicio se abre (Odoo company_id)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="financial_year_ops",
                         to="base.rescompany",
@@ -83,12 +88,21 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Nombre del diario ligado a esta cuenta (Odoo new_journal_name).",
+                        help_text=(
+                            "Nombre del diario ligado a esta cuenta (Odoo"
+                            " new_journal_name)."
+                        ),
                         max_length=128,
                     ),
                 ),
-                ("num_journals_without_account_bank", models.IntegerField(default=0)),
-                ("num_journals_without_account_credit", models.IntegerField(default=0)),
+                (
+                    "num_journals_without_account_bank",
+                    models.IntegerField(default=0),
+                ),
+                (
+                    "num_journals_without_account_credit",
+                    models.IntegerField(default=0),
+                ),
                 (
                     "company_id",
                     models.ForeignKey(
@@ -116,7 +130,10 @@ class Migration(migrations.Migration):
                     "res_partner_bank_id",
                     models.ForeignKey(
                         db_column="res_partner_bank_id",
-                        help_text="Cuenta bancaria delegada (Odoo res_partner_bank_id).",
+                        help_text=(
+                            "Cuenta bancaria delegada (Odoo"
+                            " res_partner_bank_id)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="setup_wizards",
                         to="base.respartnerbank",

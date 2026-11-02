@@ -8,6 +8,7 @@ módulo) — sin ``hr.employee`` no hay mecanismo que probar con
 comportamiento observable. Esta prueba cubre lo único portado: la cabecera
 de clase y su naturaleza abstracta (sin tabla propia).
 """
+
 import pytest
 
 from addons.hr.models import HrMixin

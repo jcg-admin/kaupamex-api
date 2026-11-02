@@ -11,6 +11,7 @@ is_initialized requieren reconciliación de sus obligaciones de bootstrap;
 INSTALLED_APPS o migraciones por sí solos no demuestran equivalencia completa.
 La TASK-GEN-0058 más amplia no se ejecuta ni se cierra en este alcance.
 """
+
 from enum import IntEnum
 
 from django.apps import apps
@@ -41,7 +42,9 @@ def validate_category_paths(paths):
             source = tuple(prefix)
             previous = identities.setdefault(xml_id, source)
             if previous != source:
-                raise ValidationError(f'colisión de rutas de categoría: base.{xml_id}.')
+                raise ValidationError(
+                    f'colisión de rutas de categoría: base.{xml_id}.'
+                )
 
 
 def create_categories(cr, categories):
@@ -74,16 +77,27 @@ def create_categories(cr, categories):
             xml_id = _category_xml_id(path)
             if name_limit is not None and len(xml_id) > name_limit:
                 raise ValidationError(
-                    f'La identidad de categoría supera {name_limit} caracteres.')
-            identity = identity_rows.select_for_update().filter(
-                module='base', name=xml_id,
-            ).first()
+                    'La identidad de categoría supera'
+                    f' {name_limit} caracteres.'
+                )
+            identity = (
+                identity_rows.select_for_update()
+                .filter(
+                    module='base',
+                    name=xml_id,
+                )
+                .first()
+            )
             if identity is not None:
                 category = category_rows.filter(pk=identity.res_id).first()
-                if (identity.model != category_model._meta.label
-                        or category is None or category.parent_id != parent_id):
+                if (
+                    identity.model != category_model._meta.label
+                    or category is None
+                    or category.parent_id != parent_id
+                ):
                     raise ValidationError(
-                        f'Identidad de categoría incompatible: base.{xml_id}.')
+                        f'Identidad de categoría incompatible: base.{xml_id}.'
+                    )
             else:
                 category = category_model(name=segment, parent_id=parent_id)
             # La validación de ciclos corre antes de Model.save y, por tanto,
@@ -93,8 +107,11 @@ def create_categories(cr, categories):
             if identity is None:
                 category.save(using=using, force_insert=True)
                 identity_rows.create(
-                    module='base', name=xml_id, res_id=category.pk,
-                    model=category_model._meta.label, noupdate=True,
+                    module='base',
+                    name=xml_id,
+                    res_id=category.pk,
+                    model=category_model._meta.label,
+                    noupdate=True,
                 )
             parent_id = category.pk
             parent_record = category
@@ -104,8 +121,8 @@ def create_categories(cr, categories):
 class FunctionStatus(IntEnum):
     """≙ ``FunctionStatus`` (``odoo19c: odoo/modules/db.py:162-165``)."""
 
-    MISSING = 0    # la función no está (falsy)
-    PRESENT = 1    # está, pero no es indexable (no inmutable)
+    MISSING = 0  # la función no está (falsy)
+    PRESENT = 1  # está, pero no es indexable (no inmutable)
     INDEXABLE = 2  # está y es indexable (inmutable)
 
 
@@ -122,17 +139,23 @@ def has_unaccent(cr):
     :param cr: cursor de base de datos abierto.
     :returns: un :class:`FunctionStatus`.
     """
-    cr.execute("""
+    cr.execute(
+        """
         SELECT p.provolatile
         FROM pg_proc p
         WHERE p.proname = 'unaccent'
               AND p.pronamespace = current_schema::regnamespace
               AND p.pronargs = 1
-    """)
+    """
+    )
     result = cr.fetchone()
     if not result:
         return FunctionStatus.MISSING
-    return FunctionStatus.INDEXABLE if result[0] == 'i' else FunctionStatus.PRESENT
+    return (
+        FunctionStatus.INDEXABLE
+        if result[0] == 'i'
+        else FunctionStatus.PRESENT
+    )
 
 
 def has_trigram(cr):

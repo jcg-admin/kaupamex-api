@@ -4,6 +4,7 @@
 Adaptación fiel de Odoo fleet/models/fleet_vehicle_{odometer,log_contract,
 log_services,assignation_log}.py (odoo-tools@622ddc2a, odoo19c:, LGPL-3).
 """
+
 from datetime import date, timedelta
 
 import pytest
@@ -38,7 +39,9 @@ def driver():
 class TestFleetVehicleOdometerLog:
     def test_str_combines_vehicle_name_and_date(self, vehicle):
         log = FleetVehicleOdometer.objects.create(
-            vehicle=vehicle, value=1000, date=date(2026, 1, 15),
+            vehicle=vehicle,
+            value=1000,
+            date=date(2026, 1, 15),
         )
         assert str(log) == f'{vehicle.name} / 2026-01-15'
 
@@ -46,7 +49,9 @@ class TestFleetVehicleOdometerLog:
         log = FleetVehicleOdometer.objects.create(vehicle=vehicle, value=500)
         assert log.unit == vehicle.odometer_unit
 
-    def test_save_inherits_driver_from_vehicle_when_missing(self, vehicle, driver):
+    def test_save_inherits_driver_from_vehicle_when_missing(
+        self, vehicle, driver
+    ):
         vehicle.driver = driver
         vehicle.save()
         log = FleetVehicleOdometer.objects.create(vehicle=vehicle, value=200)
@@ -57,7 +62,9 @@ class TestFleetVehicleOdometerLog:
         vehicle.driver = driver
         vehicle.save()
         log = FleetVehicleOdometer.objects.create(
-            vehicle=vehicle, value=200, driver=other_driver,
+            vehicle=vehicle,
+            value=200,
+            driver=other_driver,
         )
         assert log.driver_id == other_driver.pk
 
@@ -65,20 +72,25 @@ class TestFleetVehicleOdometerLog:
 class TestFleetVehicleLogContract:
     def test_name_prefixes_cost_subtype(self, vehicle):
         subtype = FleetServiceType.objects.create(
-            name='Seguro', category=FleetServiceType.CATEGORY_CONTRACT,
+            name='Seguro',
+            category=FleetServiceType.CATEGORY_CONTRACT,
         )
         contract = FleetVehicleLogContract.objects.create(
-            vehicle=vehicle, cost_subtype=subtype,
+            vehicle=vehicle,
+            cost_subtype=subtype,
         )
         assert contract.name == f'Seguro {vehicle.name}'
 
     def test_next_year_date_adds_one_year(self):
         start = date(2026, 3, 10)
-        assert FleetVehicleLogContract.next_year_date(start) == date(2027, 3, 10)
+        assert FleetVehicleLogContract.next_year_date(start) == date(
+            2027, 3, 10
+        )
 
     def test_days_left_and_expires_today(self, vehicle):
         contract = FleetVehicleLogContract.objects.create(
-            vehicle=vehicle, state=FleetVehicleLogContract.STATE_OPEN,
+            vehicle=vehicle,
+            state=FleetVehicleLogContract.STATE_OPEN,
             expiration_date=date.today(),
         )
         assert contract.days_left == 0
@@ -86,19 +98,22 @@ class TestFleetVehicleLogContract:
 
     def test_days_left_is_minus_one_when_closed(self, vehicle):
         contract = FleetVehicleLogContract.objects.create(
-            vehicle=vehicle, state=FleetVehicleLogContract.STATE_CLOSED,
+            vehicle=vehicle,
+            state=FleetVehicleLogContract.STATE_CLOSED,
             expiration_date=date.today() + timedelta(days=10),
         )
         assert contract.days_left == -1
 
     def test_has_open_contract_excludes_itself(self, vehicle):
         contract = FleetVehicleLogContract.objects.create(
-            vehicle=vehicle, state=FleetVehicleLogContract.STATE_OPEN,
+            vehicle=vehicle,
+            state=FleetVehicleLogContract.STATE_OPEN,
             expiration_date=date.today() + timedelta(days=5),
         )
         assert contract.has_open_contract is False
         FleetVehicleLogContract.objects.create(
-            vehicle=vehicle, state=FleetVehicleLogContract.STATE_OPEN,
+            vehicle=vehicle,
+            state=FleetVehicleLogContract.STATE_OPEN,
             expiration_date=date.today() + timedelta(days=5),
         )
         contract.refresh_from_db()
@@ -112,7 +127,8 @@ class TestFleetVehicleLogContract:
 
     def test_sync_state_from_dates_marks_expired(self, vehicle):
         contract = FleetVehicleLogContract.objects.create(
-            vehicle=vehicle, state=FleetVehicleLogContract.STATE_OPEN,
+            vehicle=vehicle,
+            state=FleetVehicleLogContract.STATE_OPEN,
             start_date=date.today() - timedelta(days=400),
             expiration_date=date.today() - timedelta(days=30),
         )
@@ -123,19 +139,23 @@ class TestFleetVehicleLogContract:
 class TestFleetVehicleLogServices:
     def test_odometer_getter_defaults_to_zero(self, vehicle):
         stype = FleetServiceType.objects.create(
-            name='Frenos', category=FleetServiceType.CATEGORY_SERVICE,
+            name='Frenos',
+            category=FleetServiceType.CATEGORY_SERVICE,
         )
         service = FleetVehicleLogServices.objects.create(
-            vehicle=vehicle, service_type=stype,
+            vehicle=vehicle,
+            service_type=stype,
         )
         assert service.odometer == 0
 
     def test_odometer_setter_creates_log_and_links_it(self, vehicle):
         stype = FleetServiceType.objects.create(
-            name='Frenos', category=FleetServiceType.CATEGORY_SERVICE,
+            name='Frenos',
+            category=FleetServiceType.CATEGORY_SERVICE,
         )
         service = FleetVehicleLogServices.objects.create(
-            vehicle=vehicle, service_type=stype,
+            vehicle=vehicle,
+            service_type=stype,
         )
         service.odometer = 42000
         assert service.odometer == 42000
@@ -144,10 +164,12 @@ class TestFleetVehicleLogServices:
 
     def test_model_and_brand_delegate_to_vehicle(self, vehicle):
         stype = FleetServiceType.objects.create(
-            name='Frenos', category=FleetServiceType.CATEGORY_SERVICE,
+            name='Frenos',
+            category=FleetServiceType.CATEGORY_SERVICE,
         )
         service = FleetVehicleLogServices.objects.create(
-            vehicle=vehicle, service_type=stype,
+            vehicle=vehicle,
+            service_type=stype,
         )
         # El puerto expone las delegaciones como propiedades ``model``/
         # ``brand`` (``related='vehicle_id.model_id'`` de la referencia), no
@@ -155,14 +177,18 @@ class TestFleetVehicleLogServices:
         assert service.model == vehicle.model
         assert service.brand == vehicle.model.brand
 
-    def test_sync_defaults_fills_purchaser_from_vehicle_driver(self, vehicle, driver):
+    def test_sync_defaults_fills_purchaser_from_vehicle_driver(
+        self, vehicle, driver
+    ):
         vehicle.driver = driver
         vehicle.save()
         stype = FleetServiceType.objects.create(
-            name='Frenos', category=FleetServiceType.CATEGORY_SERVICE,
+            name='Frenos',
+            category=FleetServiceType.CATEGORY_SERVICE,
         )
         service = FleetVehicleLogServices.objects.create(
-            vehicle=vehicle, service_type=stype,
+            vehicle=vehicle,
+            service_type=stype,
         )
         service.sync_defaults()
         assert service.purchaser_id == driver.pk
@@ -171,6 +197,8 @@ class TestFleetVehicleLogServices:
 class TestFleetVehicleAssignationLog:
     def test_str_combines_vehicle_and_driver_names(self, vehicle, driver):
         entry = FleetVehicleAssignationLog.objects.create(
-            vehicle=vehicle, driver=driver, date_start=date.today(),
+            vehicle=vehicle,
+            driver=driver,
+            date_start=date.today(),
         )
         assert str(entry) == f'{vehicle.name} - {driver.name}'

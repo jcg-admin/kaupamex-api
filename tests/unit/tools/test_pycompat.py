@@ -7,6 +7,7 @@ sus asserts protegen.
 
 Los casos se escribieron ANTES del modulo.
 """
+
 import io
 
 import pytest
@@ -43,14 +44,17 @@ class TestCsvWriter:
 class TestToText:
     """Las cuatro ramas que el docstring de la fuente enumera."""
 
-    @pytest.mark.parametrize('given, expected', [
-        (None, ''),
-        (False, ''),
-        ('ya es texto', 'ya es texto'),
-        ('ñandú'.encode(), 'ñandú'),
-        (42, '42'),
-        (0, '0'),
-    ])
+    @pytest.mark.parametrize(
+        'given, expected',
+        [
+            (None, ''),
+            (False, ''),
+            ('ya es texto', 'ya es texto'),
+            ('ñandú'.encode(), 'ñandú'),
+            (42, '42'),
+            (0, '0'),
+        ],
+    )
     def test_it_textifies(self, given, expected):
         with pytest.warns(DeprecationWarning):
             assert to_text(given) == expected

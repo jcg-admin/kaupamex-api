@@ -53,6 +53,7 @@ Divergencias declaradas
    ``hr/models/resource_calendar.py``); el truncado a medianoche se conserva
    verbatim.
 """
+
 from django.utils import timezone
 
 from orm.method_chain import chain_method
@@ -95,7 +96,9 @@ def _reset_generation_boundaries(_new_result, new_version):
         boundary = _generation_boundary_today()
         new_version.date_generated_from = boundary
         new_version.date_generated_to = boundary
-        new_version.save(update_fields=['date_generated_from', 'date_generated_to'])
+        new_version.save(
+            update_fields=['date_generated_from', 'date_generated_to']
+        )
     return new_version
 
 
@@ -112,7 +115,9 @@ def _wire_create_version(model):
     idioma (``chain_method`` corre la mitad nueva, luego la previa, y funde
     con ``_reset_generation_boundaries``)."""
     chain_method(
-        model, 'create_version', _create_version_noop,
+        model,
+        'create_version',
+        _create_version_noop,
         combine=_reset_generation_boundaries,
     )
 
@@ -121,11 +126,14 @@ def apply_hr_work_entry_hr_employee_extensions():
     """Cuelga sobre ``hr.employee`` lo que ``hr_work_entry`` le añade — ≙
     ``_inherit``."""
     extend_model(
-        'hr', 'HrEmployee',
+        'hr',
+        'HrEmployee',
         propiedades={
             'has_work_entries': _compute_has_work_entries,
             'work_entry_source': _work_entry_source,
-            'work_entry_source_calendar_invalid': _work_entry_source_calendar_invalid,
+            'work_entry_source_calendar_invalid': (
+                _work_entry_source_calendar_invalid
+            ),
         },
         luego=_wire_create_version,
     )

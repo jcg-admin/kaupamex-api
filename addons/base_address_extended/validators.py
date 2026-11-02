@@ -24,12 +24,13 @@ teléfono es opcional pero, si viene, exactamente 10 dígitos. El C.P. es
 requerido y debe tener exactamente 5 dígitos. Sin espacios, guiones ni prefijo
 +52.
 """
+
 import re
 
 from rest_framework import serializers
 
 _MX_PHONE_RE = re.compile(r'^\d{10}$')
-_MX_ZIP_RE   = re.compile(r'^\d{5}$')
+_MX_ZIP_RE = re.compile(r'^\d{5}$')
 
 
 def validate_mx_phone(value):

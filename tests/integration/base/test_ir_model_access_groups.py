@@ -65,6 +65,7 @@ Los once que sobreviven **no** son un verde falso: o no consultan el grafo
 anulación no toca — el receptor de ``m2m_changed`` sobre ``implied_ids`` y el
 ``clear_cache`` de ``IrModelData._update_xmlids``, que también están portados.
 """
+
 import pytest
 from django.apps import apps
 from django.contrib.auth import get_user_model
@@ -83,15 +84,21 @@ MODEL_LABEL = 'base.ResDeviceLog'
 def _acl(mode='read', group=None, active=True, name='acl de prueba'):
     """Declara una fila de ACL para ``MODEL_LABEL`` con un solo permiso."""
     row, _ = IrModel.objects.get_or_create(
-        model=MODEL_LABEL, defaults={'name': 'Registro de dispositivo'})
+        model=MODEL_LABEL, defaults={'name': 'Registro de dispositivo'}
+    )
     return IrModelAccess.objects.create(
-        name=name, model_id=row, group_id=group, active=active,
-        **{f'perm_{mode}': True})
+        name=name,
+        model_id=row,
+        group_id=group,
+        active=active,
+        **{f'perm_{mode}': True},
+    )
 
 
 def _user(login):
     return get_user_model().objects.create_user(
-        login=login, password='GruposPrueba123!')
+        login=login, password='GruposPrueba123!'
+    )
 
 
 class TestTheThreeOutcomes:
@@ -123,12 +130,15 @@ class TestTheThreeOutcomes:
         groups = IrModelAccess._get_access_groups(MODEL_LABEL, 'read')
         assert groups.is_universal(), (
             'una ACL global abre el modo a todos aunque haya además una por '
-            'grupo — es el orden que la fuente fija')
+            'grupo — es el orden que la fuente fija'
+        )
 
     def test_a_row_for_another_mode_does_not_grant_this_one(self, db):
         _acl('write', group=None)
         assert IrModelAccess._get_access_groups(MODEL_LABEL, 'read').is_empty()
-        assert IrModelAccess._get_access_groups(MODEL_LABEL, 'write').is_universal()
+        assert IrModelAccess._get_access_groups(
+            MODEL_LABEL, 'write'
+        ).is_universal()
 
     def test_an_inactive_row_grants_nothing(self, db):
         _acl('read', group=None, active=False)
@@ -166,7 +176,8 @@ class TestTheExpressionAnswersMembership:
         groups = IrModelAccess._get_access_groups(MODEL_LABEL, 'read')
         assert parent.pk not in who.group_ids.values_list('pk', flat=True), (
             'el usuario NO está en el grupo que la ACL nombra — si lo '
-            'estuviera, el caso no mediría la clausura')
+            'estuviera, el caso no mediría la clausura'
+        )
         assert groups.matches(who._get_group_ids())
 
 
@@ -184,16 +195,21 @@ class TestTheGroupDefinitions:
 
     def test_the_graph_carries_the_user_type_as_a_disjunction(self, db):
         internal = ResGroups.objects.create(
-            name='del tipo interno', user_type=ResGroups.USER_TYPE_INTERNAL)
+            name='del tipo interno', user_type=ResGroups.USER_TYPE_INTERNAL
+        )
         portal = ResGroups.objects.create(
-            name='del tipo portal', user_type=ResGroups.USER_TYPE_PORTAL)
+            name='del tipo portal', user_type=ResGroups.USER_TYPE_PORTAL
+        )
 
         definitions = ResGroups._get_group_definitions()
         assert portal.pk in definitions.get_disjoint_ids([internal.pk])
         # Y el control que discrimina: un grupo SIN tipo no es disjunto de
         # nadie, que es lo que ``ResGroups.disjoint_ids`` decide.
         plain = ResGroups.objects.create(name='sin tipo de usuario')
-        assert ResGroups._get_group_definitions().get_disjoint_ids([plain.pk]) == []
+        assert (
+            ResGroups._get_group_definitions().get_disjoint_ids([plain.pk])
+            == []
+        )
 
     def test_a_group_without_external_id_falls_back_to_its_pk(self, db):
         plain = ResGroups.objects.create(name='sin identificador externo')
@@ -207,8 +223,10 @@ class TestTheGroupDefinitions:
 
         definitions = ResGroups._get_group_definitions()
         assert definitions.get_id('base.group_de_prueba_204') == seeded.pk
-        assert str(definitions.parse('base.group_de_prueba_204')) == (
-            "'base.group_de_prueba_204'")
+        assert (
+            str(definitions.parse('base.group_de_prueba_204'))
+            == "'base.group_de_prueba_204'"
+        )
 
 
 class TestHasGroupGoesThroughTheGraph:

@@ -1,4 +1,5 @@
 """URLs — addons.authz_ldap (CRUD de configuraciones LDAP, operador)."""
+
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 

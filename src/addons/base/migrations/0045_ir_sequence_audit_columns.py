@@ -29,7 +29,8 @@ class Migration(migrations.Migration):
             model_name="irsequence",
             name="created_at",
             field=models.DateTimeField(
-                auto_now_add=True, default=django.utils.timezone.now),
+                auto_now_add=True, default=django.utils.timezone.now
+            ),
             preserve_default=False,
         ),
         migrations.AddField(
@@ -41,7 +42,8 @@ class Migration(migrations.Migration):
             model_name="irsequencedaterange",
             name="created_at",
             field=models.DateTimeField(
-                auto_now_add=True, default=django.utils.timezone.now),
+                auto_now_add=True, default=django.utils.timezone.now
+            ),
             preserve_default=False,
         ),
         migrations.AddField(

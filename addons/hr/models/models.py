@@ -57,6 +57,7 @@ Bloqueos y divergencias declarados
    ``resource__user__partner__email`` (el correo del usuario vive en su
    partner en este árbol).
 """
+
 from addons.hr.models.hr_employee import HrEmployee
 from tools.translate import _
 

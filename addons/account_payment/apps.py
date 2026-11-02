@@ -13,6 +13,7 @@ Wiring pendiente (fuera del alcance de este agente — no se toca
 ``'addons.account'`` y ``'addons.payment'`` (dependencias de sus 4 modelos
 RELATED — ver ``migrations/0001_initial.py``).
 """
+
 import importlib
 
 from django.apps import AppConfig

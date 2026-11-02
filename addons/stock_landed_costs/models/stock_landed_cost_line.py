@@ -7,6 +7,7 @@ Adaptación fiel de Odoo ``stock.landed.cost.lines``
 productos: por partes iguales, por cantidad, por costo actual, por peso o por
 volumen (o18:12-16).
 """
+
 from decimal import Decimal
 
 import fields
@@ -18,11 +19,11 @@ from addons.base.models import TimeStampedModel
 class StockLandedCostLine(TimeStampedModel):
     """``stock.landed.cost.lines`` — una componente de coste + su reparto."""
 
-    SPLIT_EQUAL       = 'equal'
+    SPLIT_EQUAL = 'equal'
     SPLIT_BY_QUANTITY = 'by_quantity'
-    SPLIT_BY_COST     = 'by_current_cost_price'
-    SPLIT_BY_WEIGHT   = 'by_weight'
-    SPLIT_BY_VOLUME   = 'by_volume'
+    SPLIT_BY_COST = 'by_current_cost_price'
+    SPLIT_BY_WEIGHT = 'by_weight'
+    SPLIT_BY_VOLUME = 'by_volume'
     SPLIT_CHOICES = [
         (SPLIT_EQUAL, 'Igual'),
         (SPLIT_BY_QUANTITY, 'Por cantidad'),
@@ -31,20 +32,28 @@ class StockLandedCostLine(TimeStampedModel):
         (SPLIT_BY_VOLUME, 'Por volumen'),
     ]
 
-    cost         = fields.Many2one(
-        'stock_landed_costs.StockLandedCost', on_delete=models.CASCADE,
-        related_name='cost_lines', help_text='Documento (Odoo cost_id).',
+    cost = fields.Many2one(
+        'stock_landed_costs.StockLandedCost',
+        on_delete=models.CASCADE,
+        related_name='cost_lines',
+        help_text='Documento (Odoo cost_id).',
     )
-    name         = fields.Char(
-        max_length=100, blank=True, default='',
+    name = fields.Char(
+        max_length=100,
+        blank=True,
+        default='',
         help_text='Descripción de la componente (Odoo name).',
     )
-    price_unit   = fields.Monetary(
-        max_digits=14, decimal_places=2, default=Decimal('0.00'),
+    price_unit = fields.Monetary(
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal('0.00'),
         help_text='Monto del coste (Odoo price_unit).',
     )
     split_method = fields.Selection(
-        max_length=24, choices=SPLIT_CHOICES, default=SPLIT_BY_QUANTITY,
+        max_length=24,
+        choices=SPLIT_CHOICES,
+        default=SPLIT_BY_QUANTITY,
         help_text='Método de reparto (Odoo split_method).',
     )
 

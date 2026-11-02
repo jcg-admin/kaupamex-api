@@ -17,7 +17,10 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="trg_date_calendar_id",
-                help_text="GAP — ResourceCalendar.plan_days no está portado; ver docstring del módulo.",
+                help_text=(
+                    "GAP — ResourceCalendar.plan_days no está portado; ver"
+                    " docstring del módulo."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="base_automations",

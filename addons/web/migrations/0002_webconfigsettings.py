@@ -27,7 +27,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Nombre visible de la PWA (Odoo web_app_name, config_parameter=web.web_app_name).",
+                        help_text=(
+                            "Nombre visible de la PWA (Odoo web_app_name,"
+                            " config_parameter=web.web_app_name)."
+                        ),
                         max_length=100,
                         verbose_name="Nombre de la app web",
                     ),

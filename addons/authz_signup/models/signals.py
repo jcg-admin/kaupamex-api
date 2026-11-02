@@ -20,6 +20,7 @@ conjunto de usuarios del partner, que al borrar cambia— pero esa es la
 **segunda** línea, y su cobertura depende de que el cambio de estado se note.
 La fuente cancela explícitamente; aquí también.
 """
+
 import logging
 
 from django.db.models.signals import post_delete, pre_save
@@ -37,8 +38,11 @@ def _cancel_for(user, motivo):
     if partner is None:
         return
     if signup_cancel(partner):
-        _logger.info('Signup pendiente cancelado para el partner #%s (%s)',
-                     partner.pk, motivo)
+        _logger.info(
+            'Signup pendiente cancelado para el partner #%s (%s)',
+            partner.pk,
+            motivo,
+        )
 
 
 @receiver(pre_save, sender=ResUsers, dispatch_uid='authz_signup_deactivation')

@@ -10,7 +10,10 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("hr", "0010_hremployee_friday_location_hremployee_hourly_cost_and_more"),
+        (
+            "hr",
+            "0010_hremployee_friday_location_hremployee_hourly_cost_and_more",
+        ),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -27,8 +30,14 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("checked", models.BooleanField(default=True, verbose_name="Marcado")),
-                ("active", models.BooleanField(default=True, verbose_name="Activo")),
+                (
+                    "checked",
+                    models.BooleanField(default=True, verbose_name="Marcado"),
+                ),
+                (
+                    "active",
+                    models.BooleanField(default=True, verbose_name="Activo"),
+                ),
                 (
                     "employee",
                     models.ForeignKey(
@@ -43,7 +52,10 @@ class Migration(migrations.Migration):
                 (
                     "user",
                     models.ForeignKey(
-                        help_text="Odoo user_id (required, ondelete=cascade). Sin default a env.user — ver docstring del módulo.",
+                        help_text=(
+                            "Odoo user_id (required, ondelete=cascade). Sin"
+                            " default a env.user — ver docstring del módulo."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="timesheet_calendar_filters",
                         to=settings.AUTH_USER_MODEL,

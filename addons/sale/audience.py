@@ -3,6 +3,7 @@
 Inscrito en el registro de ``mail`` (T-035). Antes esta consulta vivía dentro
 de ``mail/views.py``, que para armarla importaba ``sale.SaleOrderLine``.
 """
+
 from addons.mail.audience import register_audience_resolver
 from addons.mail.models import ManualNotification
 from addons.sale.models import SaleOrderLine
@@ -24,17 +25,21 @@ def product_buyers(product_id=None, **_kwargs):
     puesto el producto en el carrito sin comprarlo.
     """
     if not product_id:
-        return SaleOrderLine.objects.none().values_list('order__partner_id', flat=True)
+        return SaleOrderLine.objects.none().values_list(
+            'order__partner_id', flat=True
+        )
     return (
-        SaleOrderLine.objects
-        .filter(product_id=product_id,
-                order__partner__isnull=False,
-                order__name__isnull=False)
+        SaleOrderLine.objects.filter(
+            product_id=product_id,
+            order__partner__isnull=False,
+            order__name__isnull=False,
+        )
         .values_list('order__partner_id', flat=True)
         .distinct()
     )
 
 
 register_audience_resolver(
-    ManualNotification.RecipientType.PRODUCT_BUYERS, product_buyers,
+    ManualNotification.RecipientType.PRODUCT_BUYERS,
+    product_buyers,
 )

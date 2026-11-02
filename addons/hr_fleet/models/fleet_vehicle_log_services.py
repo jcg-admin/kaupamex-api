@@ -37,6 +37,7 @@ Divergencias declaradas
    servicio llama ``sync_defaults()`` (que ahora también rellena el
    empleado, ver ``_sync_purchaser_employee``).
 """
+
 import fields
 import models
 
@@ -64,7 +65,8 @@ def _sync_purchaser_employee(self):
         self._compute_purchaser_employee_id()
     if self.purchaser_employee_id is not None:
         self.purchaser = self.purchaser_employee.work_contact
-    return None  # relevo: la base de ``fleet`` (conductor del vehículo) corre después
+    # relevo: la base de ``fleet`` (conductor del vehículo) corre después
+    return None
 
 
 def apply_hr_fleet_fleet_vehicle_log_services_extensions():
@@ -72,19 +74,26 @@ def apply_hr_fleet_fleet_vehicle_log_services_extensions():
     necesita — ≙ ``_inherit``. Se invoca desde ``HrFleetConfig.ready()``.
     La columna nueva espera su migración en ``fleet/migrations/``."""
     extend_model(
-        'fleet', 'FleetVehicleLogServices',
+        'fleet',
+        'FleetVehicleLogServices',
         campos={
             'purchaser_employee': fields.Many2one(
-                'hr.HrEmployee', on_delete=models.SET_NULL, null=True,
-                blank=True, related_name='fleet_service_logs_as_employee',
+                'hr.HrEmployee',
+                on_delete=models.SET_NULL,
+                null=True,
+                blank=True,
+                related_name='fleet_service_logs_as_employee',
                 verbose_name='Driver (Employee)',
-                help_text='Odoo purchaser_employee_id (compute+store, '
-                          'readonly=False — lo rellena sync_defaults).',
+                help_text=(
+                    'Odoo purchaser_employee_id (compute+store, '
+                    'readonly=False — lo rellena sync_defaults).'
+                ),
             ),
         },
         metodos={
             '_compute_purchaser_employee_id': _compute_purchaser_employee_id,
         },
     )
-    chain_method(FleetVehicleLogServices, 'sync_defaults',
-                 _sync_purchaser_employee)
+    chain_method(
+        FleetVehicleLogServices, 'sync_defaults', _sync_purchaser_employee
+    )

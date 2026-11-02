@@ -23,7 +23,10 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="attachment_id",
-                help_text="Archivo generado por edi_format al postear el asiento (Odoo attachment_id).",
+                help_text=(
+                    "Archivo generado por edi_format al postear el asiento"
+                    " (Odoo attachment_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="edi_documents",
@@ -56,7 +59,10 @@ class Migration(migrations.Migration):
             name="move",
             field=models.ForeignKey(
                 db_column="move_id",
-                help_text="Asiento contable (Odoo move_id, requerido). related_name da a account.move el M2O inverso sin tocar su archivo.",
+                help_text=(
+                    "Asiento contable (Odoo move_id, requerido). related_name"
+                    " da a account.move el M2O inverso sin tocar su archivo."
+                ),
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="edi_document_ids",
                 to="account.accountmove",
@@ -70,7 +76,8 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="accountedidocument",
             constraint=models.UniqueConstraint(
-                fields=("edi_format_id", "move_id"), name="uniq_edi_doc_move_format"
+                fields=("edi_format_id", "move_id"),
+                name="uniq_edi_doc_move_format",
             ),
         ),
     ]

@@ -6,6 +6,7 @@ siguiente asiento no los ve y la numeración vuelve a empezar en 00001 —
 chocando con el ``UNIQUE`` de ``name``. La columna nueva sólo sirve si
 describe también el pasado. Ver H-API-339.
 """
+
 from django.db import migrations, models
 
 
@@ -30,7 +31,9 @@ def split_sequence_names(apps, schema_editor):
         pendientes.append(move)
     if pendientes:
         AccountMove.objects.using(alias).bulk_update(
-            pendientes, ['sequence_prefix', 'sequence_number'], batch_size=500,
+            pendientes,
+            ['sequence_prefix', 'sequence_number'],
+            batch_size=500,
         )
 
 
@@ -47,7 +50,11 @@ class Migration(migrations.Migration):
             field=models.IntegerField(
                 db_index=True,
                 default=0,
-                help_text="El número dentro del prefijo, como entero. Es la columna que se agrega con MAX para obtener el siguiente (Odoo sequence_number).",
+                help_text=(
+                    "El número dentro del prefijo, como entero. Es la columna"
+                    " que se agrega con MAX para obtener el siguiente (Odoo"
+                    " sequence_number)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -57,7 +64,10 @@ class Migration(migrations.Migration):
                 blank=True,
                 db_index=True,
                 default="",
-                help_text="Todo lo que precede al número en `name`, p. ej. ``INV/VTA/2026/`` (Odoo sequence_prefix).",
+                help_text=(
+                    "Todo lo que precede al número en `name`, p. ej."
+                    " ``INV/VTA/2026/`` (Odoo sequence_prefix)."
+                ),
                 max_length=255,
             ),
         ),

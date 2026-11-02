@@ -30,6 +30,7 @@ Porte símbolo por símbolo — 1 campo + 4 métodos
    * - ``action_save`` (``:47-48``)
      - BLOQUEADO — ``ir.actions.act_window_close``, ídem
 """
+
 from collections import defaultdict
 from datetime import date
 
@@ -37,7 +38,9 @@ import fields
 import models
 
 from addons.hr.models.hr_employee import HrEmployee
-from addons.hr_skills.models.hr_individual_skill_mixin import HrIndividualSkillMixin
+from addons.hr_skills.models.hr_individual_skill_mixin import (
+    HrIndividualSkillMixin,
+)
 
 
 class HrEmployeeSkill(HrIndividualSkillMixin):
@@ -50,8 +53,11 @@ class HrEmployeeSkill(HrIndividualSkillMixin):
     _rec_name = 'skill_id'
 
     employee = fields.Many2one(
-        HrEmployee, on_delete=models.CASCADE, db_index=True,
-        related_name='employee_skill_ids', verbose_name='Empleado',
+        HrEmployee,
+        on_delete=models.CASCADE,
+        db_index=True,
+        related_name='employee_skill_ids',
+        verbose_name='Empleado',
     )
 
     class Meta:
@@ -70,17 +76,24 @@ class HrEmployeeSkill(HrIndividualSkillMixin):
         de firma declarada en la tabla del docstring del módulo."""
         by_pair = defaultdict(list)
         for emp_skill in employee_skills:
-            by_pair[(emp_skill.employee_id, emp_skill.skill_id)].append(emp_skill)
+            by_pair[(emp_skill.employee_id, emp_skill.skill_id)].append(
+                emp_skill
+            )
         today = date.today()
         result = defaultdict(list)
         for (employee_id, _skill_id), emp_skills in by_pair.items():
-            active = [es for es in emp_skills
-                      if not es.valid_to or es.valid_to >= today]
+            active = [
+                es
+                for es in emp_skills
+                if not es.valid_to or es.valid_to >= today
+            ]
             if not active and emp_skills[0].is_certification:
-                expired_valid_to = max(es.valid_to for es in emp_skills
-                                        if es.valid_to)
-                active = [es for es in emp_skills
-                          if es.valid_to == expired_valid_to]
+                expired_valid_to = max(
+                    es.valid_to for es in emp_skills if es.valid_to
+                )
+                active = [
+                    es for es in emp_skills if es.valid_to == expired_valid_to
+                ]
             result[employee_id].extend(active)
         return result
 

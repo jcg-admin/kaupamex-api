@@ -4,6 +4,7 @@ Tests — UC-SYS-02: expire_vouchers task.
 Verifica que vouchers con valid_until < now y is_active=True
 son desactivados y se registra un VoucherChangeLog.
 """
+
 import pytest
 from datetime import timedelta
 from django.utils import timezone

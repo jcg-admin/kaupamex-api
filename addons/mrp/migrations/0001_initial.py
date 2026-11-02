@@ -32,7 +32,8 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre (Odoo mrp.workcenter.name).", max_length=100
+                        help_text="Nombre (Odoo mrp.workcenter.name).",
+                        max_length=100,
                     ),
                 ),
                 (
@@ -49,7 +50,9 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("100.00"),
-                        help_text="Eficiencia de tiempo % (Odoo time_efficiency).",
+                        help_text=(
+                            "Eficiencia de tiempo % (Odoo time_efficiency)."
+                        ),
                         max_digits=6,
                     ),
                 ),
@@ -58,7 +61,9 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("1.00"),
-                        help_text="Capacidad por defecto (Odoo default_capacity).",
+                        help_text=(
+                            "Capacidad por defecto (Odoo default_capacity)."
+                        ),
                         max_digits=8,
                     ),
                 ),
@@ -108,7 +113,10 @@ class Migration(migrations.Migration):
                             ("subcontract", "Subcontratación"),
                         ],
                         default="normal",
-                        help_text="Tipo de BoM: normal|phantom/kit (Odoo mrp.bom.type).",
+                        help_text=(
+                            "Tipo de BoM: normal|phantom/kit (Odoo"
+                            " mrp.bom.type)."
+                        ),
                         max_length=16,
                     ),
                 ),
@@ -117,19 +125,26 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("1.00"),
-                        help_text="Cantidad producida por la BoM (Odoo product_qty).",
+                        help_text=(
+                            "Cantidad producida por la BoM (Odoo product_qty)."
+                        ),
                         max_digits=12,
                     ),
                 ),
                 (
                     "sequence",
-                    models.IntegerField(default=0, help_text="Orden (Odoo sequence)."),
+                    models.IntegerField(
+                        default=0, help_text="Orden (Odoo sequence)."
+                    ),
                 ),
                 (
                     "product",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Variante concreta (Odoo product_id, opcional). Si se define, la BoM sólo aplica a esa variante.",
+                        help_text=(
+                            "Variante concreta (Odoo product_id, opcional). Si"
+                            " se define, la BoM sólo aplica a esa variante."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="boms",
@@ -139,7 +154,10 @@ class Migration(migrations.Migration):
                 (
                     "product_tmpl",
                     models.ForeignKey(
-                        help_text="Plantilla fabricada (Odoo product_tmpl_id, required).",
+                        help_text=(
+                            "Plantilla fabricada (Odoo product_tmpl_id,"
+                            " required)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="boms",
                         to="product.producttemplate",
@@ -172,13 +190,17 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("1.00"),
-                        help_text="Cantidad del componente (Odoo product_qty).",
+                        help_text=(
+                            "Cantidad del componente (Odoo product_qty)."
+                        ),
                         max_digits=12,
                     ),
                 ),
                 (
                     "sequence",
-                    models.IntegerField(default=1, help_text="Orden (Odoo sequence)."),
+                    models.IntegerField(
+                        default=1, help_text="Orden (Odoo sequence)."
+                    ),
                 ),
                 (
                     "bom",
@@ -300,9 +322,14 @@ class Migration(migrations.Migration):
                     models.CharField(
                         choices=[
                             ("raw", "Materia prima (Odoo move_raw_ids)"),
-                            ("finished", "Producto terminado (Odoo move_finished_ids)"),
+                            (
+                                "finished",
+                                "Producto terminado (Odoo move_finished_ids)",
+                            ),
                         ],
-                        help_text="raw = move_raw_ids; finished = move_finished_ids.",
+                        help_text=(
+                            "raw = move_raw_ids; finished = move_finished_ids."
+                        ),
                         max_length=16,
                     ),
                 ),
@@ -349,7 +376,9 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Operación (Odoo mrp.routing.workcenter.name).",
+                        help_text=(
+                            "Operación (Odoo mrp.routing.workcenter.name)."
+                        ),
                         max_length=100,
                     ),
                 ),
@@ -358,14 +387,17 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Duración en minutos (Odoo time_cycle_manual).",
+                        help_text=(
+                            "Duración en minutos (Odoo time_cycle_manual)."
+                        ),
                         max_digits=10,
                     ),
                 ),
                 (
                     "sequence",
                     models.PositiveIntegerField(
-                        default=10, help_text="Orden de la operación (Odoo sequence)."
+                        default=10,
+                        help_text="Orden de la operación (Odoo sequence).",
                     ),
                 ),
                 (
@@ -424,7 +456,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Duración esperada en minutos (Odoo duration_expected).",
+                        help_text=(
+                            "Duración esperada en minutos (Odoo"
+                            " duration_expected)."
+                        ),
                         max_digits=10,
                     ),
                 ),

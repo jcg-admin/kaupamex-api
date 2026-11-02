@@ -17,13 +17,16 @@ Todas rechazan un estado imposible al guardar. Ninguna es cosmética:
 
 Qué haría fallar a cada control se declara en cada caso.
 """
+
 import pytest
 
 from django.core.exceptions import ValidationError
 
-from addons.base.models.ir_actions import (IrActionsActWindow,
-                                           IrActionsActions,
-                                           IrActionsServer)
+from addons.base.models.ir_actions import (
+    IrActionsActWindow,
+    IrActionsActions,
+    IrActionsServer,
+)
 from addons.base.models.ir_module import IrModuleCategory
 
 pytestmark = pytest.mark.integration
@@ -37,24 +40,29 @@ class TestCheckPath:
 
         Sin este caso, una que rechazara toda ruta pasaría los demás.
         """
-        action = IrActionsActions(name='Válida', type='ir.actions.actions',
-                                  path='mi-accion_2')
+        action = IrActionsActions(
+            name='Válida', type='ir.actions.actions', path='mi-accion_2'
+        )
         action.clean()
 
-    @pytest.mark.parametrize('path', ['2empieza-con-digito', 'Mayuscula',
-                                      'con espacio', 'con.punto'])
+    @pytest.mark.parametrize(
+        'path',
+        ['2empieza-con-digito', 'Mayuscula', 'con espacio', 'con.punto'],
+    )
     def test_a_path_outside_the_pattern_is_refused(self, db, path):
         """El eje del patrón: minúsculas, dígitos, guion y guion bajo."""
-        action = IrActionsActions(name='Mala', type='ir.actions.actions',
-                                  path=path)
+        action = IrActionsActions(
+            name='Mala', type='ir.actions.actions', path=path
+        )
         with pytest.raises(ValidationError):
             action.clean()
 
     @pytest.mark.parametrize('path', ['m-algo', 'action-algo'])
     def test_the_two_reserved_prefixes_are_refused(self, db, path):
         """Los dos prefijos que la fuente reserva para su cliente."""
-        action = IrActionsActions(name='Reservada', type='ir.actions.actions',
-                                  path=path)
+        action = IrActionsActions(
+            name='Reservada', type='ir.actions.actions', path=path
+        )
         with pytest.raises(ValidationError):
             action.clean()
 
@@ -69,8 +77,9 @@ class TestCheckPath:
         Qué lo haría fallar: quitar la comparación. Y qué lo hacía fallar
         antes de este pase: que no existiera.
         """
-        action = IrActionsActions(name='Nueva', type='ir.actions.actions',
-                                  path='new')
+        action = IrActionsActions(
+            name='Nueva', type='ir.actions.actions', path='new'
+        )
         with pytest.raises(ValidationError):
             action.clean()
 
@@ -81,8 +90,9 @@ class TestCheckPath:
         fallar: escribirlo como ``startswith('new')``, que prohibiría
         ``newsletter`` sin que la fuente lo pida.
         """
-        action = IrActionsActions(name='Boletin', type='ir.actions.actions',
-                                  path='newsletter')
+        action = IrActionsActions(
+            name='Boletin', type='ir.actions.actions', path='newsletter'
+        )
         action.clean()
 
     def test_without_a_path_nothing_is_checked(self, db):
@@ -98,18 +108,23 @@ class TestCheckModel:
 
     def test_a_model_that_does_not_exist_is_refused(self, db):
         """El eje: el error sale donde se escribe, no al abrir la acción."""
-        action = IrActionsActWindow(name='Fantasma',
-                                    type='ir.actions.act_window',
-                                    res_model='no.existe.este.modelo',
-                                    view_mode='list,form')
+        action = IrActionsActWindow(
+            name='Fantasma',
+            type='ir.actions.act_window',
+            res_model='no.existe.este.modelo',
+            view_mode='list,form',
+        )
         with pytest.raises(ValidationError):
             action.clean()
 
     def test_a_real_model_is_accepted(self, db):
         """CONTROL de la dirección contraria."""
-        IrActionsActWindow(name='Buena', type='ir.actions.act_window',
-                           res_model='res.partner',
-                           view_mode='list,form').clean()
+        IrActionsActWindow(
+            name='Buena',
+            type='ir.actions.act_window',
+            res_model='res.partner',
+            view_mode='list,form',
+        ).clean()
 
     def test_the_binding_model_is_checked_too(self, db):
         """CONTROL de la segunda mitad de la restricción.
@@ -119,11 +134,13 @@ class TestCheckModel:
         un modelo inexistente no aparecería en ninguna barra lateral sin que
         nadie supiera por qué.
         """
-        action = IrActionsActWindow(name='Anclada',
-                                    type='ir.actions.act_window',
-                                    res_model='res.partner',
-                                    view_mode='list,form',
-                                    binding_model_name='no.existe')
+        action = IrActionsActWindow(
+            name='Anclada',
+            type='ir.actions.act_window',
+            res_model='res.partner',
+            view_mode='list,form',
+            binding_model_name='no.existe',
+        )
         with pytest.raises(ValidationError):
             action.clean()
 
@@ -133,10 +150,12 @@ class TestCheckViewMode:
 
     def test_a_duplicated_mode_is_refused(self, db):
         """El eje: el cliente pintaría la misma pestaña dos veces."""
-        action = IrActionsActWindow(name='Repetida',
-                                    type='ir.actions.act_window',
-                                    res_model='res.partner',
-                                    view_mode='list,form,list')
+        action = IrActionsActWindow(
+            name='Repetida',
+            type='ir.actions.act_window',
+            res_model='res.partner',
+            view_mode='list,form,list',
+        )
         with pytest.raises(ValidationError):
             action.clean()
 
@@ -146,18 +165,23 @@ class TestCheckViewMode:
         ``'list, form'`` parece correcto y no lo es: la fuente parte por coma
         sin recortar, así que el modo queda como ``' form'`` y no resuelve.
         """
-        action = IrActionsActWindow(name='Con espacio',
-                                    type='ir.actions.act_window',
-                                    res_model='res.partner',
-                                    view_mode='list, form')
+        action = IrActionsActWindow(
+            name='Con espacio',
+            type='ir.actions.act_window',
+            res_model='res.partner',
+            view_mode='list, form',
+        )
         with pytest.raises(ValidationError):
             action.clean()
 
     def test_distinct_modes_are_accepted(self, db):
         """CONTROL de la dirección contraria."""
-        IrActionsActWindow(name='Buena', type='ir.actions.act_window',
-                           res_model='res.partner',
-                           view_mode='list,form,kanban').clean()
+        IrActionsActWindow(
+            name='Buena',
+            type='ir.actions.act_window',
+            res_model='res.partner',
+            view_mode='list,form,kanban',
+        ).clean()
 
 
 class TestCheckChildren:
@@ -168,19 +192,23 @@ class TestCheckChildren:
         """El eje. Mensaje de la fuente: *"Recursion found in child server
         actions"*."""
         action = IrActionsServer.objects.create(
-            name='Ciclo', type='ir.actions.server', state='multi')
+            name='Ciclo', type='ir.actions.server', state='multi'
+        )
         action.parent = action
         with pytest.raises(ValidationError):
             action.save()
 
     def test_a_cycle_of_three_is_refused(self, db):
         """CONTROL de la profundidad del recorrido."""
-        a = IrActionsServer.objects.create(name='A', type='ir.actions.server',
-                                           state='multi')
-        b = IrActionsServer.objects.create(name='B', type='ir.actions.server',
-                                           state='multi', parent=a)
-        c = IrActionsServer.objects.create(name='C', type='ir.actions.server',
-                                           state='multi', parent=b)
+        a = IrActionsServer.objects.create(
+            name='A', type='ir.actions.server', state='multi'
+        )
+        b = IrActionsServer.objects.create(
+            name='B', type='ir.actions.server', state='multi', parent=a
+        )
+        c = IrActionsServer.objects.create(
+            name='C', type='ir.actions.server', state='multi', parent=b
+        )
         a.parent = c
         with pytest.raises(ValidationError):
             a.save()
@@ -191,12 +219,12 @@ class TestCheckChildren:
         El modo ``multi`` existe **para** encadenar; una guarda que lo
         impidiera vaciaría el modo de contenido.
         """
-        a = IrActionsServer.objects.create(name='Raiz',
-                                           type='ir.actions.server',
-                                           state='multi')
-        b = IrActionsServer.objects.create(name='Hija',
-                                           type='ir.actions.server',
-                                           state='multi', parent=a)
+        a = IrActionsServer.objects.create(
+            name='Raiz', type='ir.actions.server', state='multi'
+        )
+        b = IrActionsServer.objects.create(
+            name='Hija', type='ir.actions.server', state='multi', parent=a
+        )
         assert b.parent_id == a.pk
 
 

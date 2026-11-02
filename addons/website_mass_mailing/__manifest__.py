@@ -14,9 +14,10 @@
     # import todavía no existe porque el modelo `website` está sin portar
     # (tarea #103).
     'depends': [
-        'base',           # ResPartner — el suscriptor
-        'mass_mailing',   # MailingList — la lista a la que se da de alta
-        'website',        # el sitio desde el que se suscribe (fidelidad a la ref)
+        'base',  # ResPartner — el suscriptor
+        'mass_mailing',  # MailingList — la lista a la que se da de alta
+        # el sitio desde el que se suscribe (fidelidad a la ref)
+        'website',
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

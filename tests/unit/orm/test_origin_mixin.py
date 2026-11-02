@@ -22,6 +22,7 @@ memoria en vez de la fila. Ése es el defecto que el mecanismo existe para
 impedir, y es invisible sin un caso que modifique el atributo sin guardar: la
 instancia se ve bien formada, sólo responde el valor equivocado.
 """
+
 import pytest
 
 from addons.base.models import ResPartner

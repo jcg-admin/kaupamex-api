@@ -11,7 +11,7 @@
     # `depends` MEDIDO coincide con el de la referencia (['account']) más
     # `base`, explícito porque el import de `ResCompany` es de Python.
     'depends': [
-        'base',     # ResCompany
+        'base',  # ResCompany
         'account',  # AccountMove y sus líneas — lo que la nota deriva
     ],
     'author': 'Odoo S.A.',

@@ -16,7 +16,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text='Odoo hr_presence_control_ip_list ("Valid IP addresses") — lista de IPs válidas para el control de presencia.',
+                help_text=(
+                    'Odoo hr_presence_control_ip_list ("Valid IP addresses") —'
+                    ' lista de IPs válidas para el control de presencia.'
+                ),
             ),
         ),
     ]

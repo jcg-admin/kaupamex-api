@@ -20,15 +20,18 @@ DIVERGENCIA declarada: property en vez de columna — mismo criterio que las
 del propio modelo público local; la fuente de verdad es el empleado, no una
 copia.
 """
+
 from orm.model_classes import extend_model
 
 
 def _delegated_day_location(day_field_name):
     """Fábrica de las 7 properties de delegación (``employee_id.<día>``)."""
+
     def getter(self):
         if not self.employee_id_id:
             return None
         return getattr(self.employee_id, day_field_name)
+
     getter.__name__ = day_field_name
     getter.__doc__ = f'≙ ``{day_field_name}_id`` — delega en el empleado.'
     return getter
@@ -44,11 +47,14 @@ def apply_hr_homeworking_hr_employee_public_extensions():
     """Cuelga sobre ``hr.employee.public`` las 8 properties de delegación —
     ≙ ``_inherit``. Se invoca desde ``HrHomeworkingConfig.ready()``."""
     extend_model(
-        'hr', 'HrEmployeePublic',
+        'hr',
+        'HrEmployeePublic',
         propiedades={
             'monday_location': _delegated_day_location('monday_location'),
             'tuesday_location': _delegated_day_location('tuesday_location'),
-            'wednesday_location': _delegated_day_location('wednesday_location'),
+            'wednesday_location': _delegated_day_location(
+                'wednesday_location'
+            ),
             'thursday_location': _delegated_day_location('thursday_location'),
             'friday_location': _delegated_day_location('friday_location'),
             'saturday_location': _delegated_day_location('saturday_location'),

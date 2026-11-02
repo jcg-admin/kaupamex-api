@@ -74,18 +74,16 @@ Signature = {
     'cbc:ID': {},
     'cbc:SignatureMethod': {},
     'cac:SignatoryParty': {
-        'cac:PartyIdentification': {
-            'cbc:ID': {}
-        },
+        'cac:PartyIdentification': {'cbc:ID': {}},
         'cac:PartyName': {
             'cbc:Name': {},
-        }
+        },
     },
     'cac:DigitalSignatureAttachment': {
         'cac:ExternalReference': {
             'cbc:URI': {},
         }
-    }
+    },
 }
 
 Address = {
@@ -120,9 +118,7 @@ Contact = {
 
 PowerOfAttorney = {
     'cac:AgentParty': {
-        'cac:PartyIdentification': {
-            'cbc:ID': {}
-        },
+        'cac:PartyIdentification': {'cbc:ID': {}},
     },
 }
 
@@ -198,8 +194,8 @@ FinancialAccount = {
             'cbc:ID': {},
             'cbc:Name': {},
             'cac:Address': Address,
-        }
-    }
+        },
+    },
 }
 
 PaymentMeans = {
@@ -272,7 +268,7 @@ TaxTotal = {
         'cbc:PerUnitAmount': {},
         'cbc:Percent': {},
         'cac:TaxCategory': TaxCategory,
-    }
+    },
 }
 
 MonetaryTotal = {
@@ -324,7 +320,7 @@ Item = {
 Price = {
     'cbc:PriceAmount': {},
     'cbc:BaseQuantity': {},
-    'cac:AllowanceCharge': AllowanceCharge
+    'cac:AllowanceCharge': AllowanceCharge,
 }
 
 ItemPriceExtension = {

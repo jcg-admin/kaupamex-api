@@ -13,6 +13,7 @@ modelo **histórico** vía ``apps.get_model``.
 Idempotente y ``noupdate`` como el XML de la referencia: nunca pisa un valor
 que ya exista.
 """
+
 from django.db import migrations
 
 from addons.authz_signup.data import SIGNUP_PARAMETERS

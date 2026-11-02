@@ -6,7 +6,9 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("hr", "0011_alter_hrcontracttype_code_alter_hrcontracttype_name_and_more"),
+        ("hr",
+         "0011_alter_hrcontracttype_code_alter_hrcontracttype_name_and_more",
+         ),
     ]
 
     operations = [
@@ -16,7 +18,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Odoo mobility_card (su groups= no se porta — divergencia 1 del docstring del módulo).",
+                help_text=(
+                    "Odoo mobility_card (su groups= no se porta — divergencia"
+                    " 1 del docstring del módulo)."
+                ),
                 verbose_name="Tarjeta de movilidad",
             ),
         ),
@@ -26,7 +31,12 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 choices=[("calendar", "Working Schedule")],
                 default="calendar",
-                help_text="Defines the source for work entries generation. Working Schedule: Work entries will be generated from the working hours below. Attendances/Planning los añaden sus addons puente (no portados).",
+                help_text=(
+                    "Defines the source for work entries generation. Working"
+                    " Schedule: Work entries will be generated from the"
+                    " working hours below. Attendances/Planning los añaden sus"
+                    " addons puente (no portados)."
+                ),
             ),
         ),
     ]

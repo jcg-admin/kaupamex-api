@@ -14,6 +14,7 @@ derecho, asi que un caso comprueba que la primitiva sigue abierta. Si alguien
 mueve la guarda dentro de ``_generate``, ese caso cae. Medido: moviendola,
 el subconjunto pasa de 6 passed a 1 failed, 5 passed.
 """
+
 from datetime import timedelta
 
 import pytest
@@ -30,8 +31,9 @@ User = get_user_model()
 
 def _user_of_type(login, user_type):
     account = User.objects.create_user(login=login, password='Clave123!')
-    group = ResGroups.objects.create(name=f'grupo-{user_type}',
-                                     user_type=user_type)
+    group = ResGroups.objects.create(
+        name=f'grupo-{user_type}', user_type=user_type
+    )
     account.group_ids.add(group)
     return account
 
@@ -59,8 +61,9 @@ def test_a_portal_user_is_refused(portal):
 
 def test_a_user_with_no_type_is_refused(db):
     """Sin grupo no hay tipo, y la guarda es fail-closed."""
-    account = User.objects.create_user(login='suelto@example.com',
-                                       password='Clave123!')
+    account = User.objects.create_user(
+        login='suelto@example.com', password='Clave123!'
+    )
     with user_scope(account.pk):
         with pytest.raises(AccessError):
             ResUsersApikeys.check_access_make_key()

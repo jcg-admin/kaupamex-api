@@ -25,6 +25,7 @@ Divergencias declaradas
 - **El registro lo hace ``ready()``**, no este módulo: ``web`` no conoce a sus
   extensores, igual que ``ir.http`` no conoce quién lo hereda.
 """
+
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.ir_http import IrHttp as BaseIrHttp
 
@@ -53,8 +54,12 @@ class IrHttp(BaseIrHttp):
         es falso (``ir_config_parameter.py:181-186``), así que un ajuste
         apagado devuelve ``None`` y no la cadena ``'False'``.
         """
-        if user is not None and getattr(user, 'is_authenticated', False) \
-                and user._is_internal():
+        if (
+            user is not None
+            and getattr(user, 'is_authenticated', False)
+            and user._is_internal()
+        ):
             session_info_dict['show_effect'] = bool(
-                SystemParameter.get_param(SHOW_EFFECT_PARAM))
+                SystemParameter.get_param(SHOW_EFFECT_PARAM)
+            )
         return session_info_dict

@@ -13,6 +13,7 @@ idénticos. ``view_id`` (Many2one a ``ir.ui.view``, obligatorio) → ``view``,
 modelo se declara ahora y la referencia se resuelve cuando exista, sin
 inventar un destino intermedio.
 """
+
 from django.db import models
 
 from addons.base.models.timestamped_mixin import TimeStampedModel
@@ -22,21 +23,33 @@ class ReportLayout(TimeStampedModel):
     """Diseño de documento seleccionable (``report.layout``)."""
 
     name = models.CharField(
-        max_length=120, blank=True, default='', verbose_name='Nombre',
+        max_length=120,
+        blank=True,
+        default='',
+        verbose_name='Nombre',
     )
     view = models.ForeignKey(
-        'base.IrUiView', on_delete=models.PROTECT,
-        related_name='report_layouts', verbose_name='Plantilla del documento',
-        null=True, blank=True,
-        help_text='Odoo view_id. Obligatorio en la referencia; aquí queda '
-                  'nullable hasta que ir.ui.view esté portado.',
+        'base.IrUiView',
+        on_delete=models.PROTECT,
+        related_name='report_layouts',
+        verbose_name='Plantilla del documento',
+        null=True,
+        blank=True,
+        help_text=(
+            'Odoo view_id. Obligatorio en la referencia; aquí queda '
+            'nullable hasta que ir.ui.view esté portado.'
+        ),
     )
     image = models.CharField(
-        max_length=255, blank=True, default='',
+        max_length=255,
+        blank=True,
+        default='',
         verbose_name='Imagen de previsualización',
     )
     pdf = models.CharField(
-        max_length=255, blank=True, default='',
+        max_length=255,
+        blank=True,
+        default='',
         verbose_name='PDF de previsualización',
     )
     sequence = models.IntegerField(default=50, verbose_name='Secuencia')

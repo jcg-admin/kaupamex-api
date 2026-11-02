@@ -19,7 +19,10 @@ class Migration(migrations.Migration):
                 blank=True,
                 db_column="company_id",
                 default=orm.environments.get_current_company,
-                help_text="Odoo company_id (default=env.company.id → get_current_company()).",
+                help_text=(
+                    "Odoo company_id (default=env.company.id →"
+                    " get_current_company())."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="digests",

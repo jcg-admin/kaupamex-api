@@ -14,6 +14,7 @@ Estilo: dos lecturas de un verbo → vistas función. Gateadas por la capacidad
 ``logistics``, que ``delivery`` ya declara para el dominio (no se inventa una
 nueva; ver H-API-283).
 """
+
 from django.db.models import F, Sum
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework.decorators import api_view
@@ -34,7 +35,8 @@ def _available():
     comprometido con una orden.
     """
     return StockQuant.objects.annotate(
-        available=F('quantity') - F('reserved_quantity'))
+        available=F('quantity') - F('reserved_quantity')
+    )
 
 
 @extend_schema(
@@ -48,22 +50,28 @@ def inventory_dashboard(request):
     """Los agregados del panel: totales y conteos por estado."""
     quants = _available()
     totals = quants.aggregate(
-        on_hand=Sum('quantity'), reserved=Sum('reserved_quantity'))
-    return Response({
-        'products_tracked': quants.values('product').distinct().count(),
-        'locations': quants.values('location').distinct().count(),
-        'quantity_on_hand': totals['on_hand'] or 0,
-        'quantity_reserved': totals['reserved'] or 0,
-        'out_of_stock': quants.filter(available__lte=0).count(),
-    })
+        on_hand=Sum('quantity'), reserved=Sum('reserved_quantity')
+    )
+    return Response(
+        {
+            'products_tracked': quants.values('product').distinct().count(),
+            'locations': quants.values('location').distinct().count(),
+            'quantity_on_hand': totals['on_hand'] or 0,
+            'quantity_reserved': totals['reserved'] or 0,
+            'out_of_stock': quants.filter(available__lte=0).count(),
+        }
+    )
 
 
 @extend_schema(
     tags=['inventory'],
     summary='Alertas de stock bajo',
     parameters=[
-        OpenApiParameter('threshold', OpenApiTypes.NUMBER,
-                         description='Por debajo de este disponible, alerta.'),
+        OpenApiParameter(
+            'threshold',
+            OpenApiTypes.NUMBER,
+            description='Por debajo de este disponible, alerta.',
+        ),
     ],
     responses={200: None},
 )
@@ -83,18 +91,20 @@ def inventory_alerts(request):
         .select_related('product', 'location')
         .order_by('available')[:200]
     )
-    return Response({
-        'threshold': threshold,
-        'count': len(rows),
-        'results': [
-            {
-                'product_id': row.product_id,
-                'product': str(row.product),
-                'location': str(row.location),
-                'quantity': row.quantity,
-                'reserved': row.reserved_quantity,
-                'available': row.available,
-            }
-            for row in rows
-        ],
-    })
+    return Response(
+        {
+            'threshold': threshold,
+            'count': len(rows),
+            'results': [
+                {
+                    'product_id': row.product_id,
+                    'product': str(row.product),
+                    'location': str(row.location),
+                    'quantity': row.quantity,
+                    'reserved': row.reserved_quantity,
+                    'available': row.available,
+                }
+                for row in rows
+            ],
+        }
+    )

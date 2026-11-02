@@ -7,6 +7,7 @@ Ver la nota de dirección en ``addons/orders/handlers.py``.
 ``ReturnRequest.order_id`` es un entero, no una FK (desacople deliberado de
 ``addons.orders``), así que la orden se resuelve por consulta explícita.
 """
+
 import logging
 
 from django.db.models.signals import post_save, pre_save
@@ -27,7 +28,9 @@ def _cache_return_old_status(sender, instance, **kwargs):
         return
     if instance.pk:
         try:
-            instance._old_status = ReturnRequest.objects.get(pk=instance.pk).status
+            instance._old_status = ReturnRequest.objects.get(
+                pk=instance.pk
+            ).status
         except ReturnRequest.DoesNotExist:
             instance._old_status = None
     else:
@@ -42,7 +45,10 @@ def _return_status_changed(sender, instance, created, **kwargs):
     old = getattr(instance, '_old_status', None)
     if old is None or old == instance.status:
         return
-    if instance.status not in {ReturnRequest.Status.APPROVED, ReturnRequest.Status.REJECTED}:
+    if instance.status not in {
+        ReturnRequest.Status.APPROVED,
+        ReturnRequest.Status.REJECTED,
+    }:
         return
 
     try:
@@ -59,6 +65,8 @@ def _return_status_changed(sender, instance, created, **kwargs):
         )
     except Exception:
         logger.warning(
-            '_return_status_changed: notificacion fallida para ReturnRequest %s',
-            instance.pk, exc_info=True,
+            '_return_status_changed: notificacion fallida para'
+            ' ReturnRequest %s',
+            instance.pk,
+            exc_info=True,
         )

@@ -7,10 +7,10 @@ mapa vacío. Su razón de ser es el enganche: el docstring de la fuente lo dice
 accordingly"*—. Enterprise 19 lo hereda en dos clases con
 ``_inherit = 'res.partner'``.
 """
+
 import pytest
 
 from addons.base.models.res_partner import ResPartner
-
 
 pytestmark = pytest.mark.django_db
 
@@ -42,11 +42,14 @@ def test_overriding_the_hook_changes_what_the_property_returns():
     original = ResPartner._compute_application_statistics_hook.__func__
 
     ResPartner._compute_application_statistics_hook = classmethod(
-        lambda cls, partners: {p.pk: [{'label': 'Pedidos', 'value': 3}]
-                               for p in partners})
+        lambda cls, partners: {
+            p.pk: [{'label': 'Pedidos', 'value': 3}] for p in partners
+        }
+    )
     try:
         assert partner.application_statistics == [
-            {'label': 'Pedidos', 'value': 3}]
+            {'label': 'Pedidos', 'value': 3}
+        ]
     finally:
         ResPartner._compute_application_statistics_hook = classmethod(original)
 

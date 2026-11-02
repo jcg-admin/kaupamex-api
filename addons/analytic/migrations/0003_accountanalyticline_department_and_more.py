@@ -7,7 +7,10 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("analytic", "0002_accountanalyticapplicability_account_prefix_and_more"),
+        (
+            "analytic",
+            "0002_accountanalyticapplicability_account_prefix_and_more",
+        ),
         ("hr", "0009_hremployeepublic"),
         ("project", "0002_project_allocated_hours_project_allow_timesheets"),
     ]
@@ -18,7 +21,10 @@ class Migration(migrations.Migration):
             name="department",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo department_id (compute, store=True) — sincronizado desde employee.department en pre_save.",
+                help_text=(
+                    "Odoo department_id (compute, store=True) — sincronizado"
+                    " desde employee.department en pre_save."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="timesheets",
@@ -30,7 +36,10 @@ class Migration(migrations.Migration):
             name="employee",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo employee_id. Empleado que registra la hora — define un hourly_cost en el empleado para valorizarla.",
+                help_text=(
+                    "Odoo employee_id. Empleado que registra la hora — define"
+                    " un hourly_cost en el empleado para valorizarla."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="timesheets",
@@ -42,7 +51,10 @@ class Migration(migrations.Migration):
             name="manager",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo manager_id (related=employee_id.parent_id, store=True) — sincronizado en pre_save.",
+                help_text=(
+                    "Odoo manager_id (related=employee_id.parent_id,"
+                    " store=True) — sincronizado en pre_save."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="managed_timesheets",
@@ -54,7 +66,11 @@ class Migration(migrations.Migration):
             name="project",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo project_id. Proyecto sobre el que se registra la hora — sincronizado desde task en pre_save cuando task está presente.",
+                help_text=(
+                    "Odoo project_id. Proyecto sobre el que se registra la"
+                    " hora — sincronizado desde task en pre_save cuando task"
+                    " está presente."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="timesheets",
@@ -66,7 +82,9 @@ class Migration(migrations.Migration):
             name="task",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo task_id. Tarea sobre la que se registra la hora.",
+                help_text=(
+                    "Odoo task_id. Tarea sobre la que se registra la hora."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="timesheets",
@@ -83,7 +101,11 @@ class Migration(migrations.Migration):
                     ("bill", "Factura de proveedor"),
                     ("timesheet", "Hoja de horas"),
                 ],
-                help_text="Odoo business_domain; único valor en la referencia base (otros addons de Odoo extienden la selección — no aplica aquí).",
+                help_text=(
+                    "Odoo business_domain; único valor en la referencia base"
+                    " (otros addons de Odoo extienden la selección — no aplica"
+                    " aquí)."
+                ),
                 max_length=32,
                 verbose_name="Dominio de negocio",
             ),

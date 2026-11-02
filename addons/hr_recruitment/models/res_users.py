@@ -23,6 +23,7 @@ Divergencias declaradas
 3. **``self - recruitment_group.all_user_ids``** → resta de conjuntos de
    PKs — sin álgebra de recordset en este ORM.
 """
+
 from django.apps import apps
 
 from orm.model_classes import extend_model
@@ -33,10 +34,12 @@ def _recruitment_groups():
     están sembrados (data, no esquema — ver divergencia 1)."""
     IrModelData = apps.get_model('base', 'IrModelData')
     interviewer_group = IrModelData.ref(
-        'hr_recruitment.group_hr_recruitment_interviewer', raise_if_not_found=False,
+        'hr_recruitment.group_hr_recruitment_interviewer',
+        raise_if_not_found=False,
     )
     recruitment_group = IrModelData.ref(
-        'hr_recruitment.group_hr_recruitment_user', raise_if_not_found=False,
+        'hr_recruitment.group_hr_recruitment_user',
+        raise_if_not_found=False,
     )
     return interviewer_group, recruitment_group
 
@@ -51,7 +54,9 @@ def create_recruitment_interviewers(cls, users):
     interviewer_group, recruitment_group = _recruitment_groups()
     if interviewer_group is None or recruitment_group is None:
         return
-    already_recruiters = set(recruitment_group.all_user_ids.values_list('pk', flat=True))
+    already_recruiters = set(
+        recruitment_group.all_user_ids.values_list('pk', flat=True)
+    )
     for user in users:
         if user.pk not in already_recruiters:
             interviewer_group.user_ids.add(user)
@@ -72,10 +77,18 @@ def remove_recruitment_interviewers(cls, users):
     HrApplicant = apps.get_model('hr_recruitment', 'HrApplicant')
     still_interviewing = set()
     for job in HrJob.objects.filter(interviewers__pk__in=user_pks).distinct():
-        still_interviewing |= set(job.interviewers.values_list('pk', flat=True))
-    for applicant in HrApplicant.objects.filter(interviewers__pk__in=user_pks).distinct():
-        still_interviewing |= set(applicant.interviewers.values_list('pk', flat=True))
-    still_recruiters = set(recruitment_group.all_user_ids.values_list('pk', flat=True))
+        still_interviewing |= set(
+            job.interviewers.values_list('pk', flat=True)
+        )
+    for applicant in HrApplicant.objects.filter(
+        interviewers__pk__in=user_pks
+    ).distinct():
+        still_interviewing |= set(
+            applicant.interviewers.values_list('pk', flat=True)
+        )
+    still_recruiters = set(
+        recruitment_group.all_user_ids.values_list('pk', flat=True)
+    )
     to_remove_pks = user_pks - (still_interviewing | still_recruiters)
     for user in users:
         if user.pk in to_remove_pks:
@@ -85,7 +98,15 @@ def remove_recruitment_interviewers(cls, users):
 def apply_hr_recruitment_res_users_extensions():
     """Cuelga sobre ``res.users`` lo que ``hr_recruitment`` le añade — ≙
     ``_inherit``."""
-    extend_model('base', 'ResUsers', metodos={
-        '_create_recruitment_interviewers': classmethod(create_recruitment_interviewers),
-        '_remove_recruitment_interviewers': classmethod(remove_recruitment_interviewers),
-    })
+    extend_model(
+        'base',
+        'ResUsers',
+        metodos={
+            '_create_recruitment_interviewers': classmethod(
+                create_recruitment_interviewers
+            ),
+            '_remove_recruitment_interviewers': classmethod(
+                remove_recruitment_interviewers
+            ),
+        },
+    )

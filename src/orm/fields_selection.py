@@ -16,6 +16,7 @@ descarta. La enumeración sigue siendo el contrato del valor —se valida en el
 serializer y en ``clean``—, pero ya no la puede sostener una restricción de
 columna, porque lo que la columna guarda es el mapa.
 """
+
 from django.db import models
 
 from orm.fields_company_dependent import make_dispatcher

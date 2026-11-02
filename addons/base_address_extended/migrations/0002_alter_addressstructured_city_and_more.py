@@ -51,7 +51,9 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="state_id",
-                help_text="Estado/provincia (Odoo state_id, dominio country_id).",
+                help_text=(
+                    "Estado/provincia (Odoo state_id, dominio country_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="cities",

@@ -27,6 +27,7 @@ que en la fuente. ``string='Days to Purchase'`` se traduce a ``help_text``
 —este stack no expone etiquetas de vista XML— y el ``help`` de la fuente se
 conserva verbatim dentro de él.
 """
+
 from orm.model_classes import extend_model
 
 import fields
@@ -41,13 +42,18 @@ def apply_purchase_stock_res_company_extensions():
     poblada cuando este módulo se importa (``H-API-577``).
     """
     extend_model(
-        'base', 'ResCompany',
+        'base',
+        'ResCompany',
         campos={
             'days_to_purchase': fields.Float(
-                default=0.0, null=True, blank=True,
-                help_text='Días necesarios para confirmar una orden de '
-                          'compra; define cuándo debería validarse '
-                          '(Odoo days_to_purchase).',
+                default=0.0,
+                null=True,
+                blank=True,
+                help_text=(
+                    'Días necesarios para confirmar una orden de '
+                    'compra; define cuándo debería validarse '
+                    '(Odoo days_to_purchase).'
+                ),
             ),
         },
     )

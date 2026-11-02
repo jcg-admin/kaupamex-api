@@ -12,9 +12,9 @@
     # `purchase_stock`, que este árbol no tiene. Los otros tres son imports de
     # Python explícitos aquí.
     'depends': [
-        'base',           # ResCompany, ResCurrency
-        'product',        # Product — el destinatario del reparto
-        'stock',          # StockMove — las líneas sobre las que reparte
+        'base',  # ResCompany, ResCurrency
+        'product',  # Product — el destinatario del reparto
+        'stock',  # StockMove — las líneas sobre las que reparte
         'stock_account',  # la capa de valoración que este addon ajusta
     ],
     'author': 'Odoo S.A.',

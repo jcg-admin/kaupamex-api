@@ -32,7 +32,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         blank=True,
                         decimal_places=2,
-                        help_text="Costo unitario snapshot al vender (Odoo purchase_price).",
+                        help_text=(
+                            "Costo unitario snapshot al vender (Odoo"
+                            " purchase_price)."
+                        ),
                         max_digits=12,
                         null=True,
                     ),
@@ -40,7 +43,9 @@ class Migration(migrations.Migration):
                 (
                     "line",
                     models.OneToOneField(
-                        help_text="Línea de orden extendida (Odoo sale.order.line).",
+                        help_text=(
+                            "Línea de orden extendida (Odoo sale.order.line)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="margin",
                         to="sale.saleorderline",

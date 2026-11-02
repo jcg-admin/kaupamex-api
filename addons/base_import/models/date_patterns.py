@@ -32,6 +32,7 @@ una excepción. La referencia compila el patrón a una expresión regular
 aplica a la columna. Se porta esa forma verbatim: es una decisión de diseño
 de la referencia, no un detalle de implementación.
 """
+
 import datetime
 import re
 
@@ -56,21 +57,20 @@ DATE_FORMATS = []
 for _ps in _PATTERN_BASELINE:
     _patterns = {_ps}
     for _s, _t in [('%Y', '%y')]:
-        _patterns.update([
-            tuple(_t if _it == _s else _it for _it in _f)
-            for _f in _patterns
-        ])
+        _patterns.update(
+            [tuple(_t if _it == _s else _it for _it in _f) for _f in _patterns]
+        )
     DATE_FORMATS.extend(_patterns)
 
-DATE_PATTERNS = [
-    sep.join(fmt)
-    for sep in _SEPARATORS
-    for fmt in DATE_FORMATS
-]
+DATE_PATTERNS = [sep.join(fmt) for sep in _SEPARATORS for fmt in DATE_FORMATS]
 
 TIME_PATTERNS = [
-    '%H:%M:%S', '%H:%M', '%H',            # 24 h
-    '%I:%M:%S %p', '%I:%M %p', '%I %p',   # 12 h
+    '%H:%M:%S',
+    '%H:%M',
+    '%H',  # 24 h
+    '%I:%M:%S %p',
+    '%I:%M %p',
+    '%I %p',  # 12 h
 ]
 
 #: Traducción de cada directiva de ``strptime`` a su grupo de expresión
@@ -86,9 +86,7 @@ _P_TO_RE = {
     'S': r"(6[0-1]|[0-5]\d|\d)",
     'y': r"(\d\d)",
     'Y': r"(\d\d\d\d)",
-
     'p': r"(am|pm)",
-
     '%': '%',
 }
 

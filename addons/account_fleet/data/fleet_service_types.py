@@ -22,6 +22,7 @@ vendor_bill_service: return super()._post(soft)``).
 la referencia (mismo criterio que ``account/data/account_tags.py`` para sus
 tres etiquetas maestras: son datos, no cadenas de interfaz de este puerto).
 """
+
 #: Nombre del identificador externo, sin el módulo — ≙ el ``id`` del
 #: ``<record>`` de la referencia.
 VENDOR_BILL_SERVICE_NAME = 'data_fleet_service_type_vendor_bill'
@@ -54,22 +55,33 @@ def seed_fleet_service_types(apps, alias):
     IrModelData = apps.get_model('base', 'IrModelData')
     label = FleetServiceType._meta.label
 
-    row = IrModelData.objects.using(alias).filter(
-        module='account_fleet', name=VENDOR_BILL_SERVICE_NAME).first()
+    row = (
+        IrModelData.objects.using(alias)
+        .filter(module='account_fleet', name=VENDOR_BILL_SERVICE_NAME)
+        .first()
+    )
     existing = None
     if row is not None:
-        existing = FleetServiceType.objects.using(alias).filter(
-            pk=row.res_id).first()
+        existing = (
+            FleetServiceType.objects.using(alias).filter(pk=row.res_id).first()
+        )
     if existing is None:
-        existing = FleetServiceType.objects.using(alias).filter(
-            name=VENDOR_BILL_SERVICE_TYPE_NAME,
-            category=VENDOR_BILL_SERVICE_TYPE_CATEGORY).first()
+        existing = (
+            FleetServiceType.objects.using(alias)
+            .filter(
+                name=VENDOR_BILL_SERVICE_TYPE_NAME,
+                category=VENDOR_BILL_SERVICE_TYPE_CATEGORY,
+            )
+            .first()
+        )
     if existing is None:
         existing = FleetServiceType.objects.using(alias).create(
             name=VENDOR_BILL_SERVICE_TYPE_NAME,
-            category=VENDOR_BILL_SERVICE_TYPE_CATEGORY)
+            category=VENDOR_BILL_SERVICE_TYPE_CATEGORY,
+        )
     IrModelData.objects.using(alias).update_or_create(
-        module='account_fleet', name=VENDOR_BILL_SERVICE_NAME,
+        module='account_fleet',
+        name=VENDOR_BILL_SERVICE_NAME,
         defaults={'model': label, 'res_id': existing.pk, 'noupdate': True},
     )
     return existing

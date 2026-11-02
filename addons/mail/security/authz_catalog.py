@@ -9,6 +9,7 @@ Por qué estos códigos son de este addon:
 
 - ``notifications`` — ``mail`` dueña el envío y el chatter.
 """
+
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
 MODULES = [

@@ -49,6 +49,7 @@ Sucesor: el mismo del precedente de ``hr`` — el porte de
 ``mail.activity.plan.template`` a ``addons/mail`` (DESCONOCIDO con esa
 condición de cierre).
 """
+
 from tools.translate import _
 
 
@@ -72,11 +73,13 @@ def _determine_responsible(responsible_type, employee, current_user=None):
     if vehicle and not vehicle.manager_id:
         warning = _(
             'The vehicle of employee %(employee)s is not linked to a fleet '
-            'manager, assigning to you.', employee=employee.name,
+            'manager, assigning to you.',
+            employee=employee.name,
         )
     return {
-        'responsible': (vehicle.manager if vehicle and vehicle.manager_id
-                        else current_user),
+        'responsible': (
+            vehicle.manager if vehicle and vehicle.manager_id else current_user
+        ),
         'error': error,
         'warning': warning,
     }

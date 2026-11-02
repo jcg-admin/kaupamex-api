@@ -32,7 +32,15 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text='Odoo ip — forense. La fuente lo lee de su petición global (request.httprequest.environ["REMOTE_ADDR"]); aquí llega como argumento de _totp_rate_limit, que puede no tenerlo. Ningún consumidor lo lee: medido sobre odoo19c, los dos únicos consumidores del modelo son escribir y borrar.',
+                        help_text=(
+                            'Odoo ip — forense. La fuente lo lee de su'
+                            ' petición global'
+                            ' (request.httprequest.environ["REMOTE_ADDR"]);'
+                            ' aquí llega como argumento de _totp_rate_limit,'
+                            ' que puede no tenerlo. Ningún consumidor lo lee:'
+                            ' medido sobre odoo19c, los dos únicos'
+                            ' consumidores del modelo son escribir y borrar.'
+                        ),
                         max_length=45,
                         verbose_name="IP",
                     ),
@@ -44,7 +52,9 @@ class Migration(migrations.Migration):
                             ("send_email", "Send Email"),
                             ("code_check", "Code Checking"),
                         ],
-                        help_text="Odoo limit_type — qué acción se está contando.",
+                        help_text=(
+                            "Odoo limit_type — qué acción se está contando."
+                        ),
                         max_length=16,
                         verbose_name="Tipo de límite",
                     ),
@@ -52,7 +62,12 @@ class Migration(migrations.Migration):
                 (
                     "user",
                     models.ForeignKey(
-                        help_text="Odoo user_id (required, readonly) — de quién es el intento que se cuenta. El readonly de la fuente es de su capa de vista y no tiene receptor en el modelo Django.",
+                        help_text=(
+                            "Odoo user_id (required, readonly) — de quién es"
+                            " el intento que se cuenta. El readonly de la"
+                            " fuente es de su capa de vista y no tiene"
+                            " receptor en el modelo Django."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="totp_rate_limit_logs",
                         to=settings.AUTH_USER_MODEL,

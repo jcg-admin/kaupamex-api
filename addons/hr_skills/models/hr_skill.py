@@ -22,6 +22,7 @@ Porte símbolo por símbolo — 4 campos + 1 método
        nombre con el tipo entre paréntesis queda como método aparte,
        disponible para quien construya ese widget)
 """
+
 import fields
 import models
 
@@ -36,12 +37,17 @@ class HrSkill(TimeStampedModel):
     _order = 'sequence, name'
 
     name = fields.Char(
-        required=True, translate=True, verbose_name='Nombre',
+        required=True,
+        translate=True,
+        verbose_name='Nombre',
     )
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
     skill_type = fields.Many2one(
-        'hr_skills.HrSkillType', on_delete=models.CASCADE, db_index=True,
-        related_name='skill_ids', verbose_name='Tipo de habilidad',
+        'hr_skills.HrSkillType',
+        on_delete=models.CASCADE,
+        db_index=True,
+        related_name='skill_ids',
+        verbose_name='Tipo de habilidad',
     )
 
     class Meta:

@@ -15,6 +15,7 @@ sin columna que la clase declara —el ``store=False`` de la fuente—. Este
 archivo fijaba la igualdad, que era el contrato viejo; hoy fija la inclusión y
 mide por separado la mitad que ``_meta`` no puede dar.
 """
+
 import pytest
 from django.apps import apps
 
@@ -40,8 +41,9 @@ class TestTheMapIsTheModelRegistry:
         con él ``_convert_fields_to_values`` reventaba sobre ``city_id``.
         """
         without_column = non_stored_fields(partner_class)
-        assert without_column, (
-            'el modelo de prueba ya no declara ningun campo sin columna')
+        assert (
+            without_column
+        ), 'el modelo de prueba ya no declara ningun campo sin columna'
         registry = partner_class()._fields
         for name, descriptor in without_column.items():
             assert registry[name] is descriptor
@@ -51,9 +53,14 @@ class TestTheMapIsTheModelRegistry:
         ``concrete`` esta relación inversa quedaba fuera, y con ella el 38 %
         del registro de ``ResPartner`` (41 de 107, medido)."""
         fields = partner_class()._fields
-        non_concrete = [f for f in partner_class._meta.get_fields()
-                        if not getattr(f, 'concrete', False)]
-        assert non_concrete, 'el modelo de prueba ya no tiene campos no concretos'
+        non_concrete = [
+            f
+            for f in partner_class._meta.get_fields()
+            if not getattr(f, 'concrete', False)
+        ]
+        assert (
+            non_concrete
+        ), 'el modelo de prueba ya no tiene campos no concretos'
         for field in non_concrete:
             assert field.name in fields
 
@@ -70,8 +77,11 @@ class TestTheRejectionMovedNotVanished:
 
     def test_a_non_concrete_name_is_still_rejected(self, partner_class, db):
         instance = partner_class()
-        non_concrete = next(f for f in partner_class._meta.get_fields()
-                            if not getattr(f, 'concrete', False))
+        non_concrete = next(
+            f
+            for f in partner_class._meta.get_fields()
+            if not getattr(f, 'concrete', False)
+        )
         with pytest.raises(ValueError, match='Invalid field'):
             instance._field_to_sql('res_partner', non_concrete.name)
 

@@ -1,4 +1,5 @@
 """Many2one opcional sin columna: ausencia Django, valores y errores reales."""
+
 import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
@@ -6,14 +7,14 @@ from django.test.utils import CaptureQueriesContext
 from addons.base.models import ResCompany, ResCountry, ResPartner
 from addons.product.models.product_product import ProductProduct
 
-
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]
 
 
 @pytest.fixture
 def company():
     return ResCompany.objects.create(
-        code='computed-country-empty', name='Computed country contract',
+        code='computed-country-empty',
+        name='Computed country contract',
     )
 
 
@@ -30,7 +31,9 @@ def test_computed_foreign_key_id_preserves_django_absence(company):
     assert len(queries) == 0
 
 
-def test_related_code_of_an_empty_country_returns_the_field_empty_value(company):
+def test_related_code_of_an_empty_country_returns_the_field_empty_value(
+    company,
+):
     with CaptureQueriesContext(connection) as queries:
         assert company.country_code == ''
         assert company.country_code == ''
@@ -39,7 +42,8 @@ def test_related_code_of_an_empty_country_returns_the_field_empty_value(company)
 
 def test_explicit_constructor_none_is_readable_without_another_field_access():
     record = ResCompany(
-        code='computed-country-constructor', country=None,
+        code='computed-country-constructor',
+        country=None,
     )
     with CaptureQueriesContext(connection) as queries:
         assert record.country is None

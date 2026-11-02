@@ -14,6 +14,7 @@ Por qué este código es de este addon:
 El módulo ``catalogue`` es la raíz del grafo de dependencias comerciales:
 ``inventory`` depende de él, ``orders`` de ambos. Por eso ``depends=()``.
 """
+
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
 MODULES = [

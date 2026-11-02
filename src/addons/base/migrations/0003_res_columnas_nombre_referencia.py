@@ -17,7 +17,10 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="group_id",
-                help_text="Vacío = acceso global. ondelete restrict de la fuente: no se borra un grupo que aún concede permisos.",
+                help_text=(
+                    "Vacío = acceso global. ondelete restrict de la fuente: no"
+                    " se borra un grupo que aún concede permisos."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="model_access",
@@ -41,7 +44,11 @@ class Migration(migrations.Migration):
             name="model_id",
             field=models.ForeignKey(
                 db_column="model_id",
-                help_text="Odoo lo llama field_id (One2many en singular, contra su propia convención _ids); se conserva ese nombre en el reverso.",
+                help_text=(
+                    "Odoo lo llama field_id (One2many en singular, contra su"
+                    " propia convención _ids); se conserva ese nombre en el"
+                    " reverso."
+                ),
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="field_id",
                 to="base.irmodel",
@@ -67,7 +74,10 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="relation_field_id",
-                help_text="Odoo lo computa con store=True; aquí es columna real igual, poblada por la reflexión.",
+                help_text=(
+                    "Odoo lo computa con store=True; aquí es columna real"
+                    " igual, poblada por la reflexión."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="inverse_of",
@@ -117,7 +127,10 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="inherit_id",
-                help_text="ondelete restrict de la fuente: no se borra una vista de la que otras heredan.",
+                help_text=(
+                    "ondelete restrict de la fuente: no se borra una vista de"
+                    " la que otras heredan."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="inherit_children_ids",

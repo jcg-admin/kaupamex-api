@@ -1,30 +1,34 @@
 from .base import *
+
 # importación explícita — no depender del * de base.py
 from config.settings.options import get as opt, OPTIONS_PRODUCTION_OVERRIDES
 
-# Sobreescribe el default inseguro de base.py — falla explícitamente si no está configurada.
+# Sobreescribe el default inseguro de base.py — falla explícitamente si
+# no está configurada.
 SECRET_KEY = opt('SECRET_KEY')
 
 DEBUG = False
-SESSION_COOKIE_SECURE   = True
-SESSION_COOKIE_HTTPONLY = True   # default de Django pero se fija explicitamente
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True  # default de Django pero se fija explicitamente
 # ADR-018 (DEC-STF-AUTH-COOKIE) — endurecimiento de la cookie de sesion en
 # produccion (HTTPS). El prefijo __Host- exige Secure + Path=/ + sin Domain,
 # que ya se cumplen (SESSION_COOKIE_SECURE=True, PATH='/' y DOMAIN=None por
 # default). NOTA de deploy: renombrar la cookie invalida las sesiones actuales
 # (los usuarios reinician sesion una vez). En dev/base la cookie sigue siendo
 # "sessionid" (sin HTTPS no aplica __Host-/Secure).
-SESSION_COOKIE_NAME     = '__Host-sessionid'
+SESSION_COOKIE_NAME = '__Host-sessionid'
 # CR-5 (ADR-018 hotfix): SameSite=Lax, NO Strict. Con Strict, entrar al SPA por
-# un link EXTERNO con sesion viva (email de reset/verify, resultado de buscador)
+# un link EXTERNO con sesion viva (email de reset/verify, resultado de
+# buscador)
 # hace que el navegador OMITA la cookie en esa navegacion top-level cross-site
 # -> primer render anonimo / 401 que la UI presenta como "sesion expiro". Los
 # XHR same-origin del SPA no cambian entre Lax y Strict. Lax sigue cubriendo el
 # CSRF real porque TODAS las mutaciones son XHR POST/PATCH/DELETE (un sitio
-# ajeno no puede forzar la cookie en un POST cross-site). GUARDRAIL que acompaña
+# ajeno no puede forzar la cookie en un POST cross-site). GUARDRAIL que
+# acompaña
 # a Lax: no exponer endpoints que MUTEN estado por GET.
 SESSION_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_SECURE      = True
+CSRF_COOKIE_SECURE = True
 # ADR-018 (DEC-STF-AUTH-CSRF) — NO hay token CSRF: la auth de sesion es exenta
 # (CsrfExemptSessionAuthentication) y la defensa CSRF es SameSite + __Host-. Ya
 # NO se define CSRF_USE_SESSIONS (el comentario previo que decia que base.py lo
@@ -32,8 +36,8 @@ CSRF_COOKIE_SECURE      = True
 # cookie ``csrftoken`` en el login (rotate_token de auth.login), pero es INERTE
 # para las vistas DRF (exentas de CSRF); CSRF_COOKIE_HTTPONLY/SECURE solo la
 # endurecen por defensa en profundidad. Ver analisis-incidente-csrf-mutaciones.
-CSRF_COOKIE_HTTPONLY    = True
-SECURE_SSL_REDIRECT     = True
+CSRF_COOKIE_HTTPONLY = True
+SECURE_SSL_REDIRECT = True
 
 # H-CICLO25-01: activar explícitamente el middleware de Django que emite
 # "X-Content-Type-Options: nosniff".  SecurityMiddleware lo respeta solo
@@ -47,7 +51,7 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 # Apache. Garantiza que el header se emita aunque la petición llegue a
 # Django sin pasar por mod_headers (p.ej. proxies internos, health checks
 # directos al puerto WSGI). Valor alineado con el max-age del vhost Apache.
-SECURE_HSTS_SECONDS = 31536000          # 1 año
+SECURE_HSTS_SECONDS = 31536000  # 1 año
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
@@ -107,11 +111,11 @@ UI_DIST = opt('UI_DIST')
 # Variables opcionales (defaults válidos para la mayoría de proveedores):
 #   EMAIL_PORT          default: 587
 #   EMAIL_USE_TLS       default: True  (STARTTLS en puerto 587)
-EMAIL_BACKEND       = opt('EMAIL_BACKEND')
-EMAIL_HOST          = opt('EMAIL_HOST')
-EMAIL_PORT          = opt('EMAIL_PORT')
-EMAIL_USE_TLS       = opt('EMAIL_USE_TLS')
-EMAIL_HOST_USER     = opt('EMAIL_HOST_USER')
+EMAIL_BACKEND = opt('EMAIL_BACKEND')
+EMAIL_HOST = opt('EMAIL_HOST')
+EMAIL_PORT = opt('EMAIL_PORT')
+EMAIL_USE_TLS = opt('EMAIL_USE_TLS')
+EMAIL_HOST_USER = opt('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = opt('EMAIL_HOST_PASSWORD')
 
 # URL base del frontend — usada en tokens_email.py para construir los
@@ -127,7 +131,7 @@ FRONTEND_URL = opt('FRONTEND_URL')
 # parametros y patrones de uso en los logs. WARNING suprime mensajes
 # informativos y preserva solo advertencias y errores.
 LOGGING['loggers']['django']['level'] = 'WARNING'
-LOGGING['loggers']['apps']['level']   = 'WARNING'
+LOGGING['loggers']['apps']['level'] = 'WARNING'
 
 # --- Media (uploads de usuario) --------------------------------------------
 # base.py usa BASE_DIR/'media' (dentro del árbol del repo) — correcto en

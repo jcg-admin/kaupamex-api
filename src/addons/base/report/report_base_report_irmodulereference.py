@@ -55,6 +55,7 @@ el ``report/report_catalog.py`` del addon dueño, con un ``builder`` que dibuja
 el PDF. Declararlo exige diseñar ese documento, que es trabajo de otra pieza;
 es el mismo fenómeno que la tarea **#279** registra para ``stock``.
 """
+
 from addons.base.models.ir_actions_report import IrActionsReport
 from addons.base.models.ir_model import IrModel, IrModelData
 from addons.base.models.ir_module import IrModule
@@ -81,7 +82,8 @@ class ReportBaseReportIrmodulereference:
         Quien necesite saltarse el row-scoping lo pide explícitamente.
         """
         res_ids = IrModelData.objects.filter(
-            model='ir.model', module=module.name,
+            model='ir.model',
+            module=module.name,
         ).values_list('res_id', flat=True)
         return IrModel.objects.filter(pk__in=list(res_ids))
 

@@ -1,4 +1,5 @@
 """Shared setter: new Django rows retain notifications without reverse SQL."""
+
 from functools import wraps
 from uuid import uuid4
 
@@ -13,7 +14,9 @@ from addons.sale_stock.models.sale_order import SaleOrderDelivery
 from orm.models import _traverse_inverse
 
 
-def test_unsaved_partner_item_assignment_keeps_its_value_without_database(django_db_blocker):
+def test_unsaved_partner_item_assignment_keeps_its_value_without_database(
+    django_db_blocker,
+):
     with django_db_blocker.block():
         record = ResPartner(name='Before')
         record['name'] = 'After'
@@ -28,7 +31,9 @@ def test_unsaved_reverse_many_to_one_has_no_persisted_rows(django_db_blocker):
         assert _traverse_inverse([record], inverse) == []
 
 
-def test_unsaved_reverse_many_to_many_does_not_construct_a_database_manager(django_db_blocker):
+def test_unsaved_reverse_many_to_many_does_not_construct_a_database_manager(
+    django_db_blocker,
+):
     with django_db_blocker.block():
         record = ResPartner(name='New categorized parent')
         inverse = ResPartnerCategory._meta.get_field('partners').remote_field
@@ -42,7 +47,9 @@ def test_unsaved_forward_many_to_many_has_no_persisted_rows(django_db_blocker):
         assert _traverse_inverse([record], inverse) == []
 
 
-def test_cached_new_partner_label_is_invalidated_without_database(django_db_blocker):
+def test_cached_new_partner_label_is_invalidated_without_database(
+    django_db_blocker,
+):
     with django_db_blocker.block():
         record = ResPartner(name='Cached before')
         assert record.display_name == 'Cached before'
@@ -51,7 +58,8 @@ def test_cached_new_partner_label_is_invalidated_without_database(django_db_bloc
 
 
 def test_new_contextual_cache_identity_does_not_invalidate_another_row(
-    django_db_blocker, monkeypatch,
+    django_db_blocker,
+    monkeypatch,
 ):
     calls = []
     original = ResPartner._compute_display_name
@@ -77,7 +85,9 @@ def test_new_contextual_cache_identity_does_not_invalidate_another_row(
 def test_cached_new_reverse_one_to_one_remains_traversable(django_db_blocker):
     with django_db_blocker.block():
         order = SaleOrder(name='New order', cart_token=uuid4())
-        delivery = SaleOrderDelivery(order=order, incoterm_location='Local only')
+        delivery = SaleOrderDelivery(
+            order=order, incoterm_location='Local only'
+        )
         inverse = SaleOrderDelivery._meta.get_field('order').remote_field
         reached = _traverse_inverse([order], inverse)
         assert reached == [delivery]
@@ -89,7 +99,8 @@ def test_saved_reverse_collection_still_reads_actual_rows():
     partner = ResPartner.objects.create(name='Saved parent')
     bank = ResBank.objects.create(name='Saved bank')
     account = ResPartnerBank.objects.create(
-        partner=partner, bank=bank, acc_number='01234567891')
+        partner=partner, bank=bank, acc_number='01234567891'
+    )
     inverse = ResPartnerBank._meta.get_field('partner').remote_field
     with CaptureQueriesContext(connection) as queries:
         reached = _traverse_inverse([partner], inverse)
@@ -97,7 +108,9 @@ def test_saved_reverse_collection_still_reads_actual_rows():
     assert len(queries) >= 1
 
 
-def test_custom_in_memory_collection_is_not_skipped(django_db_blocker, monkeypatch):
+def test_custom_in_memory_collection_is_not_skipped(
+    django_db_blocker, monkeypatch
+):
     with django_db_blocker.block():
         record = ResPartner(name='Custom collection parent')
         child = ResPartnerBank(partner=record, acc_number='01234567892')

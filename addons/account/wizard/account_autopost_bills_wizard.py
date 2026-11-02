@@ -39,6 +39,7 @@ alta (``ValueError`` de Django) en vez de no-opear en silencio. Se cierra
 solo cuando el porte de la extensión de ``res.partner`` de ``account``
 aterrice — no requiere tocar este archivo.
 """
+
 from orm.models_transient import TransientModel
 
 

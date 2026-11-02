@@ -1,4 +1,5 @@
 """Snapshot de carga por base; no ejecuta solicitudes ni instala addons."""
+
 import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
@@ -23,15 +24,24 @@ def graph_manifests(monkeypatch):
 
 
 def seed(state='installed'):
-    IrModule.objects.bulk_create([
-        IrModule(name='base', state=state, version='manifest-new',
-                 installed_version='installed-old', demo=True),
-        IrModule(name='snapshot_child', state='installed'),
-        IrModule(name='snapshot_independent', state='installed'),
-    ])
+    IrModule.objects.bulk_create(
+        [
+            IrModule(
+                name='base',
+                state=state,
+                version='manifest-new',
+                installed_version='installed-old',
+                demo=True,
+            ),
+            IrModule(name='snapshot_child', state='installed'),
+            IrModule(name='snapshot_independent', state='installed'),
+        ]
+    )
 
 
-def test_snapshot_copies_persisted_identity_state_demo_and_installed_version(graph_manifests):
+def test_snapshot_copies_persisted_identity_state_demo_and_installed_version(
+    graph_manifests,
+):
     seed('to upgrade')
     row = IrModule.objects.get(name='base')
     with CaptureQueriesContext(connection) as queries:
@@ -46,15 +56,27 @@ def test_snapshot_copies_persisted_identity_state_demo_and_installed_version(gra
 
 
 @pytest.mark.parametrize('mode', ['load', 'update'])
-@pytest.mark.parametrize('state', [
-    'installed', 'to upgrade', 'to remove', 'to install', 'uninstalled', 'uninstallable',
-])
-def test_snapshot_mode_filters_and_prunes_dependents(graph_manifests, mode, state):
+@pytest.mark.parametrize(
+    'state',
+    [
+        'installed',
+        'to upgrade',
+        'to remove',
+        'to install',
+        'uninstalled',
+        'uninstallable',
+    ],
+)
+def test_snapshot_mode_filters_and_prunes_dependents(
+    graph_manifests, mode, state
+):
     seed(state)
     graph = ModuleGraph.from_database(
-        ['snapshot_child', 'snapshot_independent'], using='default', mode=mode)
+        ['snapshot_child', 'snapshot_independent'], using='default', mode=mode
+    )
     retained = state != 'uninstallable' and not (
-        mode == 'load' and state in ('uninstalled', 'to install'))
+        mode == 'load' and state in ('uninstalled', 'to install')
+    )
     assert ('base' in graph) is retained
     assert ('snapshot_child' in graph) is retained
     assert 'snapshot_independent' in graph
@@ -80,7 +102,9 @@ def test_snapshot_rejects_unknown_database(graph_manifests):
         ModuleGraph.from_database(['base'], using='not_registered')
 
 
-@pytest.mark.parametrize('problem', ['cycle', 'uninstallable_manifest', 'missing_manifest'])
+@pytest.mark.parametrize(
+    'problem', ['cycle', 'uninstallable_manifest', 'missing_manifest']
+)
 def test_snapshot_preparation_prunes_unloadable_code(graph_manifests, problem):
     seed()
     if problem == 'cycle':
@@ -90,7 +114,8 @@ def test_snapshot_preparation_prunes_unloadable_code(graph_manifests, problem):
     else:
         graph_manifests['base'] = {}
     graph = ModuleGraph.from_database(
-        ['snapshot_child', 'snapshot_independent'], using='default')
+        ['snapshot_child', 'snapshot_independent'], using='default'
+    )
     assert 'base' not in graph
     assert 'snapshot_child' not in graph
     assert 'snapshot_independent' in graph
@@ -99,9 +124,12 @@ def test_snapshot_preparation_prunes_unloadable_code(graph_manifests, problem):
 
 def test_snapshot_does_not_remove_an_already_pruned_row_twice(graph_manifests):
     seed('uninstallable')
-    IrModule.objects.filter(name='snapshot_child').update(state='uninstallable')
+    IrModule.objects.filter(name='snapshot_child').update(
+        state='uninstallable'
+    )
     graph = ModuleGraph.from_database(
-        ['snapshot_child', 'snapshot_independent'], using='default')
+        ['snapshot_child', 'snapshot_independent'], using='default'
+    )
     assert 'base' not in graph
     assert 'snapshot_child' not in graph
     assert 'snapshot_independent' in graph

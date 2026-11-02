@@ -12,6 +12,7 @@ hace que los backends de password lo ignoren, y este backend ignora los
 logins con password (mismo aislamiento que el ``credential['type']`` de la
 referencia).
 """
+
 from django.apps import apps as django_apps
 from django.contrib.auth.backends import BaseBackend
 
@@ -24,8 +25,7 @@ class OauthTokenBackend(BaseBackend):
         if not oauth_token:
             return None
         account = (
-            OauthAccount.objects
-            .select_related('user')
+            OauthAccount.objects.select_related('user')
             .filter(oauth_access_token=oauth_token, user__active=True)
             .first()
         )

@@ -6,6 +6,7 @@ Antes leía ``settings.AUTHZ_REAUTH_TTL`` (``default=`` cableado en código);
 ahora lee ``SystemParameter.get_param('authz.reauth_ttl')``, editable en
 caliente y sembrado por la migración de datos de ``addons.base``.
 """
+
 import pytest
 
 from addons.authz.services import _reauth_ttl

@@ -25,34 +25,47 @@ class CompanyModuleSubscription(TimeStampedModel):
         CANCELLED = 'cancelled', 'Cancelado'
 
     company = fields.Many2one(
-        ResCompany, on_delete=models.CASCADE, related_name='subscriptions',
+        ResCompany,
+        on_delete=models.CASCADE,
+        related_name='subscriptions',
         verbose_name='Empresa',
     )
     module = fields.Many2one(
-        'authz.Module', on_delete=models.PROTECT, related_name='subscriptions',
+        'authz.Module',
+        on_delete=models.PROTECT,
+        related_name='subscriptions',
         verbose_name='Módulo',
     )
     status = fields.Selection(
-        max_length=12, choices=Status.choices, default=Status.ACTIVE,
+        max_length=12,
+        choices=Status.choices,
+        default=Status.ACTIVE,
         verbose_name='Estado',
     )
     started_at = fields.Datetime(null=True, blank=True, verbose_name='Inicio')
     expires_at = fields.Datetime(null=True, blank=True, verbose_name='Expira')
-    # Ciclo + precio COPIADOS del catálogo ``ModulePrice`` al suscribir (DEC-T6,
+    # Ciclo + precio COPIADOS del catálogo ``ModulePrice`` al suscribir
+    # (DEC-T6,
     # S4). No se referencia el catálogo en vivo: la copia congela lo que la
     # company paga (inmutabilidad histórica). ``price`` nulo = sin tarifa
     # sembrada (free) — no un error.
     billing_cycle = fields.Selection(
-        max_length=8, choices=ModulePrice.BillingCycle.choices,
-        blank=True, default='', verbose_name='Ciclo de cobro',
+        max_length=8,
+        choices=ModulePrice.BillingCycle.choices,
+        blank=True,
+        default='',
+        verbose_name='Ciclo de cobro',
     )
     price = fields.Monetary(
-        max_digits=10, decimal_places=2, null=True, blank=True,
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
         verbose_name='Precio',
     )
 
-    objects = models.AccessManager()         # default: cross-company (L0)
-    scoped = RuleScopedManager()             # L3: record rules (ir_rule)
+    objects = models.AccessManager()  # default: cross-company (L0)
+    scoped = RuleScopedManager()  # L3: record rules (ir_rule)
 
     class Meta:
         db_table = 'company_module_subscription'
@@ -84,7 +97,11 @@ class CompanyModuleSubscription(TimeStampedModel):
         required = set(self.module.depends.values_list('code', flat=True))
         if not required:
             return set()
-        return required - self.company.active_module_codes(now) - {self.module.code}
+        return (
+            required
+            - self.company.active_module_codes(now)
+            - {self.module.code}
+        )
 
     def apply_current_price(self, at=None):
         """Copia la tarifa vigente de ``ModulePrice`` a esta suscripción (S4).
@@ -106,10 +123,13 @@ class CompanyModuleSubscription(TimeStampedModel):
         if self.status == self.Status.ACTIVE:
             missing = self.missing_dependencies()
             if missing:
-                raise ValidationError({
-                    'module': (
-                        f"El módulo '{self.module.code}' requiere módulos activos "
-                        f"que la empresa no tiene: {', '.join(sorted(missing))}."
-                    )
-                })
+                raise ValidationError(
+                    {
+                        'module': (
+                            f"El módulo '{self.module.code}' requiere módulos"
+                            " activos que la empresa no tiene:"
+                            f" {', '.join(sorted(missing))}."
+                        )
+                    }
+                )
         super().save(*args, **kwargs)

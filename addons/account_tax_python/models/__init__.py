@@ -10,6 +10,7 @@ monkeypatch sobre ``account.AccountTax``/``AccountTaxQuerySet`` vive en
 de numeración: el registro de apps aún no está poblado en tiempo de import
 de ``models/__init__.py``).
 """
+
 from .account_tax import AccountTaxFormula
 
 __all__ = ['AccountTaxFormula']

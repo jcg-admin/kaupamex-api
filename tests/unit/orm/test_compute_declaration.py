@@ -46,6 +46,7 @@ Qué haría fallar a estos casos: que el vocabulario siga levantando
 declara sin ella); que un calculado sin ``inverse`` salga escribible en el
 contrato; o que ``field_depends`` siga vacío con las dos mitades declaradas.
 """
+
 import pytest
 from django.db import models as django_models
 from rest_framework import serializers
@@ -59,14 +60,17 @@ from orm.fields_nonstored import NonStored
 class TestTheComputeVocabularyIsAccepted:
     """Los seis atributos del mecanismo, que hoy levantan ``TypeError``."""
 
-    @pytest.mark.parametrize('kwargs', [
-        {'compute': '_compute_x'},
-        {'compute': '_compute_x', 'store': True},
-        {'compute': '_compute_x', 'compute_sudo': True},
-        {'compute': '_compute_x', 'inverse': '_inverse_x'},
-        {'compute': '_compute_x', 'store': True, 'precompute': True},
-        {'compute': '_compute_x', 'recursive': True},
-    ])
+    @pytest.mark.parametrize(
+        'kwargs',
+        [
+            {'compute': '_compute_x'},
+            {'compute': '_compute_x', 'store': True},
+            {'compute': '_compute_x', 'compute_sudo': True},
+            {'compute': '_compute_x', 'inverse': '_inverse_x'},
+            {'compute': '_compute_x', 'store': True, 'precompute': True},
+            {'compute': '_compute_x', 'recursive': True},
+        ],
+    )
     def test_the_declaration_builds_a_field(self, kwargs):
         field = fields.Char(max_length=64, **kwargs)
         assert field is not None
@@ -76,13 +80,18 @@ class TestTheComputeVocabularyIsAccepted:
         assert field.compute == '_compute_x'
 
     def test_the_inverse_survives_on_the_field(self):
-        field = fields.Char(max_length=64, compute='_compute_x',
-                            inverse='_inverse_x', store=True)
+        field = fields.Char(
+            max_length=64,
+            compute='_compute_x',
+            inverse='_inverse_x',
+            store=True,
+        )
         assert field.inverse == '_inverse_x'
 
     def test_recursive_survives_on_the_field(self):
-        field = fields.Char(max_length=64, compute='_compute_x',
-                            recursive=True, store=True)
+        field = fields.Char(
+            max_length=64, compute='_compute_x', recursive=True, store=True
+        )
         assert field.recursive is True
 
 
@@ -105,24 +114,32 @@ class TestTheDefaultsFollowTheSource:
 
     def test_compute_sudo_defaults_to_store(self):
         #: ``attrs['compute_sudo'] = attrs.get('compute_sudo', store)``.
-        with_column = fields.Char(max_length=64, compute='_compute_x', store=True)
+        with_column = fields.Char(
+            max_length=64, compute='_compute_x', store=True
+        )
         without_column = fields.Char(max_length=64, compute='_compute_x')
         assert with_column.compute_sudo is True
         assert without_column.compute_sudo is False
 
     def test_the_declared_compute_sudo_wins(self):
-        field = fields.Char(max_length=64, compute='_compute_x',
-                            compute_sudo=True)
+        field = fields.Char(
+            max_length=64, compute='_compute_x', compute_sudo=True
+        )
         assert field.compute_sudo is True
 
     def test_a_computed_field_is_readonly_without_inverse(self):
-        #: ``attrs['readonly'] = attrs.get('readonly', not attrs.get('inverse'))``
+        #: ``attrs['readonly'] = attrs.get('readonly', not
+        #: attrs.get('inverse'))``
         field = fields.Char(max_length=64, compute='_compute_x', store=True)
         assert field.readonly is True
 
     def test_an_inversible_computed_field_is_not_readonly(self):
-        field = fields.Char(max_length=64, compute='_compute_x',
-                            inverse='_inverse_x', store=True)
+        field = fields.Char(
+            max_length=64,
+            compute='_compute_x',
+            inverse='_inverse_x',
+            store=True,
+        )
         assert field.readonly is False
 
     def test_a_computed_field_is_not_copied(self):
@@ -135,8 +152,9 @@ class TestTheDefaultsFollowTheSource:
         #: La única rama que NO fuerza ``copy=False``: con columna Y
         #: ``readonly`` declarado falso. Un caso que la condición doblemente
         #: negada de la fuente esconde, y que sin este caso nadie mediría.
-        field = fields.Char(max_length=64, compute='_compute_x',
-                            store=True, readonly=False)
+        field = fields.Char(
+            max_length=64, compute='_compute_x', store=True, readonly=False
+        )
         assert field.copy is True
 
 
@@ -150,13 +168,15 @@ class TestPrecomputeWarnsWhereItHasNoEffect:
 
     def test_precompute_without_store_warns_and_turns_off(self):
         with pytest.warns(UserWarning, match='non stored field'):
-            field = fields.Char(max_length=64, compute='_compute_x',
-                                precompute=True)
+            field = fields.Char(
+                max_length=64, compute='_compute_x', precompute=True
+            )
         assert field.precompute is False
 
     def test_precompute_with_compute_and_store_survives(self):
-        field = fields.Char(max_length=64, compute='_compute_x',
-                            store=True, precompute=True)
+        field = fields.Char(
+            max_length=64, compute='_compute_x', store=True, precompute=True
+        )
         assert field.precompute is True
 
 
@@ -173,8 +193,12 @@ class TestTheEndpointContract:
         assert field.editable is False
 
     def test_an_inversible_computed_field_stays_editable(self):
-        field = fields.Char(max_length=64, compute='_compute_x',
-                            inverse='_inverse_x', store=True)
+        field = fields.Char(
+            max_length=64,
+            compute='_compute_x',
+            inverse='_inverse_x',
+            store=True,
+        )
         assert field.editable is True
 
     def test_the_serializer_builds_it_read_only(self, db):
@@ -182,8 +206,9 @@ class TestTheEndpointContract:
         #: ``ModelSerializer`` de verdad y se pregunta por el campo que sale.
         class ComputedContractProbe(django_models.Model):
             plain = fields.Char(max_length=64)
-            computed = fields.Char(max_length=64, compute='_compute_x',
-                                   store=True)
+            computed = fields.Char(
+                max_length=64, compute='_compute_x', store=True
+            )
 
             class Meta:
                 app_label = 'base'
@@ -205,8 +230,9 @@ class TestTheJoinThatUnblocksTheEngine:
     def test_field_depends_resolves_when_both_halves_are_declared(self):
         class DependsJoinProbe(django_models.Model):
             source = fields.Char(max_length=64)
-            derived = fields.Char(max_length=64, compute='_compute_derived',
-                                  store=True)
+            derived = fields.Char(
+                max_length=64, compute='_compute_derived', store=True
+            )
 
             class Meta:
                 app_label = 'base'

@@ -61,6 +61,7 @@ Divergencias declaradas
    ``hr_recruitment_skills/models/hr_job.py::HrJob::
    action_search_matching_applicants``.
 """
+
 from django.apps import apps as django_apps
 
 from orm.model_classes import extend_model
@@ -77,21 +78,29 @@ def _compute_applicant_matching_score(self, applicant):
     if not self.job_skill_ids.exists():
         return 0
     job_skills = list(self.job_skill_ids.all())
-    job_degree = (self.expected_degree.score * 100
-                  if self.expected_degree_id else 0)
+    job_degree = (
+        self.expected_degree.score * 100 if self.expected_degree_id else 0
+    )
     job_total = sum(j_s.level_progress for j_s in job_skills) + job_degree
     job_skill_map = {j_s.skill_id: j_s.level_progress for j_s in job_skills}
 
     matching_applicant_skills = [
-        a_s for a_s in applicant._compute_current_applicant_skill_ids()
+        a_s
+        for a_s in applicant._compute_current_applicant_skill_ids()
         if a_s.skill_id in job_skill_map
     ]
-    applicant_degree = (applicant.type.score * 100
-                        if job_degree > 1 and applicant.type_id else 0)
-    applicant_total = sum(
-        min(a_s.level_progress, job_skill_map[a_s.skill_id] * 2)
-        for a_s in matching_applicant_skills
-    ) + applicant_degree
+    applicant_degree = (
+        applicant.type.score * 100
+        if job_degree > 1 and applicant.type_id
+        else 0
+    )
+    applicant_total = (
+        sum(
+            min(a_s.level_progress, job_skill_map[a_s.skill_id] * 2)
+            for a_s in matching_applicant_skills
+        )
+        + applicant_degree
+    )
 
     return applicant_total / job_total * 100 if job_total else 0
 
@@ -112,18 +121,23 @@ def _search_matching_applicants(self):
     if not self.job_skill_ids.exists():
         return HrApplicant.objects.none()
     skill_pks = self.job_skill_ids.values_list('skill_id', flat=True)
-    return (HrApplicant.objects.exclude(job_id=self.pk)
-            .filter(skill_ids__in=skill_pks).distinct())
+    return (
+        HrApplicant.objects.exclude(job_id=self.pk)
+        .filter(skill_ids__in=skill_pks)
+        .distinct()
+    )
 
 
 def apply_hr_recruitment_skills_hr_job_extensions():
     """Cuelga sobre ``hr.job`` lo que ``hr_recruitment_skills`` le añade —
     ≙ ``_inherit``. Se invoca desde ``HrRecruitmentSkillsConfig.ready()``."""
     extend_model(
-        'hr', 'HrJob',
+        'hr',
+        'HrJob',
         metodos={
-            '_compute_applicant_matching_score':
-                _compute_applicant_matching_score,
+            '_compute_applicant_matching_score': (
+                _compute_applicant_matching_score
+            ),
             '_search_matching_applicants': _search_matching_applicants,
         },
     )

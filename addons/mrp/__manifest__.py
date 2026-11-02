@@ -14,14 +14,14 @@
     # `resource` está portado — ver tarea #72 — pero nadie lo consume desde
     # aquí todavía).
     'depends': [
-        'base',           # ResCompany, los mixins
-        'product',        # Product — el fabricado y sus componentes
-        'stock',          # StockMove — el consumo y la entrada a almacén
+        'base',  # ResCompany, los mixins
+        'product',  # Product — el fabricado y sus componentes
+        'stock',  # StockMove — el consumo y la entrada a almacén
         'stock_account',  # la valoración de lo fabricado
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',
-    'application': True,   # módulo vendible del catálogo L0
+    'application': True,  # módulo vendible del catálogo L0
     'installable': True,
     'auto_install': False,
 }

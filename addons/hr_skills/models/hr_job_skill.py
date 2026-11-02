@@ -16,11 +16,14 @@ preservados (DEC-KX-03). Porte completo — 1 campo + 2 métodos, 3 de 3.
    * - ``_can_edit_certification_validity_period`` (``:23-24``)
      - portado verbatim (override a ``False``)
 """
+
 import fields
 import models
 
 from addons.hr.models.hr_job import HrJob
-from addons.hr_skills.models.hr_individual_skill_mixin import HrIndividualSkillMixin
+from addons.hr_skills.models.hr_individual_skill_mixin import (
+    HrIndividualSkillMixin,
+)
 
 
 class HrJobSkill(HrIndividualSkillMixin):
@@ -33,8 +36,11 @@ class HrJobSkill(HrIndividualSkillMixin):
     _rec_name = 'skill_id'
 
     job = fields.Many2one(
-        HrJob, on_delete=models.CASCADE, db_index=True,
-        related_name='job_skill_ids', verbose_name='Puesto',
+        HrJob,
+        on_delete=models.CASCADE,
+        db_index=True,
+        related_name='job_skill_ids',
+        verbose_name='Puesto',
     )
 
     class Meta:

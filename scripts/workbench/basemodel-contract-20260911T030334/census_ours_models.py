@@ -18,19 +18,32 @@ print(f'clases  : {len(classes)}')
 print()
 for c in classes:
     bases = ','.join(ast.unparse(b) for b in c.bases) or '-'
-    methods = [n for n in c.body
-               if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
-    attrs = [t.id for n in c.body if isinstance(n, ast.Assign)
-             for t in n.targets if isinstance(t, ast.Name)]
-    print(f'=== {c.name}({bases})  :{c.lineno}-{c.end_lineno}  '
-          f'metodos={len(methods)} asignaciones={len(attrs)}')
+    methods = [
+        n
+        for n in c.body
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    ]
+    attrs = [
+        t.id
+        for n in c.body
+        if isinstance(n, ast.Assign)
+        for t in n.targets
+        if isinstance(t, ast.Name)
+    ]
+    print(
+        f'=== {c.name}({bases})  :{c.lineno}-{c.end_lineno}  '
+        f'metodos={len(methods)} asignaciones={len(attrs)}'
+    )
     for m in methods:
         print(f'    {m.name}({ast.unparse(m.args)})')
     if attrs:
         print(f'    asignaciones: {", ".join(attrs)}')
 
-funcs = [n for n in tree.body
-         if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+funcs = [
+    n
+    for n in tree.body
+    if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+]
 print()
 print(f'funciones de modulo: {len(funcs)}')
 for f in funcs:

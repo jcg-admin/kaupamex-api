@@ -24,6 +24,7 @@ campo (``Char`` sin ``size``), así que aquí se mapea a ``max_length=255``,
 el mismo criterio ya usado en ``base.ResPartner.website`` para un ``Char``
 de la referencia sin tamaño declarado.
 """
+
 import fields
 import models
 
@@ -36,14 +37,19 @@ class PartnerGln(models.Model):
     UBL/CII (mismo uso que documenta el ``summary`` del manifiesto de la
     referencia).
     """
+
     _inherit = 'res.partner'
 
     partner = models.OneToOneField(
-        'base.ResPartner', on_delete=models.CASCADE, related_name='gln',
+        'base.ResPartner',
+        on_delete=models.CASCADE,
+        related_name='gln',
         help_text='Partner al que pertenece (Odoo _inherit res.partner).',
     )
     global_location_number = fields.Char(
-        max_length=255, blank=True, default='',
+        max_length=255,
+        blank=True,
+        default='',
         verbose_name='GLN',
         help_text='Global Location Number (Odoo global_location_number).',
     )

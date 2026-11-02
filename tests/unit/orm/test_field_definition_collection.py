@@ -21,6 +21,7 @@ Qué haría fallar a estos casos:
 - que un campo sin columna quede sin descriptor y una lectura devuelva el
   descriptor en vez de despachar el cómputo.
 """
+
 import pytest
 from django.core.validators import MaxLengthValidator
 from orm.environments import get_transaction
@@ -42,8 +43,9 @@ class LabelMixin:
     que Django no reconozca como modelo.
     """
 
-    label = django_models.CharField('Label', compute='_compute_label',
-                                    max_length=9)
+    label = django_models.CharField(
+        'Label', compute='_compute_label', max_length=9
+    )
 
 
 class MergedProbe(LabelMixin, django_models.Model):
@@ -67,8 +69,9 @@ class MergedProbe(LabelMixin, django_models.Model):
 class DirectProbe(django_models.Model):
     """Una sola declaración: la cadena tiene un eslabón (atajo ``_direct``)."""
 
-    label = django_models.CharField('Label', compute='_compute_label',
-                                    max_length=9)
+    label = django_models.CharField(
+        'Label', compute='_compute_label', max_length=9
+    )
     source = django_models.IntegerField('Source', null=True)
 
     class Meta:
@@ -110,7 +113,8 @@ class TestTheChainComesFromTheMro:
 
     def test_a_plain_base_contributes_its_declaration(self):
         chain = _collect_field_definitions(
-            field_of(MergedProbe, 'label'), MergedProbe, 'label')
+            field_of(MergedProbe, 'label'), MergedProbe, 'label'
+        )
         assert len(chain) == 1, 'el campo ya fusionado no reentra'
 
     def test_the_merged_field_records_its_two_links(self):
@@ -146,8 +150,10 @@ class TestTheMergedFieldIsCONSTRUCTED:
 
     def test_the_max_length_validator_is_materialized(self):
         validators = field_of(MergedProbe, 'label').validators
-        assert any(isinstance(v, MaxLengthValidator) and v.limit_value == 32
-                   for v in validators), validators
+        assert any(
+            isinstance(v, MaxLengthValidator) and v.limit_value == 32
+            for v in validators
+        ), validators
 
 
 class TestTheStoreIsDerivedBeforeTheColumn:
@@ -185,8 +191,7 @@ class TestTheReadDispatchesTheCompute:
     """
 
     def test_the_class_attribute_is_not_the_raw_field(self):
-        assert not isinstance(vars(DirectProbe)['label'],
-                              django_models.Field)
+        assert not isinstance(vars(DirectProbe)['label'], django_models.Field)
 
     @pytest.mark.django_db
     def test_reading_it_dispatches_the_compute(self, tables):

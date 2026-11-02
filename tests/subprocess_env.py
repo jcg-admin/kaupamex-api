@@ -45,6 +45,7 @@ de ``test_ir_cron_runner.py`` murieron con ``FATAL: database
 Por eso el nombre sale de ``connection.settings_dict['NAME']`` en el momento
 de la llamada, que es el único sitio donde vive el valor **efectivo**.
 """
+
 import os
 
 from django.db import connection

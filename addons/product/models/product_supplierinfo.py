@@ -91,6 +91,7 @@ Qué NO se porta, con su medición
   no por ACL de modelo. ``code_for`` recibe el interlocutor y devuelve el
   código; **quién puede preguntarlo** lo decide la vista.
 """
+
 import decimal
 
 import fields
@@ -121,82 +122,145 @@ class ProductSupplierinfo(TimeStampedModel):
     """
 
     partner = fields.Many2one(
-        ResPartner, on_delete=models.CASCADE, db_index=True,
-        related_name='supplierinfo_ids', verbose_name='Proveedor',
-        help_text='Odoo partner_id. Es el nombre por el que se muestra la '
-                  'fila (_rec_name en la referencia).',
+        ResPartner,
+        on_delete=models.CASCADE,
+        db_index=True,
+        related_name='supplierinfo_ids',
+        verbose_name='Proveedor',
+        help_text=(
+            'Odoo partner_id. Es el nombre por el que se muestra la '
+            'fila (_rec_name en la referencia).'
+        ),
     )
     product_name = fields.Char(
-        max_length=255, blank=True, default='',
+        max_length=255,
+        blank=True,
+        default='',
         verbose_name='Nombre del producto para el proveedor',
-        help_text='Se usa al imprimir una solicitud de presupuesto. Vacío = '
-                  'se usa el nombre interno.',
+        help_text=(
+            'Se usa al imprimir una solicitud de presupuesto. Vacío = '
+            'se usa el nombre interno.'
+        ),
     )
     product_code = fields.Char(
-        max_length=64, blank=True, default='',
+        max_length=64,
+        blank=True,
+        default='',
         verbose_name='Código del producto para el proveedor',
-        help_text='Idem con la referencia: vacío = se usa la interna.')
+        help_text='Idem con la referencia: vacío = se usa la interna.',
+    )
     sequence = fields.Integer(
-        default=1, verbose_name='Secuencia',
-        help_text='Prioridad del proveedor en la lista. Menor gana.')
+        default=1,
+        verbose_name='Secuencia',
+        help_text='Prioridad del proveedor en la lista. Menor gana.',
+    )
     product_uom = fields.Many2one(
-        Uom, on_delete=models.PROTECT, null=True, blank=True,
-        related_name='supplierinfo_ids', verbose_name='Unidad del proveedor',
-        help_text='Unidad en que el proveedor cotiza, que puede no ser la del '
-                  'producto. Odoo la calcula y almacena; aquí se siembra en '
-                  'save() desde la variante o la plantilla.',
+        Uom,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='supplierinfo_ids',
+        verbose_name='Unidad del proveedor',
+        help_text=(
+            'Unidad en que el proveedor cotiza, que puede no ser la del '
+            'producto. Odoo la calcula y almacena; aquí se siembra en '
+            'save() desde la variante o la plantilla.'
+        ),
     )
     min_qty = fields.Float(
-        default=0, verbose_name='Cantidad mínima',
-        help_text='Cantidad a partir de la cual aplica este precio, expresada '
-                  'en la unidad del proveedor.',
+        default=0,
+        verbose_name='Cantidad mínima',
+        help_text=(
+            'Cantidad a partir de la cual aplica este precio, expresada '
+            'en la unidad del proveedor.'
+        ),
     )
     price = fields.Monetary(
-        max_digits=16, decimal_places=2, default=0,
+        max_digits=16,
+        decimal_places=2,
+        default=0,
         verbose_name='Precio unitario',
-        help_text='Precio de compra en la unidad del proveedor. Monetary, no '
-                  'Float — ver el docstring del módulo.',
+        help_text=(
+            'Precio de compra en la unidad del proveedor. Monetary, no '
+            'Float — ver el docstring del módulo.'
+        ),
     )
     discount = fields.Monetary(
-        max_digits=5, decimal_places=2, default=0,
+        max_digits=5,
+        decimal_places=2,
+        default=0,
         verbose_name='Descuento (%)',
-        help_text='Porcentaje sobre el precio. Mismo tipo y precisión que '
-                  'purchase_order_line.discount, que es quien lo consume.',
+        help_text=(
+            'Porcentaje sobre el precio. Mismo tipo y precisión que '
+            'purchase_order_line.discount, que es quien lo consume.'
+        ),
     )
     company = fields.Many2one(
-        ResCompany, on_delete=models.CASCADE, null=True, blank=True,
-        db_index=True, related_name='supplierinfo_ids', verbose_name='Compañía',
-        help_text='Vacío = la tarifa sirve a todas las compañías.')
+        ResCompany,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='supplierinfo_ids',
+        verbose_name='Compañía',
+        help_text='Vacío = la tarifa sirve a todas las compañías.',
+    )
     currency = fields.Many2one(
-        ResCurrency, on_delete=models.PROTECT, null=True, blank=True,
-        related_name='supplierinfo_ids', verbose_name='Moneda',
-        help_text='Moneda en que el proveedor cotiza. Requerido en la '
-                  'referencia, con la de la compañía por defecto.',
+        ResCurrency,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='supplierinfo_ids',
+        verbose_name='Moneda',
+        help_text=(
+            'Moneda en que el proveedor cotiza. Requerido en la '
+            'referencia, con la de la compañía por defecto.'
+        ),
     )
     date_start = fields.Date(
-        null=True, blank=True, verbose_name='Fecha de inicio',
-        help_text='Desde cuándo rige este precio.')
+        null=True,
+        blank=True,
+        verbose_name='Fecha de inicio',
+        help_text='Desde cuándo rige este precio.',
+    )
     date_end = fields.Date(
-        null=True, blank=True, verbose_name='Fecha de fin',
-        help_text='Hasta cuándo rige este precio.')
+        null=True,
+        blank=True,
+        verbose_name='Fecha de fin',
+        help_text='Hasta cuándo rige este precio.',
+    )
     product = fields.Many2one(
-        ProductProduct, on_delete=models.CASCADE, null=True, blank=True,
-        db_index=True, related_name='supplierinfo_ids',
+        ProductProduct,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='supplierinfo_ids',
         verbose_name='Variante de producto',
-        help_text='Vacío = el precio aplica a TODAS las variantes de la '
-                  'plantilla. Con valor, sólo a esa — y gana sobre la fila '
-                  'de plantilla. El related_name no lo nombra la referencia.',
+        help_text=(
+            'Vacío = el precio aplica a TODAS las variantes de la '
+            'plantilla. Con valor, sólo a esa — y gana sobre la fila '
+            'de plantilla. El related_name no lo nombra la referencia.'
+        ),
     )
     product_tmpl = fields.Many2one(
-        ProductTemplate, on_delete=models.CASCADE, db_index=True,
-        related_name='seller_ids', verbose_name='Plantilla de producto',
-        help_text='Obligatorio. Odoo lo calcula desde la variante cuando sólo '
-                  'se da ésta; aquí lo hace save().',
+        ProductTemplate,
+        on_delete=models.CASCADE,
+        db_index=True,
+        related_name='seller_ids',
+        verbose_name='Plantilla de producto',
+        help_text=(
+            'Obligatorio. Odoo lo calcula desde la variante cuando sólo '
+            'se da ésta; aquí lo hace save().'
+        ),
     )
     delay = fields.Integer(
-        default=1, verbose_name='Plazo de entrega (días)',
-        help_text='Días entre confirmar la compra y recibir la mercancía. El '
-                  'planificador lo usa para calcular cuándo pedir.',
+        default=1,
+        verbose_name='Plazo de entrega (días)',
+        help_text=(
+            'Días entre confirmar la compra y recibir la mercancía. El '
+            'planificador lo usa para calcular cuándo pedir.'
+        ),
     )
 
     class Meta:
@@ -227,15 +291,20 @@ class ProductSupplierinfo(TimeStampedModel):
         ese atributo, así que la comprobación es explícita.
         """
         super().clean()
-        if self.product_id and self.product_tmpl_id \
-                and self.product.product_tmpl_id != self.product_tmpl_id:
+        if (
+            self.product_id
+            and self.product_tmpl_id
+            and self.product.product_tmpl_id != self.product_tmpl_id
+        ):
             raise ValidationError(
-                'La variante no pertenece a la plantilla de esta tarifa.')
+                'La variante no pertenece a la plantilla de esta tarifa.'
+            )
         if self.company_id:
             tmpl_company = getattr(self.product_tmpl, 'company_id', None)
             if tmpl_company and tmpl_company != self.company_id:
                 raise ValidationError(
-                    'El producto y la tarifa son de compañías distintas.')
+                    'El producto y la tarifa son de compañías distintas.'
+                )
 
     def save(self, *args, **kwargs):
         """``_sanitize_vals`` + ``_compute_product_uom_id``, en su sitio.
@@ -278,11 +347,16 @@ class ProductSupplierinfo(TimeStampedModel):
         ``Decimal``, con sus mismos cortocircuitos.
         """
         price = self.price or decimal.Decimal(0)
-        target = getattr(self.product if self.product_id else self.product_tmpl,
-                         'uom', None)
+        target = getattr(
+            self.product if self.product_id else self.product_tmpl, 'uom', None
+        )
         source = self.product_uom
-        if price and target is not None and source is not None \
-                and source != target:
+        if (
+            price
+            and target is not None
+            and source is not None
+            and source != target
+        ):
             price = price * (
                 decimal.Decimal(str(target.factor))
                 / decimal.Decimal(str(source.factor))
@@ -298,8 +372,9 @@ class ProductSupplierinfo(TimeStampedModel):
     # === SELECCIÓN ========================================================
 
     @classmethod
-    def _get_filtered_supplier(cls, sellers, company_id, product_id,
-                               params=False):
+    def _get_filtered_supplier(
+        cls, sellers, company_id, product_id, params=False
+    ):
         """≙ ``_get_filtered_supplier`` (``odoo19c: :118-119``).
 
         Las filas que sirven a esta compra. Tres condiciones, verbatim: la
@@ -325,7 +400,8 @@ class ProductSupplierinfo(TimeStampedModel):
         company_pk = getattr(company_id, 'pk', company_id)
         product_pk = getattr(product_id, 'pk', product_id)
         return [
-            seller for seller in sellers
+            seller
+            for seller in sellers
             if (not seller.company_id or seller.company_id == company_pk)
             and getattr(seller.partner, 'active', True)
             and (not seller.product_id or seller.product_id == product_pk)
@@ -354,7 +430,9 @@ class ProductSupplierinfo(TimeStampedModel):
         **#264** (un veredicto unico); el consumidor —``base_import``, hoy
         un esqueleto con solo ``date_patterns.py``— en la **#265**.
         """
-        return [{
-            'label': _('Import Template for Vendor Pricelists'),
-            'template': '/product/static/xls/product_supplierinfo.xls',
-        }]
+        return [
+            {
+                'label': _('Import Template for Vendor Pricelists'),
+                'template': '/product/static/xls/product_supplierinfo.xls',
+            }
+        ]

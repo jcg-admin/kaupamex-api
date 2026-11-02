@@ -4,7 +4,10 @@
     'name': 'Proveedor de pago: demostración',
     'version': '1.0',
     'category': 'Accounting/Payment Providers',
-    'summary': 'Proveedor de pruebas: simula aprobado, rechazado y pendiente sin salir del árbol',
+    'summary': (
+        'Proveedor de pruebas: simula aprobado, rechazado y pendiente sin'
+        ' salir del árbol'
+    ),
     # `depends` MEDIDO coincide EXACTO con el de la referencia: un proveedor
     # implementa el contrato de `payment` y no toca nada más.
     'depends': [

@@ -9,7 +9,10 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("base", "0022_irmodelfields_serialization_field_id_and_more"),
-        ("stock", "0007_alter_stockmove_options_remove_stockmove_move_orig_and_more"),
+        (
+            "stock",
+            "0007_alter_stockmove_options_remove_stockmove_move_orig_and_more",
+        ),
     ]
 
     operations = [
@@ -18,7 +21,10 @@ class Migration(migrations.Migration):
             name="company",
             field=models.ForeignKey(
                 default=orm.environments.get_current_company,
-                help_text="Empresa (Odoo company_id, requerido, default=lambda self: self.env.company).",
+                help_text=(
+                    "Empresa (Odoo company_id, requerido, default=lambda self:"
+                    " self.env.company)."
+                ),
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="stock_moves",
                 to="base.rescompany",

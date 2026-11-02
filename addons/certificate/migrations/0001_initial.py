@@ -30,10 +30,15 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        default="New key", max_length=255, verbose_name="Nombre"
+                        default="New key",
+                        max_length=255,
+                        verbose_name="Nombre",
                     ),
                 ),
-                ("content", models.BinaryField(verbose_name="Archivo de la llave")),
+                (
+                    "content",
+                    models.BinaryField(verbose_name="Archivo de la llave"),
+                ),
                 (
                     "password",
                     models.CharField(
@@ -47,7 +52,10 @@ class Migration(migrations.Migration):
                     "pem_key",
                     models.BinaryField(
                         blank=True,
-                        help_text="Computado: PEM normalizado de la llave (pública o privada).",
+                        help_text=(
+                            "Computado: PEM normalizado de la llave (pública o"
+                            " privada)."
+                        ),
                         null=True,
                         verbose_name="Bytes de la llave en PEM",
                     ),
@@ -56,7 +64,10 @@ class Migration(migrations.Migration):
                     "public",
                     models.BooleanField(
                         blank=True,
-                        help_text="Computado: True si es pública, False si privada, None si no se pudo determinar (error de carga).",
+                        help_text=(
+                            "Computado: True si es pública, False si privada,"
+                            " None si no se pudo determinar (error de carga)."
+                        ),
                         null=True,
                         verbose_name="Pública/privada",
                     ),
@@ -109,7 +120,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        blank=True, default="", max_length=255, verbose_name="Nombre"
+                        blank=True,
+                        default="",
+                        max_length=255,
+                        verbose_name="Nombre",
                     ),
                 ),
                 ("content", models.BinaryField(verbose_name="Certificado")),
@@ -118,7 +132,9 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Contraseña para descifrar el archivo PKCS12.",
+                        help_text=(
+                            "Contraseña para descifrar el archivo PKCS12."
+                        ),
                         max_length=255,
                         verbose_name="Contraseña del certificado",
                     ),
@@ -137,7 +153,11 @@ class Migration(migrations.Migration):
                     "content_format",
                     models.CharField(
                         blank=True,
-                        choices=[("der", "DER"), ("pem", "PEM"), ("pkcs12", "PKCS12")],
+                        choices=[
+                            ("der", "DER"),
+                            ("pem", "PEM"),
+                            ("pkcs12", "PKCS12"),
+                        ],
                         default="",
                         max_length=10,
                         verbose_name="Formato original del certificado",
@@ -146,7 +166,9 @@ class Migration(migrations.Migration):
                 (
                     "pem_certificate",
                     models.BinaryField(
-                        blank=True, null=True, verbose_name="Certificado en PEM"
+                        blank=True,
+                        null=True,
+                        verbose_name="Certificado en PEM",
                     ),
                 ),
                 (
@@ -163,7 +185,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="El número de serie a añadir a documentos electrónicos.",
+                        help_text=(
+                            "El número de serie a añadir a documentos"
+                            " electrónicos."
+                        ),
                         max_length=64,
                         verbose_name="Número de serie",
                     ),
@@ -172,7 +197,9 @@ class Migration(migrations.Migration):
                     "date_start",
                     models.DateTimeField(
                         blank=True,
-                        help_text="La fecha desde la que el certificado es válido.",
+                        help_text=(
+                            "La fecha desde la que el certificado es válido."
+                        ),
                         null=True,
                         verbose_name="Fecha de disponibilidad",
                     ),
@@ -214,7 +241,10 @@ class Migration(migrations.Migration):
                     "private_key",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Computado: se detecta o crea automáticamente al cargar el certificado.",
+                        help_text=(
+                            "Computado: se detecta o crea automáticamente al"
+                            " cargar el certificado."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="certificates_as_private_key",
@@ -226,7 +256,10 @@ class Migration(migrations.Migration):
                     "public_key",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Usar cuando la llave pública autocontenida en el certificado es errónea.",
+                        help_text=(
+                            "Usar cuando la llave pública autocontenida en el"
+                            " certificado es errónea."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="certificates_as_public_key",

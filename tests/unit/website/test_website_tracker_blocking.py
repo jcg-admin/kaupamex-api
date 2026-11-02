@@ -8,6 +8,7 @@ viaja en la cookie ``cookie_consent`` (JSON URL-encoded por categoría,
 ``core.middleware.cookie_governance``), que es la divergencia de formato
 declarada en ``addons/website/models/ir_http.py``.
 """
+
 import json
 from urllib.parse import quote
 
@@ -27,8 +28,9 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def website(db):
     company = ResCompany.objects.create(name='Kaupamex Trackers QA')
-    user = (ResUsers.objects.filter(login='public@kaupamex.test').first()
-            or ResUsers.objects.create_user(login='public@kaupamex.test'))
+    user = ResUsers.objects.filter(
+        login='public@kaupamex.test'
+    ).first() or ResUsers.objects.create_user(login='public@kaupamex.test')
     with company_scope(company.pk):
         yield Website.objects.create(name='Tienda', sequence=1, user=user)
 
@@ -37,7 +39,8 @@ def website(db):
 def watching(website):
     """El sitio con una lista propia conocida — se suma a la de fábrica."""
     website.custom_blocked_third_party_domains = (
-        'tracker.example\nwww.videos.example')
+        'tracker.example\nwww.videos.example'
+    )
     return website
 
 
@@ -58,10 +61,11 @@ def _grant_consent(request, choices):
 
 # ── las dos listas ──────────────────────────────────────────────────────────
 
+
 def test_blocked_domains_list_splits_by_line(watching):
     domains = watching._get_blocked_third_party_domains_list()
-    assert 'tracker.example' in domains          # la propia
-    assert 'youtube.com' in domains              # la de fábrica sigue ahí
+    assert 'tracker.example' in domains  # la propia
+    assert 'youtube.com' in domains  # la de fábrica sigue ahí
     assert all('\n' not in domain for domain in domains)
 
 
@@ -77,31 +81,37 @@ def test_blocked_iframe_containers_is_the_set_of_five(website):
 
 # ── la vigilancia por dominio y por clase ───────────────────────────────────
 
+
 def test_domains_watchlist_matches_exact_host(watching):
     assert watching._is_tag_domains_watchlisted(
-        'iframe', {'src': 'https://tracker.example/widget'})
+        'iframe', {'src': 'https://tracker.example/widget'}
+    )
 
 
 def test_domains_watchlist_matches_subdomain(watching):
     assert watching._is_tag_domains_watchlisted(
-        'iframe', {'src': 'https://a.tracker.example/widget'})
+        'iframe', {'src': 'https://a.tracker.example/widget'}
+    )
 
 
 def test_domains_watchlist_rejects_misleading_suffix(watching):
     """``mytracker.example`` NO es ``tracker.example`` ni subdominio suyo."""
     assert not watching._is_tag_domains_watchlisted(
-        'iframe', {'src': 'https://mytracker.example/widget'})
+        'iframe', {'src': 'https://mytracker.example/widget'}
+    )
 
 
 def test_domains_watchlist_www_entry_blocks_bare_domain(watching):
     """``www.videos.example`` en la lista bloquea también sin ``www.``."""
     assert watching._is_tag_domains_watchlisted(
-        'script', {'src': 'https://videos.example/v.js'})
+        'script', {'src': 'https://videos.example/v.js'}
+    )
 
 
 def test_domains_watchlist_ignores_other_tags_and_missing_src(watching):
     assert not watching._is_tag_domains_watchlisted(
-        'div', {'src': 'https://tracker.example/widget'})
+        'div', {'src': 'https://tracker.example/widget'}
+    )
     assert not watching._is_tag_domains_watchlisted('iframe', {})
 
 
@@ -111,6 +121,7 @@ def test_classes_watchlist_is_the_intersection(website):
 
 
 # ── el marcado del elemento ─────────────────────────────────────────────────
+
 
 def test_remove_trackers_neutralizes_the_src(website):
     atts = {'src': 'https://youtube.com/embed/x'}
@@ -132,9 +143,11 @@ def test_remove_trackers_marks_container_without_touching_src(website):
 
 # ── el control del fragmento HTML ───────────────────────────────────────────
 
+
 def test_control_html_neutralizes_blocked_iframes(website, monkeypatch):
-    monkeypatch.setattr(Website, '_should_remove_third_party_trackers',
-                        lambda self: True)
+    monkeypatch.setattr(
+        Website, '_should_remove_third_party_trackers', lambda self: True
+    )
     content = '<div><iframe src="https://youtube.com/embed/a"></iframe></div>'
     result = website._control_third_party_trackers_in_html(content)
     assert isinstance(result, SafeString)
@@ -145,20 +158,23 @@ def test_control_html_neutralizes_blocked_iframes(website, monkeypatch):
 def test_control_html_passes_through_unparseable_input(website, monkeypatch):
     """Un comentario suelto revienta el parser (``ParserError: Document is
     empty``, medido) → passthrough del input, no una excepción."""
-    monkeypatch.setattr(Website, '_should_remove_third_party_trackers',
-                        lambda self: True)
+    monkeypatch.setattr(
+        Website, '_should_remove_third_party_trackers', lambda self: True
+    )
     content = '<!-- solo comentario -->'
     assert website._control_third_party_trackers_in_html(content) is content
 
 
 def test_control_html_passes_through_when_removal_is_off(website, monkeypatch):
-    monkeypatch.setattr(Website, '_should_remove_third_party_trackers',
-                        lambda self: False)
+    monkeypatch.setattr(
+        Website, '_should_remove_third_party_trackers', lambda self: False
+    )
     content = '<iframe src="https://youtube.com/embed/a"></iframe>'
     assert website._control_third_party_trackers_in_html(content) is content
 
 
 # ── consentimiento ──────────────────────────────────────────────────────────
+
 
 def test_all_consents_granted_without_cookies_bar(website):
     """Sin barra de cookies el consentimiento pleno se da por concedido."""
@@ -181,7 +197,7 @@ def test_all_consents_follow_the_consent_cookie(website, http_request):
 def test_should_remove_is_the_conjunction(website, http_request):
     website.cookies_bar = True
     website.save()
-    assert website.block_third_party_domains is True   # default de fábrica
+    assert website.block_third_party_domains is True  # default de fábrica
     # Barra + bloqueo + sin consentimiento → se controla.
     assert website._should_remove_third_party_trackers() is True
     # Con consentimiento total → no se controla.

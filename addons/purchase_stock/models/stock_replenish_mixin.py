@@ -55,6 +55,7 @@ aquí una instancia **es** un registro, así que el método **devuelve** el valo
 y la ``property`` lo expone. Es la misma traducción que el mixin base ya hizo
 con ``_compute_allowed_route_ids``.
 """
+
 import models
 from addons.stock.models.stock_replenish_mixin import StockReplenishMixin
 
@@ -74,7 +75,8 @@ def SUPPLIER_FIELD(**kwargs):
     kwargs.setdefault(
         'help_text',
         'Proveedor con el que se reabastece cuando la ruta compra '
-        '(Odoo supplier_id).')
+        '(Odoo supplier_id).',
+    )
     return fields.Many2one('product.ProductSupplierinfo', **kwargs)
 
 

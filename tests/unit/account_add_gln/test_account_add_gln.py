@@ -12,6 +12,7 @@ que ``base_address_extended``):
 - ``delete()`` en el partner hace CASCADE sobre el GLN enlazado.
 - Archivar el partner (``active=False``) no toca la fila del GLN.
 """
+
 import pytest
 
 from addons.account_add_gln.models import PartnerGln
@@ -35,7 +36,8 @@ class TestPartnerGln:
     def test_stores_and_reads_gln(self):
         partner = _make_partner()
         PartnerGln.objects.create(
-            partner=partner, global_location_number='0614141000005')
+            partner=partner, global_location_number='0614141000005'
+        )
         partner.refresh_from_db()
         assert partner.gln.global_location_number == '0614141000005'
 
@@ -54,7 +56,8 @@ class TestPartnerGln:
     def test_str_returns_gln_when_set(self):
         partner = _make_partner()
         gln = PartnerGln.objects.create(
-            partner=partner, global_location_number='0614141000005')
+            partner=partner, global_location_number='0614141000005'
+        )
         assert str(gln) == '0614141000005'
 
     def test_str_falls_back_to_partner_when_gln_empty(self):

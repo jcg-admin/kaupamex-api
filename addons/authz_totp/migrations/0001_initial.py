@@ -31,7 +31,10 @@ class Migration(migrations.Migration):
                 (
                     "secret",
                     models.CharField(
-                        help_text="Clave TOTP en base32 (RFC 4648). No se expone salvo en setup.",
+                        help_text=(
+                            "Clave TOTP en base32 (RFC 4648). No se expone"
+                            " salvo en setup."
+                        ),
                         max_length=64,
                         verbose_name="Secreto (base32)",
                     ),
@@ -41,7 +44,10 @@ class Migration(migrations.Migration):
                     models.BooleanField(
                         db_index=True,
                         default=False,
-                        help_text="True cuando el usuario verificó el primer código (2FA activo).",
+                        help_text=(
+                            "True cuando el usuario verificó el primer código"
+                            " (2FA activo)."
+                        ),
                         verbose_name="Confirmado",
                     ),
                 ),
@@ -79,7 +85,10 @@ class Migration(migrations.Migration):
                 (
                     "code_hash",
                     models.CharField(
-                        help_text="SHA-256 hex del código de recuperación (el plano no se guarda).",
+                        help_text=(
+                            "SHA-256 hex del código de recuperación (el plano"
+                            " no se guarda)."
+                        ),
                         max_length=64,
                         verbose_name="Hash del código",
                     ),
@@ -89,7 +98,10 @@ class Migration(migrations.Migration):
                     models.DateTimeField(
                         blank=True,
                         db_index=True,
-                        help_text="Timestamp de uso; NULL = aún válido (un solo uso).",
+                        help_text=(
+                            "Timestamp de uso; NULL = aún válido (un solo"
+                            " uso)."
+                        ),
                         null=True,
                         verbose_name="Consumido en",
                     ),
@@ -111,7 +123,8 @@ class Migration(migrations.Migration):
                 "ordering": ["-created_at"],
                 "indexes": [
                     models.Index(
-                        fields=["user", "code_hash"], name="authz_totp_rec_user_hash"
+                        fields=["user", "code_hash"],
+                        name="authz_totp_rec_user_hash",
                     )
                 ],
             },

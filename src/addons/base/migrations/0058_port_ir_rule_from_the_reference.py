@@ -24,7 +24,10 @@ class Migration(migrations.Migration):
             field=models.TextField(
                 blank=True,
                 default="",
-                help_text="Expresión del dominio. Vacío equivale a verdadero: no restringe.",
+                help_text=(
+                    "Expresión del dominio. Vacío equivale a verdadero: no"
+                    " restringe."
+                ),
                 verbose_name="Dominio",
             ),
         ),
@@ -39,7 +42,9 @@ class Migration(migrations.Migration):
                     _connector="OR",
                 ),
                 name="ir_rule_no_access_rights",
-                violation_error_message="La regla debe conceder al menos un permiso.",
+                violation_error_message=(
+                    "La regla debe conceder al menos un permiso."
+                ),
             ),
         ),
     ]

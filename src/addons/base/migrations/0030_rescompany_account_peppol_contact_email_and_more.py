@@ -18,7 +18,12 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Correo principal para las comunicaciones y avisos de la conexión Peppol. Odoo lo usa para reconectar la cuenta Peppol si la base de datos cambia (Odoo account_peppol_contact_email).",
+                help_text=(
+                    "Correo principal para las comunicaciones y avisos de la"
+                    " conexión Peppol. Odoo lo usa para reconectar la cuenta"
+                    " Peppol si la base de datos cambia (Odoo"
+                    " account_peppol_contact_email)."
+                ),
                 max_length=254,
                 verbose_name="Correo de contacto principal",
             ),
@@ -29,7 +34,11 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Odoo account_peppol_migration_key (groups=base.group_system en la referencia; aquí la restricción es de capacidad, no de campo).",
+                help_text=(
+                    "Odoo account_peppol_migration_key"
+                    " (groups=base.group_system en la referencia; aquí la"
+                    " restricción es de capacidad, no de campo)."
+                ),
                 max_length=255,
                 verbose_name="Clave de migración",
             ),
@@ -40,7 +49,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Sólo para fines de identificación (Odoo account_peppol_phone_number).",
+                help_text=(
+                    "Sólo para fines de identificación (Odoo"
+                    " account_peppol_phone_number)."
+                ),
                 max_length=32,
                 verbose_name="Número móvil",
             ),
@@ -52,12 +64,18 @@ class Migration(migrations.Migration):
                 choices=[
                     ("not_registered", "No registrado"),
                     ("sender", "Puede enviar pero no recibir"),
-                    ("smp_registration", "Puede enviar; alta de recepción pendiente"),
+                    (
+                        "smp_registration",
+                        "Puede enviar; alta de recepción pendiente",
+                    ),
                     ("receiver", "Puede enviar y recibir"),
                     ("rejected", "Rechazado"),
                 ],
                 default="not_registered",
-                help_text="Estado de la empresa en la red Peppol (Odoo account_peppol_proxy_state, required).",
+                help_text=(
+                    "Estado de la empresa en la red Peppol (Odoo"
+                    " account_peppol_proxy_state, required)."
+                ),
                 max_length=20,
                 verbose_name="Estado Peppol",
             ),
@@ -68,7 +86,10 @@ class Migration(migrations.Migration):
             field=models.FloatField(
                 blank=True,
                 default=0.0,
-                help_text="Días necesarios para confirmar una orden de compra; define cuándo debería validarse (Odoo days_to_purchase).",
+                help_text=(
+                    "Días necesarios para confirmar una orden de compra;"
+                    " define cuándo debería validarse (Odoo days_to_purchase)."
+                ),
                 null=True,
             ),
         ),
@@ -77,7 +98,10 @@ class Migration(migrations.Migration):
             name="peppol_activate_self_billing_sending",
             field=models.BooleanField(
                 default=False,
-                help_text="Si se activa, se podrán enviar facturas de proveedor como autofacturas por Peppol (Odoo, Deprecated).",
+                help_text=(
+                    "Si se activa, se podrán enviar facturas de proveedor como"
+                    " autofacturas por Peppol (Odoo, Deprecated)."
+                ),
                 verbose_name="Activar el envío de autofacturación",
             ),
         ),
@@ -87,7 +111,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Proveedor Peppol distinto de Odoo con el que la empresa ya está dada de alta (Odoo peppol_external_provider).",
+                help_text=(
+                    "Proveedor Peppol distinto de Odoo con el que la empresa"
+                    " ya está dada de alta (Odoo peppol_external_provider)."
+                ),
                 max_length=255,
             ),
         ),
@@ -96,7 +123,10 @@ class Migration(migrations.Migration):
             name="peppol_metadata",
             field=models.JSONField(
                 blank=True,
-                help_text="Metadatos que aporta el proxy, de claves aditivas (Odoo peppol_metadata).",
+                help_text=(
+                    "Metadatos que aporta el proxy, de claves aditivas (Odoo"
+                    " peppol_metadata)."
+                ),
                 null=True,
                 verbose_name="Metadatos Peppol",
             ),
@@ -105,7 +135,9 @@ class Migration(migrations.Migration):
             model_name="rescompany",
             name="peppol_metadata_updated_at",
             field=models.DateTimeField(
-                blank=True, null=True, verbose_name="Metadatos Peppol actualizados el"
+                blank=True,
+                null=True,
+                verbose_name="Metadatos Peppol actualizados el",
             ),
         ),
         migrations.AddField(
@@ -113,7 +145,11 @@ class Migration(migrations.Migration):
             name="peppol_purchase_journal",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Diario donde aterrizan las facturas recibidas por Peppol (Odoo peppol_purchase_journal_id; domain type=purchase, reforzado en clean()).",
+                help_text=(
+                    "Diario donde aterrizan las facturas recibidas por Peppol"
+                    " (Odoo peppol_purchase_journal_id; domain type=purchase,"
+                    " reforzado en clean())."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="peppol_purchase_companies",
@@ -126,7 +162,11 @@ class Migration(migrations.Migration):
             name="peppol_self_billing_reception_journal",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Las autofacturas recibidas por Peppol se crean en borrador en este diario (Odoo peppol_self_billing_reception_journal_id, Deprecated).",
+                help_text=(
+                    "Las autofacturas recibidas por Peppol se crean en"
+                    " borrador en este diario (Odoo"
+                    " peppol_self_billing_reception_journal_id, Deprecated)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="peppol_self_billing_companies",
@@ -149,7 +189,10 @@ class Migration(migrations.Migration):
                     ("7", "Domingo"),
                 ],
                 default="default",
-                help_text="Día de la semana con el que se alinea la agrupación semanal de RFQ (Odoo group_on).",
+                help_text=(
+                    "Día de la semana con el que se alinea la agrupación"
+                    " semanal de RFQ (Odoo group_on)."
+                ),
                 max_length=8,
             ),
         ),
@@ -164,7 +207,15 @@ class Migration(migrations.Migration):
                     ("all", "Siempre"),
                 ],
                 default="default",
-                help_text="Define si las solicitudes de cotización se agrupan según la llegada prevista, salvo en dropship (Odoo group_rfq). Por pedido: las necesidades de reabastecimiento se agrupan salvo las MTO. Diaria: se agrupan si la llegada prevista es el mismo día. Semanal: se agrupan si la llegada prevista cae en la misma semana o el mismo día de la semana. Siempre: se agrupan sin condición.",
+                help_text=(
+                    "Define si las solicitudes de cotización se agrupan según"
+                    " la llegada prevista, salvo en dropship (Odoo group_rfq)."
+                    " Por pedido: las necesidades de reabastecimiento se"
+                    " agrupan salvo las MTO. Diaria: se agrupan si la llegada"
+                    " prevista es el mismo día. Semanal: se agrupan si la"
+                    " llegada prevista cae en la misma semana o el mismo día"
+                    " de la semana. Siempre: se agrupan sin condición."
+                ),
                 max_length=8,
             ),
         ),
@@ -266,7 +317,12 @@ class Migration(migrations.Migration):
                     ("EM", "Electronic mail"),
                 ],
                 default="",
-                help_text="Código que identifica el Endpoint para BIS Billing 3.0 y sus derivados. Lista en https://docs.peppol.eu/poacc/billing/3.0/codelist/eas/ (Odoo peppol_eas).",
+                help_text=(
+                    "Código que identifica el Endpoint para BIS Billing 3.0 y"
+                    " sus derivados. Lista en"
+                    " https://docs.peppol.eu/poacc/billing/3.0/codelist/eas/"
+                    " (Odoo peppol_eas)."
+                ),
                 max_length=4,
                 verbose_name="Peppol e-address (EAS)",
             ),
@@ -277,7 +333,11 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text='Identificador único usado por BIS Billing 3.0 y sus derivados, también llamado "Endpoint ID" (Odoo peppol_endpoint).',
+                help_text=(
+                    'Identificador único usado por BIS Billing 3.0 y sus'
+                    ' derivados, también llamado "Endpoint ID" (Odoo'
+                    ' peppol_endpoint).'
+                ),
                 max_length=50,
                 verbose_name="Peppol Endpoint",
             ),
@@ -290,11 +350,18 @@ class Migration(migrations.Migration):
                 choices=[
                     ("not_verified", "Sin verificar"),
                     ("not_valid", "El contacto no está en Peppol"),
-                    ("not_valid_format", "El contacto no puede recibir el formato"),
+                    (
+                        "not_valid_format",
+                        "El contacto no puede recibir el formato",
+                    ),
                     ("valid", "El contacto está en Peppol"),
                 ],
                 default="not_verified",
-                help_text="Si el contacto existe en la red Peppol y puede recibir el formato elegido (Odoo peppol_verification_state; su company_dependent=True no tiene contraparte aquí).",
+                help_text=(
+                    "Si el contacto existe en la red Peppol y puede recibir el"
+                    " formato elegido (Odoo peppol_verification_state; su"
+                    " company_dependent=True no tiene contraparte aquí)."
+                ),
                 max_length=20,
                 verbose_name="Estado Peppol",
             ),
@@ -305,7 +372,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="30_days",
-                help_text="Base sobre la que se calcula la cantidad sugerida de compra (Odoo suggest_based_on).",
+                help_text=(
+                    "Base sobre la que se calcula la cantidad sugerida de"
+                    " compra (Odoo suggest_based_on)."
+                ),
                 max_length=32,
             ),
         ),
@@ -314,7 +384,10 @@ class Migration(migrations.Migration):
             name="suggest_days",
             field=models.IntegerField(
                 default=7,
-                help_text="Días de horizonte de la sugerencia de compra (Odoo suggest_days).",
+                help_text=(
+                    "Días de horizonte de la sugerencia de compra (Odoo"
+                    " suggest_days)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -322,7 +395,10 @@ class Migration(migrations.Migration):
             name="suggest_percent",
             field=models.IntegerField(
                 default=100,
-                help_text="Porcentaje que se aplica a la cantidad sugerida (Odoo suggest_percent).",
+                help_text=(
+                    "Porcentaje que se aplica a la cantidad sugerida (Odoo"
+                    " suggest_percent)."
+                ),
             ),
         ),
     ]

@@ -6,6 +6,7 @@ creadas — ``account`` no declara su propia capa DRF (0 ``controllers/`` en
 ese addon, H-API-406), así que este serializer de salida no reusa uno
 existente: es el primero que expone ``AccountMove`` por HTTP.
 """
+
 from rest_framework import serializers
 
 from addons.account.models import AccountJournal, AccountMove
@@ -17,23 +18,30 @@ class CreateDebitNoteSerializer(serializers.Serializer):
     del movimiento de origen cuando el llamador no los provee."""
 
     move_ids = serializers.PrimaryKeyRelatedField(
-        many=True, queryset=AccountMove.objects.all(),
+        many=True,
+        queryset=AccountMove.objects.all(),
         help_text='Movimientos de origen (deben estar posted).',
     )
     date = serializers.DateField(
-        required=False, allow_null=True,
+        required=False,
+        allow_null=True,
         help_text='Default: la fecha del movimiento original.',
     )
     reason = serializers.CharField(
-        required=False, allow_blank=True, allow_null=True,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
         help_text='Se agrega a la referencia del nuevo movimiento.',
     )
     journal_id = serializers.PrimaryKeyRelatedField(
-        required=False, allow_null=True, queryset=AccountJournal.objects.all(),
+        required=False,
+        allow_null=True,
+        queryset=AccountJournal.objects.all(),
         help_text='Default: el diario del movimiento original.',
     )
     copy_lines = serializers.BooleanField(
-        required=False, default=False,
+        required=False,
+        default=False,
         help_text='Si es true, copia las líneas del movimiento original.',
     )
 
@@ -45,6 +53,16 @@ class DebitNoteResultSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AccountMove
-        fields = ['id', 'name', 'ref', 'date', 'state', 'move_type',
-                  'journal', 'partner', 'currency', 'company']
+        fields = [
+            'id',
+            'name',
+            'ref',
+            'date',
+            'state',
+            'move_type',
+            'journal',
+            'partner',
+            'currency',
+            'company',
+        ]
         read_only_fields = fields

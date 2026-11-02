@@ -14,6 +14,7 @@ Cubre las ergonomías recomendadas en
 Se usa el sustantivo NO sensible ``catalogue`` para aislar la azúcar del gate
 de re-auth (DEC-12), que sólo dispara en sustantivos sensibles.
 """
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
@@ -24,9 +25,17 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 from rest_framework.views import APIView
 
 from addons.authz.models import (
-    AccessLevel, Capability, Module, Role, RoleAssignment, RoleCapability,
+    AccessLevel,
+    Capability,
+    Module,
+    Role,
+    RoleAssignment,
+    RoleCapability,
 )
-from addons.authz.permissions import CapabilityRequiredMixin, require_capability
+from addons.authz.permissions import (
+    CapabilityRequiredMixin,
+    require_capability,
+)
 from addons.authz.services import unknown_capability_codes
 
 User = get_user_model()
@@ -38,10 +47,15 @@ def seeded(db):
 
 
 def _user_with_noun(noun, level=AccessLevel.VIEW):
-    u = User.objects.create_user(login=f'cap-{noun}-{level}@t.mx', password='x')
-    module, _ = Module.objects.get_or_create(code=noun, defaults={'name': noun})
+    u = User.objects.create_user(
+        login=f'cap-{noun}-{level}@t.mx', password='x'
+    )
+    module, _ = Module.objects.get_or_create(
+        code=noun, defaults={'name': noun}
+    )
     cap, _ = Capability.objects.get_or_create(
-        code=noun, defaults={'module': module, 'name': noun})
+        code=noun, defaults={'module': module, 'name': noun}
+    )
     role = Role.objects.create(code=f'r-{noun}-{level}', name='r')
     RoleCapability.objects.create(role=role, capability=cap, level=level)
     RoleAssignment.objects.create(user=u, role=role)
@@ -49,6 +63,7 @@ def _user_with_noun(noun, level=AccessLevel.VIEW):
 
 
 # ─── #2 CapabilityRequiredMixin ──────────────────────────────────────────────
+
 
 class _MixinView(CapabilityRequiredMixin, APIView):
     required_capability = 'catalogue.view'
@@ -75,6 +90,7 @@ def test_mixin_allows_with_capability(seeded):
 
 # ─── #3 @require_capability (function-based @api_view) ───────────────────────
 
+
 @api_view(['GET'])
 @require_capability('catalogue.view')
 def _decorated_view(request):
@@ -99,20 +115,36 @@ def test_decorator_allows_with_capability(seeded):
 
 # ─── #5 unknown_capability_codes (anti-typo) ────────────────────────────────
 
+
 @pytest.mark.django_db
 def test_unknown_capability_codes_matrix(seeded):
     # Todos válidos (graded noun, named action, self-account) → vacío.
-    assert unknown_capability_codes([
-        'catalogue.view', 'payments.edit', 'platform.provision', 'account.profile',
-    ]) == set()
+    assert (
+        unknown_capability_codes(
+            [
+                'catalogue.view',
+                'payments.edit',
+                'platform.provision',
+                'account.profile',
+            ]
+        )
+        == set()
+    )
     # Typos de varios tipos → todos detectados.
-    bad = unknown_capability_codes([
-        'catalogue.viewx',   # verbo no-CRUD → named exacto inexistente
-        'bogus.view',        # noun inexistente
-        'notacap',           # sin punto, code inexistente
+    bad = unknown_capability_codes(
+        [
+            'catalogue.viewx',  # verbo no-CRUD → named exacto inexistente
+            'bogus.view',  # noun inexistente
+            'notacap',  # sin punto, code inexistente
+            'platform.provisionx',
+        ]
+    )
+    assert bad == {
+        'catalogue.viewx',
+        'bogus.view',
+        'notacap',
         'platform.provisionx',
-    ])
-    assert bad == {'catalogue.viewx', 'bogus.view', 'notacap', 'platform.provisionx'}
+    }
 
 
 def _collect_declared_capability_codes():
@@ -148,8 +180,11 @@ def test_all_declared_capabilities_are_seeded(seeded):
     """CI anti-typo: ninguna capacidad declarada en una vista queda sin sembrar
     (un typo produciría un fail-closed silencioso perpetuo, 403)."""
     declared = _collect_declared_capability_codes()
-    assert declared, 'el barrido del URLconf no encontró capacidades declaradas'
+    assert (
+        declared
+    ), 'el barrido del URLconf no encontró capacidades declaradas'
     unknown = unknown_capability_codes(declared)
     assert unknown == set(), (
-        f'Capacidades declaradas sin Capability sembrado (typos): {sorted(unknown)}'
+        'Capacidades declaradas sin Capability sembrado (typos):'
+        f' {sorted(unknown)}'
     )

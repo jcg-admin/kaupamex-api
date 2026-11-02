@@ -21,6 +21,7 @@ tabla — sin tocar ``base`` ni su migración.
 la referencia declara con ``depends: ['account']``). Sin ese registro Django
 no descubre esta app ni corre su migración inicial.
 """
+
 from django.apps import AppConfig
 
 

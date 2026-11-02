@@ -11,6 +11,7 @@ ruta de la referencia con ``website=True`` que lo respalda.
 
 Sin base de datos: sólo importa las clases y lee su atributo.
 """
+
 import pytest
 
 from addons.base.models.ir_http import CompanyContextMiddleware
@@ -34,13 +35,13 @@ from addons.website.controllers.main import (
 #: ``website=True`` en su ``@http.route`` (cita ``file:line`` junto a cada
 #: declaración en el archivo de la vista).
 FRONTEND_DECLARANTS = [
-    PortalAccountView,          # odoo19c: portal/controllers/portal.py:190
-    PortalAddressListView,      # odoo19c: portal/controllers/portal.py:219
-    PortalAddressArchiveView,   # odoo19c: portal/controllers/portal.py:858
-    PortalSecurityView,         # odoo19c: portal/controllers/portal.py:871
-    PortalPasswordView,         # odoo19c: portal/controllers/portal.py:871
-    PortalDeactivationView,     # odoo19c: portal/controllers/portal.py:914
-    PublicStaticPageView,       # odoo19c: website/controllers/main.py:344
+    PortalAccountView,  # odoo19c: portal/controllers/portal.py:190
+    PortalAddressListView,  # odoo19c: portal/controllers/portal.py:219
+    PortalAddressArchiveView,  # odoo19c: portal/controllers/portal.py:858
+    PortalSecurityView,  # odoo19c: portal/controllers/portal.py:871
+    PortalPasswordView,  # odoo19c: portal/controllers/portal.py:871
+    PortalDeactivationView,  # odoo19c: portal/controllers/portal.py:914
+    PublicStaticPageView,  # odoo19c: website/controllers/main.py:344
 ]
 
 #: Superficie admin representativa — la referencia la sirve con el web

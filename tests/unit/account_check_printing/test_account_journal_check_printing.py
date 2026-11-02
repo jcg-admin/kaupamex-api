@@ -6,6 +6,7 @@ Requiere ``addons.account_check_printing`` en ``INSTALLED_APPS`` (fuera del
 alcance de este porte — ver ``__init__.py`` del paquete) para que la
 migración cree sus tablas.
 """
+
 import pytest
 
 from addons.account.models import AccountJournal
@@ -26,7 +27,12 @@ def company(db):
 
 
 def _journal(company, **kwargs):
-    defaults = {'name': 'Banco', 'code': 'BNK', 'type': 'bank', 'company': company}
+    defaults = {
+        'name': 'Banco',
+        'code': 'BNK',
+        'type': 'bank',
+        'company': company,
+    }
     defaults.update(kwargs)
     return AccountJournal.objects.create(**defaults)
 
@@ -58,29 +64,41 @@ class TestSyncBankJournal:
         journal = _journal(company, type='sale', code='VEN')
         row = CheckPrintingJournalSettings.sync_bank_journal(journal)
         assert row is None
-        assert not CheckPrintingJournalSettings.objects.filter(journal=journal).exists()
+        assert not CheckPrintingJournalSettings.objects.filter(
+            journal=journal
+        ).exists()
 
 
 class TestOnJournalSavedSignal:
     def test_new_bank_journal_is_provisioned(self, company):
-        journal = AccountJournal(name='Banco', code='BN2', type='bank', company=company)
+        journal = AccountJournal(
+            name='Banco', code='BN2', type='bank', company=company
+        )
         journal.save()
         on_journal_saved(sender=AccountJournal, instance=journal, created=True)
-        assert CheckPrintingJournalSettings.objects.filter(journal=journal).exists()
+        assert CheckPrintingJournalSettings.objects.filter(
+            journal=journal
+        ).exists()
 
     def test_update_does_not_reprovision(self, company):
         journal = _journal(company)
         CheckPrintingJournalSettings.ensure_check_sequence(journal)
         row_before = CheckPrintingJournalSettings.objects.get(journal=journal)
-        on_journal_saved(sender=AccountJournal, instance=journal, created=False)
+        on_journal_saved(
+            sender=AccountJournal, instance=journal, created=False
+        )
         row_after = CheckPrintingJournalSettings.objects.get(journal=journal)
         assert row_before.pk == row_after.pk
 
     def test_non_bank_journal_is_not_provisioned(self, company):
-        journal = AccountJournal(name='Ventas', code='VEN', type='sale', company=company)
+        journal = AccountJournal(
+            name='Ventas', code='VEN', type='sale', company=company
+        )
         journal.save()
         on_journal_saved(sender=AccountJournal, instance=journal, created=True)
-        assert not CheckPrintingJournalSettings.objects.filter(journal=journal).exists()
+        assert not CheckPrintingJournalSettings.objects.filter(
+            journal=journal
+        ).exists()
 
 
 class TestNextCheckNumber:

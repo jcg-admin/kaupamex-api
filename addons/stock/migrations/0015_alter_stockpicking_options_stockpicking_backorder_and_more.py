@@ -25,7 +25,10 @@ class Migration(migrations.Migration):
             name="backorder",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Si este albarán se dividió, apunta al albarán que ya se procesó (Odoo backorder_id).",
+                help_text=(
+                    "Si este albarán se dividió, apunta al albarán que ya se"
+                    " procesó (Odoo backorder_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="backorder_ids",
@@ -38,7 +41,10 @@ class Migration(migrations.Migration):
             name="date_done",
             field=models.DateTimeField(
                 blank=True,
-                help_text="Fecha en que el albarán se procesó o canceló (Odoo date_done).",
+                help_text=(
+                    "Fecha en que el albarán se procesó o canceló (Odoo"
+                    " date_done)."
+                ),
                 null=True,
                 verbose_name="Fecha de proceso",
             ),
@@ -58,7 +64,10 @@ class Migration(migrations.Migration):
             name="owner",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Al validar, los productos se asignan a este propietario (Odoo owner_id).",
+                help_text=(
+                    "Al validar, los productos se asignan a este propietario"
+                    " (Odoo owner_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="owned_pickings",
@@ -72,7 +81,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 choices=[("0", "Normal"), ("1", "Urgent")],
                 default="0",
-                help_text="Los productos con prioridad alta se reservan primero (Odoo priority).",
+                help_text=(
+                    "Los productos con prioridad alta se reservan primero"
+                    " (Odoo priority)."
+                ),
                 max_length=1,
                 verbose_name="Prioridad",
             ),
@@ -82,7 +94,10 @@ class Migration(migrations.Migration):
             name="return_of",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Si este albarán se creó como devolución de otro, apunta al original (Odoo return_id).",
+                help_text=(
+                    "Si este albarán se creó como devolución de otro, apunta"
+                    " al original (Odoo return_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="return_ids",
@@ -98,7 +113,10 @@ class Migration(migrations.Migration):
                     ("direct", "En cuanto sea posible"),
                     ("one", "Cuando todos los productos estén listos"),
                 ],
-                help_text="Parcial o todo junto (Odoo move_type). Sale del tipo de operación y se puede sobreescribir por albarán.",
+                help_text=(
+                    "Parcial o todo junto (Odoo move_type). Sale del tipo de"
+                    " operación y se puede sobreescribir por albarán."
+                ),
                 max_length=8,
                 verbose_name="Política de envío",
             ),

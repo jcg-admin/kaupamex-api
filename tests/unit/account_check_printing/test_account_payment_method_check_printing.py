@@ -4,6 +4,7 @@
 ``combine=``, nunca ``hasattr`` — este test verifica precisamente que el
 caso base (``manual``) sobrevive a la cadena.
 """
+
 from addons.account.models import AccountPaymentMethod
 from addons.account_check_printing.models.account_payment_method import (
     apply_account_check_printing_payment_method_extensions,
@@ -19,7 +20,10 @@ class TestPaymentMethodInformation:
 
     def test_manual_from_the_base_class_survives_the_chain(self):
         info = AccountPaymentMethod()._get_payment_method_information()
-        assert info['manual'] == {'mode': 'multi', 'type': ('bank', 'cash', 'credit')}
+        assert info['manual'] == {
+            'mode': 'multi',
+            'type': ('bank', 'cash', 'credit'),
+        }
 
     def test_reapplying_does_not_lose_either_entry(self):
         # ``chain_method`` es idempotente (``_already_in_chain``) — reaplicar
@@ -34,4 +38,7 @@ class TestPaymentMethodInformation:
         # Un assert de exclusividad sobre un hook acumulativo miente en cuanto
         # se activa el addon hermano.
         assert info['check_printing'] == {'mode': 'multi', 'type': ('bank',)}
-        assert info['manual'] == {'mode': 'multi', 'type': ('bank', 'cash', 'credit')}
+        assert info['manual'] == {
+            'mode': 'multi',
+            'type': ('bank', 'cash', 'credit'),
+        }

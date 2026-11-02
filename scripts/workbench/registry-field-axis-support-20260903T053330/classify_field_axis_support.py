@@ -19,13 +19,13 @@ pueda decir que no. Su control vive en ``tests/``.
 *Ciega a:* la conducta del simbolo instalado — mide que el nombre existe, no
 que haga lo mismo que la referencia.
 """
+
 import argparse
 import importlib
 import json
 import pathlib
 import sys
 from dataclasses import dataclass
-
 
 #: El inventario de proveedores, verbatim como lo declara el ejecutor. La
 #: clave es el par (paquete, trabajo que hace); el valor queda vacio porque
@@ -87,7 +87,10 @@ SYMBOLS = (
     Symbol(
         name='field_computed',
         reference='odoo19c: odoo/orm/registry.py:514',
-        does='agrupa los campos que comparten metodo de calculo y avisa de tres incoherencias',
+        does=(
+            'agrupa los campos que comparten metodo de calculo y avisa de tres'
+            ' incoherencias'
+        ),
         provider=('cpython', 'contencion por bytecode'),
         # No hay nada instalado que agrupe por ``compute`` ni que emita los
         # tres avisos de consistencia: se escribe.
@@ -101,7 +104,10 @@ SYMBOLS = (
     Symbol(
         name='get_trigger_tree',
         reference='odoo19c: odoo/orm/registry.py:552',
-        does='funde los arboles de los campos que cambiaron, filtrando por select',
+        does=(
+            'funde los arboles de los campos que cambiaron, filtrando por'
+            ' select'
+        ),
         provider=('cpython', 'contencion por bytecode'),
         installed=(),
         primitives=('orm.registry.TriggerTree.merge',),
@@ -109,7 +115,9 @@ SYMBOLS = (
     Symbol(
         name='get_dependent_fields',
         reference='odoo19c: odoo/orm/registry.py:565',
-        does='recorre el arbol en profundidad y entrega los campos dependientes',
+        does=(
+            'recorre el arbol en profundidad y entrega los campos dependientes'
+        ),
         provider=('cpython', 'contencion por bytecode'),
         installed=(),
         primitives=('orm.registry.TriggerTree.depth_first',),
@@ -117,7 +125,10 @@ SYMBOLS = (
     Symbol(
         name='_discard_fields',
         reference='odoo19c: odoo/orm/registry.py:573',
-        does='retira los campos dados de las cinco estructuras derivadas a la vez',
+        does=(
+            'retira los campos dados de las cinco estructuras derivadas a'
+            ' la vez'
+        ),
         provider=('cpython', 'contencion por bytecode'),
         installed=(),
         primitives=(
@@ -139,7 +150,9 @@ SYMBOLS = (
     Symbol(
         name='_field_triggers',
         reference='odoo19c: odoo/orm/registry.py:643',
-        does='invierte las dependencias declaradas en {campo: {camino: campos}}',
+        does=(
+            'invierte las dependencias declaradas en {campo: {camino: campos}}'
+        ),
         provider=('cpython', 'contencion por bytecode'),
         installed=(),
         primitives=(
@@ -215,10 +228,16 @@ def report():
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument('--json', action='store_true',
-                        help='emite el reparto como JSON en vez de tabla')
-    parser.add_argument('--strict', action='store_true',
-                        help='sale 1 si algun simbolo queda BLOCKED')
+    parser.add_argument(
+        '--json',
+        action='store_true',
+        help='emite el reparto como JSON en vez de tabla',
+    )
+    parser.add_argument(
+        '--strict',
+        action='store_true',
+        help='sale 1 si algun simbolo queda BLOCKED',
+    )
     args = parser.parse_args(argv)
 
     verdicts, buckets = report()
@@ -228,7 +247,9 @@ def main(argv=None):
         payload = {
             'total': total,
             'buckets': {k: [v.name for v in vs] for k, vs in buckets.items()},
-            'missing': {v.name: list(v.missing) for v in verdicts if v.missing},
+            'missing': {
+                v.name: list(v.missing) for v in verdicts if v.missing
+            },
         }
         print(json.dumps(payload, indent=2, ensure_ascii=False))
     else:
@@ -237,8 +258,9 @@ def main(argv=None):
         for verdict in verdicts:
             symbol = by_name[verdict.name]
             paquete, trabajo = symbol.provider
-            print(f'  {verdict.kind:<9} {verdict.name:<24} '
-                  f'{paquete}/{trabajo}')
+            print(
+                f'  {verdict.kind:<9} {verdict.name:<24} {paquete}/{trabajo}'
+            )
             print(f'            {symbol.reference}')
             print(f'            {symbol.does}')
             if verdict.missing:
@@ -246,15 +268,32 @@ def main(argv=None):
         print()
         for kind in ('READY', 'BUILDABLE', 'BLOCKED'):
             nombres = [v.name for v in buckets[kind]]
-            print(f'{kind}: {len(nombres)} de {total} — {", ".join(nombres) or "ninguno"}')
+            print(
+                f'{kind}: {len(nombres)} de {total} —'
+                f' {", ".join(nombres) or "ninguno"}'
+            )
 
-    salida = pathlib.Path(__file__).resolve().parent / 'outputs' / 'verdicts.json'
+    salida = (
+        pathlib.Path(__file__).resolve().parent / 'outputs' / 'verdicts.json'
+    )
     salida.parent.mkdir(exist_ok=True)
-    salida.write_text(json.dumps(
-        {'total': total,
-         'buckets': {k: [v.name for v in vs] for k, vs in buckets.items()},
-         'missing': {v.name: list(v.missing) for v in verdicts if v.missing}},
-        indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+    salida.write_text(
+        json.dumps(
+            {
+                'total': total,
+                'buckets': {
+                    k: [v.name for v in vs] for k, vs in buckets.items()
+                },
+                'missing': {
+                    v.name: list(v.missing) for v in verdicts if v.missing
+                },
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+        + '\n',
+        encoding='utf-8',
+    )
 
     if args.strict and buckets['BLOCKED']:
         return 1

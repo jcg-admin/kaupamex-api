@@ -1,4 +1,5 @@
 """Real SQL/savepoint dependency with optional reporter deliberately absent."""
+
 from contextlib import nullcontext
 import json
 from pathlib import Path
@@ -34,29 +35,69 @@ class OptionalReporterEnvironment:
         return None
 
 
-with TemporaryDirectory(prefix='demo_savepoint_', dir=root/'addons') as directory:
+with TemporaryDirectory(
+    prefix='demo_savepoint_', dir=root / 'addons'
+) as directory:
     path = Path(directory)
-    (path/'insert.sql').write_text('INSERT INTO contract_demo_savepoint_events VALUES (1)')
-    (path/'failure.sql').write_text("SELECT CAST('expected-demo-error' AS integer)")
-    package = SimpleNamespace(name=path.name, id=0, manifest={'demo':['insert.sql']})
+    (path / 'insert.sql').write_text(
+        'INSERT INTO contract_demo_savepoint_events VALUES (1)'
+    )
+    (path / 'failure.sql').write_text(
+        "SELECT CAST('expected-demo-error' AS integer)"
+    )
+    package = SimpleNamespace(
+        name=path.name, id=0, manifest={'demo': ['insert.sql']}
+    )
     with connection.cursor() as cursor:
-        cursor.execute('CREATE TABLE contract_demo_savepoint_events (value integer)')
+        cursor.execute(
+            'CREATE TABLE contract_demo_savepoint_events (value integer)'
+        )
     try:
         with transaction.atomic():
-            assert load_demo(OptionalReporterEnvironment(), package, {}, 'init') is True
+            assert (
+                load_demo(OptionalReporterEnvironment(), package, {}, 'init')
+                is True
+            )
             with connection.cursor() as cursor:
-                cursor.execute('SELECT count(*) FROM contract_demo_savepoint_events')
+                cursor.execute(
+                    'SELECT count(*) FROM contract_demo_savepoint_events'
+                )
                 assert cursor.fetchone() == (1,)
                 cursor.execute('DELETE FROM contract_demo_savepoint_events')
-            package.manifest['demo'] = ['insert.sql','failure.sql']
-            mutation = mock.patch('modules.loading.transaction.atomic', return_value=nullcontext()) if '--annul-savepoint' in sys.argv else nullcontext()
+            package.manifest['demo'] = ['insert.sql', 'failure.sql']
+            mutation = (
+                mock.patch(
+                    'modules.loading.transaction.atomic',
+                    return_value=nullcontext(),
+                )
+                if '--annul-savepoint' in sys.argv
+                else nullcontext()
+            )
             with mutation:
-                assert load_demo(OptionalReporterEnvironment(), package, {}, 'init') is False
+                assert (
+                    load_demo(
+                        OptionalReporterEnvironment(), package, {}, 'init'
+                    )
+                    is False
+                )
             with connection.cursor() as cursor:
-                cursor.execute('SELECT count(*) FROM contract_demo_savepoint_events')
+                cursor.execute(
+                    'SELECT count(*) FROM contract_demo_savepoint_events'
+                )
                 assert cursor.fetchone() == (0,)
     finally:
         with connection.cursor() as cursor:
             cursor.execute('DROP TABLE contract_demo_savepoint_events')
-print(json.dumps({'real_files_converter_and_pg':True,'failed_stage_rolled_back':True,
-                  'outer_transaction_usable':True,'limits':'Optional failure model absent in fixture; actual reporter verified separately on full schema'}))
+print(
+    json.dumps(
+        {
+            'real_files_converter_and_pg': True,
+            'failed_stage_rolled_back': True,
+            'outer_transaction_usable': True,
+            'limits': (
+                'Optional failure model absent in fixture; actual reporter'
+                ' verified separately on full schema'
+            ),
+        }
+    )
+)

@@ -96,7 +96,9 @@ def offenders():
             continue
         if model.__module__.startswith(THIRD_PARTY_MODULE_PREFIXES):
             continue
-        if not isinstance(model._default_manager.get_queryset(), AccessQuerySet):
+        if not isinstance(
+            model._default_manager.get_queryset(), AccessQuerySet
+        ):
             fuera.append(model._meta.label)
     return fuera
 
@@ -127,7 +129,8 @@ def shadowed():
                 fuera.append(
                     f'{model._meta.label}.{declarado.name}: resuelve '
                     f'{gana.__name__} y eclipsa a {type(declarado).__name__}, '
-                    f'declarado en {base.__name__}')
+                    f'declarado en {base.__name__}'
+                )
     return fuera
 
 
@@ -137,9 +140,12 @@ def main():
     from orm.model_classes import THIRD_PARTY_MODULE_PREFIXES as OTROS
 
     if OTROS != THIRD_PARTY_MODULE_PREFIXES:
-        print('ERROR — la lista de prefijos de terceros diverge entre el gate '
-              'y orm/model_classes. NO se emite conteo: un 0 aquí mediría '
-              'un conjunto distinto del que el barrido adopta.', file=sys.stderr)
+        print(
+            'ERROR — la lista de prefijos de terceros diverge entre el gate '
+            'y orm/model_classes. NO se emite conteo: un 0 aquí mediría '
+            'un conjunto distinto del que el barrido adopta.',
+            file=sys.stderr,
+        )
         return 2
 
     fuera = offenders()
@@ -148,24 +154,34 @@ def main():
     alcance = f'alcance medido: {len(concretos)} modelo(s) concreto(s)'
     if fuera:
         for label in fuera:
-            print(f'{label}: su manager por defecto no devuelve un '
-                  f'AccessQuerySet — sin las cuatro formas de permiso')
+            print(
+                f'{label}: su manager por defecto no devuelve un '
+                'AccessQuerySet — sin las cuatro formas de permiso'
+            )
         print(f'\nFAIL: {len(fuera)} modelo(s) sin AccessManager ({alcance}).')
-        print('  Un manager propio debe derivar de models.AccessManager, y su '
-              'QuerySet\n  de models.AccessQuerySet. Sin manager propio lo pone '
-              'la señal sola.')
+        print(
+            '  Un manager propio debe derivar de models.AccessManager, y su '
+            'QuerySet\n  de models.AccessQuerySet. Sin manager propio lo pone '
+            'la señal sola.'
+        )
     if eclipsados:
         for line in eclipsados:
             print(line)
-        print(f'\nFAIL: {len(eclipsados)} manager(s) declarado(s) que el MRO '
-              f'eclipsa ({alcance}).')
-        print('  Options.managers se queda con el PRIMERO por profundidad de '
-              'MRO.\n  Retirar el manager de la base genérica, o declararlo en '
-              'el modelo.')
+        print(
+            f'\nFAIL: {len(eclipsados)} manager(s) declarado(s) que el MRO '
+            f'eclipsa ({alcance}).'
+        )
+        print(
+            '  Options.managers se queda con el PRIMERO por profundidad de '
+            'MRO.\n  Retirar el manager de la base genérica, o declararlo en '
+            'el modelo.'
+        )
     if fuera or eclipsados:
         return 1
-    print(f'OK: todo modelo nuestro resuelve las cuatro formas y ninguna base '
-          f'queda eclipsada ({alcance}).')
+    print(
+        'OK: todo modelo nuestro resuelve las cuatro formas y ninguna base '
+        f'queda eclipsada ({alcance}).'
+    )
     return 0
 
 

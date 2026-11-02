@@ -7,6 +7,7 @@ No requieren DB: ``check_formula``/``normalize_formula`` son AST puro, y
 ``_check_and_normalize_formula`` sólo introspecciona clases Django ya
 importadas (``ProductProduct._meta.get_field``) — sin tocar la base.
 """
+
 import pytest
 
 from addons.account_tax_python.models.account_tax import AccountTaxFormula
@@ -66,26 +67,47 @@ def test_ast_validator_rejects(formula):
 
 VALID_NORMALIZE_CASES = [
     (
-        "((10_000 / product.__dunders__) * (product['shall'] - product[\"n0t\"] + ((product._pass)))) -.01",
-        "10000 / product['__dunders__'] * (product['shall'] - product['n0t'] + product['_pass']) - 0.01",
+        (
+            "((10_000 / product.__dunders__) * (product['shall'] -"
+            " product[\"n0t\"] + ((product._pass)))) -.01"
+        ),
+        (
+            "10000 / product['__dunders__'] * (product['shall'] -"
+            " product['n0t'] + product['_pass']) - 0.01"
+        ),
         {"__dunders__", "shall", "n0t", "_pass"},
     ),
     (
-        "-bob[eats(product . sandwich)] + +product. \\\nwith_fries_inside and product['IS_THE_WAY']",
-        "-bob[eats(product['sandwich'])] + +product['with_fries_inside'] and product['IS_THE_WAY']",
+        (
+            "-bob[eats(product . sandwich)] + +product. \\\nwith_fries_inside"
+            " and product['IS_THE_WAY']"
+        ),
+        (
+            "-bob[eats(product['sandwich'])] + +product['with_fries_inside']"
+            " and product['IS_THE_WAY']"
+        ),
         {"sandwich", "with_fries_inside", "IS_THE_WAY"},
     ),
     (
-        "(product.help_youself, product['with some']) if product[None] else product.tarte_al_djote['grault']",
-        "(product['help_youself'], product['with some']) if product[None] else product['tarte_al_djote']['grault']",
+        (
+            "(product.help_youself, product['with some']) if product[None]"
+            " else product.tarte_al_djote['grault']"
+        ),
+        (
+            "(product['help_youself'], product['with some']) if product[None]"
+            " else product['tarte_al_djote']['grault']"
+        ),
         {"help_youself", "with some", "tarte_al_djote"},
     ),
 ]
 
 
 @pytest.mark.parametrize(
-    'formula,esperado_normalizado,campos_esperados', VALID_NORMALIZE_CASES)
-def test_ast_transformer_normalizes(formula, esperado_normalizado, campos_esperados):
+    'formula,esperado_normalizado,campos_esperados', VALID_NORMALIZE_CASES
+)
+def test_ast_transformer_normalizes(
+    formula, esperado_normalizado, campos_esperados
+):
     normalizado, campos_accedidos = normalize_formula(formula)
     assert campos_accedidos['product.product'] == campos_esperados
     assert normalizado == esperado_normalizado
@@ -98,16 +120,16 @@ def test_ast_transformer_normalizes(formula, esperado_normalizado, campos_espera
 # Sigue siendo relacional: la razón del rechazo no cambia.
 
 INVALID_FORMULAS = [
-    'product.product_tmpl',       # sin campos relacionales
-    'product.sudo()',             # no hay control de acceso que simular
-    'tuple(1, 2, 3)',             # sólo min/max, ninguna otra llamada
+    'product.product_tmpl',  # sin campos relacionales
+    'product.sudo()',  # no hay control de acceso que simular
+    'tuple(1, 2, 3)',  # sólo min/max, ninguna otra llamada
     'set(1, 2, 3)',
     '[1, 2, 3]',
     '1,',
     '{1, 2}',
     '{1: 2}',
     '(i for _ in product)',
-    '"test"',                     # las cadenas sólo se permiten en subíndices
+    '"test"',  # las cadenas sólo se permiten en subíndices
     'product[min("volume", "price")]',
     'product()',
     'product[0]',
@@ -129,15 +151,18 @@ def test_check_and_normalize_formula_rejects(formula):
 
 # -- campos de producto/uom que SÍ existen y son serializables ---------------
 
+
 def test_check_and_normalize_formula_accepts_product_volume():
     normalizado, campos = AccountTaxFormula._check_and_normalize_formula(
-        'product.volume * quantity * 0.35')
+        'product.volume * quantity * 0.35'
+    )
     assert normalizado == "product['volume'] * quantity * 0.35"
     assert campos['product.product'] == {'volume'}
 
 
 def test_check_and_normalize_formula_accepts_uom_relative_factor():
     normalizado, campos = AccountTaxFormula._check_and_normalize_formula(
-        'uom.relative_factor')
+        'uom.relative_factor'
+    )
     assert normalizado == "uom['relative_factor']"
     assert campos['uom.uom'] == {'relative_factor'}

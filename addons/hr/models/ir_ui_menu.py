@@ -51,6 +51,7 @@ Divergencias y bloqueos declarados
    disponible para cuando el podado por rol se cablee en el manager; cablear
    ese consumo cambia el contrato del endpoint de menú y se decide aparte.
 """
+
 from orm.model_classes import extend_model
 
 
@@ -83,6 +84,10 @@ def _load_menus_blacklist(cls, user):
 
 def apply_hr_ir_ui_menu_extensions():
     """Cuelga sobre ``ir.ui.menu`` lo que ``hr`` le añade — ≙ ``_inherit``."""
-    extend_model('base', 'IrUiMenu', metodos={
-        '_load_menus_blacklist': classmethod(_load_menus_blacklist),
-    })
+    extend_model(
+        'base',
+        'IrUiMenu',
+        metodos={
+            '_load_menus_blacklist': classmethod(_load_menus_blacklist),
+        },
+    )

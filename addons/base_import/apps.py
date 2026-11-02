@@ -10,6 +10,7 @@ Cuando entren ``base_import.mapping`` (modelo persistente) y
 ``base_import.import`` (el asistente transitorio), este AppConfig gana su
 bloque de extensiones con el mismo criterio que sus hermanos.
 """
+
 from django.apps import AppConfig
 
 

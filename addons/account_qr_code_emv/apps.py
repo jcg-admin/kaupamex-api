@@ -11,6 +11,7 @@ Pendiente de wiring (fuera del alcance de este addon — ver
 ``AppConfig`` sólo se ejecuta si ``'addons.account_qr_code_emv'`` está en
 ``INSTALLED_APPS`` (``config/settings/base.py``, no tocado por este agente).
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -25,9 +26,7 @@ class AccountQrCodeEmvConfig(AppConfig):
     #: Módulos que extienden modelos de OTRO addon — ≙ ``_inherit``. Mismo
     #: patrón que ``L10nMxConfig._EXTENSIONES``: un elemento hoy, tupla por
     #: si una localización futura necesita colgar un segundo archivo aquí.
-    _EXTENSIONES = (
-        'addons.account_qr_code_emv.models.res_bank',
-    )
+    _EXTENSIONES = ('addons.account_qr_code_emv.models.res_bank',)
 
     def ready(self):
         """Cuelga el vocabulario EMV sobre ``base.ResPartnerBank``.
@@ -38,4 +37,6 @@ class AccountQrCodeEmvConfig(AppConfig):
         patrón que ``L10nMxConfig.ready()``/``AccountConfig.ready()``.
         """
         for ruta in self._EXTENSIONES:
-            importlib.import_module(ruta).apply_account_qr_code_emv_extensions()
+            importlib.import_module(
+                ruta
+            ).apply_account_qr_code_emv_extensions()

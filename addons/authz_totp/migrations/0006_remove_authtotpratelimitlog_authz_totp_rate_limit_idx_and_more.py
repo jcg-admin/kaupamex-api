@@ -22,7 +22,11 @@ class Migration(migrations.Migration):
             name="user",
             field=models.ForeignKey(
                 db_column="user_id",
-                help_text="Odoo user_id (required, readonly) — de quién es el intento que se cuenta. El readonly de la fuente es de su capa de vista y no tiene receptor en el modelo Django.",
+                help_text=(
+                    "Odoo user_id (required, readonly) — de quién es el"
+                    " intento que se cuenta. El readonly de la fuente es de su"
+                    " capa de vista y no tiene receptor en el modelo Django."
+                ),
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="totp_rate_limit_logs",
                 to=settings.AUTH_USER_MODEL,

@@ -144,7 +144,9 @@ class Migration(migrations.Migration):
             model_name="accountmoveline",
             name="move",
             field=models.ForeignKey(
-                help_text="Asiento al que pertenece (Odoo move_id, requerido).",
+                help_text=(
+                    "Asiento al que pertenece (Odoo move_id, requerido)."
+                ),
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="line_ids",
                 to="account.accountmove",

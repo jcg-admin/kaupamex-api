@@ -44,8 +44,14 @@ class Migration(migrations.Migration):
                         max_length=10,
                     ),
                 ),
-                ("filename", models.CharField(blank=True, default="", max_length=255)),
-                ("size_bytes", models.PositiveBigIntegerField(blank=True, null=True)),
+                (
+                    "filename",
+                    models.CharField(blank=True, default="", max_length=255),
+                ),
+                (
+                    "size_bytes",
+                    models.PositiveBigIntegerField(blank=True, null=True),
+                ),
                 (
                     "download_url",
                     models.URLField(blank=True, default="", max_length=500),

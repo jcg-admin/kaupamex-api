@@ -9,6 +9,7 @@ Por qué estos códigos son de este addon:
 
 - ``support`` — ``helpdesk`` dueña tickets y su atención.
 """
+
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
 MODULES = [

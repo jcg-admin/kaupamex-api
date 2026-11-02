@@ -15,6 +15,7 @@ MODELO de progreso; NO porta ``views/onboarding_templates.xml``,
 Odoo) — no hay a qué adaptar un cliente web OWL en un backend Django REST.
 Ver ``__manifest__.py``.
 """
+
 from django.db import models
 
 import fields
@@ -35,17 +36,23 @@ class OnboardingOnboarding(TimeStampedModel):
 
     # Odoo name (onboarding_onboarding.py:13, translate).
     name = fields.Char(
-        max_length=255, blank=True, default='', verbose_name='Nombre',
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='Nombre',
     )
     # Odoo route_name (línea 14-15, required). "One word identifier used to
     # define the onboarding panel's route: /onboarding/{route_name}" — sin
     # panel web, no hay ruta HTTP que servir; el campo se conserva como
     # identificador estable del onboarding (mismo rol que un slug).
     route_name = fields.Char(
-        max_length=64, unique=True, verbose_name='Identificador de una '
-        'palabra',
-        help_text='Identificador estable del onboarding (Odoo route_name; '
-                  'sin panel web, no define una ruta HTTP aquí).',
+        max_length=64,
+        unique=True,
+        verbose_name='Identificador de una palabra',
+        help_text=(
+            'Identificador estable del onboarding (Odoo route_name; '
+            'sin panel web, no define una ruta HTTP aquí).'
+        ),
     )
     # Odoo step_ids (línea 16) — M2M declarado UNA sola vez, del lado
     # Onboarding->Step; ``related_name`` da el accesor inverso equivalente a
@@ -53,22 +60,28 @@ class OnboardingOnboarding(TimeStampedModel):
     # ``OnboardingOnboardingStep``: Odoo lo declara en ambos modelos, pero
     # describe una única relación bidireccional).
     steps = fields.Many2many(
-        'onboarding.OnboardingOnboardingStep', related_name='onboardings',
-        blank=True, verbose_name='Pasos del onboarding',
+        'onboarding.OnboardingOnboardingStep',
+        related_name='onboardings',
+        blank=True,
+        verbose_name='Pasos del onboarding',
     )
     # Odoo text_completed (línea 18-20).
     text_completed = fields.Char(
-        max_length=255, blank=True,
+        max_length=255,
+        blank=True,
         default='Nice work! Your configuration is done.',
         verbose_name='Mensaje al completar',
         help_text='Texto mostrado cuando el onboarding se completa.',
     )
     # Odoo panel_close_action_name (línea 25-26).
     panel_close_action_name = fields.Char(
-        max_length=255, blank=True, default='',
+        max_length=255,
+        blank=True,
+        default='',
         verbose_name='Acción de cierre',
-        help_text='Nombre de la acción de modelo a ejecutar al cerrar el '
-                  'panel.',
+        help_text=(
+            'Nombre de la acción de modelo a ejecutar al cerrar el panel.'
+        ),
     )
     # Odoo sequence (línea 39, default 10).
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
@@ -187,7 +200,9 @@ class OnboardingOnboarding(TimeStampedModel):
         vincula un step per-company).
         """
         if self.is_per_company:
-            global_progress = self.progress_records.filter(company__isnull=True)
+            global_progress = self.progress_records.filter(
+                company__isnull=True
+            )
             if global_progress.exists():
                 global_progress.delete()
                 self._create_progress()
@@ -208,7 +223,9 @@ class OnboardingOnboarding(TimeStampedModel):
     def _create_progress(self, company=None):
         """``_create_progress`` (línea 113-123)."""
         context_company_id = _resolve_company_id(company)
-        progress_company_id = context_company_id if self.is_per_company else None
+        progress_company_id = (
+            context_company_id if self.is_per_company else None
+        )
         linked_step_progress = OnboardingProgressStep.objects.filter(
             step__in=self.steps.all(),
         ).filter(
@@ -216,7 +233,8 @@ class OnboardingOnboarding(TimeStampedModel):
             | models.Q(company_id=context_company_id),
         )
         progress = OnboardingProgress.objects.create(
-            onboarding=self, company_id=progress_company_id,
+            onboarding=self,
+            company_id=progress_company_id,
         )
         progress.progress_steps.set(linked_step_progress)
         return progress
@@ -232,7 +250,8 @@ class OnboardingOnboarding(TimeStampedModel):
         """
         progress = self.get_current_progress()
         onboarding_states_values = (
-            progress.get_and_update_onboarding_state() if progress
+            progress.get_and_update_onboarding_state()
+            if progress
             else {'onboarding_state': STATE_NOT_DONE}
         )
         return {

@@ -10,6 +10,7 @@ Por qué estos códigos son de este addon:
 - ``orders`` — ``sale`` dueña ``SaleOrder`` — la venta ES la orden
   (SOL-098).
 """
+
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
 MODULES = [

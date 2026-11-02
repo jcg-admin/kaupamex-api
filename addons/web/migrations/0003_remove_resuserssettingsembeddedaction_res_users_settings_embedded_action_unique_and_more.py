@@ -21,7 +21,10 @@ class Migration(migrations.Migration):
             name="action",
             field=models.ForeignKey(
                 db_column="action_id",
-                help_text="Acción embebida a la que aplica el ajuste (Odoo action_id, requerido, ondelete=cascade).",
+                help_text=(
+                    "Acción embebida a la que aplica el ajuste (Odoo"
+                    " action_id, requerido, ondelete=cascade)."
+                ),
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="embedded_user_settings",
                 to="base.iractionsactwindow",
@@ -38,7 +41,10 @@ class Migration(migrations.Migration):
             name="user_setting",
             field=models.ForeignKey(
                 db_column="user_setting_id",
-                help_text="Preferencias del usuario dueño de este ajuste (Odoo user_setting_id, requerido, ondelete=cascade).",
+                help_text=(
+                    "Preferencias del usuario dueño de este ajuste (Odoo"
+                    " user_setting_id, requerido, ondelete=cascade)."
+                ),
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="embedded_actions_config_ids",
                 to="base.resuserssettings",

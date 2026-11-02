@@ -8,6 +8,7 @@ sistema nunca corre sin empresa. Aquí ``get_current_company()`` devuelve
 ``None`` mientras nadie la active, así que el contexto de prueba la establece
 igual que lo haría una petición real.
 """
+
 import pytest
 
 from addons.base.models import ResCompany

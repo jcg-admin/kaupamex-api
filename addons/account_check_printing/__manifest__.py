@@ -15,7 +15,7 @@
     # Porte PARCIAL declarado: 18 símbolos ausentes (tarea #244) y el
     # `ReportSpec` del cheque sin declarar (tarea #280).
     'depends': [
-        'base',     # ResCompany, ResPartnerBank
+        'base',  # ResCompany, ResPartnerBank
         'account',  # AccountPayment, AccountJournal — el eje que numera
     ],
     'author': 'Odoo S.A.',

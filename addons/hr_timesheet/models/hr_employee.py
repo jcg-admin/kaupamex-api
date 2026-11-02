@@ -42,6 +42,7 @@ consulta con el ORM (``.timesheets.filter(project__isnull=False).exists()``)
 'timesheets'``), semánticamente idéntico (``EXISTS`` vs ``.exists()``,
 mismo plan de ejecución esperado en PostgreSQL).
 """
+
 from addons.hr.models import HrEmployee
 
 

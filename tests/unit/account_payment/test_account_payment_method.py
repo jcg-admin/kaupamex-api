@@ -6,6 +6,7 @@ fusión de ``_get_payment_method_information`` (``chain_method`` con
 Portación de ``odoo19c: account_payment/models/account_payment_method.py``
 (``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``).
 """
+
 import pytest
 
 from addons.account.models import AccountPaymentMethod
@@ -25,14 +26,16 @@ class TestGetPaymentMethodInformation:
         #   test_get_payment_method_information — no debe romperse por la
         #   extensión encadenada de este addon.
         m = AccountPaymentMethod.objects.create(
-            name='Manual', code='manual', payment_type='inbound')
+            name='Manual', code='manual', payment_type='inbound'
+        )
         info = m._get_payment_method_information()
         assert info['manual']['mode'] == 'multi'
         assert info['manual']['type'] == ('bank', 'cash', 'credit')
 
     def test_every_gateway_marked_electronic(self):
         m = AccountPaymentMethod.objects.create(
-            name='Manual 2', code='manual2', payment_type='inbound')
+            name='Manual 2', code='manual2', payment_type='inbound'
+        )
         info = m._get_payment_method_information()
         for gateway_code, _label in PaymentGateway.GATEWAYS:
             key = gateway_code.lower()
@@ -40,7 +43,8 @@ class TestGetPaymentMethodInformation:
 
     def test_mercadopago_and_paypal_present(self):
         m = AccountPaymentMethod.objects.create(
-            name='Manual 3', code='manual3', payment_type='inbound')
+            name='Manual 3', code='manual3', payment_type='inbound'
+        )
         info = m._get_payment_method_information()
         assert 'mercadopago' in info
         assert 'paypal' in info

@@ -37,7 +37,10 @@ class Migration(migrations.Migration):
                             ("partial", "Entrega parcial"),
                             ("full", "Entregada"),
                         ],
-                        help_text="Estado de entrega (Odoo sale.order.delivery_status).",
+                        help_text=(
+                            "Estado de entrega (Odoo"
+                            " sale.order.delivery_status)."
+                        ),
                         max_length=10,
                         null=True,
                     ),
@@ -45,7 +48,9 @@ class Migration(migrations.Migration):
                 (
                     "order",
                     models.OneToOneField(
-                        help_text="Orden de venta extendida (Odoo sale.order).",
+                        help_text=(
+                            "Orden de venta extendida (Odoo sale.order)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="delivery",
                         to="sale.saleorder",
@@ -76,13 +81,18 @@ class Migration(migrations.Migration):
                     "qty_delivered",
                     models.PositiveIntegerField(
                         default=0,
-                        help_text="Cantidad entregada (Odoo sale.order.line.qty_delivered).",
+                        help_text=(
+                            "Cantidad entregada (Odoo"
+                            " sale.order.line.qty_delivered)."
+                        ),
                     ),
                 ),
                 (
                     "line",
                     models.OneToOneField(
-                        help_text="Línea de orden extendida (Odoo sale.order.line).",
+                        help_text=(
+                            "Línea de orden extendida (Odoo sale.order.line)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="delivery",
                         to="sale.saleorderline",

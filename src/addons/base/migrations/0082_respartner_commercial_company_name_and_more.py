@@ -18,7 +18,11 @@ class Migration(migrations.Migration):
                 blank=True,
                 default="",
                 editable=False,
-                help_text="Razón social de la entidad comercial (Odoo commercial_company_name, ``odoo19c: res_partner.py:305``).",
+                help_text=(
+                    "Razón social de la entidad comercial (Odoo"
+                    " commercial_company_name, ``odoo19c:"
+                    " res_partner.py:305``)."
+                ),
                 max_length=255,
             ),
         ),
@@ -29,7 +33,11 @@ class Migration(migrations.Migration):
                 blank=True,
                 db_column="commercial_partner_id",
                 editable=False,
-                help_text="Entidad comercial del contacto: la primera empresa al subir por la cadena de padres (Odoo commercial_partner_id).",
+                help_text=(
+                    "Entidad comercial del contacto: la primera empresa al"
+                    " subir por la cadena de padres (Odoo"
+                    " commercial_partner_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="commercial_children",

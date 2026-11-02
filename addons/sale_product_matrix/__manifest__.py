@@ -1,4 +1,5 @@
-# Adaptado de Odoo Community `sale_product_matrix/__manifest__.py` (LGPL-3, odoo19c:) —
+# Adaptado de Odoo Community `sale_product_matrix/__manifest__.py`
+# (LGPL-3, odoo19c:) —
 # atribución y aviso de licencia preservados (DEC-KX-03).
 {
     'name': 'Matriz en el pedido',
@@ -13,8 +14,8 @@
     # `product_matrix` por fidelidad: sin él no hay rejilla que volcar, aunque
     # el import todavía no exista (porte parcial).
     'depends': [
-        'base',            # ResCompany
-        'sale',            # SaleOrder — el destino de las líneas
+        'base',  # ResCompany
+        'sale',  # SaleOrder — el destino de las líneas
         'product_matrix',  # la rejilla que este addon estrena en el pedido
     ],
     'author': 'Odoo S.A.',

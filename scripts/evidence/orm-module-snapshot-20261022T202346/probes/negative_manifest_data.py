@@ -1,4 +1,5 @@
 """Annul duplicate-file semantics only in memory; expected pytest exit1."""
+
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -27,6 +28,18 @@ def deduplicating_data(idref, mode, kind, package, *, using):
 
 loading.load_data = deduplicating_data
 root = Path(__file__).resolve().parents[4]
-print('Negative control: duplicate-file execution annulled only in memory', flush=True)
-raise SystemExit(pytest.main(['--noconftest','-o','addopts=', '-q',
-                             str(root/'tests/unit/modules/test_loading.py')]))
+print(
+    'Negative control: duplicate-file execution annulled only in memory',
+    flush=True,
+)
+raise SystemExit(
+    pytest.main(
+        [
+            '--noconftest',
+            '-o',
+            'addopts=',
+            '-q',
+            str(root / 'tests/unit/modules/test_loading.py'),
+        ]
+    )
+)

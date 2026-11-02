@@ -15,6 +15,7 @@ con ``text`` cae en el contrato de ausencia del motor y devuelve ``None`` —
 visible, que es lo correcto. Medido: la tabla no tiene filas (ninguna
 data-migration crea ``ir.actions.report``), así que el caso es hipotético.
 """
+
 from django.db import migrations, models
 
 
@@ -31,9 +32,11 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 choices=[("pdf", "PDF")],
                 default="pdf",
-                help_text="Formato de salida. Sólo los que este árbol sabe "
-                          "emitir: hoy PDF, vía helper libharu (ADR-017). "
-                          "Un formato nuevo entra con su renderizador.",
+                help_text=(
+                    "Formato de salida. Sólo los que este árbol sabe "
+                    "emitir: hoy PDF, vía helper libharu (ADR-017). "
+                    "Un formato nuevo entra con su renderizador."
+                ),
                 max_length=16,
                 verbose_name="Tipo de reporte",
             ),

@@ -7,11 +7,14 @@ capacidades ``account.*`` del rol ``comprador`` (asignado al registrarse). El
 menú admin (````, default) NO debe incluir ítems de cuenta y
 viceversa. Agregar un menú futuro = sembrar una fila, sin tocar el UI.
 """
+
 from addons.authz.models import Role, RoleAssignment
 from addons.base.models import IrUiMenu
 from addons.website.models import WebsiteMenu
 from addons.authz.services import (
-    BUYER_ROLE_CODE, SUPERADMIN_ROLE_CODE, assign_buyer_role,
+    BUYER_ROLE_CODE,
+    SUPERADMIN_ROLE_CODE,
+    assign_buyer_role,
     invalidate_capabilities,
 )
 
@@ -54,6 +57,7 @@ def _labels(nodes):
 
 # ── Seed ────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 def test_seed_creates_buyer_role_with_account_caps(seeded):
     role = Role.objects.get(code=BUYER_ROLE_CODE)
@@ -77,6 +81,7 @@ def test_seed_splits_menus_by_model(seeded):
 
 # ── /me/menu/? ───────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 def test_account_menu_requires_auth(seeded, client):
     assert client.get(ACCOUNT_URL).status_code == 401
@@ -91,8 +96,8 @@ def test_buyer_sees_account_menu(seeded, client):
     resp = client.get(ACCOUNT_URL)
     assert resp.status_code == 200
     labels = _labels(resp.json())
-    assert 'Mi cuenta' in labels          # sección
-    assert 'Mis pedidos' in labels        # hoja gated por account.orders
+    assert 'Mi cuenta' in labels  # sección
+    assert 'Mis pedidos' in labels  # hoja gated por account.orders
     assert 'Mi perfil' in labels
 
 
@@ -125,7 +130,8 @@ def test_admin_menu_excludes_account_section(seeded, client):
     # NO aparece mezclado en el menú admin.
     boss = _user('boss@e.com')
     RoleAssignment.objects.create(
-        user=boss, role=Role.objects.get(code=SUPERADMIN_ROLE_CODE))
+        user=boss, role=Role.objects.get(code=SUPERADMIN_ROLE_CODE)
+    )
     invalidate_capabilities(boss.id)
     client.force_authenticate(boss)
     resp = client.get(MENU_URL)
@@ -138,13 +144,18 @@ def test_admin_menu_excludes_account_section(seeded, client):
 
 # ── assign_buyer_role ────────────────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 def test_assign_buyer_role_idempotent(seeded):
     u = _user('idem@e.com')
     assert assign_buyer_role(u) is True
     assert assign_buyer_role(u) is True  # segunda vez no duplica
-    assert RoleAssignment.objects.filter(
-        user=u, role__code=BUYER_ROLE_CODE).count() == 1
+    assert (
+        RoleAssignment.objects.filter(
+            user=u, role__code=BUYER_ROLE_CODE
+        ).count()
+        == 1
+    )
 
 
 @pytest.mark.django_db

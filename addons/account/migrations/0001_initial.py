@@ -26,14 +26,18 @@ class Migration(migrations.Migration):
                 (
                     "code",
                     models.CharField(
-                        help_text="Código de cuenta (Odoo account.account.code).",
+                        help_text=(
+                            "Código de cuenta (Odoo account.account.code)."
+                        ),
                         max_length=64,
                     ),
                 ),
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre de la cuenta (Odoo name, requerido).",
+                        help_text=(
+                            "Nombre de la cuenta (Odoo name, requerido)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -61,7 +65,9 @@ class Migration(migrations.Migration):
                             ("expense_other", "Otros gastos"),
                             ("off_balance", "Fuera de balance"),
                         ],
-                        help_text="Tipo de cuenta (Odoo account_type, requerido).",
+                        help_text=(
+                            "Tipo de cuenta (Odoo account_type, requerido)."
+                        ),
                         max_length=32,
                     ),
                 ),
@@ -78,7 +84,10 @@ class Migration(migrations.Migration):
                             ("off", "Fuera de balance"),
                         ],
                         default="",
-                        help_text="Grupo interno derivado de account_type (Odoo internal_group).",
+                        help_text=(
+                            "Grupo interno derivado de account_type (Odoo"
+                            " internal_group)."
+                        ),
                         max_length=16,
                     ),
                 ),
@@ -92,13 +101,16 @@ class Migration(migrations.Migration):
                 (
                     "deprecated",
                     models.BooleanField(
-                        default=False, help_text="Cuenta obsoleta (Odoo deprecated)."
+                        default=False,
+                        help_text="Cuenta obsoleta (Odoo deprecated).",
                     ),
                 ),
                 (
                     "note",
                     models.TextField(
-                        blank=True, default="", help_text="Notas internas (Odoo note)."
+                        blank=True,
+                        default="",
+                        help_text="Notas internas (Odoo note).",
                     ),
                 ),
             ],
@@ -131,7 +143,8 @@ class Migration(migrations.Migration):
                 (
                     "code",
                     models.CharField(
-                        help_text="Código corto del diario (Odoo code).", max_length=12
+                        help_text="Código corto del diario (Odoo code).",
+                        max_length=12,
                     ),
                 ),
                 (
@@ -180,7 +193,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="/",
-                        help_text='Número del asiento (Odoo name; "/" hasta postear).',
+                        help_text=(
+                            'Número del asiento (Odoo name; "/" hasta'
+                            ' postear).'
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -234,7 +250,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Total del asiento (Odoo amount_total, computado de líneas).",
+                        help_text=(
+                            "Total del asiento (Odoo amount_total, computado"
+                            " de líneas)."
+                        ),
                         max_digits=16,
                     ),
                 ),
@@ -290,7 +309,9 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Saldo = debe - haber (Odoo balance, computado).",
+                        help_text=(
+                            "Saldo = debe - haber (Odoo balance, computado)."
+                        ),
                         max_digits=16,
                     ),
                 ),
@@ -362,18 +383,29 @@ class Migration(migrations.Migration):
                 (
                     "payment_type",
                     models.CharField(
-                        choices=[("outbound", "Enviar"), ("inbound", "Recibir")],
+                        choices=[
+                            ("outbound", "Enviar"),
+                            ("inbound", "Recibir"),
+                        ],
                         default="inbound",
-                        help_text="Tipo de pago (Odoo payment_type, requerido).",
+                        help_text=(
+                            "Tipo de pago (Odoo payment_type, requerido)."
+                        ),
                         max_length=8,
                     ),
                 ),
                 (
                     "partner_type",
                     models.CharField(
-                        choices=[("customer", "Cliente"), ("supplier", "Proveedor")],
+                        choices=[
+                            ("customer", "Cliente"),
+                            ("supplier", "Proveedor"),
+                        ],
                         default="customer",
-                        help_text="Tipo de contraparte (Odoo partner_type, requerido).",
+                        help_text=(
+                            "Tipo de contraparte (Odoo partner_type,"
+                            " requerido)."
+                        ),
                         max_length=8,
                     ),
                 ),
@@ -404,7 +436,8 @@ class Migration(migrations.Migration):
                 (
                     "is_reconciled",
                     models.BooleanField(
-                        default=False, help_text="Pago conciliado (Odoo is_reconciled)."
+                        default=False,
+                        help_text="Pago conciliado (Odoo is_reconciled).",
                     ),
                 ),
             ],
@@ -430,7 +463,9 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre del impuesto (Odoo name, requerido).",
+                        help_text=(
+                            "Nombre del impuesto (Odoo name, requerido)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -439,7 +474,9 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=4,
                         default=Decimal("0.0"),
-                        help_text="Monto/porcentaje del impuesto (Odoo amount).",
+                        help_text=(
+                            "Monto/porcentaje del impuesto (Odoo amount)."
+                        ),
                         max_digits=16,
                     ),
                 ),
@@ -453,7 +490,9 @@ class Migration(migrations.Migration):
                             ("division", "Porcentaje impuesto incluido"),
                         ],
                         default="percent",
-                        help_text="Forma de cómputo (Odoo amount_type, requerido).",
+                        help_text=(
+                            "Forma de cómputo (Odoo amount_type, requerido)."
+                        ),
                         max_length=12,
                     ),
                 ),
@@ -466,7 +505,9 @@ class Migration(migrations.Migration):
                             ("none", "Ninguno"),
                         ],
                         default="sale",
-                        help_text="Uso del impuesto (Odoo type_tax_use, requerido).",
+                        help_text=(
+                            "Uso del impuesto (Odoo type_tax_use, requerido)."
+                        ),
                         max_length=12,
                     ),
                 ),
@@ -474,13 +515,17 @@ class Migration(migrations.Migration):
                     "price_include",
                     models.BooleanField(
                         default=False,
-                        help_text="Precio con impuesto incluido (Odoo price_include).",
+                        help_text=(
+                            "Precio con impuesto incluido (Odoo"
+                            " price_include)."
+                        ),
                     ),
                 ),
                 (
                     "active",
                     models.BooleanField(
-                        default=True, help_text="Impuesto activo (Odoo active)."
+                        default=True,
+                        help_text="Impuesto activo (Odoo active).",
                     ),
                 ),
             ],

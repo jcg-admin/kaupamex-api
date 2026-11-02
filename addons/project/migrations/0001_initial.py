@@ -32,7 +32,9 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre de la etapa (Odoo project.task.type.name).",
+                        help_text=(
+                            "Nombre de la etapa (Odoo project.task.type.name)."
+                        ),
                         max_length=100,
                     ),
                 ),
@@ -40,13 +42,16 @@ class Migration(migrations.Migration):
                     "sequence",
                     models.IntegerField(
                         default=10,
-                        help_text="Orden kanban; menor primero (Odoo sequence).",
+                        help_text=(
+                            "Orden kanban; menor primero (Odoo sequence)."
+                        ),
                     ),
                 ),
                 (
                     "fold",
                     models.BooleanField(
-                        default=False, help_text="Plegada en el kanban (Odoo fold)."
+                        default=False,
+                        help_text="Plegada en el kanban (Odoo fold).",
                     ),
                 ),
                 (
@@ -80,7 +85,9 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre del proyecto (Odoo project.project.name).",
+                        help_text=(
+                            "Nombre del proyecto (Odoo project.project.name)."
+                        ),
                         max_length=200,
                     ),
                 ),
@@ -95,13 +102,15 @@ class Migration(migrations.Migration):
                 (
                     "active",
                     models.BooleanField(
-                        default=True, help_text="Proyecto activo (Odoo active)."
+                        default=True,
+                        help_text="Proyecto activo (Odoo active).",
                     ),
                 ),
                 (
                     "sequence",
                     models.IntegerField(
-                        default=10, help_text="Orden de presentación (Odoo sequence)."
+                        default=10,
+                        help_text="Orden de presentación (Odoo sequence).",
                     ),
                 ),
                 (
@@ -151,7 +160,9 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Título de la tarea (Odoo project.task.name).",
+                        help_text=(
+                            "Título de la tarea (Odoo project.task.name)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -180,7 +191,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "sequence",
-                    models.IntegerField(default=10, help_text="Orden (Odoo sequence)."),
+                    models.IntegerField(
+                        default=10, help_text="Orden (Odoo sequence)."
+                    ),
                 ),
                 (
                     "state",

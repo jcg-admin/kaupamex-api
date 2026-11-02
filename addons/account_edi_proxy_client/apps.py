@@ -9,6 +9,7 @@ uno lo sea, mismo criterio que ``account.edi.format`` en ``account_edi``.
 Depende de ``account`` (transitivamente, vía ``account_edi``) y
 ``certificate`` (``CertificateKey`` para cifrado/firma).
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -37,4 +38,6 @@ class AccountEdiProxyClientConfig(AppConfig):
         ``AccountEdiConfig.ready()``.
         """
         for ruta in self._EXTENSIONS:
-            importlib.import_module(ruta).apply_account_edi_proxy_client_extensions()
+            importlib.import_module(
+                ruta
+            ).apply_account_edi_proxy_client_extensions()

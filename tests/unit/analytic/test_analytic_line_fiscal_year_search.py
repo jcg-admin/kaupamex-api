@@ -7,6 +7,7 @@ ejercicio fiscal vigente, sin columna propia.
 módulo ``analytic_line.py`` para el detalle de los dos mecanismos que este
 campo necesitaba.
 """
+
 import datetime
 import inspect
 
@@ -24,11 +25,13 @@ from addons.base.models.res_company import ResCompany
 @pytest.fixture
 def company(db):
     company_record = ResCompany.objects.create(
-        name='Kaupamex analítica fiscal')
+        name='Kaupamex analítica fiscal'
+    )
     company_record.fiscalyear_last_day = 31
     company_record.fiscalyear_last_month = '12'
-    company_record.save(update_fields=[
-        'fiscalyear_last_day', 'fiscalyear_last_month'])
+    company_record.save(
+        update_fields=['fiscalyear_last_day', 'fiscalyear_last_month']
+    )
     return company_record
 
 
@@ -42,12 +45,14 @@ class TestTheFieldIsANonStoredSearchOnly:
         # igual que ``_field()`` de ``orm/domains.py``: por atributo estático.
         if descriptor is None:
             descriptor = inspect.getattr_static(
-                AccountAnalyticLine, 'fiscal_year_search')
+                AccountAnalyticLine, 'fiscal_year_search'
+            )
         assert isinstance(descriptor, NonStored)
 
     def test_it_declares_the_search_method_of_the_source(self):
         descriptor = inspect.getattr_static(
-            AccountAnalyticLine, 'fiscal_year_search')
+            AccountAnalyticLine, 'fiscal_year_search'
+        )
         assert descriptor.search == '_search_fiscal_date'
 
     def test_it_has_no_column(self):
@@ -73,8 +78,9 @@ class TestSearchFiscalDateReturnsTheDomainOfTheSource:
             domain = AccountAnalyticLine._search_fiscal_date('=', True)
         finally:
             set_current_company(None)
-        fiscal_from = company.compute_fiscalyear_dates(
-            datetime.date.today())['date_from']
+        fiscal_from = company.compute_fiscalyear_dates(datetime.date.today())[
+            'date_from'
+        ]
         assert domain == [
             ('date', '>=', fiscal_from - relativedelta(years=1)),
         ]
@@ -98,11 +104,14 @@ class TestSearchFiscalDateReachesTheDatabase:
         set_current_company(company.pk)
         try:
             inside = AccountAnalyticLine.objects.create(
-                name='dentro', company=company,
-                date=datetime.date.today())
+                name='dentro', company=company, date=datetime.date.today()
+            )
             found = AccountAnalyticLine.objects.filter(
-                to_q(Domain('fiscal_year_search', '=', True),
-                    AccountAnalyticLine))
+                to_q(
+                    Domain('fiscal_year_search', '=', True),
+                    AccountAnalyticLine,
+                )
+            )
             assert inside.pk in [line.pk for line in found]
         finally:
             set_current_company(None)
@@ -111,13 +120,18 @@ class TestSearchFiscalDateReachesTheDatabase:
         set_current_company(company.pk)
         try:
             fiscal_from = company.compute_fiscalyear_dates(
-                datetime.date.today())['date_from']
+                datetime.date.today()
+            )['date_from']
             too_old = fiscal_from.replace(year=fiscal_from.year - 2)
             old_line = AccountAnalyticLine.objects.create(
-                name='vieja', company=company, date=too_old)
+                name='vieja', company=company, date=too_old
+            )
             found = AccountAnalyticLine.objects.filter(
-                to_q(Domain('fiscal_year_search', '=', True),
-                    AccountAnalyticLine))
+                to_q(
+                    Domain('fiscal_year_search', '=', True),
+                    AccountAnalyticLine,
+                )
+            )
             assert old_line.pk not in [line.pk for line in found]
         finally:
             set_current_company(None)

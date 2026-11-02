@@ -12,6 +12,7 @@ distribution`` ausente); ``on_change_unit_amount``/``view_header_get``/
 ``_field_to_sql``/``_search_analytic_profitability`` — divergencia de
 mecanismo, sin cambio.
 """
+
 import datetime
 from decimal import Decimal
 
@@ -19,12 +20,16 @@ import pytest
 from django.core.exceptions import ValidationError
 
 from addons.account.models.account_account import AccountAccount
-from addons.account.models.account_analytic_line import apply_account_extensions
+from addons.account.models.account_analytic_line import (
+    apply_account_extensions,
+)
 from addons.account.models.account_journal import AccountJournal
 from addons.account.models.account_move import AccountMove
 from addons.account.models.account_move_line import AccountMoveLine
 from addons.analytic.models import (
-    AccountAnalyticAccount, AccountAnalyticLine, AccountAnalyticPlan,
+    AccountAnalyticAccount,
+    AccountAnalyticLine,
+    AccountAnalyticPlan,
 )
 from addons.base.models import ResCompany
 from addons.product.models import ProductProduct, ProductTemplate
@@ -47,19 +52,22 @@ def company():
 @pytest.fixture
 def journal(company):
     return AccountJournal.objects.create(
-        name='Diario', code='GEN', type='general', company=company)
+        name='Diario', code='GEN', type='general', company=company
+    )
 
 
 @pytest.fixture
 def move(company, journal):
     return AccountMove.objects.create(
-        company=company, date=datetime.date.today(), journal=journal)
+        company=company, date=datetime.date.today(), journal=journal
+    )
 
 
 @pytest.fixture
 def expense_account(company):
     return AccountAccount.objects.create(
-        code='60100', name='Compras', account_type='expense', company=company)
+        code='60100', name='Compras', account_type='expense', company=company
+    )
 
 
 @pytest.fixture
@@ -70,20 +78,27 @@ def analytic_account():
     ``ANALYTIC_LINE_ACCOUNT_REQUIRED`` antes de llegar a la validación
     nueva."""
     plan = AccountAnalyticPlan.objects.create(name='Plan')
-    return AccountAnalyticAccount.objects.create(name='Cuenta analitica', plan=plan)
+    return AccountAnalyticAccount.objects.create(
+        name='Cuenta analitica', plan=plan
+    )
 
 
 @pytest.fixture
 def move_line(move, expense_account):
     return AccountMoveLine.objects.create(
-        move=move, account=expense_account, debit=Decimal('100.00'))
+        move=move, account=expense_account, debit=Decimal('100.00')
+    )
 
 
 class TestTheFieldsWereApplied:
     def test_move_line_general_account_product_code_ref_exist_as_columns(self):
         columns = {f.column for f in AccountAnalyticLine._meta.fields}
         assert {
-            'move_line_id', 'general_account_id', 'product_id', 'code', 'ref',
+            'move_line_id',
+            'general_account_id',
+            'product_id',
+            'code',
+            'ref',
         } <= columns
 
     def test_analytic_profitability_creates_no_column(self):
@@ -102,25 +117,39 @@ class TestTheFieldsWereApplied:
 class TestGeneralAccountDerivedFromMoveLine:
     """≙ ``_compute_general_account_id`` (odoo19c: :62-65)."""
 
-    def test_it_derives_general_account_from_move_line_account(self, company, move_line, expense_account):
+    def test_it_derives_general_account_from_move_line_account(
+        self, company, move_line, expense_account
+    ):
         line = AccountAnalyticLine.objects.create(
-            name='linea', company=company, move_line=move_line)
+            name='linea', company=company, move_line=move_line
+        )
         line.refresh_from_db()
         assert line.general_account_id == expense_account.pk
 
-    def test_an_explicit_general_account_wins_over_the_derived_one(self, company, move_line, expense_account):
+    def test_an_explicit_general_account_wins_over_the_derived_one(
+        self, company, move_line, expense_account
+    ):
         other_account = AccountAccount.objects.create(
-            code='60200', name='Otros gastos', account_type='expense', company=company)
+            code='60200',
+            name='Otros gastos',
+            account_type='expense',
+            company=company,
+        )
         line = AccountAnalyticLine(
-            name='linea explicita', company=company, move_line=move_line,
-            general_account=other_account)
+            name='linea explicita',
+            company=company,
+            move_line=move_line,
+            general_account=other_account,
+        )
         line.save()
         line.refresh_from_db()
         assert line.general_account_id == other_account.pk
         assert line.general_account_id != expense_account.pk
 
     def test_without_a_move_line_general_account_stays_unset(self, company):
-        line = AccountAnalyticLine.objects.create(name='sin apunte', company=company)
+        line = AccountAnalyticLine.objects.create(
+            name='sin apunte', company=company
+        )
         line.refresh_from_db()
         assert line.general_account_id is None
 
@@ -129,29 +158,53 @@ class TestCheckGeneralAccountConstraint:
     """≙ ``_check_general_account_id`` (odoo19c: :62-66)."""
 
     def test_a_mismatched_general_account_raises_on_clean(
-        self, company, analytic_account, move_line, expense_account,
+        self,
+        company,
+        analytic_account,
+        move_line,
+        expense_account,
     ):
         other_account = AccountAccount.objects.create(
-            code='60300', name='Distinta', account_type='expense', company=company)
+            code='60300',
+            name='Distinta',
+            account_type='expense',
+            company=company,
+        )
         line = AccountAnalyticLine(
-            name='mal', company=company, account=analytic_account, move_line=move_line,
-            general_account=other_account)
+            name='mal',
+            company=company,
+            account=analytic_account,
+            move_line=move_line,
+            general_account=other_account,
+        )
         with pytest.raises(ValidationError) as excinfo:
             line.clean()
         assert 'general_account' in excinfo.value.message_dict
 
     def test_a_matching_general_account_does_not_raise(
-        self, company, analytic_account, move_line, expense_account,
+        self,
+        company,
+        analytic_account,
+        move_line,
+        expense_account,
     ):
         line = AccountAnalyticLine(
-            name='bien', company=company, account=analytic_account, move_line=move_line,
-            general_account=expense_account)
+            name='bien',
+            company=company,
+            account=analytic_account,
+            move_line=move_line,
+            general_account=expense_account,
+        )
         line.clean()
 
-    def test_the_base_constraint_still_applies_without_move_line(self, company):
+    def test_the_base_constraint_still_applies_without_move_line(
+        self, company
+    ):
         """Sin ``move_line`` el mismatch no aplica — pero la validación base
         del mixin (cuenta analítica requerida) sigue corriendo (relevo)."""
-        line = AccountAnalyticLine(name='sin cuenta analitica', company=company)
+        line = AccountAnalyticLine(
+            name='sin cuenta analitica', company=company
+        )
         with pytest.raises(ValidationError) as excinfo:
             line.clean()
         assert 'account' in excinfo.value.message_dict
@@ -162,50 +215,74 @@ class TestAnalyticProfitability:
     mitad ``_field_to_sql``/``_search_analytic_profitability`` (divergencia:
     sin framework de ``_search`` custom en este ORM)."""
 
-    def test_an_expense_account_yields_loss(self, company, move_line, expense_account):
+    def test_an_expense_account_yields_loss(
+        self, company, move_line, expense_account
+    ):
         line = AccountAnalyticLine.objects.create(
-            name='gasto', company=company, move_line=move_line)
+            name='gasto', company=company, move_line=move_line
+        )
         assert line.analytic_profitability == 'loss'
 
     def test_an_income_account_yields_revenue(self, company, journal):
         income_account = AccountAccount.objects.create(
-            code='70100', name='Ventas', account_type='income', company=company)
+            code='70100', name='Ventas', account_type='income', company=company
+        )
         move = AccountMove.objects.create(
-            company=company, date=datetime.date.today(), journal=journal)
+            company=company, date=datetime.date.today(), journal=journal
+        )
         income_move_line = AccountMoveLine.objects.create(
-            move=move, account=income_account, credit=Decimal('50.00'))
+            move=move, account=income_account, credit=Decimal('50.00')
+        )
         line = AccountAnalyticLine.objects.create(
-            name='ingreso', company=company, move_line=income_move_line)
+            name='ingreso', company=company, move_line=income_move_line
+        )
         assert line.analytic_profitability == 'revenue'
 
-    def test_without_a_move_line_nor_account_type_uncategorized_by_default(self, company):
+    def test_without_a_move_line_nor_account_type_uncategorized_by_default(
+        self, company
+    ):
         line = AccountAnalyticLine.objects.create(
-            name='sin cuenta', company=company, category='other', amount=Decimal('0.00'))
+            name='sin cuenta',
+            company=company,
+            category='other',
+            amount=Decimal('0.00'),
+        )
         assert line.analytic_profitability == 'uncategorized'
 
-    def test_it_is_not_cached_across_reads(self, company, move_line, expense_account):
+    def test_it_is_not_cached_across_reads(
+        self, company, move_line, expense_account
+    ):
         """``store=False`` recalcula en cada lectura."""
         line = AccountAnalyticLine.objects.create(
-            name='recalculo', company=company, move_line=move_line)
+            name='recalculo', company=company, move_line=move_line
+        )
         assert line.analytic_profitability == 'loss'
         income_account = AccountAccount.objects.create(
-            code='70200', name='Ventas 2', account_type='income', company=company)
+            code='70200',
+            name='Ventas 2',
+            account_type='income',
+            company=company,
+        )
         line.general_account = income_account
         assert line.analytic_profitability == 'revenue'
 
 
 class TestProductCodeRefFields:
     def test_product_can_be_set_and_read_back(self, company):
-        template = ProductTemplate.objects.create(name='Servicio', company=company)
+        template = ProductTemplate.objects.create(
+            name='Servicio', company=company
+        )
         product = ProductProduct.objects.create(product_tmpl=template)
         line = AccountAnalyticLine.objects.create(
-            name='con producto', company=company, product=product)
+            name='con producto', company=company, product=product
+        )
         line.refresh_from_db()
         assert line.product_id == product.pk
 
     def test_code_and_ref_can_be_set_and_read_back(self, company):
         line = AccountAnalyticLine.objects.create(
-            name='con code y ref', company=company, code='PRJ0001', ref='REF-1')
+            name='con code y ref', company=company, code='PRJ0001', ref='REF-1'
+        )
         line.refresh_from_db()
         assert line.code == 'PRJ0001'
         assert line.ref == 'REF-1'
@@ -241,7 +318,9 @@ class TestWhatStaysBlockedBySecondOrderCause:
         assert 'partner_id' in names
         assert 'journal_id' in names
 
-    def test_the_analytic_distribution_consumer_is_no_longer_blocked(self, company, move_line):
+    def test_the_analytic_distribution_consumer_is_no_longer_blocked(
+        self, company, move_line
+    ):
         """Reescrito, no ajustado: antes exigía la ausencia del campo.
 
         ``create``/``write``/``unlink`` de la fuente actualizan el reparto

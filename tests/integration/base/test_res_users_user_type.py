@@ -5,6 +5,7 @@ adaptación de ``_is_internal``/``_compute_share`` de la referencia
 (``odoo19c: odoo/addons/base/models/res_users.py:460-464,1165-1179``) al
 modelo ``user_type``-en-grupo de este árbol (``res_groups.py``).
 """
+
 import pytest
 from django.contrib.auth import get_user_model
 
@@ -16,11 +17,14 @@ User = get_user_model()
 @pytest.fixture
 def grupos(db):
     interno = ResGroups.objects.create(
-        name='Internos', user_type=ResGroups.USER_TYPE_INTERNAL)
+        name='Internos', user_type=ResGroups.USER_TYPE_INTERNAL
+    )
     portal = ResGroups.objects.create(
-        name='Portal', user_type=ResGroups.USER_TYPE_PORTAL)
+        name='Portal', user_type=ResGroups.USER_TYPE_PORTAL
+    )
     public = ResGroups.objects.create(
-        name='Público', user_type=ResGroups.USER_TYPE_PUBLIC)
+        name='Público', user_type=ResGroups.USER_TYPE_PUBLIC
+    )
     return interno, portal, public
 
 

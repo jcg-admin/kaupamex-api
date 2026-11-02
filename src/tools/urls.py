@@ -26,6 +26,7 @@ módulo en ``addons/website/models/website.py`` (``_urljoin_strict`` /
 espejada es ésta (``src/tools`` ↔ ``odoo/tools``). Este módulo es el hogar;
 el reapunte de los consumidores de ``website`` es del pase que consolida.
 """
+
 import re
 import urllib.parse
 
@@ -81,17 +82,23 @@ def urljoin(base: str, extra: str) -> str:
     assert isinstance(extra, str), "Extra URL must be a string"
 
     base_scheme, base_netloc, path, _base_query, _base_fragment = (
-        urllib.parse.urlsplit(base))
+        urllib.parse.urlsplit(base)
+    )
     extra_scheme, extra_netloc, extra_path, extra_query, extra_fragment = (
-        urllib.parse.urlsplit(extra))
+        urllib.parse.urlsplit(extra)
+    )
 
     if extra_scheme or extra_netloc:
         # Se admite una ``extra`` absoluta sólo si coincide con la base.
-        if (extra_scheme != base_scheme or extra_netloc != base_netloc
-                or not extra_path.startswith(path)):
+        if (
+            extra_scheme != base_scheme
+            or extra_netloc != base_netloc
+            or not extra_path.startswith(path)
+        ):
             raise ValueError(
                 'Extra URL must use same scheme and host as base, and '
-                'begin with base path')
+                'begin with base path'
+            )
         extra_path = extra_path[len(path):]
 
     if extra_path:
@@ -102,7 +109,8 @@ def urljoin(base: str, extra: str) -> str:
         extra_path = extra_path.lstrip(
             '/\\\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r'
             '\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b'
-            '\x1c\x1d\x1e\x1f ')
+            '\x1c\x1d\x1e\x1f '
+        )
         path = f'{path}/{extra_path}'
 
     # Normaliza: foo//bar -> foo/bar (fuente).
@@ -112,4 +120,5 @@ def urljoin(base: str, extra: str) -> str:
         raise ValueError('Dot segments are not allowed')
 
     return urllib.parse.urlunsplit(
-        (base_scheme, base_netloc, path, extra_query, extra_fragment))
+        (base_scheme, base_netloc, path, extra_query, extra_fragment)
+    )

@@ -8,8 +8,8 @@ Django no tiene ``_inherit``; su punto de extensión nativo son las señales.
 Mismo patrón e idéntica motivación que ``sale/signals.py``: el núcleo
 **emite**, el satélite **escucha**, y ``base`` no importa a nadie.
 """
-import django.dispatch
 
+import django.dispatch
 
 # Emitida por ``ResUsersManager._create_user`` **después** de guardar la
 # credencial y de aplicar sus grupos.

@@ -5,6 +5,7 @@ cuelga métodos de un modelo ajeno, sin modelos propios, aplica su extensión en
 ``ready()`` — cuando el registro de modelos ya está poblado y ``setattr`` sobre
 una clase ya definida no rompe con ``AppRegistryNotReady``.
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -17,9 +18,7 @@ class BaseIbanConfig(AppConfig):
     verbose_name = 'Base — Cuentas bancarias IBAN'
 
     #: Módulos que extienden modelos de OTRO addon — ≙ ``_inherit``.
-    _EXTENSIONS = (
-        'addons.base_iban.models.res_partner_bank',
-    )
+    _EXTENSIONS = ('addons.base_iban.models.res_partner_bank',)
 
     def ready(self):
         """Cuelga la superficie IBAN sobre ``base.ResPartnerBank``.

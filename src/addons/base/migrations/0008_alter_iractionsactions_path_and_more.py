@@ -16,7 +16,15 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default=None,
-                help_text="Debe ser única (Odoo _path_unique). default=None, no '': la referencia declara el campo sin default (``path = fields.Char(...)``, odoo19c: ir_actions.py:70) y un Char sin valor se escribe NULL en Odoo, no cadena vacía — con NULL el UNIQUE admite múltiples acciones sin ruta (H-API-332: default='' colisionaba en la segunda ir.actions.server creada sin path explícito).",
+                help_text=(
+                    "Debe ser única (Odoo _path_unique). default=None, no '':"
+                    " la referencia declara el campo sin default (``path ="
+                    " fields.Char(...)``, odoo19c: ir_actions.py:70) y un Char"
+                    " sin valor se escribe NULL en Odoo, no cadena vacía — con"
+                    " NULL el UNIQUE admite múltiples acciones sin ruta"
+                    " (H-API-332: default='' colisionaba en la segunda"
+                    " ir.actions.server creada sin path explícito)."
+                ),
                 max_length=64,
                 null=True,
                 unique=True,
@@ -29,7 +37,15 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default=None,
-                help_text="Debe ser única (Odoo _path_unique). default=None, no '': la referencia declara el campo sin default (``path = fields.Char(...)``, odoo19c: ir_actions.py:70) y un Char sin valor se escribe NULL en Odoo, no cadena vacía — con NULL el UNIQUE admite múltiples acciones sin ruta (H-API-332: default='' colisionaba en la segunda ir.actions.server creada sin path explícito).",
+                help_text=(
+                    "Debe ser única (Odoo _path_unique). default=None, no '':"
+                    " la referencia declara el campo sin default (``path ="
+                    " fields.Char(...)``, odoo19c: ir_actions.py:70) y un Char"
+                    " sin valor se escribe NULL en Odoo, no cadena vacía — con"
+                    " NULL el UNIQUE admite múltiples acciones sin ruta"
+                    " (H-API-332: default='' colisionaba en la segunda"
+                    " ir.actions.server creada sin path explícito)."
+                ),
                 max_length=64,
                 null=True,
                 unique=True,
@@ -42,7 +58,15 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default=None,
-                help_text="Debe ser única (Odoo _path_unique). default=None, no '': la referencia declara el campo sin default (``path = fields.Char(...)``, odoo19c: ir_actions.py:70) y un Char sin valor se escribe NULL en Odoo, no cadena vacía — con NULL el UNIQUE admite múltiples acciones sin ruta (H-API-332: default='' colisionaba en la segunda ir.actions.server creada sin path explícito).",
+                help_text=(
+                    "Debe ser única (Odoo _path_unique). default=None, no '':"
+                    " la referencia declara el campo sin default (``path ="
+                    " fields.Char(...)``, odoo19c: ir_actions.py:70) y un Char"
+                    " sin valor se escribe NULL en Odoo, no cadena vacía — con"
+                    " NULL el UNIQUE admite múltiples acciones sin ruta"
+                    " (H-API-332: default='' colisionaba en la segunda"
+                    " ir.actions.server creada sin path explícito)."
+                ),
                 max_length=64,
                 null=True,
                 unique=True,
@@ -55,7 +79,15 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default=None,
-                help_text="Debe ser única (Odoo _path_unique). default=None, no '': la referencia declara el campo sin default (``path = fields.Char(...)``, odoo19c: ir_actions.py:70) y un Char sin valor se escribe NULL en Odoo, no cadena vacía — con NULL el UNIQUE admite múltiples acciones sin ruta (H-API-332: default='' colisionaba en la segunda ir.actions.server creada sin path explícito).",
+                help_text=(
+                    "Debe ser única (Odoo _path_unique). default=None, no '':"
+                    " la referencia declara el campo sin default (``path ="
+                    " fields.Char(...)``, odoo19c: ir_actions.py:70) y un Char"
+                    " sin valor se escribe NULL en Odoo, no cadena vacía — con"
+                    " NULL el UNIQUE admite múltiples acciones sin ruta"
+                    " (H-API-332: default='' colisionaba en la segunda"
+                    " ir.actions.server creada sin path explícito)."
+                ),
                 max_length=64,
                 null=True,
                 unique=True,
@@ -68,7 +100,15 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default=None,
-                help_text="Debe ser única (Odoo _path_unique). default=None, no '': la referencia declara el campo sin default (``path = fields.Char(...)``, odoo19c: ir_actions.py:70) y un Char sin valor se escribe NULL en Odoo, no cadena vacía — con NULL el UNIQUE admite múltiples acciones sin ruta (H-API-332: default='' colisionaba en la segunda ir.actions.server creada sin path explícito).",
+                help_text=(
+                    "Debe ser única (Odoo _path_unique). default=None, no '':"
+                    " la referencia declara el campo sin default (``path ="
+                    " fields.Char(...)``, odoo19c: ir_actions.py:70) y un Char"
+                    " sin valor se escribe NULL en Odoo, no cadena vacía — con"
+                    " NULL el UNIQUE admite múltiples acciones sin ruta"
+                    " (H-API-332: default='' colisionaba en la segunda"
+                    " ir.actions.server creada sin path explícito)."
+                ),
                 max_length=64,
                 null=True,
                 unique=True,
@@ -81,7 +121,15 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default=None,
-                help_text="Debe ser única (Odoo _path_unique). default=None, no '': la referencia declara el campo sin default (``path = fields.Char(...)``, odoo19c: ir_actions.py:70) y un Char sin valor se escribe NULL en Odoo, no cadena vacía — con NULL el UNIQUE admite múltiples acciones sin ruta (H-API-332: default='' colisionaba en la segunda ir.actions.server creada sin path explícito).",
+                help_text=(
+                    "Debe ser única (Odoo _path_unique). default=None, no '':"
+                    " la referencia declara el campo sin default (``path ="
+                    " fields.Char(...)``, odoo19c: ir_actions.py:70) y un Char"
+                    " sin valor se escribe NULL en Odoo, no cadena vacía — con"
+                    " NULL el UNIQUE admite múltiples acciones sin ruta"
+                    " (H-API-332: default='' colisionaba en la segunda"
+                    " ir.actions.server creada sin path explícito)."
+                ),
                 max_length=64,
                 null=True,
                 unique=True,

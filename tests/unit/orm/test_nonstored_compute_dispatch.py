@@ -6,6 +6,7 @@ Las expectativas de fábrica NonStored y retorno de compute pertenecían a la
 adaptación anterior; Odoo19Community exige asignar (Field.__get__:1736-1763).
 La historia y el rojo previo permanecen en Git y en la evidencia AS IS.
 """
+
 import pytest
 from django.db import models
 from django.apps import apps
@@ -19,12 +20,21 @@ from orm.fields import FieldDescriptor
 class ComputeDispatchProbe(DefaultGetMixin, models.Model):
     label = fields.Char(compute='_compute_label')
     callable_label = fields.Char(
-        compute=lambda record: setattr(record, 'callable_label', 'por invocable'))
+        compute=lambda record: setattr(
+            record, 'callable_label', 'por invocable'
+        )
+    )
     plain_label = fields.Char(store=False, default='del default')
     empty_label = fields.Char(store=False)
-    company = fields.Many2one('base.ResCompany', on_delete=models.DO_NOTHING,
-                             null=True, related_name='+')
-    company_label = fields.Char(related='company_id.code', compute='_compute_label')
+    company = fields.Many2one(
+        'base.ResCompany',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        related_name='+',
+    )
+    company_label = fields.Char(
+        related='company_id.code', compute='_compute_label'
+    )
 
     class Meta:
         app_label = 'base'
@@ -39,16 +49,23 @@ class TestTheDeclaredComputeIsDispatched:
         assert ComputeDispatchProbe().label == 'calculado'
 
     @pytest.mark.parametrize('produced', ['uno', 'otro distinto'])
-    def test_the_value_tracks_the_compute_and_not_a_constant(self, produced, monkeypatch):
-        monkeypatch.setattr(ComputeDispatchProbe, '_compute_label',
-                            lambda record: setattr(record, 'label', produced))
+    def test_the_value_tracks_the_compute_and_not_a_constant(
+        self, produced, monkeypatch
+    ):
+        monkeypatch.setattr(
+            ComputeDispatchProbe,
+            '_compute_label',
+            lambda record: setattr(record, 'label', produced),
+        )
         assert ComputeDispatchProbe().label == produced
 
     def test_the_facade_routes_a_bare_compute_to_the_descriptor(self):
         field = ComputeDispatchProbe._meta.get_field('label')
         assert field.store is False
         assert field in ComputeDispatchProbe._meta.private_fields
-        assert isinstance(ComputeDispatchProbe.__dict__['label'], FieldDescriptor)
+        assert isinstance(
+            ComputeDispatchProbe.__dict__['label'], FieldDescriptor
+        )
         assert isinstance(field, models.CharField)
 
     def test_a_callable_compute_is_dispatched_too(self):
@@ -67,9 +84,12 @@ class TestTheOtherTwoBranchesStillWin:
 
 @pytest.fixture
 def no_user_defaults(monkeypatch):
-    # Estos casos aíslan el default del campo, no la persistencia de ir.default.
+    # Estos casos aíslan el default del campo, no la persistencia de
+    # ir.default.
     model = apps.get_model('base', 'IrDefault')
-    monkeypatch.setattr(model, '_get_model_defaults', lambda *args, **kwargs: {})
+    monkeypatch.setattr(
+        model, '_get_model_defaults', lambda *args, **kwargs: {}
+    )
     with transaction_scope():
         yield
 

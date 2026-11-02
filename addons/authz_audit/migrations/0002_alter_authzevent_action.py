@@ -9,6 +9,7 @@ medía 29. Ver :ref:`h-api-753`.
 ``varchar(20)``. La migración existe para que el estado declarado y el del
 modelo no divergan (lo que ``makemigrations --check`` vigila).
 """
+
 from django.db import migrations, models
 
 

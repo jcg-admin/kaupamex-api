@@ -19,7 +19,10 @@ class Migration(migrations.Migration):
             name="dest_address",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Dirección a la que se envía directamente cuando la operación es dropship (Odoo dest_address_id).",
+                help_text=(
+                    "Dirección a la que se envía directamente cuando la"
+                    " operación es dropship (Odoo dest_address_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="dropship_purchase_orders",
@@ -33,7 +36,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Lugar al que se refiere el Incoterm de la compra (Odoo incoterm_location).",
+                help_text=(
+                    "Lugar al que se refiere el Incoterm de la compra (Odoo"
+                    " incoterm_location)."
+                ),
                 max_length=255,
                 verbose_name="Lugar del Incoterm",
             ),
@@ -43,7 +49,11 @@ class Migration(migrations.Migration):
             name="picking_type",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Determina el tipo de operación de la recepción (Odoo picking_type_id). D-3: opcional aquí, requerido en la referencia.",
+                help_text=(
+                    "Determina el tipo de operación de la recepción (Odoo"
+                    " picking_type_id). D-3: opcional aquí, requerido en la"
+                    " referencia."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="purchase_orders",
@@ -56,7 +66,10 @@ class Migration(migrations.Migration):
             name="purchase_group",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Grupo que reúne esta orden con sus alternativas (Odoo purchase_group_id).",
+                help_text=(
+                    "Grupo que reúne esta orden con sus alternativas (Odoo"
+                    " purchase_group_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="order_ids",
@@ -69,7 +82,10 @@ class Migration(migrations.Migration):
             name="requisition",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Acuerdo de compra del que nace esta orden (Odoo requisition_id).",
+                help_text=(
+                    "Acuerdo de compra del que nace esta orden (Odoo"
+                    " requisition_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="purchase_ids",
@@ -82,7 +98,11 @@ class Migration(migrations.Migration):
             name="location_final",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Ubicación final que pidió el abastecimiento; puede ser más profunda que el destino de la recepción (Odoo location_final_id).",
+                help_text=(
+                    "Ubicación final que pidió el abastecimiento; puede ser"
+                    " más profunda que el destino de la recepción (Odoo"
+                    " location_final_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="purchase_line_ids",
@@ -95,7 +115,10 @@ class Migration(migrations.Migration):
             name="orderpoint",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Punto de pedido que generó esta línea (Odoo orderpoint_id).",
+                help_text=(
+                    "Punto de pedido que generó esta línea (Odoo"
+                    " orderpoint_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="purchase_line_ids",
@@ -109,7 +132,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Descripción que el abastecimiento añade a la línea (Odoo product_description_variants).",
+                help_text=(
+                    "Descripción que el abastecimiento añade a la línea (Odoo"
+                    " product_description_variants)."
+                ),
                 max_length=255,
                 verbose_name="Descripción personalizada",
             ),
@@ -119,7 +145,10 @@ class Migration(migrations.Migration):
             name="propagate_cancel",
             field=models.BooleanField(
                 default=True,
-                help_text="Al cancelar la línea, ¿se cancelan también los movimientos que abastece? (Odoo propagate_cancel).",
+                help_text=(
+                    "Al cancelar la línea, ¿se cancelan también los"
+                    " movimientos que abastece? (Odoo propagate_cancel)."
+                ),
                 verbose_name="Propagar cancelación",
             ),
         ),

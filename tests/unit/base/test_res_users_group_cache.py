@@ -45,8 +45,7 @@ from django.test.utils import CaptureQueriesContext
 from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_groups import ResGroups
 from addons.base.models.res_partner import ResPartner
-from addons.base.models.res_users import (ResUsers,
-                                          _invalidate_group_ids)
+from addons.base.models.res_users import ResUsers, _invalidate_group_ids
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -79,7 +78,8 @@ def _make_chain(length, prefix):
 
 def _xmlid(group, name):
     IrModelData.objects.update_or_create(
-        module='pruebas', name=name,
+        module='pruebas',
+        name=name,
         defaults={'model': type(group)._meta.label, 'res_id': group.pk},
     )
     return f'pruebas.{name}'
@@ -87,15 +87,23 @@ def _xmlid(group, name):
 
 # --- el invariante del invalidador ------------------------------------------
 
+
 def test_the_invalidation_fields_are_the_ones_the_reference_declares(db):
     """≙ ``_get_invalidation_fields`` (``odoo19c: :735-740``)."""
     fields = ResUsers._get_invalidation_fields()
-    assert {'group_ids', 'active', 'lang', 'tz',
-            'company_id', 'company_ids'} <= fields
+    assert {
+        'group_ids',
+        'active',
+        'lang',
+        'tz',
+        'company_id',
+        'company_ids',
+    } <= fields
     assert ResUsers._get_session_token_fields() <= fields
 
 
 # --- la memorización --------------------------------------------------------
+
 
 def test_the_second_call_does_not_touch_the_database(db):
     user = _make_user('memo@ejemplo.mx')
@@ -124,6 +132,7 @@ def test_it_returns_the_same_set_as_all_group_ids(db):
 
 
 # --- la invalidación, por cada disparador ----------------------------------
+
 
 def test_adding_a_group_invalidates(db):
     user = _make_user('anade@ejemplo.mx')
@@ -181,6 +190,7 @@ def test_saving_the_user_invalidates(db):
 
 # --- la ruta de _has_group --------------------------------------------------
 
+
 def test_has_group_goes_through_the_memo(db):
     """≙ ``has_group`` (``:1096``): la fuente pregunta
     ``group_id in self._get_group_ids()``. Aquí igual — sólo queda la
@@ -226,13 +236,14 @@ def test_a_raw_write_to_the_join_table_is_invisible_to_the_invalidator(db):
     user = _make_user('escritura-cruda@ejemplo.mx')
     group = ResGroups.objects.create(name='Crudo')
 
-    assert user._get_group_ids() == []          # entra al caché
+    assert user._get_group_ids() == []  # entra al caché
 
     tabla = ResGroups.user_ids.through._meta.db_table
     with connection.cursor() as cursor:
         cursor.execute(
             f'INSERT INTO {tabla} (resgroups_id, resusers_id) VALUES (%s, %s)',
-            [group.pk, user.pk])
+            [group.pk, user.pk],
+        )
 
     # El ORM lo ve; el caché no — y ésa es la afirmación del caso.
     assert list(user.all_group_ids.values_list('pk', flat=True)) == [group.pk]

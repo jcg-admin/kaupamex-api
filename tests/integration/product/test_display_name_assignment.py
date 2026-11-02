@@ -1,4 +1,5 @@
 """El consumidor de producto cumple asignación e invalidación del ORM."""
+
 from decimal import Decimal
 from functools import wraps
 
@@ -14,27 +15,37 @@ from addons.product.models import (
 )
 from orm.environments import transaction_scope
 
-
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]
 
 
 @pytest.fixture
 def variant():
     template = ProductTemplate.objects.create(name='Camiseta')
-    return ProductProduct.objects.create(product_tmpl=template, default_code='SKU')
+    return ProductProduct.objects.create(
+        product_tmpl=template, default_code='SKU'
+    )
 
 
 @pytest.fixture
 def values(variant):
     attribute = ProductAttribute.objects.create(name='Color')
-    red = ProductAttributeValue.objects.create(attribute=attribute, name='Rojo')
-    blue = ProductAttributeValue.objects.create(attribute=attribute, name='Azul')
+    red = ProductAttributeValue.objects.create(
+        attribute=attribute, name='Rojo'
+    )
+    blue = ProductAttributeValue.objects.create(
+        attribute=attribute, name='Azul'
+    )
     line = ProductTemplateAttributeLine.objects.create(
-        product_tmpl=variant.product_tmpl, attribute=attribute,
+        product_tmpl=variant.product_tmpl,
+        attribute=attribute,
     )
     line.values.set([red, blue])
-    red_value = ProductTemplateAttributeValue.objects.create(line=line, attribute_value=red)
-    blue_value = ProductTemplateAttributeValue.objects.create(line=line, attribute_value=blue)
+    red_value = ProductTemplateAttributeValue.objects.create(
+        line=line, attribute_value=red
+    )
+    blue_value = ProductTemplateAttributeValue.objects.create(
+        line=line, attribute_value=blue
+    )
     variant.product_template_attribute_values.add(red_value)
     return red, red_value, blue_value
 
@@ -80,7 +91,9 @@ def test_attribute_name_change_invalidates_variant_label(variant, values):
         assert variant.display_name == 'Camiseta (Granate)'
 
 
-def test_price_extra_change_invalidates_the_current_value_format(variant, values):
+def test_price_extra_change_invalidates_the_current_value_format(
+    variant, values
+):
     _, red_value, _ = values
     with transaction_scope():
         assert variant.display_name == 'Camiseta (Rojo)'
@@ -118,7 +131,9 @@ def test_set_replacement_invalidates_the_previous_combination(variant, values):
         assert variant.display_name == 'Camiseta (Azul)'
 
 
-def test_unrelated_cached_variant_is_not_recomputed(variant, values, monkeypatch):
+def test_unrelated_cached_variant_is_not_recomputed(
+    variant, values, monkeypatch
+):
     _, _, blue_value = values
     other = ProductProduct.objects.create(product_tmpl=variant.product_tmpl)
     original = ProductProduct._compute_display_name
@@ -140,8 +155,13 @@ def test_unrelated_cached_variant_is_not_recomputed(variant, values, monkeypatch
 
 
 def test_return_only_product_compute_remains_an_error(variant, monkeypatch):
-    monkeypatch.setattr(ProductProduct, '_compute_display_name', lambda record: 'retorno')
-    with transaction_scope(), pytest.raises(ValueError, match='failed to assign'):
+    monkeypatch.setattr(
+        ProductProduct, '_compute_display_name', lambda record: 'retorno'
+    )
+    with (
+        transaction_scope(),
+        pytest.raises(ValueError, match='failed to assign'),
+    ):
         variant.display_name
 
 
@@ -150,5 +170,8 @@ def test_product_compute_failure_propagates(variant, monkeypatch):
         raise RuntimeError('fallo del producto')
 
     monkeypatch.setattr(ProductProduct, '_compute_display_name', fail)
-    with transaction_scope(), pytest.raises(RuntimeError, match='fallo del producto'):
+    with (
+        transaction_scope(),
+        pytest.raises(RuntimeError, match='fallo del producto'),
+    ):
         variant.display_name

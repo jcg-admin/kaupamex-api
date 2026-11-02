@@ -3,6 +3,7 @@
 POST → alta (UC-NEW-01); DELETE → baja por token (UC-NEW-02). Delega en las
 vistas de cada concern (subscribe / unsubscribe).
 """
+
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 
@@ -16,6 +17,7 @@ class NewsletterSubscriptionsV2View(APIView):
     POST  — Tier A: delegate to NewsletterSubscribeView.
     DELETE — Tier B: delegate to NewsletterUnsubscribeView (was POST in v1).
     """
+
     permission_classes = [AllowAny]
 
     def post(self, request):

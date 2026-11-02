@@ -5,6 +5,7 @@ declara como identificador (``Name``, ``arg``, ``FunctionDef``, ``ClassDef``),
 así que la prosa de docstrings y comentarios queda intacta. Antes de escribir
 avisa de toda colisión: un nombre destino ya ligado en la misma función.
 """
+
 import ast
 import pathlib
 import sys
@@ -63,7 +64,9 @@ def bound_names(node):
     """Identificadores ligados dentro de una función, sin descender a otra."""
     found = set()
     for child in ast.iter_child_nodes(node):
-        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        if isinstance(
+            child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+        ):
             found.add(child.name)
             continue
         if isinstance(child, ast.Name) and isinstance(child.ctx, ast.Store):
@@ -89,7 +92,10 @@ def main(ruta):
                 colisiones.append((node.name, viejo, nuevo))
     if colisiones:
         for fn, viejo, nuevo in colisiones:
-            print(f'COLISION {fn}: {viejo} -> {nuevo} (el destino ya esta ligado)')
+            print(
+                f'COLISION {fn}: {viejo} -> {nuevo} (el destino ya esta'
+                ' ligado)'
+            )
         return 1
 
     puntos = []
@@ -98,20 +104,26 @@ def main(ruta):
             puntos.append((node.lineno, node.col_offset, node.id))
         elif isinstance(node, ast.arg) and node.arg in MAPA:
             puntos.append((node.lineno, node.col_offset, node.arg))
-        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in MAPA:
+        elif (
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name in MAPA
+        ):
             # ``def `` mide 4 caracteres antes del nombre
             puntos.append((node.lineno, node.col_offset + 4, node.name))
 
     lines = source.splitlines(keepends=True)
     for lineno, col, viejo in sorted(puntos, reverse=True):
         line = lines[lineno - 1]
-        if line[col:col + len(viejo)] != viejo:
+        if line[col: col + len(viejo)] != viejo:
             print(f'DESAJUSTE linea {lineno} col {col}: esperaba {viejo}')
             return 2
         lines[lineno - 1] = line[:col] + MAPA[viejo] + line[col + len(viejo):]
 
     path.write_text(''.join(lines))
-    print(f'renombrados {len(puntos)} identificador(es) en {len(set(p[0] for p in puntos))} linea(s)')
+    print(
+        f'renombrados {len(puntos)} identificador(es) en'
+        f' {len(set(p[0] for p in puntos))} linea(s)'
+    )
     return 0
 
 

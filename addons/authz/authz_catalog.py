@@ -9,6 +9,7 @@ Por qué estos códigos son de este addon:
 
 - ``permissions`` — ``authz`` dueña roles, capacidades y asignaciones.
 """
+
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
 MODULES = [

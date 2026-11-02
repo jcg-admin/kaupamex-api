@@ -78,6 +78,7 @@ Cada ``.sudo()`` de la referencia (``self.sudo().active = False``,
 escritura directos, mismo criterio que ``account_edi`` completo: sin ACL de
 campo que saltarse en este puerto.
 """
+
 import base64
 import logging
 import uuid
@@ -88,7 +89,9 @@ import requests
 import fields
 import models
 from addons.account_edi.models.account_edi_document import lock_for_update
-from addons.account_edi_proxy_client.models.account_edi_proxy_auth import KaupaMexEdiProxyAuth
+from addons.account_edi_proxy_client.models.account_edi_proxy_auth import (
+    KaupaMexEdiProxyAuth,
+)
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.certificate.models.key import CertificateKey
 from exceptions import LockError, UserError
@@ -128,41 +131,61 @@ class AccountEdiProxyUser(models.Model):
     active = fields.Boolean(default=True, help_text='Odoo active.')
     id_client = fields.Char(
         max_length=255,
-        help_text='Identificador asignado por el proxy (Odoo id_client, requerido).',
+        help_text=(
+            'Identificador asignado por el proxy (Odoo id_client, requerido).'
+        ),
     )
     company_id = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, db_index=True,
+        'base.ResCompany',
+        on_delete=models.CASCADE,
+        db_index=True,
         related_name='account_edi_proxy_client_ids',
-        help_text='Empresa (Odoo company_id, requerido). related_name da a '
-                  'res.company el O2M inverso sin tocar su archivo.',
+        help_text=(
+            'Empresa (Odoo company_id, requerido). related_name da a '
+            'res.company el O2M inverso sin tocar su archivo.'
+        ),
         db_column='company_id',
     )
     edi_identification = fields.Char(
         max_length=255,
-        help_text='Identificador único del usuario (típicamente el RFC/VAT), '
-                  'requerido.',
+        help_text=(
+            'Identificador único del usuario (típicamente el RFC/VAT), '
+            'requerido.'
+        ),
     )
     private_key_id = fields.Many2one(
-        'certificate.CertificateKey', on_delete=models.PROTECT,
+        'certificate.CertificateKey',
+        on_delete=models.PROTECT,
         related_name='edi_proxy_users',
-        help_text='Llave para cifrar los datos del usuario (Odoo '
-                  'private_key_id, requerido; domain público=False en la '
-                  'referencia, no reforzado a nivel de campo aquí).',
+        help_text=(
+            'Llave para cifrar los datos del usuario (Odoo '
+            'private_key_id, requerido; domain público=False en la '
+            'referencia, no reforzado a nivel de campo aquí).'
+        ),
         db_column='private_key_id',
     )
     refresh_token = fields.Char(max_length=255, blank=True, default='')
     is_token_out_of_sync = fields.Boolean(
         default=False,
-        help_text='El token quedó desincronizado con el proxy y necesita '
-                  'renovarse (Odoo is_token_out_of_sync).',
+        help_text=(
+            'El token quedó desincronizado con el proxy y necesita '
+            'renovarse (Odoo is_token_out_of_sync).'
+        ),
     )
     token_sync_version = fields.Integer(default=0)
     proxy_type = fields.Selection(
-        max_length=32, choices=[], blank=True, default='',
-        help_text='Tipo de proxy — vacío hasta que un l10n_*_edi concreto '
-                  'declare valores (Odoo proxy_type, requerido allá).',
+        max_length=32,
+        choices=[],
+        blank=True,
+        default='',
+        help_text=(
+            'Tipo de proxy — vacío hasta que un l10n_*_edi concreto '
+            'declare valores (Odoo proxy_type, requerido allá).'
+        ),
     )
-    edi_mode = fields.Selection(max_length=4, choices=EDI_MODES, blank=True, default='')
+    edi_mode = fields.Selection(
+        max_length=4, choices=EDI_MODES, blank=True, default=''
+    )
 
     class Meta:
         db_table = 'account_edi_proxy_client_user'
@@ -170,7 +193,9 @@ class AccountEdiProxyUser(models.Model):
         verbose_name_plural = 'Usuarios del proxy EDI'
         constraints = [
             # ≙ ``_unique_id_client`` (``odoo19c: :63-64``).
-            models.UniqueConstraint(fields=['id_client'], name='uniq_edi_proxy_id_client'),
+            models.UniqueConstraint(
+                fields=['id_client'], name='uniq_edi_proxy_id_client'
+            ),
             # ≙ ``_unique_active_company_proxy`` (``odoo19c: :65-68``) —
             # UniqueIndex parcial: sólo entre filas activas.
             models.UniqueConstraint(
@@ -198,7 +223,9 @@ class AccountEdiProxyUser(models.Model):
     @classmethod
     def _get_proxy_users(cls, company, proxy_type):
         """≙ ``_get_proxy_users`` (``odoo19c: :81-84``)."""
-        return company.account_edi_proxy_client_ids.filter(proxy_type=proxy_type)
+        return company.account_edi_proxy_client_ids.filter(
+            proxy_type=proxy_type
+        )
 
     @classmethod
     def _get_proxy_identification(cls, company, proxy_type):
@@ -206,7 +233,13 @@ class AccountEdiProxyUser(models.Model):
         sobreescribir)."""
         return None
 
-    def _make_request(self, url, params=None, *, auth_type: Literal['hmac', 'asymmetric'] = 'hmac'):
+    def _make_request(
+        self,
+        url,
+        params=None,
+        *,
+        auth_type: Literal['hmac', 'asymmetric'] = 'hmac',
+    ):
         """≙ ``_make_request`` (``odoo19c: :93-137``).
 
         El ``self.env.cr.commit()`` de la rama ``refresh_token_expired`` no
@@ -223,35 +256,55 @@ class AccountEdiProxyUser(models.Model):
         }
 
         if self.edi_mode == 'demo':
-            raise AccountEdiProxyError('block_demo_mode', "Can't access the proxy in demo mode")
+            raise AccountEdiProxyError(
+                'block_demo_mode', "Can't access the proxy in demo mode"
+            )
 
         try:
             res = requests.post(
-                url, json=payload, timeout=DEFAULT_TIMEOUT,
+                url,
+                json=payload,
+                timeout=DEFAULT_TIMEOUT,
                 headers={'content-type': 'application/json'},
-                auth=KaupaMexEdiProxyAuth(user=self, auth_type=auth_type))
+                auth=KaupaMexEdiProxyAuth(user=self, auth_type=auth_type),
+            )
             res.raise_for_status()
             response = res.json()
-        except (ValueError, requests.exceptions.ConnectionError,
-                requests.exceptions.MissingSchema, requests.exceptions.Timeout,
-                requests.exceptions.HTTPError) as error:
+        except (
+            ValueError,
+            requests.exceptions.ConnectionError,
+            requests.exceptions.MissingSchema,
+            requests.exceptions.Timeout,
+            requests.exceptions.HTTPError,
+        ) as error:
             _logger.warning('Connection error <%s>: %s', url, error)
             raise AccountEdiProxyError(
                 'connection_error',
-                _('The url that this service requested returned an error. '
-                  'The url it tried to contact was %s') % url) from error
+                _(
+                    'The url that this service requested returned an error. '
+                    'The url it tried to contact was %s'
+                )
+                % url,
+            ) from error
 
         if 'error' in response:
             if response['error']['code'] == 404:
-                message = _(
-                    'The url that this service tried to contact does not '
-                    'exist. The url was “%s”') % url
+                message = (
+                    _(
+                        'The url that this service tried to contact does not '
+                        'exist. The url was “%s”'
+                    )
+                    % url
+                )
             else:
-                error_message = (response['error'].get('data', {}).get('message')
-                                  or response['error']['message'])
+                error_message = (
+                    response['error'].get('data', {}).get('message')
+                    or response['error']['message']
+                )
                 message = _(
-                    'The url that this service requested returned an error. '
-                    'The url it tried to contact was %(url)s. %(error_message)s'
+                    'The url that this service requested returned an error.'
+                    ' The url it tried to contact was %(url)s.'
+                    ' %(error_message)s'
                 ) % {'url': url, 'error_message': error_message}
             raise AccountEdiProxyError('connection_error', message)
 
@@ -267,13 +320,18 @@ class AccountEdiProxyUser(models.Model):
             if error_code == 'invalid_signature':
                 raise AccountEdiProxyError(
                     error_code,
-                    _("Failed to connect to Odoo Access Point server. This "
-                      "might be due to another connection to Odoo Access "
-                      "Point server. It can occur if you have duplicated "
-                      "your database. \n\n"
-                      "If you are not sure how to fix this, please contact "
-                      "our support."))
-            raise AccountEdiProxyError(error_code, proxy_error.get('message') or None)
+                    _(
+                        "Failed to connect to Odoo Access Point server. This "
+                        "might be due to another connection to Odoo Access "
+                        "Point server. It can occur if you have duplicated "
+                        "your database. \n\n"
+                        "If you are not sure how to fix this, please contact "
+                        "our support."
+                    ),
+                )
+            raise AccountEdiProxyError(
+                error_code, proxy_error.get('message') or None
+            )
 
         return response['result']
 
@@ -281,35 +339,54 @@ class AccountEdiProxyUser(models.Model):
         """≙ ``_get_iap_params`` (``odoo19c: :139-147``). ``company.env[
         'ir.config_parameter']`` → ``SystemParameter`` directo (sin ``env``
         en este ORM)."""
-        edi_identification = self._get_proxy_identification(company, proxy_type)
+        edi_identification = self._get_proxy_identification(
+            company, proxy_type
+        )
         return {
             'dbuuid': SystemParameter.get_param('database.uuid'),
             'company_id': company.pk,
             'edi_identification': edi_identification,
-            'public_key': private_key._get_public_key_bytes(encoding='pem').decode(),
+            'public_key': (
+                private_key._get_public_key_bytes(encoding='pem').decode()
+            ),
             'proxy_type': proxy_type,
         }
 
     def _register_proxy_user(self, company, proxy_type, edi_mode):
         """≙ ``_register_proxy_user`` (``odoo19c: :149-179``)."""
         private_key = CertificateKey._generate_rsa_private_key(
-            company, name=f'{proxy_type}_{edi_mode}_{company.pk}.key')
-        edi_identification = self._get_proxy_identification(company, proxy_type)
+            company, name=f'{proxy_type}_{edi_mode}_{company.pk}.key'
+        )
+        edi_identification = self._get_proxy_identification(
+            company, proxy_type
+        )
         if edi_mode == 'demo':
-            response = {'id_client': f'demo{company.pk}{proxy_type}', 'refresh_token': 'demo'}
+            response = {
+                'id_client': f'demo{company.pk}{proxy_type}',
+                'refresh_token': 'demo',
+            }
         else:
             try:
                 server_url = self._get_server_url(proxy_type, edi_mode)
                 response = self._make_request(
                     f'{server_url}/iap/account_edi/2/create_user',
-                    params=self._get_iap_params(company, proxy_type, private_key))
+                    params=self._get_iap_params(
+                        company, proxy_type, private_key
+                    ),
+                )
             except AccountEdiProxyError as error:
                 raise UserError(error.message) from error
             if 'error' in response:
-                if response['error'] == 'A user already exists with this identification.':
-                    raise UserError(_(
-                        'A user already exists with theses credentials on '
-                        'our server. Please check your information.'))
+                if (
+                    response['error']
+                    == 'A user already exists with this identification.'
+                ):
+                    raise UserError(
+                        _(
+                            'A user already exists with theses credentials on '
+                            'our server. Please check your information.'
+                        )
+                    )
                 raise UserError(response['error'])
 
         return AccountEdiProxyUser.objects.create(
@@ -328,7 +405,9 @@ class AccountEdiProxyUser(models.Model):
             lock_for_update(AccountEdiProxyUser.objects.filter(pk=self.pk))
         except LockError:
             return
-        response = self._make_request(self._get_server_url() + '/iap/account_edi/1/renew_token')
+        response = self._make_request(
+            self._get_server_url() + '/iap/account_edi/1/renew_token'
+        )
         if 'error' in response:
             _logger.error(response['error'])
         self.refresh_token = response['refresh_token']
@@ -336,9 +415,12 @@ class AccountEdiProxyUser(models.Model):
 
     def _decrypt_data(self, data, symmetric_key):
         """≙ ``_decrypt_data`` (``odoo19c: :208-215``)."""
-        decrypted_key = self.private_key_id._decrypt(base64.b64decode(symmetric_key))
+        decrypted_key = self.private_key_id._decrypt(
+            base64.b64decode(symmetric_key)
+        )
         return CertificateKey._account_edi_fernet_decrypt(
-            decrypted_key, base64.b64decode(data))
+            decrypted_key, base64.b64decode(data)
+        )
 
 
 def apply_account_edi_proxy_client_extensions():

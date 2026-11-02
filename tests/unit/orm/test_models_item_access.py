@@ -5,6 +5,7 @@ Es la primitiva de la que cuelga la familia ``related=`` de ``Field``:
 lee. Se porta sólo su rama de cadena; las otras dos —índice y rebanada— son
 del contenedor, y aquí el contenedor es el ``QuerySet``.
 """
+
 import pytest
 from django.apps import apps
 from django.db import models

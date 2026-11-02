@@ -14,9 +14,9 @@
     # `hr`? — no: fleet no importa nada de hr; company/currency/partner/users
     # viven en `base`).
     'depends': [
-        'base',      # TimeStampedModel, ResPartner, ResUsers, ResCompany,
-                     # ResCurrency (via company), SystemParameter
-        'mail',      # MailThread (chatter + activity_ids/activity_schedule)
+        'base',  # TimeStampedModel, ResPartner, ResUsers, ResCompany,
+        # ResCurrency (via company), SystemParameter
+        'mail',  # MailThread (chatter + activity_ids/activity_schedule)
     ],
     # Licencia de la fuente de la que se adapta este addon, tal como su
     # manifest la declara (DEC-KX-03 punto 1): `fleet` en Odoo Community es

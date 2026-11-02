@@ -15,6 +15,7 @@ el valor viejo, el motor la despacharía sin acierto contra
 ``RENDERER_BY_TYPE`` y devolvería ``None`` — el contrato de ausencia taparía
 el dato roto en vez de delatarlo. Seis líneas contra un fallo silencioso.
 """
+
 from django.db import migrations, models
 
 #: Valor viejo → nuevo. ``qweb-html`` no se mapea: no hay formato destino, y
@@ -26,14 +27,16 @@ def quitar_prefijo(apps, schema_editor):
     IrActionsReport = apps.get_model('base', 'IrActionsReport')
     for viejo, nuevo in RENOMBRES.items():
         IrActionsReport.objects.filter(report_type=viejo).update(
-            report_type=nuevo)
+            report_type=nuevo
+        )
 
 
 def restaurar_prefijo(apps, schema_editor):
     IrActionsReport = apps.get_model('base', 'IrActionsReport')
     for viejo, nuevo in RENOMBRES.items():
         IrActionsReport.objects.filter(report_type=nuevo).update(
-            report_type=viejo)
+            report_type=viejo
+        )
 
 
 class Migration(migrations.Migration):
@@ -49,9 +52,11 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 choices=[("pdf", "PDF"), ("text", "Texto")],
                 default="pdf",
-                help_text="Formato de salida. Sin el prefijo qweb- de la "
-                          "referencia: aquí no hay QWeb, el render es libharu "
-                          "(ADR-017).",
+                help_text=(
+                    "Formato de salida. Sin el prefijo qweb- de la "
+                    "referencia: aquí no hay QWeb, el render es libharu "
+                    "(ADR-017)."
+                ),
                 max_length=16,
                 verbose_name="Tipo de reporte",
             ),

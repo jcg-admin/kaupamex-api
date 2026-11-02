@@ -93,8 +93,14 @@ def test_both_indexes_exist_in_the_catalog(db):
 
 def test_the_composite_index_covers_the_six_columns_of_the_reference(db):
     definition = _indexdef(COMPUESTO)
-    for columna in ('user_id', 'session_identifier', 'platform', 'browser',
-                    'last_activity', 'id'):
+    for columna in (
+        'user_id',
+        'session_identifier',
+        'platform',
+        'browser',
+        'last_activity',
+        'id',
+    ):
         assert columna in definition, f'{columna} falta en {definition}'
 
 
@@ -109,8 +115,9 @@ def test_both_are_partial_and_negate_the_revoked_column(db):
     for name in (COMPUESTO, REVOCADO):
         definition = _indexdef(name)
         assert ' WHERE ' in definition, f'{name} no es parcial: {definition}'
-        assert 'NOT revoked' in definition, \
-            f'{name} no niega revoked: {definition}'
+        assert (
+            'NOT revoked' in definition
+        ), f'{name} no niega revoked: {definition}'
 
 
 def test_the_model_declares_them_with_the_names_of_the_reference(db):

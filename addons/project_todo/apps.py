@@ -9,6 +9,7 @@ en ``ready()``, cuando el registro de modelos ya está poblado y
 ``models/res_users.py`` **no** entra en ``_EXTENSIONES``: sus tres símbolos
 están bloqueados (ver su docstring), así que no hay nada que colgar.
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -16,14 +17,16 @@ from django.apps import AppConfig
 
 class ProjectTodoConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name               = 'addons.project_todo'
-    label              = 'project_todo'
-    verbose_name       = 'To-Do (project_todo)'
+    name = 'addons.project_todo'
+    label = 'project_todo'
+    verbose_name = 'To-Do (project_todo)'
 
-    #: Módulo → función. Mismo patrón que ``ProjectAccountConfig._EXTENSIONES``.
+    #: Módulo → función. Mismo patrón que
+    #: ``ProjectAccountConfig._EXTENSIONES``.
     _EXTENSIONES = {
-        'addons.project_todo.models.project_task':
-            'apply_project_todo_project_task_extensions',
+        'addons.project_todo.models.project_task': (
+            'apply_project_todo_project_task_extensions'
+        ),
     }
 
     def ready(self):
