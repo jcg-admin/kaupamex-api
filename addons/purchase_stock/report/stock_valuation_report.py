@@ -22,7 +22,8 @@ AST sobre la fuente. Son **2** con ``_inherit``; **1** sin él:
     grep -rn "invoice_lines"           addons/ src/ --include=*.py   → 0
 
 Dos ausencias, no una: el modelo abstracto que se extiende, y —dentro del
-método— el enlace ``purchase.order.line.invoice_lines`` del que sale el valor ya
+método— el enlace ``purchase.order.line.invoice_lines`` del que sale el valor
+ya
 facturado. A ellas se suman tres campos de la línea de compra que este árbol no
 declara: ``qty_to_invoice`` (``:11``), ``date_approve`` (``:15``) y
 ``price_subtotal`` (``:30``).

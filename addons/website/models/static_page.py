@@ -19,6 +19,7 @@ internos de ``Website`` (``get_unique_path``, ``check_existing_page``,
 ``_enumerate_pages``) ya consultan ``website.page`` como primario y este par
 como interinato.
 """
+
 from django.conf import settings
 from django.db import models
 
@@ -37,24 +38,25 @@ class StaticPage(WebsiteSearchableMixin, TimeStampedModel):
     ``website.page``; este modelo queda como interinato conservado (ver el
     docstring del módulo).
     """
-    PAGE_ABOUT   = 'about'
-    PAGE_TERMS   = 'terms'
+
+    PAGE_ABOUT = 'about'
+    PAGE_TERMS = 'terms'
     PAGE_PRIVACY = 'privacy'
     PAGE_RETURNS = 'returns'
-    PAGE_FAQ     = 'faq'
+    PAGE_FAQ = 'faq'
     PAGE_CHOICES = [
-        (PAGE_ABOUT,   'Acerca de nosotros'),
-        (PAGE_TERMS,   'Términos y condiciones'),
+        (PAGE_ABOUT, 'Acerca de nosotros'),
+        (PAGE_TERMS, 'Términos y condiciones'),
         (PAGE_PRIVACY, 'Política de privacidad'),
         (PAGE_RETURNS, 'Política de devoluciones'),
-        (PAGE_FAQ,     'Preguntas frecuentes'),
+        (PAGE_FAQ, 'Preguntas frecuentes'),
     ]
 
-    slug  = models.SlugField(max_length=20, unique=True, choices=PAGE_CHOICES)
+    slug = models.SlugField(max_length=20, unique=True, choices=PAGE_CHOICES)
     title = models.CharField(max_length=200)
 
     class Meta:
-        db_table     = 'settings_static_page'
+        db_table = 'settings_static_page'
         verbose_name = 'Página estática'
 
     def __str__(self):
@@ -62,7 +64,11 @@ class StaticPage(WebsiteSearchableMixin, TimeStampedModel):
 
     @property
     def current_version(self):
-        return self.versions.filter(status='PUBLISHED').order_by('-version').first()
+        return (
+            self.versions.filter(status='PUBLISHED')
+            .order_by('-version')
+            .first()
+        )
 
     @property
     def url(self):
@@ -77,7 +83,9 @@ class StaticPage(WebsiteSearchableMixin, TimeStampedModel):
 
     @classmethod
     def _search_get_detail(cls, website, order, options):
-        """≙ ``website.page._search_get_detail`` (``odoo19c: website_page.py:202``).
+        """
+        ≙ ``website.page._search_get_detail`` (``odoo19c:
+        website_page.py:202``).
 
         La receta de búsqueda de las páginas. Divergencias declaradas contra
         la fuente, cada una con su porqué:
@@ -107,7 +115,11 @@ class StaticPage(WebsiteSearchableMixin, TimeStampedModel):
             'fetch_fields': ['id', 'title', 'url'],
             'mapping': {
                 'name': {'name': 'title', 'type': 'text', 'match': True},
-                'website_url': {'name': 'url', 'type': 'text', 'truncate': False},
+                'website_url': {
+                    'name': 'url',
+                    'type': 'text',
+                    'truncate': False,
+                },
             },
             'icon': 'fa-file-o',
         }
@@ -116,36 +128,48 @@ class StaticPage(WebsiteSearchableMixin, TimeStampedModel):
 class StaticPageVersion(TimeStampedModel):
     """
     Versión de una página estática. UC-CFG-04 (FR-CFG-04.02).
-    updated_at registra cuándo se modificó el estado (DRAFT→PUBLISHED→ARCHIVED).
+    updated_at registra cuándo se modificó el estado
+    (DRAFT→PUBLISHED→ARCHIVED).
     """
-    STATUS_DRAFT     = 'DRAFT'
+
+    STATUS_DRAFT = 'DRAFT'
     STATUS_PUBLISHED = 'PUBLISHED'
-    STATUS_ARCHIVED  = 'ARCHIVED'
-    STATUS_CHOICES   = [
-        (STATUS_DRAFT,     'Borrador'),
+    STATUS_ARCHIVED = 'ARCHIVED'
+    STATUS_CHOICES = [
+        (STATUS_DRAFT, 'Borrador'),
         (STATUS_PUBLISHED, 'Publicado'),
-        (STATUS_ARCHIVED,  'Archivado'),
+        (STATUS_ARCHIVED, 'Archivado'),
     ]
 
-    page       = models.ForeignKey(StaticPage, on_delete=models.CASCADE, related_name='versions')
-    version    = models.PositiveIntegerField()
-    content    = models.TextField()
-    status     = models.CharField(max_length=12, choices=STATUS_CHOICES,
-                                  default=STATUS_DRAFT, db_index=True)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
-                                   on_delete=models.SET_NULL,
-                                   related_name='static_page_versions')
+    page = models.ForeignKey(
+        StaticPage, on_delete=models.CASCADE, related_name='versions'
+    )
+    version = models.PositiveIntegerField()
+    content = models.TextField()
+    status = models.CharField(
+        max_length=12,
+        choices=STATUS_CHOICES,
+        default=STATUS_DRAFT,
+        db_index=True,
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='static_page_versions',
+    )
     publish_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        db_table     = 'settings_static_page_version'
-        constraints  = [
+        db_table = 'settings_static_page_version'
+        constraints = [
             models.UniqueConstraint(
                 fields=['page', 'version'],
                 name='unique_static_page_version',
             )
         ]
-        ordering     = ['-version']
+        ordering = ['-version']
         verbose_name = 'Versión de página estática'
 
     def __str__(self):

@@ -1,4 +1,5 @@
-"""``_update_inverse`` y su familia — el otro lado de la relación en caché (#326).
+"""
+``_update_inverse`` y su familia — el otro lado de la relación en caché (#326).
 
 Cuando se escribe un lado de una relación, el lado **contrario** que ya vive en
 la caché de la transacción queda obsoleto. ``_update_inverse`` es quien lo pone
@@ -7,7 +8,8 @@ al día, y su único consumidor es ``Cache.patch``
 niveles y este árbol porta los tres:
 
 =================================  ==========================================
-``_Relational._update_inverse``    ``:81`` — el contrato: ``NotImplementedError``
+``_Relational._update_inverse``    ``:81`` — el contrato:
+``NotImplementedError``
 ``Many2one._update_inverse``       ``:322-324`` — convierte y escribe la caché
 ``_RelationalMulti._update_inverse``  ``:564-573`` — suma el id, o lo aparca
 =================================  ==========================================
@@ -53,6 +55,7 @@ su ausencia: levanta ``NotImplementedError`` con el número de su sucesor
 dentro, así que el día que la tarea #327 construya ``BaseModel.new`` el caso
 cae y obliga a portar la rama en vez de dejarla olvidada.
 """
+
 import itertools
 
 import pytest
@@ -86,10 +89,15 @@ class InverseProbeChild(django_models.Model):
     _name = 'orm.inverse.probe.child'
 
     parent = django_models.ForeignKey(
-        InverseProbeParent, on_delete=django_models.CASCADE,
-        related_name='children', null=True, db_constraint=False)
+        InverseProbeParent,
+        on_delete=django_models.CASCADE,
+        related_name='children',
+        null=True,
+        db_constraint=False,
+    )
     tags = django_models.ManyToManyField(
-        InverseProbeParent, related_name='tagged', db_constraint=False)
+        InverseProbeParent, related_name='tagged', db_constraint=False
+    )
 
     class Meta:
         app_label = 'base'
@@ -116,7 +124,9 @@ class TestTheSingleRecordIdIsTheAdaptationOfRecordId:
     """:func:`single_record_id` — ≙ ``Id.__get__`` (``:103-114``)."""
 
     def test_the_empty_set_is_false(self):
-        """Vacío devuelve ``False``, no ``None``: es lo que la fuente escribe."""
+        """
+        Vacío devuelve ``False``, no ``None``: es lo que la fuente escribe.
+        """
         assert single_record_id([]) is False
 
     def test_one_row_gives_its_id(self):
@@ -150,16 +160,24 @@ class TestTheGenericContractRefuses:
 
     def test_every_class_got_its_own_implementation(self):
         """Y las tres subclases lo tienen, cada una la suya."""
-        assert (django_models.ForeignKey._update_inverse.__name__
-                == '_many2one_update_inverse')
-        assert (django_models.ManyToManyField._update_inverse.__name__
-                == '_relational_multi_update_inverse')
-        assert (django_models.ManyToManyField._update_cache.__name__
-                == '_relational_multi_update_cache')
+        assert (
+            django_models.ForeignKey._update_inverse.__name__
+            == '_many2one_update_inverse'
+        )
+        assert (
+            django_models.ManyToManyField._update_inverse.__name__
+            == '_relational_multi_update_inverse'
+        )
+        assert (
+            django_models.ManyToManyField._update_cache.__name__
+            == '_relational_multi_update_cache'
+        )
 
 
 class TestTheMany2oneConvertsToTheCacheFormat:
-    """``Many2one.convert_to_cache`` (``:328-351``) — el formato es id o ``None``."""
+    """
+    ``Many2one.convert_to_cache`` (``:328-351``) — el formato es id o ``None``.
+    """
 
     def test_an_int_is_the_id_itself(self):
         assert fk_field().convert_to_cache(7, None) == 7
@@ -183,10 +201,16 @@ class TestTheMany2oneConvertsToTheCacheFormat:
 
     @pytest.mark.django_db
     def test_the_wrong_model_passes_when_validation_is_off(self):
-        """``validate=False`` es la vía por la que entra ``_update_inverse``."""
+        """
+        ``validate=False`` es la vía por la que entra ``_update_inverse``.
+        """
         foreign = ResPartner.objects.create(name='Ajeno')
-        assert fk_field().convert_to_cache(
-            ResPartner.objects.filter(pk=foreign.pk), None, validate=False) == foreign.pk
+        assert (
+            fk_field().convert_to_cache(
+                ResPartner.objects.filter(pk=foreign.pk), None, validate=False
+            )
+            == foreign.pk
+        )
 
     def test_a_pair_gives_its_first_element(self):
         """El par ``(id, nombre)`` que la fuente admite."""
@@ -225,7 +249,9 @@ class TestTheMany2oneConvertsToTheCacheFormat:
 
     @pytest.mark.django_db
     def test_delegation_leaves_the_id_alone_when_a_row_is_real(self):
-        """El control de la guarda: con una fila guardada, el id no se envuelve."""
+        """
+        El control de la guarda: con una fila guardada, el id no se envuelve.
+        """
         field = fk_field()
         field.delegate = True
         try:
@@ -262,7 +288,8 @@ class TestTheMultiAddsTheIdOrParksIt:
     """``_RelationalMulti._update_inverse`` (``:564-573``)."""
 
     def test_it_parks_the_id_when_the_row_has_no_cached_value(
-            self, open_transaction):
+        self, open_transaction
+    ):
         """Sin valor en caché el id no se puede sumar a nada: se aparca."""
         field = m2m_field()
         new_id = NewId()
@@ -270,13 +297,15 @@ class TestTheMultiAddsTheIdOrParksIt:
         patches = open_transaction.field_data_patches[field]
         assert list(patches.values()) == [[new_id]]
 
-    def test_it_adds_the_id_when_the_row_already_has_one(self, open_transaction):
+    def test_it_adds_the_id_when_the_row_already_has_one(
+        self, open_transaction
+    ):
         """Con valor en caché se suma, y sin repetir."""
         field = m2m_field()
         row = InverseProbeChild()
         first, second = NewId(), NewId()
         field._update_inverse([row], first)
-        field._update_cache([row], ())          # drena el parche
+        field._update_cache([row], ())  # drena el parche
         field._update_inverse([row], second)
         assert open_transaction.cache.get(row, field) == (first, second)
 
@@ -306,7 +335,9 @@ class TestTheMultiAddsTheIdOrParksIt:
 class TestTheMultiDrainsThePendingPatches:
     """``_RelationalMulti._update_cache`` (``:576-586``)."""
 
-    def test_the_parked_id_joins_the_value_being_written(self, open_transaction):
+    def test_the_parked_id_joins_the_value_being_written(
+        self, open_transaction
+    ):
         field = m2m_field()
         row = InverseProbeChild()
         parked = NewId()
@@ -337,11 +368,14 @@ class TestTheCachePatchDeliversTheRawId:
     """``Cache.patch`` (``:906``) y la cuarta divergencia."""
 
     def test_a_new_id_survives_the_round_trip_through_the_cache(
-            self, open_transaction):
+        self, open_transaction
+    ):
         """El control que discrimina la divergencia 4.
 
-        La fuente escribe ``field._update_inverse(records, comodel.browse(new_id))``.
-        Con nuestro ``browse`` —que **consulta**— un ``NewId`` no tiene fila, el
+        La fuente escribe ``field._update_inverse(records,
+        comodel.browse(new_id))``.
+        Con nuestro ``browse`` —que **consulta**— un ``NewId`` no tiene fila,
+        el
         conjunto volvería vacío y :func:`single_record_id` daría ``False``: el
         id se perdería sin ruido. El caso lo hace observable.
         """
@@ -356,9 +390,13 @@ class TestTheCachePatchDeliversTheRawId:
 
 @pytest.mark.django_db
 class TestTheFilterNotEqualUsesASentinel:
-    """``Field._filter_not_equal`` (``:1577``) — el consumidor de ``SENTINEL``."""
+    """
+    ``Field._filter_not_equal`` (``:1577``) — el consumidor de ``SENTINEL``.
+    """
 
-    def test_a_row_without_a_cached_value_always_differs(self, open_transaction):
+    def test_a_row_without_a_cached_value_always_differs(
+        self, open_transaction
+    ):
         """Sin valor en caché, la fila difiere de cualquier cosa.
 
         Se mide sobre ``ResPartner`` y no sobre las sondas de arriba porque
@@ -370,7 +408,9 @@ class TestTheFilterNotEqualUsesASentinel:
         differing = field._filter_not_equal(partner, 'Alfa')
         assert [p.pk for p in differing] == [partner.pk]
 
-    def test_a_row_with_the_same_cached_value_is_dropped(self, open_transaction):
+    def test_a_row_with_the_same_cached_value_is_dropped(
+        self, open_transaction
+    ):
         field = ResPartner._meta.get_field('name')
         partner = ResPartner.objects.create(name='Alfa')
         open_transaction.cache.set(partner, field, 'Alfa')
@@ -397,7 +437,9 @@ class TestTheFilterNotEqualUsesASentinel:
         field = ResPartner._meta.get_field('name')
         partner = ResPartner.objects.create(name='Alfa')
         rowset = ResPartner.objects.filter(pk=partner.pk)
-        assert [p.pk for p in field._filter_not_equal(rowset, 'Otro')] == [partner.pk]
+        assert [p.pk for p in field._filter_not_equal(rowset, 'Otro')] == [
+            partner.pk
+        ]
 
     def test_a_bare_list_is_refused(self, open_transaction):
         """Y una lista suelta **no**, a propósito.
@@ -454,4 +496,5 @@ class TestTheUniquifierIsLazy:
         """
         with pytest.warns(DeprecationWarning), pytest.raises(AssertionError):
             open_transaction.cache.patch(
-                [InverseProbeChild()], fk_field(), NewId())
+                [InverseProbeChild()], fk_field(), NewId()
+            )

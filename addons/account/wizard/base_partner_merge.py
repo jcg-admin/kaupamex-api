@@ -28,6 +28,7 @@ Bloqueado por el wizard padre de ``base`` (dos piezas)
    contrato de este archivo, y el consumidor (el wizard padre) decide qué
    hacer con un campo aún ausente.
 """
+
 from orm.models_transient import TransientModel
 
 
@@ -44,7 +45,8 @@ class BasePartnerMergeAutomaticWizard(TransientModel):
     @classmethod
     def _get_summable_fields(cls):
         """Add to summable fields list, fields created in this module.
-         - customer_rank and supplier_rank will have a better ranking for the merged partner
+         - customer_rank and supplier_rank will have a better ranking for the
+           merged partner
 
         (Docstring verbatim de la referencia.) Aquí sin ``super()`` — ver
         "Bloqueado por el wizard padre" en el docstring del módulo: se

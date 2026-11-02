@@ -1,4 +1,6 @@
-"""Modelos del addon ``account_edi_ubl_cii`` (estructura Odoo: un archivo por modelo).
+"""
+Modelos del addon ``account_edi_ubl_cii`` (estructura Odoo: un archivo por
+modelo).
 
 Adaptación de ``odoo19c: addons/account_edi_ubl_cii/models/__init__.py``
 (``odoo-tools@622ddc2a``, LGPL-3, 19 líneas) — atribución y aviso de licencia
@@ -20,6 +22,7 @@ Los **cinco archivos de extensión** (``account_move``, ``account_move_send``,
 aquí: se cargan desde ``ready()``, cuando el registro de modelos ya está
 poblado — mismo criterio que ``account_edi/models/__init__.py``.
 """
+
 from .account_edi_common import AccountEdiCommon
 from .account_edi_ubl import AccountEdiUBL
 from .account_edi_ubl_cen_en16931 import AccountEdiUBLCenEn16931

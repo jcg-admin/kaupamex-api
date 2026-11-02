@@ -21,6 +21,7 @@ construirlo                  de valor por campo y por transacción; las
                              dependencia de fuera.
 ===========================  ==============================================
 """
+
 import logging
 
 import pytest
@@ -68,14 +69,17 @@ class TestTheMappingIsStable:
         second = field._get_cache(ambient_env())
         assert first is second
 
-    def test_the_mapping_is_the_one_the_transaction_holds(self, open_transaction):
+    def test_the_mapping_is_the_one_the_transaction_holds(
+        self, open_transaction
+    ):
         field = field_of('source')
         field._get_cache(ambient_env())[7] = 'x'
         assert open_transaction.field_data[field][7] == 'x'
 
     def test_two_fields_do_not_share_a_mapping(self, open_transaction):
-        assert (field_of('source')._get_cache(ambient_env())
-                is not field_of('total')._get_cache(ambient_env()))
+        assert field_of('source')._get_cache(ambient_env()) is not field_of(
+            'total'
+        )._get_cache(ambient_env())
 
 
 class TestTheContextSplitsTheCache:
@@ -86,14 +90,19 @@ class TestTheContextSplitsTheCache:
         field._get_cache(ambient_env())[1] = 'valor'
         assert open_transaction.field_data[field] == {1: 'valor'}
 
-    def test_a_context_field_keys_its_bucket(self, open_transaction, monkeypatch):
+    def test_a_context_field_keys_its_bucket(
+        self, open_transaction, monkeypatch
+    ):
         field = field_of('source')
-        monkeypatch.setattr(field, '_depends_context', ('bin_size',), raising=False)
+        monkeypatch.setattr(
+            field, '_depends_context', ('bin_size',), raising=False
+        )
         registry.field_depends_context.clear()
         environment = ambient_env()
         field._get_cache(environment)[1] = 'valor'
         assert open_transaction.field_data[field] == {
-            environment.cache_key(field): {1: 'valor'}}
+            environment.cache_key(field): {1: 'valor'}
+        }
 
 
 class TestInvalidationRemovesWhatItSays:
@@ -116,7 +125,9 @@ class TestInvalidationRemovesWhatItSays:
         field._invalidate_cache(ambient_env(), [99])
         assert field._get_cache(ambient_env()) == {1: 'a'}
 
-    def test_an_untouched_field_returns_without_building_a_bucket(self, open_transaction):
+    def test_an_untouched_field_returns_without_building_a_bucket(
+        self, open_transaction
+    ):
         field = field_of('total')
         field._invalidate_cache(ambient_env())
         assert field not in open_transaction.field_data
@@ -129,16 +140,25 @@ class TestAllCacheIdsMergesTheBuckets:
         field._get_cache(ambient_env()).update({1: 'a', 2: 'b'})
         assert set(field._get_all_cache_ids(ambient_env())) == {1, 2}
 
-    def test_a_context_field_merges_every_bucket(self, open_transaction, monkeypatch):
+    def test_a_context_field_merges_every_bucket(
+        self, open_transaction, monkeypatch
+    ):
         field = field_of('source')
-        monkeypatch.setattr(field, '_depends_context', ('lang',), raising=False)
+        monkeypatch.setattr(
+            field, '_depends_context', ('lang',), raising=False
+        )
         registry.field_depends_context.clear()
-        open_transaction.field_data[field] = {('es',): {1: 'a'}, ('en',): {2: 'b'}}
+        open_transaction.field_data[field] = {
+            ('es',): {1: 'a'},
+            ('en',): {2: 'b'},
+        }
         assert set(field._get_all_cache_ids(ambient_env())) == {1, 2}
 
 
 class TestInsertKeepsWhatIsAlreadyThere:
-    """``_insert_cache`` es ``setdefault``, no asignación: preserva lo pendiente."""
+    """
+    ``_insert_cache`` es ``setdefault``, no asignación: preserva lo pendiente.
+    """
 
     def test_it_fills_the_missing_ids(self, open_transaction):
         field = field_of('source')
@@ -172,7 +192,8 @@ class TestUpdateWritesAndMarksDirty:
         assert not open_transaction.field_dirty.get(field)
 
     def test_a_clean_write_over_a_dirty_field_logs_an_error(
-            self, open_transaction, caplog):
+        self, open_transaction, caplog
+    ):
         """La fuente registra el error; no lanza. Portado igual."""
         field = field_of('source')
         field._update_cache(CacheProbe(pk=1), 5, dirty=True)
@@ -183,7 +204,9 @@ class TestUpdateWritesAndMarksDirty:
 
 class TestRecomputeOnlyTouchesWhatIsPending:
 
-    def test_a_field_with_nothing_pending_does_not_compute(self, open_transaction):
+    def test_a_field_with_nothing_pending_does_not_compute(
+        self, open_transaction
+    ):
         field = field_of('total')
         record = CacheProbe(pk=1, source=3)
         field.recompute(record)
@@ -204,7 +227,8 @@ class TestRecomputeOnlyTouchesWhatIsPending:
         assert not open_transaction.tocompute.get(field)
 
     def test_a_failing_compute_leaves_the_mark_for_the_next_pass(
-            self, open_transaction, monkeypatch):
+        self, open_transaction, monkeypatch
+    ):
         field = field_of('total')
         record = CacheProbe(pk=1, source=3)
 

@@ -13,6 +13,7 @@ Este archivo fija las tres piezas que lo cierran:
 3. buscar por el campo emite el dominio sobre la cadena, que es lo que
    navegar la FK a mano no da.
 """
+
 import pytest
 from django.apps import apps
 from django.db import models
@@ -63,8 +64,13 @@ class TestTheConstructorAcceptsTheDeclaration:
     def test_the_dispatcher_family_accepts_it_too(self):
         """``make_dispatcher`` fabrica cinco constructores; el mecanismo es
         del campo, no del tipo, así que ninguno puede quedarse fuera."""
-        for constructor in (fields.Boolean, fields.Integer, fields.Float,
-                            fields.Text, fields.Selection):
+        for constructor in (
+            fields.Boolean,
+            fields.Integer,
+            fields.Float,
+            fields.Text,
+            fields.Selection,
+        ):
             field = constructor(related='partner.name')
             assert field.related == 'partner.name', constructor.__name__
             assert isinstance(field, NonStored), constructor.__name__
@@ -79,10 +85,12 @@ class TestReadingWalksTheChain:
         # es único, así que crearlo a ciegas choca con la fila real. El
         # related se lee igual sobre la sembrada — es la fila que el producto
         # usa.
-        country, _created = apps.get_model('base', 'ResCountry').objects\
-            .get_or_create(code='MX', defaults={'name': 'México'})
+        country, _created = apps.get_model(
+            'base', 'ResCountry'
+        ).objects.get_or_create(code='MX', defaults={'name': 'México'})
         return apps.get_model('base', 'ResBank').objects.create(
-            name='Banco de prueba', country=country)
+            name='Banco de prueba', country=country
+        )
 
     def test_reading_the_related_gives_the_value_at_the_end(self, bank):
         assert bank.country_code == 'MX'
@@ -95,7 +103,8 @@ class TestReadingWalksTheChain:
         el propio vacío, no un ``AttributeError``.
         """
         bank = apps.get_model('base', 'ResBank').objects.create(
-            name='Sin país')
+            name='Sin país'
+        )
         assert not bank.country_code
 
 
@@ -107,7 +116,8 @@ class TestSearchingUsesTheChain:
         field = fields.Char(related='country.code')
         assert field.search is not None, (
             'sin search el related se lee y no se filtra, que es exactamente '
-            'lo que se perdía al navegarlo por la FK')
+            'lo que se perdía al navegarlo por la FK'
+        )
 
     def test_the_search_emits_the_domain_over_the_chain(self):
         bank = apps.get_model('base', 'ResBank')
@@ -126,8 +136,10 @@ class TestTheFourDeclaredInResBank:
 
     ``odoo19c: res_bank.py:29`` (``ResBank.country_code``), ``:97``
     (``bank_name``), ``:98`` (``bank_bic``) y ``:102``
-    (``ResPartnerBank.country_code``). Ninguno lleva ``store`` en la fuente, así
-    que ninguno ocupa columna aquí — lo confirma ``makemigrations base --check``.
+    (``ResPartnerBank.country_code``). Ninguno lleva ``store`` en la fuente,
+    así
+    que ninguno ocupa columna aquí — lo confirma ``makemigrations base
+    --check``.
     """
 
     @pytest.fixture
@@ -136,13 +148,17 @@ class TestTheFourDeclaredInResBank:
             return apps.get_model('base', name)
 
         country, _creada = base('ResCountry').objects.get_or_create(
-            code='MX', defaults={'name': 'México'})
+            code='MX', defaults={'name': 'México'}
+        )
         bank = base('ResBank').objects.create(
-            name='Banco de prueba', bic='BDPMMXMM', country=country)
+            name='Banco de prueba', bic='BDPMMXMM', country=country
+        )
         partner = base('ResPartner').objects.create(
-            name='Titular de prueba', country=country)
+            name='Titular de prueba', country=country
+        )
         return base('ResPartnerBank').objects.create(
-            acc_number='0123456789', partner=partner, bank=bank)
+            acc_number='0123456789', partner=partner, bank=bank
+        )
 
     def test_the_account_reads_the_name_and_the_bic_of_its_bank(self, account):
         assert account.bank_name == 'Banco de prueba'
@@ -165,10 +181,14 @@ class TestTheFourDeclaredInResBank:
             ('ResPartnerBank', 'country_code'),
         }
         for model_name, field_name in declared:
-            columns = {f.name for f in
-                       apps.get_model('base', model_name)._meta.get_fields()}
-            assert field_name not in columns, (
-                f'{model_name}.{field_name} tomó columna')
+            columns = {
+                f.name
+                for f in apps.get_model('base', model_name)._meta.get_fields()
+            }
+            assert (
+                field_name not in columns
+            ), f'{model_name}.{field_name} tomó columna'
             assert isinstance(
                 getattr(apps.get_model('base', model_name), field_name),
-                NonStored)
+                NonStored,
+            )

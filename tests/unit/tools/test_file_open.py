@@ -1,4 +1,5 @@
-"""``file_open_temporary_directory`` y el confinamiento de ``file_path`` (#131).
+"""
+``file_open_temporary_directory`` y el confinamiento de ``file_path`` (#131).
 
 ≙ ``odoo19c: odoo/tools/misc.py:196-313`` — las tres funciones son una sola
 pieza: ``file_path`` decide qué rutas son legítimas, ``file_open`` sólo abre lo
@@ -22,6 +23,7 @@ discriminar (sub-patrón D de ``metrica-decide-la-conclusion.md``):
 - El aislamiento se prueba contra **otra conexión**: si el registro viviera en
   un global, este caso pasaría a verde sin que existiera aislamiento alguno.
 """
+
 import os
 import pathlib
 import threading
@@ -46,8 +48,12 @@ class TestThePathIsConfined:
         assert os.path.exists(resolved)
 
     def test_a_traversal_to_an_existing_file_outside_is_refused(self):
-        """``/etc/passwd`` EXISTE: lo que rechaza es la guarda, no la ausencia."""
-        assert os.path.exists('/etc/passwd'), 'el caso negativo perdió su objeto'
+        """
+        ``/etc/passwd`` EXISTE: lo que rechaza es la guarda, no la ausencia.
+        """
+        assert os.path.exists(
+            '/etc/passwd'
+        ), 'el caso negativo perdió su objeto'
 
         with pytest.raises(FileNotFoundError):
             file_path('../../../../etc/passwd')
@@ -62,7 +68,9 @@ class TestThePathIsConfined:
 
 
 class TestTheTemporaryDirectoryWidensTheRoots:
-    """≙ ``file_open_temporary_directory`` — la raíz extra, y sólo mientras dura."""
+    """
+    ≙ ``file_open_temporary_directory`` — la raíz extra, y sólo mientras dura.
+    """
 
     def test_a_file_inside_the_temporary_directory_resolves_with_env(self):
         with file_open_temporary_directory(DEFAULT_DB_ALIAS) as module_dir:
@@ -70,11 +78,14 @@ class TestTheTemporaryDirectoryWidensTheRoots:
             target.parent.mkdir(parents=True)
             target.write_text("{'name': 'foo'}\n")
 
-            assert file_path('foo/__manifest__.py',
-                             env=DEFAULT_DB_ALIAS) == str(target)
+            assert file_path(
+                'foo/__manifest__.py', env=DEFAULT_DB_ALIAS
+            ) == str(target)
 
     def test_without_env_the_temporary_root_is_not_consulted(self):
-        """El parámetro es el que abre la raíz: sin él, la guarda sigue cerrada."""
+        """
+        El parámetro es el que abre la raíz: sin él, la guarda sigue cerrada.
+        """
         with file_open_temporary_directory(DEFAULT_DB_ALIAS) as module_dir:
             target = pathlib.Path(module_dir) / 'foo' / '__manifest__.py'
             target.parent.mkdir(parents=True)
@@ -95,8 +106,9 @@ class TestTheTemporaryDirectoryWidensTheRoots:
         assert not os.path.exists(saved), 'el temporal debe borrarse al salir'
 
     def test_the_registry_is_empty_again_after_the_context(self):
-        before = list(getattr(connections[DEFAULT_DB_ALIAS],
-                             '_file_open_tmp_paths', []))
+        before = list(
+            getattr(connections[DEFAULT_DB_ALIAS], '_file_open_tmp_paths', [])
+        )
         with file_open_temporary_directory(DEFAULT_DB_ALIAS):
             during = list(connections[DEFAULT_DB_ALIAS]._file_open_tmp_paths)
         after = list(connections[DEFAULT_DB_ALIAS]._file_open_tmp_paths)
@@ -105,20 +117,27 @@ class TestTheTemporaryDirectoryWidensTheRoots:
         assert after == before
 
     def test_the_registry_is_cleaned_even_when_the_body_raises(self):
-        """El ``finally`` de la fuente: una raíz que no se cierra queda abierta."""
-        before = list(getattr(connections[DEFAULT_DB_ALIAS],
-                             '_file_open_tmp_paths', []))
+        """
+        El ``finally`` de la fuente: una raíz que no se cierra queda abierta.
+        """
+        before = list(
+            getattr(connections[DEFAULT_DB_ALIAS], '_file_open_tmp_paths', [])
+        )
         with pytest.raises(RuntimeError):
             with file_open_temporary_directory(DEFAULT_DB_ALIAS):
                 raise RuntimeError('el cuerpo revienta')
 
-        assert list(connections[DEFAULT_DB_ALIAS]._file_open_tmp_paths) == before
+        assert (
+            list(connections[DEFAULT_DB_ALIAS]._file_open_tmp_paths) == before
+        )
 
 
 class TestTheTemporaryRootIsPerTransaction:
-    """Otra transacción no ve el temporal — el aislamiento que la fuente promete.
+    """
+    Otra transacción no ve el temporal — el aislamiento que la fuente promete.
 
-    ``connections[alias]`` es ``local`` al thread, así que otro thread recibe otro
+    ``connections[alias]`` es ``local`` al thread, así que otro thread recibe
+    otro
     objeto de conexión —otra transacción— y su registro nace vacío. Si la lista
     viviera en un global del módulo, este caso pasaría a verde **sin** que
     existiera aislamiento alguno: por eso mide desde el otro thread y no desde
@@ -130,11 +149,14 @@ class TestTheTemporaryRootIsPerTransaction:
 
         def from_another_thread():
             seen['registry'] = list(
-                getattr(connections[DEFAULT_DB_ALIAS],
-                        '_file_open_tmp_paths', []))
+                getattr(
+                    connections[DEFAULT_DB_ALIAS], '_file_open_tmp_paths', []
+                )
+            )
             try:
-                seen['path'] = file_path('foo/__manifest__.py',
-                                          env=DEFAULT_DB_ALIAS)
+                seen['path'] = file_path(
+                    'foo/__manifest__.py', env=DEFAULT_DB_ALIAS
+                )
             except FileNotFoundError as exc:
                 seen['path'] = exc
 

@@ -25,6 +25,7 @@ cuando se portó. Sus cuatro métodos exigen un modelo concreto que declare
 de producción. Se cubre ``_generate_name`` (el núcleo, que es donde vive la
 lógica) y queda registrado el resto como sucesor: tarea **#415**.
 """
+
 import pytest
 from django.test import RequestFactory
 from django.utils import timezone
@@ -79,40 +80,65 @@ def _semillas_utm_restauradas(db):
 
 
 class TestSplitNameAndCount:
-    """≙ ``_split_name_and_count`` — los dos casos del docstring de la fuente."""
+    """
+    ≙ ``_split_name_and_count`` — los dos casos del docstring de la fuente.
+    """
 
     def test_plain_name_counts_as_one(self):
         assert UtmMixin._split_name_and_count('Medium') == ('Medium', 1)
 
     def test_bracketed_counter_is_extracted(self):
-        assert UtmMixin._split_name_and_count('Medium [1234]') == ('Medium', 1234)
+        assert UtmMixin._split_name_and_count('Medium [1234]') == (
+            'Medium',
+            1234,
+        )
 
     def test_empty_name_is_tolerated(self):
         assert UtmMixin._split_name_and_count(None) == ('', 1)
 
 
 class TestGetUniqueNames:
-    """≙ ``_get_unique_names`` — el ejemplo verbatim del docstring de la fuente."""
+    """
+    ≙ ``_get_unique_names`` — el ejemplo verbatim del docstring de la fuente.
+    """
 
     def test_reference_example(self):
         # "El nombre 'test' ya existe en la base"
         UtmSource.objects.create(name='test')
 
         result = UtmMixin._get_unique_names(
-            'utm.source', ['test', 'test [3]', 'bob', 'test', 'test'])
+            'utm.source', ['test', 'test [3]', 'bob', 'test', 'test']
+        )
 
-        assert result == ['test [2]', 'test [3]', 'bob', 'test [4]', 'test [5]']
+        assert result == [
+            'test [2]',
+            'test [3]',
+            'bob',
+            'test [4]',
+            'test [5]',
+        ]
 
     def test_empty_name_yields_none(self):
-        assert UtmMixin._get_unique_names('utm.source', [None, '']) == [None, None]
+        assert UtmMixin._get_unique_names('utm.source', [None, '']) == [
+            None,
+            None,
+        ]
 
     def test_skip_record_ids_excludes_the_record_from_its_own_collision(self):
         source = UtmSource.objects.create(name='promo')
 
-        # Sin excluirse, 'promo' colisionaría consigo mismo y saldría 'promo [2]'.
-        assert UtmMixin._get_unique_names('utm.source', ['promo'])[0] == 'promo [2]'
-        assert UtmMixin._get_unique_names(
-            'utm.source', ['promo'], skip_record_ids=[source.pk])[0] == 'promo'
+        # Sin excluirse, 'promo' colisionaría consigo mismo y saldría
+        # 'promo [2]'.
+        assert (
+            UtmMixin._get_unique_names('utm.source', ['promo'])[0]
+            == 'promo [2]'
+        )
+        assert (
+            UtmMixin._get_unique_names(
+                'utm.source', ['promo'], skip_record_ids=[source.pk]
+            )[0]
+            == 'promo'
+        )
 
     def test_unknown_model_is_reported(self):
         with pytest.raises(LookupError):
@@ -125,7 +151,9 @@ class TestFindOrCreateRecord:
     def test_existing_record_is_found_case_insensitively(self):
         source = UtmSource.objects.create(name='Affiliate Ring')
 
-        found = UtmMixin._find_or_create_record('utm.source', '  affiliate ring ')
+        found = UtmMixin._find_or_create_record(
+            'utm.source', '  affiliate ring '
+        )
 
         assert found.pk == source.pk
 
@@ -134,7 +162,9 @@ class TestFindOrCreateRecord:
         found = UtmMixin._find_or_create_record('utm.source', 'search engine')
 
         assert found.name == 'Search engine'
-        assert UtmSource.objects.filter(name__iexact='search engine').count() == 1
+        assert (
+            UtmSource.objects.filter(name__iexact='search engine').count() == 1
+        )
 
     def test_missing_record_is_created(self):
         record = UtmMixin._find_or_create_record('utm.source', 'Partner Blog')
@@ -144,7 +174,9 @@ class TestFindOrCreateRecord:
 
     def test_created_campaign_is_flagged_as_auto(self):
         """La fuente marca ``is_auto_campaign`` cuando el modelo lo declara."""
-        campaign = UtmMixin._find_or_create_record('utm.campaign', 'Autumn push')
+        campaign = UtmMixin._find_or_create_record(
+            'utm.campaign', 'Autumn push'
+        )
 
         assert campaign.is_auto_campaign is True
 
@@ -157,7 +189,9 @@ class TestFindOrCreateRecord:
 
 
 class TestTrackingFields:
-    """≙ ``tracking_fields`` / ``_tracking_models`` — el contrato de los 3 ejes."""
+    """
+    ≙ ``tracking_fields`` / ``_tracking_models`` — el contrato de los 3 ejes.
+    """
 
     def test_three_axes_in_reference_order(self):
         assert UtmMixin.tracking_fields() == [
@@ -168,7 +202,10 @@ class TestTrackingFields:
 
     def test_tracking_models_are_the_three_utm_models(self):
         assert UtmMixin._tracking_models() == {
-            'utm.campaign', 'utm.source', 'utm.medium'}
+            'utm.campaign',
+            'utm.source',
+            'utm.medium',
+        }
 
 
 class TestDefaultGet:
@@ -180,7 +217,8 @@ class TestDefaultGet:
 
         values = UtmMixin.default_get(['source_id'], request=request)
 
-        # Resuelve contra la fuente sembrada (``utm.utm_source_search_engine``),
+        # Resuelve contra la fuente sembrada
+        # (``utm.utm_source_search_engine``),
         # que se llama 'Search engine' — la búsqueda no distingue mayúsculas.
         source = UtmSource.objects.get(pk=values['source_id'])
         assert source.name == 'Search engine'
@@ -222,8 +260,14 @@ class TestUtmMedium:
     def test_self_required_mediums_reference(self):
         medium = UtmMedium.objects.create(name='Whatever')
 
-        assert medium.SELF_REQUIRED_UTM_MEDIUMS_REF == SELF_REQUIRED_UTM_MEDIUMS_REF
-        assert medium.SELF_REQUIRED_UTM_MEDIUMS_REF['utm.utm_medium_twitter'] == 'X'
+        assert (
+            medium.SELF_REQUIRED_UTM_MEDIUMS_REF
+            == SELF_REQUIRED_UTM_MEDIUMS_REF
+        )
+        assert (
+            medium.SELF_REQUIRED_UTM_MEDIUMS_REF['utm.utm_medium_twitter']
+            == 'X'
+        )
 
     def test_protected_medium_cannot_be_deleted(self):
         """El medio protegido es el que la siembra registra, no uno nuevo.
@@ -249,7 +293,8 @@ class TestUtmMedium:
 
         assert created.name == 'Direct'
         assert IrModelData.objects.filter(
-            module='utm', name='utm_medium_direct', res_id=created.pk).exists()
+            module='utm', name='utm_medium_direct', res_id=created.pk
+        ).exists()
 
     def test_fetch_or_create_is_idempotent(self):
         first = UtmMedium._fetch_or_create_utm_medium('Website')
@@ -263,7 +308,8 @@ class TestUtmMedium:
         medium = UtmMedium._fetch_or_create_utm_medium('Paid Social')
 
         assert IrModelData.objects.filter(
-            module='utm', name='utm_medium_paid_social', res_id=medium.pk).exists()
+            module='utm', name='utm_medium_paid_social', res_id=medium.pk
+        ).exists()
 
 
 # --------------------------------------------------------------- utm.source --
@@ -296,7 +342,7 @@ class TestUtmSource:
         generated = UtmSource._generate_name(stage, 'Spring sale')
 
         assert 'Spring sale' in generated
-        assert 'Campaign Stage' in generated          # ≙ ``_description``
+        assert 'Campaign Stage' in generated  # ≙ ``_description``
         assert stage.created_at.date().isoformat() in generated
 
     def test_generate_name_truncates_long_content(self):
@@ -323,7 +369,8 @@ class TestUtmSource:
 @pytest.fixture
 def responsible(db):
     return ResUsers.objects.create_user(
-        username='utm-owner', email='utm-owner@example.com', password='x')
+        username='utm-owner', email='utm-owner@example.com', password='x'
+    )
 
 
 class TestUtmCampaign:
@@ -331,7 +378,8 @@ class TestUtmCampaign:
     def test_title_falls_back_to_the_identifier(self):
         stage = UtmStage.objects.create(name='Nuevas')
         campaign = UtmCampaign.objects.create(
-            name='autumn_drive', user_id=None, stage_id=stage)
+            name='autumn_drive', user_id=None, stage_id=stage
+        )
 
         assert campaign.title == 'autumn_drive'
 
@@ -360,7 +408,8 @@ class TestUtmCampaign:
     def test_str_uses_the_rec_name(self):
         stage = UtmStage.objects.create(name='Nuevas')
         campaign = UtmCampaign.objects.create(
-            name='xmas_2026', title='Navidad 2026', stage_id=stage)
+            name='xmas_2026', title='Navidad 2026', stage_id=stage
+        )
 
         assert str(campaign) == 'Navidad 2026'
 
@@ -372,7 +421,11 @@ class TestUtmCampaign:
 
         # También las etapas sin ninguna campaña, y en el orden de ``_order``.
         # 'New' (secuencia 10) la aporta la semilla de ``utm_stage_data.xml``.
-        assert [stage.name for stage in stages] == ['Nuevas', 'Cerradas', 'New']
+        assert [stage.name for stage in stages] == [
+            'Nuevas',
+            'Cerradas',
+            'New',
+        ]
 
     def test_tags_are_many_to_many(self):
         stage = UtmStage.objects.create(name='Nuevas')
@@ -401,7 +454,10 @@ class TestUtmTagAndStage:
         UtmStage.objects.create(name='Nuevas', sequence=1)
 
         assert [s.name for s in UtmStage.objects.all()] == [
-            'Nuevas', 'Cerradas', 'New']
+            'Nuevas',
+            'Cerradas',
+            'New',
+        ]
 
 
 # ----------------------------------------------------------------- ir.http --
@@ -417,7 +473,8 @@ class TestIrHttpUtmCapture:
 
     def test_url_parameters_land_in_cookies(self):
         request = RequestFactory().get(
-            '/?utm_campaign=verano&utm_source=buscador&utm_medium=banner')
+            '/?utm_campaign=verano&utm_source=buscador&utm_medium=banner'
+        )
         response = UtmCookieMiddleware(lambda _req: _Response())(request)
 
         assert response.cookies['kaupamex_utm_campaign'].value == 'verano'
@@ -428,7 +485,10 @@ class TestIrHttpUtmCapture:
         request = RequestFactory().get('/?utm_source=buscador')
         response = UtmCookieMiddleware(lambda _req: _Response())(request)
 
-        assert response.cookies['kaupamex_utm_source']['max-age'] == 31 * 24 * 3600
+        assert (
+            response.cookies['kaupamex_utm_source']['max-age']
+            == 31 * 24 * 3600
+        )
 
     def test_unchanged_value_is_not_rewritten(self):
         """La guarda de la fuente: sin cambio, no se reemite la cookie."""

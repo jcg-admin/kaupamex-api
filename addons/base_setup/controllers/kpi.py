@@ -1,7 +1,8 @@
 """``/kpi/summary`` — el resumen de indicadores de un lote de bases.
 
 Adaptación de ``odoo19c: addons/base_setup/controllers/kpi.py``
-(``odoo-tools@622ddc2a``, LGPL-3 — copia + adaptación con atribución, DEC-KX-03;
+(``odoo-tools@622ddc2a``, LGPL-3 — copia + adaptación con atribución,
+DEC-KX-03;
 mecanismo declarado: adaptación del fuente, no reimplementación).
 
 Porte BLOQUEADO — 1 de 4 símbolos
@@ -61,6 +62,7 @@ Los tres símbolos bloqueados de arriba. Sucesor: tarea **#457**, que decide la
 exposición del resumen de indicadores (gate y conjunto de bases alcanzables)
 antes de portar el conector.
 """
+
 import logging
 from functools import cache
 from importlib import import_module
@@ -101,35 +103,45 @@ def _get_kpi_providers():
             module_path, colon, function = kpi_provider.partition(':')
             if module_path.startswith('.') or not colon:
                 _logger.warning(
-                    "Invalid KPI provider hook path %r in addon %r. "
-                    "Expected formats are 'pkg.module:function' or ':function'.",
-                    kpi_provider, name)
+                    "Invalid KPI provider hook path %r in addon %r. Expected"
+                    " formats are 'pkg.module:function' or ':function'.",
+                    kpi_provider,
+                    name,
+                )
                 continue
 
             try:
                 if module_path:
                     # Support "submodule.path:function"
-                    module = import_module(f'.{module_path}',
-                                           package=f'addons.{name}')
+                    module = import_module(
+                        f'.{module_path}', package=f'addons.{name}'
+                    )
                 else:
                     # Support ":function" for root-level function
                     module = import_module(f'addons.{name}')
                 if not function:
                     _logger.warning(
                         'KPI provider %r from addon %r has an empty function '
-                        'name.', kpi_provider, name)
+                        'name.',
+                        kpi_provider,
+                        name,
+                    )
                     continue
                 provider = getattr(module, function)
             except Exception:
                 _logger.exception(
                     'Failed to import KPI provider %r from addon %r.',
-                    kpi_provider, name)
+                    kpi_provider,
+                    name,
+                )
                 continue
 
             if not callable(provider):
                 _logger.warning(
                     'KPI provider %r from addon %r is not callable.',
-                    kpi_provider, name)
+                    kpi_provider,
+                    name,
+                )
                 continue
 
             kpi_providers.append((name, kpi_provider, provider))

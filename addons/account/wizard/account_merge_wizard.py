@@ -84,6 +84,7 @@ Símbolo de la referencia              Qué pasa aquí
 ``_apply_hashed_moves_constraint``    NO — bloqueado por el hash (arriba).
 ===================================  ======================================
 """
+
 from collections import defaultdict
 
 from django.db import transaction
@@ -108,7 +109,9 @@ class AccountMergeWizard(TransientModel):
     @classmethod
     def default_get(cls, account_ids):
         """≙ ``default_get`` — sólo sobre cuentas, y al menos dos."""
-        accounts = list(AccountAccount.objects.filter(pk__in=list(account_ids)))
+        accounts = list(
+            AccountAccount.objects.filter(pk__in=list(account_ids))
+        )
         if len(accounts) != len(set(account_ids)):
             raise UserError(_("This can only be used on accounts."))
         if len(accounts) < 2:
@@ -117,7 +120,7 @@ class AccountMergeWizard(TransientModel):
 
     @classmethod
     def _get_grouping_key(cls, account, is_group_by_name=False):
-        """ Return a grouping key for the given account.
+        """Return a grouping key for the given account.
 
         (Docstring verbatim de la referencia.) Parcial declarado: los
         campos de agrupación de allá son ``['account_type', 'non_trade',
@@ -137,51 +140,63 @@ class AccountMergeWizard(TransientModel):
 
     @classmethod
     def _compute_wizard_line_ids(cls, accounts, is_group_by_name=False):
-        """ Determine which accounts to merge together.
+        """Determine which accounts to merge together.
 
         (Docstring verbatim de la referencia.) Devuelve la lista de dicts
         de línea — sección + una línea por cuenta, mismo filtro de cuentas
         de banco/efectivo."""
-        accounts = [account for account in accounts
-                    if account.account_type not in ('asset_bank', 'asset_cash')]
+        accounts = [
+            account
+            for account in accounts
+            if account.account_type not in ('asset_bank', 'asset_cash')
+        ]
 
         grouped = defaultdict(list)
         for account in accounts:
             grouped[cls._get_grouping_key(account, is_group_by_name)].append(
-                account)
+                account
+            )
 
         wizard_lines = []
         sequence = 0
         for grouping_key, group_accounts in grouped.items():
             grouping_key_str = str(grouping_key)
             sequence += 1
-            wizard_lines.append({
-                'display_type': 'line_section',
-                'grouping_key': grouping_key_str,
-                'sequence': sequence,
-                'account': group_accounts[0],
-                'is_selected': False,
-                'info': False,
-            })
+            wizard_lines.append(
+                {
+                    'display_type': 'line_section',
+                    'grouping_key': grouping_key_str,
+                    'sequence': sequence,
+                    'account': group_accounts[0],
+                    'is_selected': False,
+                    'info': False,
+                }
+            )
             for account in group_accounts:
                 sequence += 1
-                wizard_lines.append({
-                    'display_type': 'account',
-                    'account': account,
-                    'grouping_key': grouping_key_str,
-                    'is_selected': True,
-                    'sequence': sequence,
-                    'info': False,
-                })
+                wizard_lines.append(
+                    {
+                        'display_type': 'account',
+                        'account': account,
+                        'grouping_key': grouping_key_str,
+                        'is_selected': True,
+                        'sequence': sequence,
+                        'info': False,
+                    }
+                )
         return wizard_lines
 
     @classmethod
     def _compute_disable_merge_button(cls, wizard_lines):
         """≙ ``_compute_disable_merge_button`` — no hay nada que fusionar si
         ningún grupo junta 2+ cuentas elegibles."""
-        selectable = [line for line in wizard_lines
-                      if line['display_type'] == 'account'
-                      and line['is_selected'] and not line['info']]
+        selectable = [
+            line
+            for line in wizard_lines
+            if line['display_type'] == 'account'
+            and line['is_selected']
+            and not line['info']
+        ]
         by_group = defaultdict(list)
         for line in selectable:
             by_group[line['grouping_key']].append(line)
@@ -190,7 +205,7 @@ class AccountMergeWizard(TransientModel):
     @classmethod
     @transaction.atomic
     def action_merge(cls, wizard_lines, is_group_by_name=False):
-        """ Merge each group of accounts in `self.wizard_line_ids`.
+        """Merge each group of accounts in `self.wizard_line_ids`.
 
         (Docstring verbatim de la referencia.) Devuelve las cuentas
         supervivientes en vez del ``display_notification`` (navegación del
@@ -198,14 +213,21 @@ class AccountMergeWizard(TransientModel):
         referencia no aplica mientras el hash esté bloqueado (ver la tabla
         del módulo): el orden de llegada decide la superviviente.
         """
-        accounts = [line['account'] for line in wizard_lines
-                    if line['display_type'] == 'account']
+        accounts = [
+            line['account']
+            for line in wizard_lines
+            if line['display_type'] == 'account'
+        ]
         cls._check_access_rights(accounts)
 
         survivors = []
-        selected = [line for line in wizard_lines
-                    if line['display_type'] == 'account'
-                    and line['is_selected'] and not line['info']]
+        selected = [
+            line
+            for line in wizard_lines
+            if line['display_type'] == 'account'
+            and line['is_selected']
+            and not line['info']
+        ]
         by_group = defaultdict(list)
         for line in selected:
             by_group[line['grouping_key']].append(line['account'])
@@ -230,18 +252,24 @@ class AccountMergeWizard(TransientModel):
             return accounts
         allowed = {company.pk for company in user.companies.all()}
         forbidden = sorted(
-            str(account.company) for account in accounts
-            if account.company_id not in allowed)
+            str(account.company)
+            for account in accounts
+            if account.company_id not in allowed
+        )
         if forbidden:
-            raise UserError(_(
-                "You do not have the right to perform this operation as "
-                "you do not have access to the following companies: %s.")
-                % ", ".join(forbidden))
+            raise UserError(
+                _(
+                    "You do not have the right to perform this operation as "
+                    "you do not have access to the following companies: %s."
+                )
+                % ", ".join(forbidden)
+            )
         return accounts
 
     @classmethod
-    def _update_foreign_keys_to_account(cls, accounts_to_remove,
-                                         account_to_merge_into):
+    def _update_foreign_keys_to_account(
+        cls, accounts_to_remove, account_to_merge_into
+    ):
         """El retarget de FKs — la mitad construida de
         ``_update_foreign_keys_generic`` (ver el docstring del módulo).
 
@@ -251,15 +279,19 @@ class AccountMergeWizard(TransientModel):
         """
         removed_pks = [account.pk for account in accounts_to_remove]
         for relation in AccountAccount._meta.related_objects:
-            if not relation.many_to_one and not relation.one_to_one \
-                    and not relation.many_to_many:
+            if (
+                not relation.many_to_one
+                and not relation.one_to_one
+                and not relation.many_to_many
+            ):
                 continue
             related_model = relation.related_model
             field_name = relation.field.name
             if relation.many_to_many:
                 # M2M: reemplazar la membresía fila a fila.
                 for record in related_model.objects.filter(
-                        **{f'{field_name}__in': removed_pks}).distinct():
+                    **{f'{field_name}__in': removed_pks}
+                ).distinct():
                     manager = getattr(record, field_name)
                     manager.remove(*accounts_to_remove)
                     manager.add(account_to_merge_into)
@@ -270,10 +302,12 @@ class AccountMergeWizard(TransientModel):
 
     @classmethod
     def _action_merge(cls, accounts):
-        """ Merge `accounts`:
-            - the first account is extended to each company of the others, keeping their codes and names;
+        """Merge `accounts`:
+            - the first account is extended to each company of the others,
+              keeping their codes and names;
             - the others are deleted; and
-            - journal items and other references are retargeted to the first account.
+            - journal items and other references are retargeted to the first
+              account.
 
         (Docstring verbatim de la referencia.) Parcial declarado:
 
@@ -295,7 +329,8 @@ class AccountMergeWizard(TransientModel):
 
         cls._check_access_rights(accounts)
         cls._update_foreign_keys_to_account(
-            accounts_to_remove, account_to_merge_into)
+            accounts_to_remove, account_to_merge_into
+        )
         for account in accounts_to_remove:
             account.delete()
         return account_to_merge_into
@@ -316,11 +351,16 @@ class AccountMergeWizardLine(TransientModel):
 
     @classmethod
     def _compute_info(cls, wizard_lines, is_group_by_name=False):
-        """ This re-computes the error message for each wizard line every time the user selects or deselects a wizard line.
+        """
+        This re-computes the error message for each wizard line every time the
+        user selects or deselects a wizard line.
 
-        In reality accounts will only affect the mergeability of other accounts in the same merge group.
-        Therefore this method delegates the logic of determining whether an account can be merged to
-        `_apply_different_companies_constraint` and `_apply_hashed_moves_constraint` which work on a merge group basis.
+        In reality accounts will only affect the mergeability of other accounts
+        in the same merge group.
+        Therefore this method delegates the logic of determining whether an
+        account can be merged to
+        `_apply_different_companies_constraint` and
+        `_apply_hashed_moves_constraint` which work on a merge group basis.
 
         (Docstring verbatim de la referencia; el constraint de hash está
         bloqueado — ver la tabla del módulo.)"""
@@ -339,7 +379,9 @@ class AccountMergeWizardLine(TransientModel):
 
     @classmethod
     def _get_group_name(cls, line, is_group_by_name=False):
-        """ Return a human-readable name for a wizard line's group, based on its `account_id`, in the format:
+        """
+        Return a human-readable name for a wizard line's group, based on its
+        `account_id`, in the format:
         '{Trade/Non-trade} Receivable {USD} {Reconcilable} {Deprecated}'
 
         (Docstring verbatim de la referencia.) Parcial declarado:
@@ -347,7 +389,8 @@ class AccountMergeWizardLine(TransientModel):
         y ``active`` se lee como ``not deprecated``."""
         account = line['account']
         account_type_label = dict(AccountAccount.ACCOUNT_TYPES).get(
-            account.account_type, account.account_type)
+            account.account_type, account.account_type
+        )
 
         other_name_elements = []
         if account.currency_id:
@@ -361,19 +404,22 @@ class AccountMergeWizardLine(TransientModel):
             grouping_key_name = account_type_label
             if other_name_elements:
                 grouping_key_name = (
-                    f'{grouping_key_name} ({", ".join(other_name_elements)})')
+                    f'{grouping_key_name} ({", ".join(other_name_elements)})'
+                )
         else:
             grouping_key_name = (
                 f'{account.name} '
-                f'({", ".join([account_type_label] + other_name_elements)})')
+                f'({", ".join([account_type_label] + other_name_elements)})'
+            )
         return grouping_key_name
 
     @classmethod
     def _apply_different_companies_constraint(cls, wizard_lines):
-        """ Set `info` on wizard lines if an account cannot be merged
+        """Set `info` on wizard lines if an account cannot be merged
             because it belongs to the same company as another account.
 
-            If users want to do that, they should mass-edit the account on the journal items.
+            If users want to do that, they should mass-edit the account on the
+            journal items.
 
             The wizard lines in `self` should have the same `grouping_key`.
 
@@ -387,7 +433,8 @@ class AccountMergeWizardLine(TransientModel):
             company_id = line['account'].company_id
             if company_id in companies_seen:
                 line['info'] = _("Belongs to the same company as %s.") % (
-                    companies_seen[company_id])
+                    companies_seen[company_id]
+                )
             else:
                 companies_seen[company_id] = line['account']
         return wizard_lines

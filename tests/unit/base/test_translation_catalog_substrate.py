@@ -1,11 +1,13 @@
 r"""Sonda: el sustrato de traducción de nuestro stack frente al flujo i18n.
 
-Directiva del ejecutor 2026-08-29: *"vamos a crear analisis del como lo hariamos
+Directiva del ejecutor 2026-08-29: *"vamos a crear analisis del como lo
+hariamos
 con nuestro stack, uno por uno"* + *"vas a analizar los binarios y crear
 pruebas"*.
 
 El trazado del flujo i18n
-(``docs: analisis-flujo-i18n-en-odoo-tools.rst``) midió que ``_()`` está portado
+(``docs: analisis-flujo-i18n-en-odoo-tools.rst``) midió que ``_()`` está
+portado
 y lo llaman 141 archivos, con **0 catálogos** en el árbol. Con el catálogo
 vacío ``gettext`` devuelve siempre el ``msgid``, así que **ningún caso que use
 sólo el árbol puede distinguir «traduce» de «no hay nada que traducir»** — es
@@ -17,11 +19,14 @@ herramientas de gettext **no están instaladas en este contenedor** (medido con
 ``command -v msgfmt xgettext msgmerge`` → sin salida), y depender de ellas
 volvería la sonda no reproducible.
 
-*Métrica:* la conducta de ``django.utils.translation`` y de ``tools.translate._``
+*Métrica:* la conducta de ``django.utils.translation`` y de
+``tools.translate._``
 contra un catálogo compilado a mano, más la superficie de ``trans_real``.
-*Ciega a:* la extracción — que el ``.po`` se genere bien desde el fuente es otro
+*Ciega a:* la extracción — que el ``.po`` se genere bien desde el fuente es
+otro
 eje, y hoy no se puede medir aquí por la ausencia de ``xgettext``.
 """
+
 import os
 import pathlib
 import struct
@@ -42,7 +47,8 @@ CATALOG = {'Hello': 'Hola', 'Delay on %s': 'Retraso en %s'}
 
 
 def write_mo(path, entries):
-    """Escribe un catálogo ``.mo`` mínimo — el formato es un índice y dos blobs.
+    """
+    Escribe un catálogo ``.mo`` mínimo — el formato es un índice y dos blobs.
 
     Se implementa aquí en vez de invocar ``msgfmt`` porque las herramientas de
     gettext no están instaladas; el formato está fijado por GNU gettext y su
@@ -62,8 +68,9 @@ def write_mo(path, entries):
     for id_offset, id_length, string_offset, string_length in offsets:
         key_offsets += [id_length, id_offset + key_start]
         value_offsets += [string_length, string_offset + value_start]
-    output = struct.pack('Iiiiiii', 0x950412de, 0, len(keys),
-                         7 * 4, 7 * 4 + len(keys) * 8, 0, 0)
+    output = struct.pack(
+        'Iiiiiii', 0x950412DE, 0, len(keys), 7 * 4, 7 * 4 + len(keys) * 8, 0, 0
+    )
     output += struct.pack('i' * len(key_offsets), *key_offsets)
     output += struct.pack('i' * len(value_offsets), *value_offsets)
     pathlib.Path(path).write_bytes(output + ids + strings)
@@ -90,7 +97,9 @@ class TestTheCatalogChangesTheResult:
             with translation.override('xx'):
                 assert str(_('Hello')) == 'Hola'
 
-    def test_without_the_active_language_it_falls_back_to_the_source(self, locale_dir):
+    def test_without_the_active_language_it_falls_back_to_the_source(
+        self, locale_dir
+    ):
         # El par de control: mismo catálogo, otro idioma activo. Si este caso
         # también dijera 'Hola', el anterior no estaría midiendo el catálogo.
         with override_settings(LOCALE_PATHS=[locale_dir], USE_I18N=True):
@@ -107,11 +116,15 @@ class TestTheCatalogChangesTheResult:
 
 
 class TestTheLazinessIsReal:
-    """`_` devuelve un perezoso: el idioma lo decide el momento de la lectura."""
+    """
+    `_` devuelve un perezoso: el idioma lo decide el momento de la lectura.
+    """
 
-    def test_the_same_object_reads_differently_under_two_languages(self, locale_dir):
+    def test_the_same_object_reads_differently_under_two_languages(
+        self, locale_dir
+    ):
         with override_settings(LOCALE_PATHS=[locale_dir], USE_I18N=True):
-            message = _('Hello')          # declarado UNA vez, fuera de idioma
+            message = _('Hello')  # declarado UNA vez, fuera de idioma
             with translation.override('xx'):
                 translated = str(message)
             with translation.override('en'):
@@ -133,14 +146,17 @@ class TestDjangoLooksForCatalogsPerApp:
         # instalada, condicionado a que el directorio exista. Es la contraparte
         # de `addons/<x>/i18n/` de la referencia: no hace falta LOCALE_PATHS.
         source = pathlib.Path(trans_real.__file__).read_text(encoding='utf-8')
-        assert 'locale_path = os.path.join(app_config.path, "locale")' in source
+        assert (
+            'locale_path = os.path.join(app_config.path, "locale")' in source
+        )
         assert 'if os.path.exists(locale_path):' in source
 
     def test_today_none_of_our_own_apps_has_one(self):
         # El estado medido, y la razón por la que el catálogo está vacío: no es
         # que Django no sepa dónde buscar, es que el directorio no existe.
         own = [
-            config.label for config in apps.get_app_configs()
+            config.label
+            for config in apps.get_app_configs()
             if 'site-packages' not in config.path
             and os.path.exists(os.path.join(config.path, 'locale'))
         ]

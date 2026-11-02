@@ -3,7 +3,8 @@ r"""``website`` — addon ``website``.
 Adaptación de Odoo ``website/models/website.py`` (``odoo-tools@622ddc2a``,
 ``odoo19c:``, LGPL-3) — atribución y aviso de licencia preservados (DEC-KX-03).
 
-Qué es: el **sitio**. No es una página ni un menú: es el objeto de configuración
+Qué es: el **sitio**. No es una página ni un menú: es el objeto de
+configuración
 que hace multi-sitio a la plataforma. Un registro por sitio publicado, cada uno
 con su dominio, su empresa, sus idiomas, su tema y su usuario público. Todo lo
 demás del addon —menús, páginas, contenido estático— cuelga de él por FK.
@@ -11,7 +12,8 @@ demás del addon —menús, páginas, contenido estático— cuelga de él por F
 Por qué este archivo desbloquea cuatro tareas
 ===============================================
 
-**El addon ``website`` existía con ocho modelos y ninguno era el sitio.** Medido
+**El addon ``website`` existía con ocho modelos y ninguno era el sitio.**
+Medido
 antes de este pase: ``grep "_name = 'website'"`` sobre todo el árbol devolvía
 **0 hits**, y los ocho modelos de ``addons/website/models/`` declaraban **0
 atributos de clase** entre los ocho. Cuatro tareas esperaban una FK a un modelo
@@ -102,13 +104,16 @@ Cuatro divergencias de mecanismo, declaradas
    ``save()`` recalcula.
 
 3. **El sufijo ``_id`` se cae en los FK.** ``company_id`` → ``company``,
-   ``user_id`` → ``user``, etc. Django ya expone ``company_id`` como la columna;
+   ``user_id`` → ``user``, etc. Django ya expone ``company_id`` como la
+   columna;
    conservar el sufijo produciría ``company_id_id``. La equivalencia está
    declarada en el test para que ``check_porte_completo`` no la lea como
    ausencia (:ref:`h-api-579`).
 
-4. **``_domain_unique`` es un objeto de tabla**, no un atributo de ORM. En 19 se
-   declara como ``models.Constraint`` en el cuerpo de la clase; su hogar aquí es
+4. **``_domain_unique`` es un objeto de tabla**, no un atributo de ORM. En 19
+   se
+   declara como ``models.Constraint`` en el cuerpo de la clase; su hogar aquí
+   es
    ``Meta.constraints``, con el nombre de la referencia conservado
    (``atributos-de-clase-de-modelo.md``).
 
@@ -122,7 +127,8 @@ de páginas que aquí se contaban como heredados de B2, y **#104** cerró
 ``new_page`` (el heredado de B2), ``get_website_page_ids`` y
 ``_get_website_pages`` al portar ``website.page``/``website.rewrite``.
 Los 33 de B1
-están todos declarados; **tres tienen el cuerpo recortado**, y cada uno dice por
+están todos declarados; **tres tienen el cuerpo recortado**, y cada uno dice
+por
 qué en su propio docstring en vez de callarlo:
 
 - ``_remove_attachments_on_website_unlink`` — ``ir.attachment`` no declara
@@ -138,7 +144,8 @@ qué en su propio docstring en vez de callarlo:
 
 Y dos cosas que la fuente hace en ``create``/``write`` y aquí **no** se hacen,
 con su razón: ``_bootstrap_homepage`` (es de B4, #537, y además necesita
-``website.page``) y el alta del grupo multi-sitio (necesita el registro de datos
+``website.page``) y el alta del grupo multi-sitio (necesita el registro de
+datos
 por módulo, #467).
 
 Cobertura de B2 — el bloqueo medido, método a método
@@ -235,6 +242,7 @@ import models
 import requests
 from django.apps import apps
 from django.urls import Resolver404, URLPattern, URLResolver, get_resolver
+
 # ``RoutePattern`` distingue una ruta literal de ``path()`` de un regex de
 # ``re_path()`` — interno de Django leído en el paquete instalado
 # (``django/urls/resolvers.py:314``), no de memoria.
@@ -255,7 +263,9 @@ from addons.website.models.mixins import WebsiteSearchableMixin
 from addons.website.models.static_page import StaticPage
 from addons.website.models.website_menu import WebsiteMenu
 from addons.website.tools import (
-    get_base_domain, similarity_score, text_from_html,
+    get_base_domain,
+    similarity_score,
+    text_from_html,
 )
 import release
 from addons.base.models.ir_config_parameter import SystemParameter
@@ -266,12 +276,18 @@ from orm.models_transient import TransientModel
 from orm.registry import model_by_name, name_of
 from tools.sql import escape_psql
 from tools.urls import urljoin
+
 # ``connection`` sale del espejo del entorno, no de Django crudo: es el
 # ``env.cr`` de la referencia, y ``orm.environments`` lo re-exporta a
 # propósito (su tabla de mapeo lo declara).
 from orm.environments import (
-    connection, context_scope, get_context, get_current_company,
-    get_current_uid, is_su, sudo,
+    connection,
+    context_scope,
+    get_context,
+    get_current_company,
+    get_current_uid,
+    is_su,
+    sudo,
 )
 from tools.translate import _
 
@@ -305,55 +321,225 @@ DEFAULT_CDN_FILTERS = [
 #: Los dominios que rastrean al visitante. La lista de Google sale de
 #: https://www.google.com/supported_domains y se porta entera: recortarla
 #: dejaría pasar rastreadores por la puerta de al lado.
-DEFAULT_BLOCKED_THIRD_PARTY_DOMAINS = '\n'.join([
-    'youtu.be', 'youtube.com', 'youtube-nocookie.com',
-    'instagram.com', 'instagr.am', 'ig.me',
-    'vimeo.com',
-    'dailymotion.com', 'dai.ly',
-    'youku.com',
-    'tudou.com',
-    'facebook.com', 'facebook.net', 'fb.com', 'fb.me', 'fb.watch',
-    'tiktok.com',
-    'x.com', 'twitter.com', 't.co',
-    'googletagmanager.com', 'google-analytics.com',
-    # Lista de https://www.google.com/supported_domains
-    'google.com', 'google.ad', 'google.ae', 'google.com.af', 'google.com.ag', 'google.al',
-    'google.am', 'google.co.ao', 'google.com.ar', 'google.as', 'google.at', 'google.com.au',
-    'google.az', 'google.ba', 'google.com.bd', 'google.be', 'google.bf', 'google.bg',
-    'google.com.bh', 'google.bi', 'google.bj', 'google.com.bn', 'google.com.bo', 'google.com.br',
-    'google.bs', 'google.bt', 'google.co.bw', 'google.by', 'google.com.bz', 'google.ca',
-    'google.cd', 'google.cf', 'google.cg', 'google.ch', 'google.ci', 'google.co.ck', 'google.cl',
-    'google.cm', 'google.cn', 'google.com.co', 'google.co.cr', 'google.com.cu', 'google.cv',
-    'google.com.cy', 'google.cz', 'google.de', 'google.dj', 'google.dk', 'google.dm',
-    'google.com.do', 'google.dz', 'google.com.ec', 'google.ee', 'google.com.eg', 'google.es',
-    'google.com.et', 'google.fi', 'google.com.fj', 'google.fm', 'google.fr', 'google.ga',
-    'google.ge', 'google.gg', 'google.com.gh', 'google.com.gi', 'google.gl', 'google.gm',
-    'google.gr', 'google.com.gt', 'google.gy', 'google.com.hk', 'google.hn', 'google.hr',
-    'google.ht', 'google.hu', 'google.co.id', 'google.ie', 'google.co.il', 'google.im',
-    'google.co.in', 'google.iq', 'google.is', 'google.it', 'google.je', 'google.com.jm',
-    'google.jo', 'google.co.jp', 'google.co.ke', 'google.com.kh', 'google.ki', 'google.kg',
-    'google.co.kr', 'google.com.kw', 'google.kz', 'google.la', 'google.com.lb', 'google.li',
-    'google.lk', 'google.co.ls', 'google.lt', 'google.lu', 'google.lv', 'google.com.ly',
-    'google.co.ma', 'google.md', 'google.me', 'google.mg', 'google.mk', 'google.ml',
-    'google.com.mm', 'google.mn', 'google.com.mt', 'google.mu', 'google.mv', 'google.mw',
-    'google.com.mx', 'google.com.my', 'google.co.mz', 'google.com.na', 'google.com.ng',
-    'google.com.ni', 'google.ne', 'google.nl', 'google.no', 'google.com.np', 'google.nr',
-    'google.nu', 'google.co.nz', 'google.com.om', 'google.com.pa', 'google.com.pe', 'google.com.pg',
-    'google.com.ph', 'google.com.pk', 'google.pl', 'google.pn', 'google.com.pr', 'google.ps',
-    'google.pt', 'google.com.py', 'google.com.qa', 'google.ro', 'google.ru', 'google.rw',
-    'google.com.sa', 'google.com.sb', 'google.sc', 'google.se', 'google.com.sg', 'google.sh',
-    'google.si', 'google.sk', 'google.com.sl', 'google.sn', 'google.so', 'google.sm', 'google.sr',
-    'google.st', 'google.com.sv', 'google.td', 'google.tg', 'google.co.th', 'google.com.tj',
-    'google.tl', 'google.tm', 'google.tn', 'google.to', 'google.com.tr', 'google.tt',
-    'google.com.tw', 'google.co.tz', 'google.com.ua', 'google.co.ug', 'google.co.uk',
-    'google.com.uy', 'google.co.uz', 'google.com.vc', 'google.co.ve', 'google.co.vi',
-    'google.com.vn', 'google.vu', 'google.ws', 'google.rs', 'google.co.za', 'google.co.zm',
-    'google.co.zw', 'google.cat',
-])
+DEFAULT_BLOCKED_THIRD_PARTY_DOMAINS = '\n'.join(
+    [
+        'youtu.be',
+        'youtube.com',
+        'youtube-nocookie.com',
+        'instagram.com',
+        'instagr.am',
+        'ig.me',
+        'vimeo.com',
+        'dailymotion.com',
+        'dai.ly',
+        'youku.com',
+        'tudou.com',
+        'facebook.com',
+        'facebook.net',
+        'fb.com',
+        'fb.me',
+        'fb.watch',
+        'tiktok.com',
+        'x.com',
+        'twitter.com',
+        't.co',
+        'googletagmanager.com',
+        'google-analytics.com',
+        # Lista de https://www.google.com/supported_domains
+        'google.com',
+        'google.ad',
+        'google.ae',
+        'google.com.af',
+        'google.com.ag',
+        'google.al',
+        'google.am',
+        'google.co.ao',
+        'google.com.ar',
+        'google.as',
+        'google.at',
+        'google.com.au',
+        'google.az',
+        'google.ba',
+        'google.com.bd',
+        'google.be',
+        'google.bf',
+        'google.bg',
+        'google.com.bh',
+        'google.bi',
+        'google.bj',
+        'google.com.bn',
+        'google.com.bo',
+        'google.com.br',
+        'google.bs',
+        'google.bt',
+        'google.co.bw',
+        'google.by',
+        'google.com.bz',
+        'google.ca',
+        'google.cd',
+        'google.cf',
+        'google.cg',
+        'google.ch',
+        'google.ci',
+        'google.co.ck',
+        'google.cl',
+        'google.cm',
+        'google.cn',
+        'google.com.co',
+        'google.co.cr',
+        'google.com.cu',
+        'google.cv',
+        'google.com.cy',
+        'google.cz',
+        'google.de',
+        'google.dj',
+        'google.dk',
+        'google.dm',
+        'google.com.do',
+        'google.dz',
+        'google.com.ec',
+        'google.ee',
+        'google.com.eg',
+        'google.es',
+        'google.com.et',
+        'google.fi',
+        'google.com.fj',
+        'google.fm',
+        'google.fr',
+        'google.ga',
+        'google.ge',
+        'google.gg',
+        'google.com.gh',
+        'google.com.gi',
+        'google.gl',
+        'google.gm',
+        'google.gr',
+        'google.com.gt',
+        'google.gy',
+        'google.com.hk',
+        'google.hn',
+        'google.hr',
+        'google.ht',
+        'google.hu',
+        'google.co.id',
+        'google.ie',
+        'google.co.il',
+        'google.im',
+        'google.co.in',
+        'google.iq',
+        'google.is',
+        'google.it',
+        'google.je',
+        'google.com.jm',
+        'google.jo',
+        'google.co.jp',
+        'google.co.ke',
+        'google.com.kh',
+        'google.ki',
+        'google.kg',
+        'google.co.kr',
+        'google.com.kw',
+        'google.kz',
+        'google.la',
+        'google.com.lb',
+        'google.li',
+        'google.lk',
+        'google.co.ls',
+        'google.lt',
+        'google.lu',
+        'google.lv',
+        'google.com.ly',
+        'google.co.ma',
+        'google.md',
+        'google.me',
+        'google.mg',
+        'google.mk',
+        'google.ml',
+        'google.com.mm',
+        'google.mn',
+        'google.com.mt',
+        'google.mu',
+        'google.mv',
+        'google.mw',
+        'google.com.mx',
+        'google.com.my',
+        'google.co.mz',
+        'google.com.na',
+        'google.com.ng',
+        'google.com.ni',
+        'google.ne',
+        'google.nl',
+        'google.no',
+        'google.com.np',
+        'google.nr',
+        'google.nu',
+        'google.co.nz',
+        'google.com.om',
+        'google.com.pa',
+        'google.com.pe',
+        'google.com.pg',
+        'google.com.ph',
+        'google.com.pk',
+        'google.pl',
+        'google.pn',
+        'google.com.pr',
+        'google.ps',
+        'google.pt',
+        'google.com.py',
+        'google.com.qa',
+        'google.ro',
+        'google.ru',
+        'google.rw',
+        'google.com.sa',
+        'google.com.sb',
+        'google.sc',
+        'google.se',
+        'google.com.sg',
+        'google.sh',
+        'google.si',
+        'google.sk',
+        'google.com.sl',
+        'google.sn',
+        'google.so',
+        'google.sm',
+        'google.sr',
+        'google.st',
+        'google.com.sv',
+        'google.td',
+        'google.tg',
+        'google.co.th',
+        'google.com.tj',
+        'google.tl',
+        'google.tm',
+        'google.tn',
+        'google.to',
+        'google.com.tr',
+        'google.tt',
+        'google.com.tw',
+        'google.co.tz',
+        'google.com.ua',
+        'google.co.ug',
+        'google.co.uk',
+        'google.com.uy',
+        'google.co.uz',
+        'google.com.vc',
+        'google.co.ve',
+        'google.co.vi',
+        'google.com.vn',
+        'google.vu',
+        'google.ws',
+        'google.rs',
+        'google.co.za',
+        'google.co.zm',
+        'google.co.zw',
+        'google.cat',
+    ]
+)
 
 
 def default_cdn_filters():
-    """El valor inicial de ``cdn_filters`` — ``DEFAULT_CDN_FILTERS`` por renglón.
+    """
+    El valor inicial de ``cdn_filters`` — ``DEFAULT_CDN_FILTERS`` por renglón.
 
     Función con nombre y no ``lambda`` porque Django serializa los ``default=``
     dentro de la migración, y una ``lambda`` no es serializable
@@ -392,17 +578,23 @@ def default_company():
 # ``_default_logo``, ``_default_favicon``, todos abajo en la clase—; lo que
 # faltaba era el cable entre el campo y su ayudante. El conteo de símbolos daba
 # porte completo y el campo nacía vacío: es la forma exacta que
-# ``porte-completo-no-parcial.md`` describe como fallar por FORMA sin fallar por
+# ``porte-completo-no-parcial.md`` describe como fallar por FORMA sin
+# fallar por
 # conteo. Ver :ref:`h-api-696`.
 #
-# Son funciones de módulo con nombre y no referencias directas al ``classmethod``
+# Son funciones de módulo con nombre y no referencias directas al
+# ``classmethod``
 # porque Django serializa el ``default=`` dentro de la migración, y un
-# ``classmethod`` colgado de una clase que aún no existe al evaluar el cuerpo no
+# ``classmethod`` colgado de una clase que aún no existe al evaluar el
+# cuerpo no
 # se puede citar ahí. La indirección resuelve el ayudante al llamarse, no al
 # declararse.
 
+
 def default_language():
-    """El valor inicial de ``default_lang`` — ≙ ``default=_default_language``."""
+    """
+    El valor inicial de ``default_lang`` — ≙ ``default=_default_language``.
+    """
     return Website._default_language()
 
 
@@ -442,7 +634,9 @@ def default_social_youtube():
 
 
 def default_social_instagram():
-    """≙ ``default=_default_social_instagram`` (``odoo19c: website.py:179``)."""
+    """
+    ≙ ``default=_default_social_instagram`` (``odoo19c: website.py:179``).
+    """
     return Website._default_social_instagram()
 
 
@@ -473,24 +667,36 @@ class Website(TimeStampedModel):
     )
     sequence = fields.Integer(
         default=10,
-        help_text='Orden de despliegue; el primero gana al resolver por '
-                  'empresa (Odoo sequence).',
+        help_text=(
+            'Orden de despliegue; el primero gana al resolver por '
+            'empresa (Odoo sequence).'
+        ),
     )
     domain = fields.Char(
-        max_length=255, null=True, blank=True,
-        help_text='Dominio del sitio, p. ej. https://www.midominio.com '
-                  '(Odoo domain).',
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text=(
+            'Dominio del sitio, p. ej. https://www.midominio.com '
+            '(Odoo domain).'
+        ),
     )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, related_name='websites',
+        'base.ResCompany',
+        on_delete=models.CASCADE,
+        related_name='websites',
         default=default_company,
         help_text='Empresa dueña del sitio (Odoo company_id, required).',
     )
     languages = fields.Many2many(
-        'base.ResLang', related_name='websites', blank=True,
+        'base.ResLang',
+        related_name='websites',
+        blank=True,
         db_table='website_lang_rel',
-        help_text='Idiomas publicados del sitio (Odoo language_ids, '
-                  'required; su tabla puente es website_lang_rel).',
+        help_text=(
+            'Idiomas publicados del sitio (Odoo language_ids, '
+            'required; su tabla puente es website_lang_rel).'
+        ),
     )
     # ``languages`` NO lleva ``default=`` aunque la fuente sí lo declare
     # (``default=_active_languages``, ``odoo19c: website.py:125-128``):
@@ -500,13 +706,17 @@ class Website(TimeStampedModel):
     # consumen los formularios. Su equivalente vive en ``save()``, que es donde
     # la fuente lo aplica también (dentro de su ``create``).
     default_lang = fields.Many2one(
-        'base.ResLang', on_delete=models.PROTECT, related_name='default_websites',
+        'base.ResLang',
+        on_delete=models.PROTECT,
+        related_name='default_websites',
         default=default_language,
         help_text='Idioma por defecto (Odoo default_lang_id, required).',
     )
     auto_redirect_lang = fields.Boolean(
         default=True,
-        help_text='Redirigir al idioma del navegador (Odoo auto_redirect_lang).',
+        help_text=(
+            'Redirigir al idioma del navegador (Odoo auto_redirect_lang).'
+        ),
     )
     cookies_bar = fields.Boolean(
         default=False,
@@ -514,118 +724,223 @@ class Website(TimeStampedModel):
     )
     configurator_done = fields.Boolean(
         default=False,
-        help_text='True si el configurador se completó o se omitió '
-                  '(Odoo configurator_done).',
+        help_text=(
+            'True si el configurador se completó o se omitió '
+            '(Odoo configurator_done).'
+        ),
     )
     block_third_party_domains = fields.Boolean(
         default=True,
-        help_text='Bloquear dominios de terceros que rastrean al visitante — '
-                  'YouTube, Google Maps, etc. (Odoo block_third_party_domains).',
+        help_text=(
+            'Bloquear dominios de terceros que rastrean al visitante — '
+            'YouTube, Google Maps, etc. (Odoo block_third_party_domains).'
+        ),
     )
     custom_blocked_third_party_domains = fields.Text(
-        null=True, blank=True,
-        help_text='Lista propia de dominios bloqueados, uno por línea (Odoo '
-                  'custom_blocked_third_party_domains; en la fuente lleva '
-                  'groups=website.group_website_designer).',
+        null=True,
+        blank=True,
+        help_text=(
+            'Lista propia de dominios bloqueados, uno por línea (Odoo '
+            'custom_blocked_third_party_domains; en la fuente lleva '
+            'groups=website.group_website_designer).'
+        ),
     )
     logo = fields.Binary(
-        null=True, blank=True, default=default_logo,
+        null=True,
+        blank=True,
+        default=default_logo,
         help_text='Logotipo del sitio (Odoo logo).',
     )
     social_twitter = fields.Char(
-        max_length=255, null=True, blank=True, default=default_social_twitter,
-        help_text='Cuenta de X (Odoo social_twitter).')
+        max_length=255,
+        null=True,
+        blank=True,
+        default=default_social_twitter,
+        help_text='Cuenta de X (Odoo social_twitter).',
+    )
     social_facebook = fields.Char(
-        max_length=255, null=True, blank=True, default=default_social_facebook,
-        help_text='Cuenta de Facebook (Odoo social_facebook).')
+        max_length=255,
+        null=True,
+        blank=True,
+        default=default_social_facebook,
+        help_text='Cuenta de Facebook (Odoo social_facebook).',
+    )
     social_github = fields.Char(
-        max_length=255, null=True, blank=True, default=default_social_github,
-        help_text='Cuenta de GitHub (Odoo social_github).')
+        max_length=255,
+        null=True,
+        blank=True,
+        default=default_social_github,
+        help_text='Cuenta de GitHub (Odoo social_github).',
+    )
     social_linkedin = fields.Char(
-        max_length=255, null=True, blank=True, default=default_social_linkedin,
-        help_text='Cuenta de LinkedIn (Odoo social_linkedin).')
+        max_length=255,
+        null=True,
+        blank=True,
+        default=default_social_linkedin,
+        help_text='Cuenta de LinkedIn (Odoo social_linkedin).',
+    )
     social_youtube = fields.Char(
-        max_length=255, null=True, blank=True, default=default_social_youtube,
-        help_text='Cuenta de Youtube (Odoo social_youtube).')
+        max_length=255,
+        null=True,
+        blank=True,
+        default=default_social_youtube,
+        help_text='Cuenta de Youtube (Odoo social_youtube).',
+    )
     social_instagram = fields.Char(
-        max_length=255, null=True, blank=True, default=default_social_instagram,
-        help_text='Cuenta de Instagram (Odoo social_instagram).')
+        max_length=255,
+        null=True,
+        blank=True,
+        default=default_social_instagram,
+        help_text='Cuenta de Instagram (Odoo social_instagram).',
+    )
     social_tiktok = fields.Char(
-        max_length=255, null=True, blank=True, default=default_social_tiktok,
-        help_text='Cuenta de TikTok (Odoo social_tiktok).')
+        max_length=255,
+        null=True,
+        blank=True,
+        default=default_social_tiktok,
+        help_text='Cuenta de TikTok (Odoo social_tiktok).',
+    )
     social_discord = fields.Char(
-        max_length=255, null=True, blank=True, default=default_social_discord,
-        help_text='Cuenta de Discord (Odoo social_discord).')
+        max_length=255,
+        null=True,
+        blank=True,
+        default=default_social_discord,
+        help_text='Cuenta de Discord (Odoo social_discord).',
+    )
     social_default_image = fields.Binary(
-        null=True, blank=True,
-        help_text='Imagen por defecto al compartir en redes; si se fija, '
-                  'reemplaza al logotipo (Odoo social_default_image).',
+        null=True,
+        blank=True,
+        help_text=(
+            'Imagen por defecto al compartir en redes; si se fija, '
+            'reemplaza al logotipo (Odoo social_default_image).'
+        ),
     )
     has_social_default_image = fields.Boolean(
         default=False,
-        help_text='Derivado de social_default_image (Odoo '
-                  'has_social_default_image, store=True — sí es columna).',
+        help_text=(
+            'Derivado de social_default_image (Odoo '
+            'has_social_default_image, store=True — sí es columna).'
+        ),
     )
-    google_analytics_key = fields.Char(max_length=255, null=True, blank=True, help_text='Clave de Google Analytics (Odoo google_analytics_key).')
-    google_search_console = fields.Char(max_length=255, null=True, blank=True, help_text='Clave de Google Search Console (Odoo google_search_console).')
-    google_maps_api_key = fields.Char(max_length=255, null=True, blank=True, help_text='Clave de la API de Google Maps (Odoo google_maps_api_key).')
-    plausible_shared_key = fields.Char(max_length=255, null=True, blank=True, help_text='Clave compartida de Plausible (Odoo plausible_shared_key).')
-    plausible_site = fields.Char(max_length=255, null=True, blank=True, help_text='Sitio en Plausible (Odoo plausible_site).')
+    google_analytics_key = fields.Char(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text='Clave de Google Analytics (Odoo google_analytics_key).',
+    )
+    google_search_console = fields.Char(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text=(
+            'Clave de Google Search Console (Odoo google_search_console).'
+        ),
+    )
+    google_maps_api_key = fields.Char(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text='Clave de la API de Google Maps (Odoo google_maps_api_key).',
+    )
+    plausible_shared_key = fields.Char(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text='Clave compartida de Plausible (Odoo plausible_shared_key).',
+    )
+    plausible_site = fields.Char(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text='Sitio en Plausible (Odoo plausible_site).',
+    )
     user = fields.Many2one(
-        'base.ResUsers', on_delete=models.PROTECT, related_name='public_websites',
-        help_text='Usuario público del sitio — el que ve un visitante sin '
-                  'sesión (Odoo user_id, required).',
+        'base.ResUsers',
+        on_delete=models.PROTECT,
+        related_name='public_websites',
+        help_text=(
+            'Usuario público del sitio — el que ve un visitante sin '
+            'sesión (Odoo user_id, required).'
+        ),
     )
     cdn_activated = fields.Boolean(
         default=False,
         help_text='Servir estáticos por CDN (Odoo cdn_activated).',
     )
     cdn_url = fields.Char(
-        max_length=255, default='', blank=True,
+        max_length=255,
+        default='',
+        blank=True,
         help_text='URL base de la CDN (Odoo cdn_url).',
     )
     cdn_filters = fields.Text(
-        default=default_cdn_filters, blank=True,
-        help_text='Rutas que se reescriben contra la CDN, una por línea '
-                  '(Odoo cdn_filters).',
+        default=default_cdn_filters,
+        blank=True,
+        help_text=(
+            'Rutas que se reescriben contra la CDN, una por línea '
+            '(Odoo cdn_filters).'
+        ),
     )
     homepage_url = fields.Char(
-        max_length=255, null=True, blank=True,
-        help_text='Ruta relativa de la portada, p. ej. /shop (Odoo homepage_url).',
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text=(
+            'Ruta relativa de la portada, p. ej. /shop (Odoo homepage_url).'
+        ),
     )
     custom_code_head = fields.Html(
-        null=True, blank=True,
-        help_text='Código propio inyectado en <head> (Odoo custom_code_head, '
-                  'sanitize=False).',
+        null=True,
+        blank=True,
+        help_text=(
+            'Código propio inyectado en <head> (Odoo custom_code_head, '
+            'sanitize=False).'
+        ),
     )
     custom_code_footer = fields.Html(
-        null=True, blank=True,
-        help_text='Código propio inyectado al final de <body> (Odoo '
-                  'custom_code_footer, sanitize=False).',
+        null=True,
+        blank=True,
+        help_text=(
+            'Código propio inyectado al final de <body> (Odoo '
+            'custom_code_footer, sanitize=False).'
+        ),
     )
     robots_txt = fields.Html(
-        null=True, blank=True,
-        help_text='Contenido de robots.txt (Odoo robots_txt, translate=False, '
-                  'sanitize=False).',
+        null=True,
+        blank=True,
+        help_text=(
+            'Contenido de robots.txt (Odoo robots_txt, translate=False, '
+            'sanitize=False).'
+        ),
     )
     favicon = fields.Binary(
-        null=True, blank=True, default=default_favicon,
+        null=True,
+        blank=True,
+        default=default_favicon,
         help_text='Favicon del sitio (Odoo favicon).',
     )
     theme = fields.Many2one(
-        'authz.Module', on_delete=models.SET_NULL, null=True, blank=True,
+        'authz.Module',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='themed_websites',
-        help_text='Tema instalado (Odoo theme_id → ir.module.module, que aquí '
-                  'es authz.Module).',
+        help_text=(
+            'Tema instalado (Odoo theme_id → ir.module.module, que aquí '
+            'es authz.Module).'
+        ),
     )
     specific_user_account = fields.Boolean(
         default=False,
-        help_text='Si es True, las cuentas nuevas quedan asociadas a este '
-                  'sitio (Odoo specific_user_account).',
+        help_text=(
+            'Si es True, las cuentas nuevas quedan asociadas a este '
+            'sitio (Odoo specific_user_account).'
+        ),
     )
     auth_signup_uninvited = fields.Selection(
         [('b2b', 'On invitation'), ('b2c', 'Free sign up')],
-        max_length=8, default='b2b',
+        max_length=8,
+        default='b2b',
         help_text='Política de alta de clientes (Odoo auth_signup_uninvited).',
     )
 
@@ -636,24 +951,29 @@ class Website(TimeStampedModel):
     # El cómputo va en ``default=``, que es el parámetro que ``NonStored``
     # declara (``src/orm/fields_nonstored.py:53``); un posicional lo traga su
     # ``*_args`` y el campo queda leyendo ``None`` **en silencio**. Los cinco
-    # nacieron así en B1 y el fallo no se vio hasta que B2 comparó dominios: sin
+    # nacieron así en B1 y el fallo no se vio hasta que B2 comparó
+    # dominios: sin
     # ``domain_punycode``, ``_get_current_website_id`` no emparejaba nunca y
     # caía al primer sitio por ``sequence``. Ver :ref:`h-api-697`.
 
     #: ≙ ``domain_punycode`` (``odoo19c: :121-126``).
     domain_punycode = fields.NonStored(
-        default=lambda self: self._compute_domain_punycode())
+        default=lambda self: self._compute_domain_punycode()
+    )
     #: ≙ ``language_count`` (``:132``).
     language_count = fields.NonStored(
-        default=lambda self: self._compute_language_count())
+        default=lambda self: self._compute_language_count()
+    )
     #: ≙ ``blocked_third_party_domains`` (``:141-143``).
     blocked_third_party_domains = fields.NonStored(
-        default=lambda self: self._compute_blocked_third_party_domains())
+        default=lambda self: self._compute_blocked_third_party_domains()
+    )
     #: ≙ ``menu_id`` (``:196``) — la portada del árbol de menús del sitio.
     menu = fields.NonStored(default=lambda self: self._compute_menu())
     #: ≙ ``partner_id`` (``:195``) — ``related='user_id.partner_id'``.
     partner = fields.NonStored(
-        default=lambda self: self.user.partner if self.user_id else None)
+        default=lambda self: self.user.partner if self.user_id else None
+    )
 
     class Meta:
         db_table = 'website'
@@ -662,7 +982,8 @@ class Website(TimeStampedModel):
         constraints = [
             # ≙ ``_domain_unique`` (``odoo19c: :216-219``).
             models.UniqueConstraint(
-                fields=['domain'], name='domain_unique',
+                fields=['domain'],
+                name='domain_unique',
                 violation_error_message='Website Domain should be unique.',
             ),
         ]
@@ -680,8 +1001,9 @@ class Website(TimeStampedModel):
         El dominio ORM —no el de red— con que se acotan los registros de un
         sitio: los del sitio, más los que no declaran sitio.
         """
-        return (models.Q(website__isnull=True)
-                | models.Q(website__in=[self.pk] if self.pk else []))
+        return models.Q(website__isnull=True) | models.Q(
+            website__in=[self.pk] if self.pk else []
+        )
 
     @classmethod
     def _active_languages(cls):
@@ -703,7 +1025,8 @@ class Website(TimeStampedModel):
 
     @classmethod
     def _default_social(cls, red):
-        """Base común de los ocho ``_default_social_*`` (``odoo19c: :145-168``).
+        """
+        Base común de los ocho ``_default_social_*`` (``odoo19c: :145-168``).
 
         La fuente repite el mismo cuerpo ocho veces porque su ``default=``
         necesita un método sin argumentos en la clase. Aquí el parámetro sí
@@ -800,17 +1123,21 @@ class Website(TimeStampedModel):
         """≙ ``_compute_menu`` (``odoo19c: :251-271``).
 
         La fuente precarga el árbol entero y siembra la caché de ``child_id``
-        con ``_update_cache``, un mecanismo de recordset que este ORM no expone.
-        Aquí la portada se resuelve con una consulta directa: el resultado es el
-        mismo — el primer menú sin padre del sitio— y el ahorro de consultas que
+        con ``_update_cache``, un mecanismo de recordset que este ORM no
+        expone.
+        Aquí la portada se resuelve con una consulta directa: el resultado es
+        el
+        mismo — el primer menú sin padre del sitio— y el ahorro de consultas
+        que
         la fuente busca lo da ``select_related`` en el consumidor.
         """
         if not self.pk:
             return None
-        return (WebsiteMenu.objects
-                .filter(website=self.pk, parent__isnull=True)
-                .order_by('sequence', 'pk')
-                .first())
+        return (
+            WebsiteMenu.objects.filter(website=self.pk, parent__isnull=True)
+            .order_by('sequence', 'pk')
+            .first()
+        )
 
     def _compute_blocked_third_party_domains(self):
         """≙ ``_compute_blocked_third_party_domains`` (``odoo19c: :273-289``).
@@ -862,7 +1189,8 @@ class Website(TimeStampedModel):
     def _normalize_domain_url(cls, url):
         """≙ ``_normalize_domain_url`` (``odoo19c: :406-415``).
 
-        Dos reglas: prefijar ``https://`` si no empieza por ``http``, y recortar
+        Dos reglas: prefijar ``https://`` si no empieza por ``http``, y
+        recortar
         toda barra final.
         """
         normalizada = url
@@ -891,11 +1219,16 @@ class Website(TimeStampedModel):
         try:
             partes = urlparse(self.domain)
         except ValueError:
-            raise ValidationError(_("The provided website domain is not a valid URL."))
+            raise ValidationError(
+                _("The provided website domain is not a valid URL.")
+            )
         if re.search(r'(^|/)\.\.?(/|$)', partes.path or ''):
             raise ValidationError(
-                _("The domain path cannot contain relative path segments "
-                  "like '/./' or '/../'."))
+                _(
+                    "The domain path cannot contain relative path segments "
+                    "like '/./' or '/../'."
+                )
+            )
 
     def _onchange_language_ids(self):
         """≙ ``_onchange_language_ids`` (``odoo19c: :221-226``).
@@ -915,11 +1248,14 @@ class Website(TimeStampedModel):
         if publicados and self.default_lang not in publicados:
             self.default_lang = publicados[0]
 
-    def _check_snippet_used(self, snippet_occurences, asset_type, asset_version):
+    def _check_snippet_used(
+        self, snippet_occurences, asset_type, asset_version
+    ):
         """≙ ``_check_snippet_used`` (``odoo19c: :1755-1763``).
 
         Decide si alguna aparición del snippet usa la versión del asset que se
-        está evaluando. La rama ``'000'`` es la del asset **sin versionar**: ahí
+        está evaluando. La rama ``'000'`` es la del asset **sin versionar**:
+        ahí
         la pregunta se invierte — basta con que una aparición NO lleve marca de
         versión para que el asset viejo siga en uso.
         """
@@ -951,7 +1287,8 @@ class Website(TimeStampedModel):
         """≙ ``_check_homepage_url`` (``odoo19c: :433-437``)."""
         if self.homepage_url and not self.homepage_url.startswith('/'):
             raise ValidationError(
-                _("The homepage URL should be relative and start with '/'."))
+                _("The homepage URL should be relative and start with '/'.")
+            )
 
     def _unlink_except_default_website(self):
         """≙ ``_unlink_except_default_website`` (``odoo19c: :439-443``).
@@ -964,8 +1301,12 @@ class Website(TimeStampedModel):
         primero = type(self).objects.order_by('sequence', 'pk').first()
         if primero and primero.pk == self.pk:
             raise UserError(
-                _("You cannot delete default website %s. Try to change its "
-                  "settings instead") % self.name)
+                _(
+                    "You cannot delete default website %s. Try to change its "
+                    "settings instead"
+                )
+                % self.name
+            )
 
     def clean(self):
         """Puerta de las dos ``@api.constrains`` de la fuente.
@@ -984,16 +1325,19 @@ class Website(TimeStampedModel):
         """≙ ``create`` (``odoo19c: :353-372``) + ``write`` (``:374-388``).
 
         Django no separa alta de modificación, así que los dos convergen aquí.
-        Lo que la fuente hace en ambos y se conserva: normalizar los valores por
+        Lo que la fuente hace en ambos y se conserva: normalizar los valores
+        por
         ``_handle_create_write``, y recalcular ``has_social_default_image``
         —que en la fuente es ``store=True``— porque este ORM no tiene el motor
         de ``@api.depends`` que lo dispararía (#191).
 
         Y aquí vive el ``default=_active_languages`` de ``languages``, que en
-        Django no puede ir en el campo: el ``default=`` de un ``ManyToManyField``
+        Django no puede ir en el campo: el ``default=`` de un
+        ``ManyToManyField``
         no participa en la creación de la instancia —la relación se escribe
         después del ``INSERT``— así que sólo lo consumirían los formularios. La
-        fuente lo aplica dentro de su ``create``, que es exactamente este punto.
+        fuente lo aplica dentro de su ``create``, que es exactamente este
+        punto.
 
         Lo que NO se hace aquí, con su razón: ``_bootstrap_homepage`` (necesita
         ``website.page``, #104) y el alta del grupo multi-sitio (necesita el
@@ -1003,7 +1347,9 @@ class Website(TimeStampedModel):
         self._handle_create_write(valores)
         self.domain = valores['domain']
         self.homepage_url = valores['homepage_url']
-        self.has_social_default_image = self._compute_has_social_default_image()
+        self.has_social_default_image = (
+            self._compute_has_social_default_image()
+        )
         es_alta = self.pk is None
         resultado = super().save(*args, **kwargs)
         if es_alta and not self.languages.exists():
@@ -1029,7 +1375,7 @@ class Website(TimeStampedModel):
         """
         return None
 
-    # ── B2 · resolución de sitio actual y páginas (#535) ──────────────────────
+    # ── B2 · resolución de sitio actual y páginas (#535) ────────
     #
     # Los 15 métodos del bloque están declarados con cuerpo — la última fila
     # abierta (``new_page``) la cerró **#104** al portar ``website.page``.
@@ -1075,10 +1421,14 @@ class Website(TimeStampedModel):
         """
         request = get_current_request()
         session = getattr(request, 'session', None) if request else None
-        is_frontend_request = bool(request) and getattr(request, 'is_frontend', False)
+        is_frontend_request = bool(request) and getattr(
+            request, 'is_frontend', False
+        )
 
         if session is not None and session.get('force_website_id'):
-            website = cls.objects.filter(pk=session['force_website_id']).first()
+            website = cls.objects.filter(
+                pk=session['force_website_id']
+            ).first()
             if website is None:
                 # No reventar si el sitio de la sesión fue borrado — igual que
                 # la fuente, que hace ``session.pop`` y sigue.
@@ -1093,7 +1443,8 @@ class Website(TimeStampedModel):
         if not is_frontend_request and not fallback:
             return None
 
-        # El formato de ``httprequest.host`` de la fuente es ``dominio:puerto``;
+        # El formato de ``httprequest.host`` de la fuente es
+        # ``dominio:puerto``;
         # el ``HTTP_HOST`` de Django trae lo mismo.
         domain_name = ''
         if request is not None:
@@ -1123,22 +1474,27 @@ class Website(TimeStampedModel):
           sin puerto responde a ``localhost:8000``.
 
         **Divergencia declarada:** la fuente decora con
-        ``@tools.ormcache('domain_name', 'fallback')``. Aquí **no se cachea**, y
+        ``@tools.ormcache('domain_name', 'fallback')``. Aquí **no se cachea**,
+        y
         la razón es el modelo de concurrencia medido, no una preferencia:
         ``setup/gunicorn.conf.py`` declara **prefork con ``workers = 4``**, así
         que una caché por proceso serían **cuatro cachés independientes sin
         invalidación compartida** — el mecanismo que
-        ``src/addons/base/models/ir_config_parameter.py`` declara no construido.
+        ``src/addons/base/models/ir_config_parameter.py`` declara no
+        construido.
 
-        El fallo concreto que eso produce: un administrador cambia el ``domain``
+        El fallo concreto que eso produce: un administrador cambia el
+        ``domain``
         de un sitio; el worker que atendió esa petición invalida su caché y los
-        **otros tres siguen sirviendo el sitio anterior** hasta que reciclen por
+        **otros tres siguen sirviendo el sitio anterior** hasta que reciclen
+        por
         ``max_requests`` (2000 peticiones). Un usuario vería un sitio u otro
         según qué worker le tocara.
 
         Se prefiere la consulta correcta a la caché rota. La caché —y si hace
         falta señalización entre workers— se decide en la tarea **#542**.
         """
+
         def remove_port(value):
             return (value or '').split(':')[0]
 
@@ -1152,14 +1508,20 @@ class Website(TimeStampedModel):
         domain_name = (domain_name or '').encode('idna').decode('ascii')
         domain_name_idna = domain_name.encode('ascii').decode('idna')
 
-        found_websites = list(cls.objects.filter(
-            models.Q(domain__icontains=remove_port(domain_name))
-            | models.Q(domain__icontains=remove_port(domain_name_idna))))
+        found_websites = list(
+            cls.objects.filter(
+                models.Q(domain__icontains=remove_port(domain_name))
+                | models.Q(domain__icontains=remove_port(domain_name_idna))
+            )
+        )
 
         websites = [w for w in found_websites if matches(w, domain_name)]
         if not websites:
-            websites = [w for w in found_websites
-                        if matches(w, domain_name, ignore_port=True)]
+            websites = [
+                w
+                for w in found_websites
+                if matches(w, domain_name, ignore_port=True)
+            ]
 
         if not websites:
             if not fallback:
@@ -1188,7 +1550,8 @@ class Website(TimeStampedModel):
         session = getattr(request, 'session', None) if request else None
         if session is not None:
             session['force_website_id'] = (
-                website_id and str(website_id).isdigit() and int(website_id))
+                website_id and str(website_id).isdigit() and int(website_id)
+            )
 
     @classmethod
     def is_public_user(cls):
@@ -1216,8 +1579,9 @@ class Website(TimeStampedModel):
         Delegación de una línea, igual que en la fuente. La lógica vive en
         ``addons/portal/controllers/portal.py``, que es su hogar allá y aquí.
         """
-        return pager(url, total, page=page, step=step, scope=scope,
-                     url_args=url_args)
+        return pager(
+            url, total, page=page, step=step, scope=scope, url_args=url_args
+        )
 
     # ── B2 — la enumeración de páginas que #545 desbloqueó ───────────────────
     #
@@ -1266,9 +1630,12 @@ class Website(TimeStampedModel):
         if not isinstance(rule.pattern, RoutePattern):
             return False
         owner = _view_owner(rule.callback)
-        methods = [method.upper()
-                   for method in (getattr(owner, 'http_method_names', None)
-                                  or ['GET'])]
+        methods = [
+            method.upper()
+            for method in (
+                getattr(owner, 'http_method_names', None) or ['GET']
+            )
+        ]
         if 'GET' not in methods:
             return False
         if not getattr(owner, 'is_frontend', False):
@@ -1279,12 +1646,17 @@ class Website(TimeStampedModel):
         # No listar rutas con argumentos sin default ni converter (fuente).
         sign = inspect.signature(rule.callback)
         params = list(sign.parameters.values())[1:]  # saltar request
-        supported_kinds = (inspect.Parameter.POSITIONAL_ONLY,
-                           inspect.Parameter.POSITIONAL_OR_KEYWORD)
+        supported_kinds = (
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        )
         provided = set(rule.pattern.converters) | set(rule.default_args or {})
-        return all(p.name in provided for p in params
-                   if p.kind in supported_kinds
-                   and p.default is inspect.Parameter.empty)
+        return all(
+            p.name in provided
+            for p in params
+            if p.kind in supported_kinds
+            and p.default is inspect.Parameter.empty
+        )
 
     def _enumerate_pages(self, query_string=None, force=False):
         """≙ ``_enumerate_pages`` (``odoo19c: :1546-1668``).
@@ -1340,30 +1712,35 @@ class Website(TimeStampedModel):
         pages_queryset = page_model.objects.exclude(url='/')
         if not force:
             pages_queryset = pages_queryset.filter(
-                website_indexed=True, is_published=True)
+                website_indexed=True, is_published=True
+            )
             pages_queryset = pages_queryset.filter(
                 models.Q(date_publish__isnull=True)
-                | models.Q(date_publish__lte=timezone.now()))
+                | models.Q(date_publish__lte=timezone.now())
+            )
             # ≙ ``('visibility', '=', False)`` — sólo las públicas entran al
             # sitemap. La fuente lo escribe dos veces (``:1562`` y ``:1565``);
             # aquí una, porque el mismo predicado repetido no añade recorte.
             pages_queryset = pages_queryset.filter(
                 models.Q(view__website_info__isnull=True)
-                | models.Q(view__website_info__visibility=''))
+                | models.Q(view__website_info__visibility='')
+            )
         if query_string:
-            pages_queryset = pages_queryset.filter(
-                url__contains=query_string)
+            pages_queryset = pages_queryset.filter(url__contains=query_string)
         current_website = self.get_current_website()
         if current_website is not None:
             pages_queryset = pages_queryset.filter(
-                current_website.website_domain())
+                current_website.website_domain()
+            )
         for page in page_model._get_most_specific_pages(
-                list(pages_queryset), website=current_website):
+            list(pages_queryset), website=current_website
+        ):
             record = {'loc': page.url, 'id': page.pk, 'name': page.name}
             if page.priority != 16:
                 record['priority'] = min(round(page.priority / 32.0, 1), 1)
-            last_dates = [d for d in (page.updated_at, page.view_write_date)
-                          if d]
+            last_dates = [
+                d for d in (page.updated_at, page.view_write_date) if d
+            ]
             if last_dates:
                 record['lastmod'] = max(last_dates).date()
             yield record
@@ -1406,14 +1783,17 @@ class Website(TimeStampedModel):
             if not hasattr(owner, 'sitemap'):
                 logger.warning(
                     'No Sitemap value provided for controller %s (%s)',
-                    rule.callback, route)
+                    rule.callback,
+                    route,
+                )
 
             url = _norm('/' + route)
             if query_string and query_string not in url:
                 continue
 
-            pattern = (query_string
-                       and '*%s*' % '*'.join(query_string.split('/')))
+            pattern = query_string and '*%s*' % '*'.join(
+                query_string.split('/')
+            )
             if not query_string or fnmatch.fnmatch(url.lower(), pattern):
                 if url in url_set:
                     continue
@@ -1484,7 +1864,8 @@ class Website(TimeStampedModel):
         rewrite_model = model_by_name('website.rewrite')
         current_website = self.get_current_website()
         redirects = rewrite_model.objects.filter(
-            url_from=page, redirect_type__in=('301', '302', '308'))
+            url_from=page, redirect_type__in=('301', '302', '308')
+        )
         if current_website is not None:
             redirects = redirects.filter(current_website.website_domain())
         if redirects.exists():
@@ -1522,11 +1903,13 @@ class Website(TimeStampedModel):
         """
         page_model = model_by_name('website.page')
         if not self.pk:
-            return {None: list(
-                page_model.objects.values_list('id', flat=True))}
+            return {
+                None: list(page_model.objects.values_list('id', flat=True))
+            }
         pages = list(page_model.objects.filter(self.website_domain()))
         most_specific = page_model._get_most_specific_pages(
-            pages, website=self)
+            pages, website=self
+        )
         return {self.pk: [page.pk for page in most_specific]}
 
     @classmethod
@@ -1555,12 +1938,21 @@ class Website(TimeStampedModel):
         if limit:
             queryset = queryset[:limit]
         return page_model._get_most_specific_pages(
-            list(queryset), website=website)
+            list(queryset), website=website
+        )
 
-    def new_page(self, name=False, add_menu=False,
-                 template='website.default_page', ispage=True, namespace=None,
-                 page_values=None, menu_values=None, sections_arch=None,
-                 page_title=None):
+    def new_page(
+        self,
+        name=False,
+        add_menu=False,
+        template='website.default_page',
+        ispage=True,
+        namespace=None,
+        page_values=None,
+        menu_values=None,
+        sections_arch=None,
+        page_title=None,
+    ):
         """≙ ``new_page`` (``odoo19c: :1164-1238``).
 
         Crea una página nueva del sitio: clona la vista plantilla, deriva la
@@ -1606,7 +1998,8 @@ class Website(TimeStampedModel):
         template_record = IrUiView.objects.filter(key=template).first()
         if template_record is None:
             raise UserError(
-                _('No hay vista plantilla con la clave %s') % template)
+                _('No hay vista plantilla con la clave %s') % template
+            )
         arch = template_record.arch_db
         if sections_arch:
             tree = html.fromstring(arch)
@@ -1658,23 +2051,31 @@ class Website(TimeStampedModel):
             # statement ``import``).
             view_info_model = apps.get_model('website', 'WebsiteViewInfo')
             view_info, _created = view_info_model.objects.get_or_create(
-                view=view)
+                view=view
+            )
             view_info.track = track
             view_info.save(update_fields=['track'])
             result['page_id'] = page.pk
         if add_menu:
             menu = WebsiteMenu.objects.filter(
-                route=page_url, website=current_website).first()
+                route=page_url, website=current_website
+            ).first()
             if not menu:
                 default_menu_values = {
                     'name': name,
                     'route': page_url,
-                    'parent': current_website.menu if current_website else None,
+                    'parent': (
+                        current_website.menu if current_website else None
+                    ),
                     'page': page,
                     'website': current_website,
-                    'key': '%s-w%s' % (
-                        page_key or 'home',
-                        current_website.pk if current_website else 0),
+                    'key': (
+                        '%s-w%s'
+                        % (
+                            page_key or 'home',
+                            current_website.pk if current_website else 0,
+                        )
+                    ),
                 }
                 if menu_values:
                     default_menu_values.update(menu_values)
@@ -1696,6 +2097,7 @@ class Website(TimeStampedModel):
         (``<key>-w<id>``). El nombre del menú raíz usa la misma plantilla
         traducible que la fuente.
         """
+
         def copy_menu(menu, parent_menu):
             new_menu = WebsiteMenu.objects.create(
                 name=menu.name,
@@ -1733,10 +2135,12 @@ class Website(TimeStampedModel):
         """
         if not isinstance(view_id, (int, str)):
             raise ValueError(
-                'Expecting a string or an integer, not a %s.' % type(view_id))
+                'Expecting a string or an integer, not a %s.' % type(view_id)
+            )
         with sudo(), context_scope(active_test=False):
             return IrUiView._get_template_view(
-                view_id, raise_if_not_found=raise_if_not_found)
+                view_id, raise_if_not_found=raise_if_not_found
+            )
 
     @classmethod
     def is_view_active(cls, key):
@@ -1768,7 +2172,9 @@ class Website(TimeStampedModel):
     #    traducciones es la tarea **#333**; la rama llega con él.
 
     @classmethod
-    def _search_build_domain(cls, domain_list, search, fields_list, extra=None):
+    def _search_build_domain(
+        cls, domain_list, search, fields_list, extra=None
+    ):
         """≙ ``_search_build_domain`` (``odoo19c: :1987-2007``).
 
         La fuente duplica el cuerpo con el comentario *"just like
@@ -1776,7 +2182,8 @@ class Website(TimeStampedModel):
         copiarlo — misma semántica, una sola implementación.
         """
         return WebsiteSearchableMixin._search_build_domain(
-            domain_list, search, fields_list, extra)
+            domain_list, search, fields_list, extra
+        )
 
     @staticmethod
     def _search_text_from_html(html_fragment):
@@ -1788,7 +2195,8 @@ class Website(TimeStampedModel):
         """
         # lxml exige un único elemento raíz.
         tree = etree.fromstring(
-            '<p>%s</p>' % html_fragment, etree.XMLParser(recover=True))
+            '<p>%s</p>' % html_fragment, etree.XMLParser(recover=True)
+        )
         return ' '.join(tree.itertext())
 
     def _search_get_details(self, search_type, order, options):
@@ -1817,15 +2225,18 @@ class Website(TimeStampedModel):
             fuzzy_term = self._search_find_fuzzy_term(search_details, search)
             if fuzzy_term:
                 count, results = self._search_exact(
-                    search_details, fuzzy_term, limit, order)
+                    search_details, fuzzy_term, limit, order
+                )
                 if fuzzy_term.lower() == search.lower():
                     fuzzy_term = False
             else:
                 count, results = self._search_exact(
-                    search_details, search, limit, order)
+                    search_details, search, limit, order
+                )
         else:
             count, results = self._search_exact(
-                search_details, search, limit, order)
+                search_details, search, limit, order
+            )
         return count, results, fuzzy_term
 
     def _search_exact(self, search_details, search, limit, order):
@@ -1835,7 +2246,8 @@ class Website(TimeStampedModel):
         for search_detail in search_details:
             model = search_detail['model']
             results, count = model._search_fetch(
-                search_detail, search, limit, order)
+                search_detail, search, limit, order
+            )
             search_detail['results'] = results
             total_count += count
             search_detail['count'] = count
@@ -1860,8 +2272,9 @@ class Website(TimeStampedModel):
             )
         return search_details
 
-    def _search_find_fuzzy_term(self, search_details, search,
-                                limit=1000, word_list=None):
+    def _search_find_fuzzy_term(
+        self, search_details, search, limit=1000, word_list=None
+    ):
         """≙ ``_search_find_fuzzy_term`` (``odoo19c: :2114-2143``).
 
         La palabra disponible más parecida al término buscado. Los tres
@@ -1873,8 +2286,11 @@ class Website(TimeStampedModel):
         sin registry persistente no hay dónde memorizarlo, y la sonda es una
         consulta al catálogo.
         """
-        if (len(search) < 4 or ' ' in search
-                or len(re.findall(r'\d', search)) / len(search) >= 0.8):
+        if (
+            len(search) < 4
+            or ' ' in search
+            or len(re.findall(r'\d', search)) / len(search) >= 0.8
+        ):
             return search
         search = search.lower()
         words = set()
@@ -1882,9 +2298,14 @@ class Website(TimeStampedModel):
         best_word = None
         with connection.cursor() as cr:
             trigram_ready = has_trigram(cr)
-        enumerate_words = (self._trigram_enumerate_words if trigram_ready
-                           else self._basic_enumerate_words)
-        for word in word_list or enumerate_words(search_details, search, limit):
+        enumerate_words = (
+            self._trigram_enumerate_words
+            if trigram_ready
+            else self._basic_enumerate_words
+        )
+        for word in word_list or enumerate_words(
+            search_details, search, limit
+        ):
             if search in word:
                 return search
             if word[0] == search[0] and word not in words:
@@ -1913,7 +2334,8 @@ class Website(TimeStampedModel):
             direct, indirect = field_parts
             direct_field = meta_fields.get(direct)
             if direct_field is None or not getattr(
-                    direct_field, 'is_relation', False):
+                direct_field, 'is_relation', False
+            ):
                 continue
             comodel = direct_field.related_model
             if comodel is None:
@@ -1966,8 +2388,10 @@ class Website(TimeStampedModel):
         bloque); el ``SET LOCAL`` del umbral es transaccional, igual que en
         la fuente.
         """
-        def get_similarity_subquery(model, fields_list, id_column,
-                                    rel_table='', rel_joinkey=''):
+
+        def get_similarity_subquery(
+            model, fields_list, id_column, rel_table='', rel_joinkey=''
+        ):
             """El subquery de mayor similitud por registro — ≙ el interno
             homónimo de la fuente, con joins para inversas y M2M."""
             quote = connection.ops.quote_name
@@ -1977,10 +2401,12 @@ class Website(TimeStampedModel):
             for field_name in fields_list:
                 column = quote(model._meta.get_field(field_name).column)
                 similarity_terms.append(
-                    f'word_similarity(%s, {table}.{column}::text)')
+                    f'word_similarity(%s, {table}.{column}::text)'
+                )
                 params.append(search)
-            similarity = ('GREATEST(' + ', '.join(similarity_terms)
-                          + ') AS similarity')
+            similarity = (
+                'GREATEST(' + ', '.join(similarity_terms) + ') AS similarity'
+            )
             where_clauses = []
             for field_name in fields_list:
                 column = quote(model._meta.get_field(field_name).column)
@@ -1992,20 +2418,23 @@ class Website(TimeStampedModel):
             join_sql = ''
             if rel_table:
                 rel = quote(rel_table)
-                join_sql = (f' JOIN {rel} ON {rel}.{quote(rel_joinkey)}'
-                            f' = {table}.{quote("id")}')
+                join_sql = (
+                    f' JOIN {rel} ON {rel}.{quote(rel_joinkey)}'
+                    f' = {table}.{quote("id")}'
+                )
                 table_alias = rel
-            sql = (f'SELECT {table_alias}.{quote(id_column)} AS id,'
-                   f' {similarity} FROM {table}{join_sql} WHERE '
-                   + ' OR '.join(where_clauses))
+            sql = (
+                f'SELECT {table_alias}.{quote(id_column)} AS id,'
+                f' {similarity} FROM {table}{join_sql} WHERE '
+                + ' OR '.join(where_clauses)
+            )
             return sql, params
 
         match_pattern = r'[\w./-]{%s,}' % min(4, len(search) - 3)
         with connection.cursor() as cr:
             # Bajar el umbral de ``<%`` a 0.3 SOLO en esta transacción (el
             # default del cluster es 0.6) — verbatim de la fuente.
-            cr.execute(
-                'SET LOCAL pg_trgm.word_similarity_threshold to 0.3;')
+            cr.execute('SET LOCAL pg_trgm.word_similarity_threshold to 0.3;')
             for search_detail in search_details:
                 model = search_detail['model']
                 fields_list = search_detail['search_fields']
@@ -2014,12 +2443,14 @@ class Website(TimeStampedModel):
                 meta_names = {f.name for f in model._meta.get_fields()}
                 direct_fields = set(fields_list).intersection(meta_names)
                 indirect_fields = self._search_get_indirect_fields(
-                    fields_list, model)
+                    fields_list, model
+                )
                 indirect_fields_info = defaultdict(dict)
                 for name, info in indirect_fields.items():
                     indirect_fields_info[info['comodel']][name] = info
-                subqueries = [get_similarity_subquery(
-                    model, sorted(direct_fields), 'id')]
+                subqueries = [
+                    get_similarity_subquery(model, sorted(direct_fields), 'id')
+                ]
                 for comodel, infos in indirect_fields_info.items():
                     comodel_similarity_fields = set()
                     id_column = rel_table = rel_joinkey = ''
@@ -2028,7 +2459,8 @@ class Website(TimeStampedModel):
                         if direct_field.one_to_many:
                             comodel_similarity_fields.add(info['indirect'])
                             id_column = comodel._meta.get_field(
-                                info['cofield']).column
+                                info['cofield']
+                            ).column
                         elif direct_field.many_to_many:
                             comodel_similarity_fields.add(info['indirect'])
                             id_column = direct_field.m2m_column_name()
@@ -2039,9 +2471,15 @@ class Website(TimeStampedModel):
                         # en la fuente, donde dejaría el subquery sin columna
                         # de id; se salta en vez de emitir SQL roto.
                         continue
-                    subqueries.append(get_similarity_subquery(
-                        comodel, sorted(comodel_similarity_fields),
-                        id_column, rel_table, rel_joinkey))
+                    subqueries.append(
+                        get_similarity_subquery(
+                            comodel,
+                            sorted(comodel_similarity_fields),
+                            id_column,
+                            rel_table,
+                            rel_joinkey,
+                        )
+                    )
                 union_sql = '\nUNION ALL\n'.join(sql for sql, _p in subqueries)
                 union_params = [p for _s, ps in subqueries for p in ps]
                 # UNION ALL permite que cada subplan use su índice GIST —
@@ -2050,26 +2488,32 @@ class Website(TimeStampedModel):
                     'SELECT id, MAX(similarity) AS _best_similarity'
                     f' FROM ({union_sql}) sub GROUP BY id'
                     ' ORDER BY _best_similarity DESC LIMIT 1000',
-                    union_params)
+                    union_params,
+                )
                 ids = [row[0] for row in cr.fetchall()]
                 domain &= Domain('id', 'in', ids)
                 query = to_q(domain, model)
                 with sudo(requires_sudo or is_su()):
-                    records = list(model.objects.filter(query)
-                                   .values(*sorted(direct_fields))[:limit])
-                    objects = (list(model.objects.filter(query)[:limit])
-                               if indirect_fields else [])
+                    records = list(
+                        model.objects.filter(query).values(
+                            *sorted(direct_fields)
+                        )[:limit]
+                    )
+                    objects = (
+                        list(model.objects.filter(query)[:limit])
+                        if indirect_fields
+                        else []
+                    )
                 for record in records:
                     for value in record.values():
                         if isinstance(value, str):
-                            yield from re.findall(
-                                match_pattern, value.lower())
+                            yield from re.findall(match_pattern, value.lower())
                 for indirect_field in indirect_fields.values():
                     for value in self._mapped_indirect_values(
-                            objects, indirect_field):
+                        objects, indirect_field
+                    ):
                         if isinstance(value, str):
-                            yield from re.findall(
-                                match_pattern, value.lower())
+                            yield from re.findall(match_pattern, value.lower())
 
     def _basic_enumerate_words(self, search_details, search, limit):
         """≙ ``_basic_enumerate_words`` (``odoo19c: :2297-2355``).
@@ -2090,30 +2534,40 @@ class Website(TimeStampedModel):
             meta_names = {f.name for f in model._meta.get_fields()}
             direct_fields = set(fields_list).intersection(meta_names)
             indirect_fields = self._search_get_indirect_fields(
-                fields_list, model)
+                fields_list, model
+            )
             all_fields = direct_fields.union(indirect_fields)
-            fields_domain = Domain.OR([
-                Domain(field, '=ilike', pattern)
-                for field in all_fields
-                for pattern in (
-                    '%s%%' % first,
-                    '%% %s%%' % first,
-                    '%%>%s%%' % first,  # HTML
-                )
-            ])
+            fields_domain = Domain.OR(
+                [
+                    Domain(field, '=ilike', pattern)
+                    for field in all_fields
+                    for pattern in (
+                        '%s%%' % first,
+                        '%% %s%%' % first,
+                        '%%>%s%%' % first,  # HTML
+                    )
+                ]
+            )
             domain &= fields_domain
             perf_limit = 1000
             query = to_q(domain, model)
             with sudo(requires_sudo or is_su()):
-                records = list(model.objects.filter(query)
-                               .values(*sorted(direct_fields))[:perf_limit])
-                objects = (list(model.objects.filter(query)[:limit])
-                           if indirect_fields else [])
+                records = list(
+                    model.objects.filter(query).values(*sorted(direct_fields))[
+                        :perf_limit
+                    ]
+                )
+                objects = (
+                    list(model.objects.filter(query)[:limit])
+                    if indirect_fields
+                    else []
+                )
             if len(records) == perf_limit:
                 # El match exacto pudo quedar fuera del recorte de
                 # rendimiento — verificarlo aparte, como la fuente.
                 exact_records, _count = model._search_fetch(
-                    search_detail, search, 1, None)
+                    search_detail, search, 1, None
+                )
                 if exact_records:
                     yield search
             for record in records:
@@ -2127,7 +2581,8 @@ class Website(TimeStampedModel):
                                 yield word.lower()
             for indirect_field in indirect_fields.values():
                 for value in self._mapped_indirect_values(
-                        objects, indirect_field):
+                    objects, indirect_field
+                ):
                     if isinstance(value, str):
                         yield from re.findall(match_pattern, value.lower())
 
@@ -2144,7 +2599,8 @@ class Website(TimeStampedModel):
     #   (``:591``), ``get_theme_configurator_snippets`` (``:610``) — operan
     #   sobre el árbol lxml de vistas QWeb de snippets; el marco de cliente
     #   está sin decidir (#488) y no hay vistas de snippet que preconfigurar.
-    # - ``configurator_init`` (``:658``) — lee ``website.configurator.feature``,
+    # - ``configurator_init`` (``:658``) — lee
+    # ``website.configurator.feature``,
     #   modelo no portado (#552).
     # - ``configurator_recommended_themes`` (``:685``), ``configurator_apply``
     #   (``:721-1106``), ``configurator_addons_apply`` (``:1108``) — módulos
@@ -2162,7 +2618,9 @@ class Website(TimeStampedModel):
 
     def _idna_url(self, url):
         """≙ ``_idna_url`` (``odoo19c: :465-466``)."""
-        return get_base_domain(url.lower(), True).encode('idna').decode('ascii')
+        return (
+            get_base_domain(url.lower(), True).encode('idna').decode('ascii')
+        )
 
     def _is_indexable_url(self, url):
         """≙ ``_is_indexable_url`` (``odoo19c: :468-480``).
@@ -2177,8 +2635,9 @@ class Website(TimeStampedModel):
 
     # ── los tres RPC ─────────────────────────────────────────────────────────
 
-    def _api_rpc(self, route, params, endpoint_param_name, default_endpoint,
-                 **kwargs):
+    def _api_rpc(
+        self, route, params, endpoint_param_name, default_endpoint, **kwargs
+    ):
         """≙ ``_api_rpc`` (``odoo19c: :486-490``).
 
         Anota la versión del producto, resuelve el endpoint declarado en
@@ -2190,24 +2649,36 @@ class Website(TimeStampedModel):
         params['version'] = release.version
         with sudo():
             api_endpoint = SystemParameter.get_param(
-                endpoint_param_name, default_endpoint)
+                endpoint_param_name, default_endpoint
+            )
         if not api_endpoint:
             raise AccessError(
                 _('No external service endpoint is configured for %s.')
-                % endpoint_param_name)
-        return _configurator_rpc_call(api_endpoint + route, params=params,
-                                      **kwargs)
+                % endpoint_param_name
+            )
+        return _configurator_rpc_call(
+            api_endpoint + route, params=params, **kwargs
+        )
 
     def _website_api_rpc(self, route, params):
         """≙ ``_website_api_rpc`` (``odoo19c: :492-494``) — industrias,
         sugerencias de tema, …"""
-        return self._api_rpc(route, params, 'website.website_api_endpoint',
-                             DEFAULT_WEBSITE_ENDPOINT)
+        return self._api_rpc(
+            route,
+            params,
+            'website.website_api_endpoint',
+            DEFAULT_WEBSITE_ENDPOINT,
+        )
 
     def _OLG_api_rpc(self, route, params):
         """≙ ``_OLG_api_rpc`` (``odoo19c: :496-498``) — generación de texto."""
-        return self._api_rpc(route, params, 'website.olg_api_endpoint',
-                             DEFAULT_OLG_ENDPOINT, timeout=45)
+        return self._api_rpc(
+            route,
+            params,
+            'website.olg_api_endpoint',
+            DEFAULT_OLG_ENDPOINT,
+            timeout=45,
+        )
 
     # ── el configurador (lo portable sin temas/QWeb) ─────────────────────────
 
@@ -2235,7 +2706,8 @@ class Website(TimeStampedModel):
         por sitio usa la FK ``website`` que #543 cableó.
         """
         menus = WebsiteMenu.objects.filter(
-            route__in=list(module_data.keys()), website=self)
+            route__in=list(module_data.keys()), website=self
+        )
         for m in menus:
             m.sequence = module_data[m.route]['sequence']
             m.save(update_fields=['sequence'])
@@ -2276,7 +2748,7 @@ class Website(TimeStampedModel):
             {
                 'unknown_industry': unknown_industry,
                 'lang': get_context().get('lang'),
-            }
+            },
         )
 
     # ── B5 (#538) · bloqueo de rastreadores de terceros ──────────────────────
@@ -2290,7 +2762,8 @@ class Website(TimeStampedModel):
     # - ``Markup`` (markupsafe) → ``django.utils.safestring.mark_safe``:
     #   markupsafe NO está instalado (medido: ``ModuleNotFoundError``) y
     #   ``SafeString`` es el marcador de «HTML ya seguro» nativo del stack.
-    # - ``self.env['ir.http']._is_allowed_cookie`` → ``IrHttp._is_allowed_cookie``
+    # - ``self.env['ir.http']._is_allowed_cookie`` →
+    # ``IrHttp._is_allowed_cookie``
     #   de ``addons/website/models/ir_http.py`` (la extensión de sitio, portada
     #   en este mismo pase sobre la base nueva de
     #   ``src/addons/base/models/ir_http.py``). El FORMATO del consentimiento
@@ -2305,11 +2778,14 @@ class Website(TimeStampedModel):
     #   un método de instancia de Django opera sobre exactamente un registro.
 
     def _get_blocked_third_party_domains_list(self):
-        """≙ ``_get_blocked_third_party_domains_list`` (``odoo19c: :291-292``)."""
+        """
+        ≙ ``_get_blocked_third_party_domains_list`` (``odoo19c: :291-292``).
+        """
         return self.blocked_third_party_domains.split('\n')
 
     def _get_blocked_iframe_containers_classes(self):
-        """≙ ``_get_blocked_iframe_containers_classes`` (``odoo19c: :294-301``).
+        """
+        ≙ ``_get_blocked_iframe_containers_classes`` (``odoo19c: :294-301``).
 
         Clases de contenedores dentro de los cuales el cliente construye
         iframes al vuelo; se marcan para que el iframe nazca ya controlado.
@@ -2337,7 +2813,8 @@ class Website(TimeStampedModel):
         return not self.cookies_bar or IrHttp._is_allowed_cookie('optional')
 
     def _control_third_party_trackers_in_html(self, html_content):
-        """≙ ``_control_third_party_trackers_in_html`` (``odoo19c: :2371-2381``).
+        """
+        ≙ ``_control_third_party_trackers_in_html`` (``odoo19c: :2371-2381``).
 
         Neutraliza los iframes/scripts de dominios vigilados dentro de un
         fragmento HTML. Ante HTML que el parser no acepta, passthrough del
@@ -2362,9 +2839,11 @@ class Website(TimeStampedModel):
         grupos por external ID, el default seguro es controlar también al
         editor.
         """
-        return (self.cookies_bar
+        return (
+            self.cookies_bar
             and self.block_third_party_domains
-            and not IrHttp._is_allowed_cookie('optional'))
+            and not IrHttp._is_allowed_cookie('optional')
+        )
 
     def _remove_third_party_trackers(self, tag_name, atts, cookies_watchlist):
         """≙ ``_remove_third_party_trackers`` (``odoo19c: :2389-2412``).
@@ -2385,7 +2864,9 @@ class Website(TimeStampedModel):
         }
         remove_src = False
         for watch in cookies_watchlist:
-            if (checker := watchlist_checker.get(watch)) and checker(tag_name, atts):
+            if (checker := watchlist_checker.get(watch)) and checker(
+                tag_name, atts
+            ):
                 remove_src = True
                 break
         if remove_src:
@@ -2418,7 +2899,8 @@ class Website(TimeStampedModel):
     def _is_tag_classes_watchlisted(self, tag_name, atts):
         """≙ ``_is_tag_classes_watchlisted`` (``odoo19c: :2429-2430``)."""
         return self._get_blocked_iframe_containers_classes().intersection(
-            (atts.get('class') or '').split(' '))
+            (atts.get('class') or '').split(' ')
+        )
 
     # ── B6 (#539) · CDN, Plausible, URL canónica, snippets, cachés ───────────
     #
@@ -2476,8 +2958,10 @@ class Website(TimeStampedModel):
         """
         menus = WebsiteMenu.objects.filter(website=self.pk)
         return any(
-            (menu.route
-             and re.search(r"[/](([^/=?&]+-)?[0-9]+)([/]|$)", menu.route))
+            (
+                menu.route
+                and re.search(r"[/](([^/=?&]+-)?[0-9]+)([/]|$)", menu.route)
+            )
             or menu.group_id is not None
             for menu in menus
         )
@@ -2501,16 +2985,20 @@ class Website(TimeStampedModel):
         """
         page_model = model_by_name('website.page')
         current_website = self.get_current_website()
-        website_id = (get_context().get('website_id')
-                      or (current_website.pk if current_website else None))
+        website_id = get_context().get('website_id') or (
+            current_website.pk if current_website else None
+        )
         static_urls = {page.url for page in StaticPage.objects.all()}
         inc = 0
         page_temp = page_url
-        while (page_model.objects.filter(
-                url=page_temp, website_id=website_id).exists()
-               or page_temp in static_urls):
+        while (
+            page_model.objects.filter(
+                url=page_temp, website_id=website_id
+            ).exists()
+            or page_temp in static_urls
+        ):
             inc += 1
-            page_temp = page_url + ('-%s' % inc)
+            page_temp = page_url + '-%s' % inc
         return page_temp
 
     def _get_plausible_script_url(self):
@@ -2542,9 +3030,11 @@ class Website(TimeStampedModel):
         server = self._get_plausible_server()
         if not (self.plausible_shared_key and server):
             return ''
-        embed_url = (f'/share/{self.plausible_site}'
-                     f'?auth={self.plausible_shared_key}&embed=true'
-                     '&theme=system')
+        embed_url = (
+            f'/share/{self.plausible_site}'
+            f'?auth={self.plausible_shared_key}&embed=true'
+            '&theme=system'
+        )
         return urljoin(server, embed_url)
 
     def get_unique_key(self, string, template_module=False):
@@ -2571,7 +3061,7 @@ class Website(TimeStampedModel):
         inc = 0
         while IrUiView.objects.filter(key=key_copy).exists():
             inc += 1
-            key_copy = string + ('-%s' % inc)
+            key_copy = string + '-%s' % inc
         return key_copy
 
     @classmethod
@@ -2610,7 +3100,8 @@ class Website(TimeStampedModel):
         if model is None:
             raise KeyError(res_model)
         records = model.objects.filter(
-            pk__in=[int(res_id) for res_id in res_ids])
+            pk__in=[int(res_id) for res_id in res_ids]
+        )
         search_criteria = []
         for record in records:
             website = getattr(record, 'website', None) or current_website
@@ -2621,7 +3112,8 @@ class Website(TimeStampedModel):
             return dependencies
         for dep_model, field_name in cls._get_html_fields():
             has_website = any(
-                f.name == 'website' for f in dep_model._meta.get_fields())
+                f.name == 'website' for f in dep_model._meta.get_fields()
+            )
             query = models.Q()
             for url, website_q in search_criteria:
                 term = models.Q(**{f'{field_name}__icontains': url})
@@ -2633,15 +3125,22 @@ class Website(TimeStampedModel):
                 continue
             model_display_name = str(dep_model._meta.verbose_name)
             field_string = str(
-                dep_model._meta.get_field(field_name).verbose_name)
+                dep_model._meta.get_field(field_name).verbose_name
+            )
             dependencies.setdefault(model_display_name, [])
-            dependencies[model_display_name] += [{
-                'field_name': field_string,
-                'record_name': str(dependency),
-                'link': (getattr(dependency, 'website_url', None)
-                         or getattr(dependency, 'url', None) or ''),
-                'model_name': model_display_name,
-            } for dependency in dependency_records]
+            dependencies[model_display_name] += [
+                {
+                    'field_name': field_string,
+                    'record_name': str(dependency),
+                    'link': (
+                        getattr(dependency, 'website_url', None)
+                        or getattr(dependency, 'url', None)
+                        or ''
+                    ),
+                    'model_name': model_display_name,
+                }
+                for dependency in dependency_records
+            ]
         return dependencies
 
     @classmethod
@@ -2693,7 +3192,12 @@ class Website(TimeStampedModel):
         size = '' if size is None else '/%s' % size
         model_name = name_of(type(record)) or type(record)._meta.label_lower
         return '/web/image/%s/%s/%s%s?unique=%s' % (
-            model_name, record.pk, field, size, sha)
+            model_name,
+            record.pk,
+            field,
+            size,
+            sha,
+        )
 
     def get_cdn_url(self, uri):
         """≙ ``get_cdn_url`` (``odoo19c: :1789-1798``).
@@ -2779,7 +3283,9 @@ class Website(TimeStampedModel):
         ``is_public_user`` en B2.
         """
         return (
-            'mail.message', 'mail.activity', 'digest.tip',
+            'mail.message',
+            'mail.activity',
+            'digest.tip',
         )
 
     @classmethod
@@ -2819,18 +3325,26 @@ class Website(TimeStampedModel):
             meta = model._meta
             if issubclass(model, TransientModel):
                 continue
-            if (meta.db_table.startswith('ir_actions')
-                    or meta.db_table in blacklist_tables):
+            if (
+                meta.db_table.startswith('ir_actions')
+                or meta.db_table in blacklist_tables
+            ):
                 continue
             for field_name in sorted(
-                    f.name for f in meta.get_fields()
-                    if isinstance(f, fields.Html)):
+                f.name for f in meta.get_fields() if isinstance(f, fields.Html)
+            ):
                 if (model, field_name) not in html_fields:
                     html_fields.append((model, field_name))
         return html_fields
 
-    def _is_snippet_used(self, snippet_module, snippet_id, asset_version,
-                         asset_type, html_fields):
+    def _is_snippet_used(
+        self,
+        snippet_module,
+        snippet_id,
+        asset_version,
+        asset_type,
+        html_fields,
+    ):
         """≙ ``_is_snippet_used`` (``odoo19c: :1910-1934``).
 
         ¿Alguna aparición del snippet —en los campos HTML del árbol— usa la
@@ -2838,7 +3352,8 @@ class Website(TimeStampedModel):
 
         Divergencias declaradas: (1) el chequeo sobre la **definición de
         plantilla** del snippet exige el compilador QWeb
-        (``ir.qweb._render``); ``ir_template_expressions.py`` es portador de vocabulario sin
+        (``ir.qweb._render``); ``ir_template_expressions.py`` es portador de
+        vocabulario sin
         compilador, así que esa rama llega con el marco de cliente (#488) —
         consecuencia conservadora: un snippet cuyo único uso sea su propia
         plantilla se reporta como no usado, y su asset se apaga. (2) el SQL
@@ -2858,13 +3373,15 @@ class Website(TimeStampedModel):
             column = quote(model._meta.get_field(field_name).column)
             selects.append(
                 f"SELECT regexp_matches({table}.{column}, %s, 'g')"
-                f' FROM {table}')
+                f" FROM {table}"
+            )
             params.append(pattern)
         with connection.cursor() as cr:
             cr.execute(' UNION '.join(selects), params)
             snippet_occurences = [row[0][0] for row in cr.fetchall()]
         return self._check_snippet_used(
-            snippet_occurences, asset_type, asset_version)
+            snippet_occurences, asset_type, asset_version
+        )
 
     def _disable_unused_snippets_assets(self):
         """≙ ``_disable_unused_snippets_assets`` (``odoo19c: :1955-1985``).
@@ -2881,12 +3398,15 @@ class Website(TimeStampedModel):
         ``save()`` ya escribió.
         """
         snippet_assets = list(
-            IrAsset.objects
-            .filter(path__regex=r'/static.*/snippets/')
-            .order_by('pk'))
+            IrAsset.objects.filter(
+                path__regex=r'/static.*/snippets/'
+            ).order_by('pk')
+        )
         snippet_re = re.compile(
-            r'(\w*)\/.*\/snippets\/(\w*)\/(\d{3})(?:_\w*)?\.(js|scss)')
-        # El regex matchea /module/static/[…/]/snippets/snippet_id/XXX[_var].tipo
+            r'(\w*)\/.*\/snippets\/(\w*)\/(\d{3})(?:_\w*)?\.(js|scss)'
+        )
+        # El regex matchea
+        # /module/static/[…/]/snippets/snippet_id/XXX[_var].tipo
         # — _var no se conserva: sólo module, snippet_id, versión (XXX) y tipo
         # son relevantes (comentario de la fuente).
         html_fields = self._get_html_fields()
@@ -2896,7 +3416,8 @@ class Website(TimeStampedModel):
             if not match:
                 continue
             snippet_module, snippet_id, asset_version, asset_type = (
-                match.groups())
+                match.groups()
+            )
             if asset_type == 'scss':
                 asset_type = 'css'
             # El módulo no es parte de la clave: se quiere el primero en el
@@ -2904,23 +3425,32 @@ class Website(TimeStampedModel):
             key = (snippet_id, asset_version, asset_type)
             if key not in snippet_used:
                 snippet_used[key] = self._is_snippet_used(
-                    snippet_module, snippet_id, asset_version, asset_type,
-                    html_fields)
+                    snippet_module,
+                    snippet_id,
+                    asset_version,
+                    asset_type,
+                    html_fields,
+                )
             is_snippet_used = snippet_used[key]
             if is_snippet_used != snippet_asset.active:
                 snippet_asset.active = is_snippet_used
                 snippet_asset.save(update_fields=['active'])
                 # Cobertura de data-snippet ausentes (fuente, verbatim).
-                if (snippet_id == 's_quotes_carousel'
-                        and asset_type == 'css'
-                        and asset_version in ['000', '001']):
+                if (
+                    snippet_id == 's_quotes_carousel'
+                    and asset_type == 'css'
+                    and asset_version in ['000', '001']
+                ):
                     old_blockquote_key = ('s_blockquote', '000', 'css')
                     if not snippet_used.get(old_blockquote_key):
                         snippet_used[old_blockquote_key] = True
                         old_blockquote_assets = [
-                            asset for asset in snippet_assets
-                            if asset.path == ('website/static/src/snippets/'
-                                              's_blockquote/000.scss')]
+                            asset
+                            for asset in snippet_assets
+                            if asset.path
+                            == 'website/static/src/snippets/'
+                            's_blockquote/000.scss'
+                        ]
                         for old_asset in old_blockquote_assets:
                             if not old_asset.active:
                                 old_asset.active = True
@@ -2930,7 +3460,8 @@ class Website(TimeStampedModel):
 def _view_owner(view_func):
     """El objeto que porta las declaraciones de una vista despachable.
 
-    La misma resolución que ``CompanyContextMiddleware._view_declares_frontend``
+    La misma resolución que
+    ``CompanyContextMiddleware._view_declares_frontend``
     (``src/addons/base/models/ir_http.py:352-367``, el mecanismo de #546):
     DRF expone la clase como ``view.cls``, las CBV de Django como
     ``view.view_class``, y una FBV lleva los atributos en la propia función.
@@ -2938,9 +3469,11 @@ def _view_owner(view_func):
     tres atributos (``is_frontend``, ``http_method_names``, ``sitemap``), el
     análogo del dict ``routing`` de la fuente.
     """
-    return (getattr(view_func, 'cls', None)
-            or getattr(view_func, 'view_class', None)
-            or view_func)
+    return (
+        getattr(view_func, 'cls', None)
+        or getattr(view_func, 'view_class', None)
+        or view_func
+    )
 
 
 def _iter_url_patterns(resolver=None, prefix='', literal=True):
@@ -2962,7 +3495,8 @@ def _iter_url_patterns(resolver=None, prefix='', literal=True):
         entry_literal = literal and isinstance(entry.pattern, RoutePattern)
         if isinstance(entry, URLResolver):
             yield from _iter_url_patterns(
-                entry, prefix + str(entry.pattern), entry_literal)
+                entry, prefix + str(entry.pattern), entry_literal
+            )
         elif isinstance(entry, URLPattern):
             yield prefix + str(entry.pattern), entry, entry_literal
 
@@ -2994,12 +3528,18 @@ def _configurator_rpc_call(url, method='call', params=None, timeout=15):
         body = response.json()
     except requests.exceptions.Timeout:
         raise AccessError(
-            _('The request to the service timed out. The URL it tried to '
-              'contact was %s') % url)
+            _(
+                'The request to the service timed out. The URL it tried to '
+                'contact was %s'
+            )
+            % url
+        )
     except requests.exceptions.RequestException as error:
         raise AccessError(
-            _('An error occurred while reaching %s: %s') % (url, error))
+            _('An error occurred while reaching %s: %s') % (url, error)
+        )
     if 'error' in body:
         raise AccessError(
-            _('The external service at %s reported an error.') % url)
+            _('The external service at %s reported an error.') % url
+        )
     return body.get('result')

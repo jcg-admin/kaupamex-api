@@ -13,9 +13,14 @@ sus campos se reparten entre la ficha y la variante, y el ``stock`` se
 Esta fábrica reconstruye el atajo que los tests necesitan: un producto SIN
 atributos (una ficha, una variante), con su stock inicial si se pide.
 """
+
 from decimal import Decimal
 
-from addons.product.models import ProductCategory, ProductProduct, ProductTemplate
+from addons.product.models import (
+    ProductCategory,
+    ProductProduct,
+    ProductTemplate,
+)
 from addons.stock.models import StockLocation, StockQuant
 from addons.stock.services import InventoryService
 
@@ -32,7 +37,8 @@ def default_internal_location():
     """Ubicación interna por defecto — misma que ``InventoryService.restore``
     usa para no depender de que el árbol de ubicaciones ya esté sembrado."""
     location, _ = StockLocation.objects.get_or_create(
-        name='WH/Stock', defaults={'usage': StockLocation.USAGE_INTERNAL},
+        name='WH/Stock',
+        defaults={'usage': StockLocation.USAGE_INTERNAL},
     )
     return location
 
@@ -41,13 +47,23 @@ def set_stock(product, quantity):
     """Fija el stock a la mano de ``product`` (paridad con el viejo
     ``Product.stock = N``). Usa el helper canónico del propio modelo."""
     return StockQuant.set_on_hand(
-        product, default_internal_location(), Decimal(quantity))
+        product, default_internal_location(), Decimal(quantity)
+    )
 
 
-def make_product(name='Producto de prueba', price=Decimal('100.00'),
-                  stock=None, default_code='', active=True, categ=None,
-                  barcode='', standard_price=None, weight=None, volume=None,
-                  **tmpl_kwargs):
+def make_product(
+    name='Producto de prueba',
+    price=Decimal('100.00'),
+    stock=None,
+    default_code='',
+    active=True,
+    categ=None,
+    barcode='',
+    standard_price=None,
+    weight=None,
+    volume=None,
+    **tmpl_kwargs,
+):
     """Crea una ficha + su variante única (sin atributos, sin combinación).
 
     :param price: ``ProductTemplate.list_price`` (Odoo ``list_price``).
@@ -69,7 +85,10 @@ def make_product(name='Producto de prueba', price=Decimal('100.00'),
         ``SaleOrderLine``/``PurchaseOrderLine``/``StockQuant`` referencian.
     """
     tmpl = ProductTemplate.objects.create(
-        name=name, list_price=Decimal(price), active=active, categ=categ,
+        name=name,
+        list_price=Decimal(price),
+        active=active,
+        categ=categ,
         **tmpl_kwargs,
     )
     variant_kwargs = {}
@@ -80,8 +99,11 @@ def make_product(name='Producto de prueba', price=Decimal('100.00'),
     if volume is not None:
         variant_kwargs['volume'] = volume
     variant = ProductProduct.objects.create(
-        product_tmpl=tmpl, default_code=default_code, active=active,
-        barcode=barcode, **variant_kwargs,
+        product_tmpl=tmpl,
+        default_code=default_code,
+        active=active,
+        barcode=barcode,
+        **variant_kwargs,
     )
     if stock is not None:
         set_stock(variant, stock)
@@ -90,5 +112,6 @@ def make_product(name='Producto de prueba', price=Decimal('100.00'),
 
 def get_stock(product) -> Decimal:
     """Stock disponible del producto (paridad de lectura con el viejo
-    ``Product.stock``). ``SUM(quantity - reserved_quantity)`` sobre sus quants."""
+    ``Product.stock``). ``SUM(quantity - reserved_quantity)`` sobre sus quants.
+    """
     return InventoryService.available_quantity(product)

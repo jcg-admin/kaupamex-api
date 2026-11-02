@@ -6,6 +6,7 @@ la fuente son campos ``compute=`` sobre un ``TransientModel``; aquí son campos
 no persistidos cuyo ``default`` invoca al método, así que el caso llama al
 método y comprueba la misma población que la fuente consulta.
 """
+
 import pytest
 
 from addons.base.models.ir_config_parameter import SystemParameter
@@ -37,7 +38,10 @@ def _clear_param_cache():
 
 
 class TestClassAttributes:
-    """Los atributos de clase que la fuente declara — ``atributos-de-clase-de-modelo``."""
+    """
+    Los atributos de clase que la fuente declara —
+    ``atributos-de-clase-de-modelo``.
+    """
 
     def test_inherits_the_reference_model_name(self):
         assert ResConfigSettings._inherit == 'res.config.settings'
@@ -48,18 +52,25 @@ class TestClassAttributes:
 
 
 class TestFieldAttrs:
-    """El metadato por campo — el equivalente de ``config_parameter=`` de la fuente."""
+    """
+    El metadato por campo — el equivalente de ``config_parameter=`` de la
+    fuente.
+    """
 
     def test_the_three_of_the_port_are_declared(self):
         attrs = ResConfigSettings.field_attrs
         assert attrs['group_multi_currency'] == {
-            'implied_group': MULTI_CURRENCY_GROUP}
+            'implied_group': MULTI_CURRENCY_GROUP
+        }
         assert attrs['show_effect'] == {'config_parameter': SHOW_EFFECT_PARAM}
         assert attrs['profiling_enabled_until'] == {
-            'config_parameter': PROFILING_ENABLED_UNTIL_PARAM}
+            'config_parameter': PROFILING_ENABLED_UNTIL_PARAM
+        }
 
     def test_the_child_widens_the_map_instead_of_replacing_it(self):
-        """Sin esto los tres del padre quedarían clasificados como ``other``."""
+        """
+        Sin esto los tres del padre quedarían clasificados como ``other``.
+        """
         for name in ResConfigSettings.field_attrs:
             assert name in SiteConfigSettings.field_attrs
         # y los suyos siguen ahí
@@ -79,15 +90,20 @@ class TestComputes:
 
     def test_language_count_matches_the_installed_languages(self):
         settings = SiteConfigSettings()
-        assert settings._compute_language_count() == len(ResLang.get_installed())
+        assert settings._compute_language_count() == len(
+            ResLang.get_installed()
+        )
 
-    def test_active_user_count_ignores_the_portal_user(self, django_user_model):
+    def test_active_user_count_ignores_the_portal_user(
+        self, django_user_model
+    ):
         settings = SiteConfigSettings()
         before = settings._compute_active_user_count()
         # ``share`` es una propiedad: la negación de ``_is_internal()``. Un
         # usuario nuevo sin grupo interno NO cuenta.
         django_user_model.objects.create_user(
-            login='shared-user@example.com', password='x' * 12)
+            login='shared-user@example.com', password='x' * 12
+        )
         assert settings._compute_active_user_count() == before
 
     def test_is_root_company_without_company(self):
@@ -103,12 +119,17 @@ class TestComputes:
 
     def test_company_informations_concatenates_like_the_reference(self):
         country, _ = ResCountry.objects.get_or_create(
-            code='TL', defaults={'name': 'Testlandia'})
+            code='TL', defaults={'name': 'Testlandia'}
+        )
         country.vat_label = 'RFC'
         country.save(update_fields=['vat_label'])
         company = ResCompany.objects.create(
-            name='Kaupamex QA', street='Av. Siempre Viva 742',
-            city='CDMX', zip='03100', country=country)
+            name='Kaupamex QA',
+            street='Av. Siempre Viva 742',
+            city='CDMX',
+            zip='03100',
+            country=country,
+        )
         # ``vat`` es una propiedad delegada al partner (``_inherits``), no una
         # columna de ``res.company``: se escribe donde vive.
         company.partner.vat = 'ABC010101XYZ'
@@ -136,19 +157,26 @@ class TestActions:
         assert action['view_mode'] == 'form'
         assert action['target'] == 'current'
 
-    def test_open_new_user_default_groups_creates_the_group_with_its_xmlid(self):
-        """La rama de creación: sin el identificador sembrado, lo crea y lo registra.
+    def test_open_new_user_default_groups_creates_the_group_with_its_xmlid(
+        self,
+    ):
+        """
+        La rama de creación: sin el identificador sembrado, lo crea y lo
+        registra.
 
         El árbol **sí** siembra ``base.default_user_group``, así que la rama
         de creación sólo se alcanza retirando el registro primero. Sin ese
         paso el caso mediría la rama de reutilización y pasaría en verde sin
         ejercer nada de lo que dice medir.
         """
-        IrModelData.objects.filter(module='base',
-                                   name='default_user_group').delete()
+        IrModelData.objects.filter(
+            module='base', name='default_user_group'
+        ).delete()
         clear_cache('stable')
-        assert IrModelData.ref(DEFAULT_USER_GROUP_XMLID,
-                               raise_if_not_found=False) is None
+        assert (
+            IrModelData.ref(DEFAULT_USER_GROUP_XMLID, raise_if_not_found=False)
+            is None
+        )
         action = SiteConfigSettings().open_new_user_default_groups()
         clear_cache('stable')
         created = IrModelData.ref(DEFAULT_USER_GROUP_XMLID)
@@ -156,8 +184,11 @@ class TestActions:
         assert action['res_id'] == created.pk
         assert action['target'] == 'new'
 
-    def test_open_new_user_default_groups_omits_the_view_it_cannot_resolve(self):
-        """``base.view_default_groups_form`` no está sembrado — se declara arriba.
+    def test_open_new_user_default_groups_omits_the_view_it_cannot_resolve(
+        self,
+    ):
+        """
+        ``base.view_default_groups_form`` no está sembrado — se declara arriba.
 
         El caso fija la conducta degradada: la acción sale sin la clave
         ``views`` en vez de levantar. Si algún día se siembra la vista, este
@@ -175,11 +206,13 @@ class TestActions:
         assert ResGroups.objects.count() == before
 
     def test_prepare_report_view_action_points_at_the_view(self):
-        view = IrUiView.objects.create(name='Cabecera externa', type='qweb',
-                                       arch_db='<div/>')
+        view = IrUiView.objects.create(
+            name='Cabecera externa', type='qweb', arch_db='<div/>'
+        )
         IrModelData.set_xmlid(view, 'base_setup.test_report_view')
         action = SiteConfigSettings._prepare_report_view_action(
-            'base_setup.test_report_view')
+            'base_setup.test_report_view'
+        )
         assert action == {
             'type': 'ir.actions.act_window',
             'res_model': 'ir.ui.view',

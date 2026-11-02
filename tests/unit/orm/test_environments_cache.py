@@ -43,6 +43,7 @@ que los escribiera sin el aviso pasaría cualquier caso que sólo midiera su
 valor de retorno. Aquí el aviso **es** parte del contrato portado, así que se
 mide con ``pytest.warns`` uno por uno.
 """
+
 import warnings
 
 import pytest
@@ -52,9 +53,16 @@ import fields
 from addons.base.models.res_partner import ResPartner
 from exceptions import CacheMiss
 from orm import registry
-from orm.environments import (EMPTY_DICT, MAX_FIXPOINT_ITERATIONS, Cache,
-                              Starred, activate_companies, get_current_companies,
-                              env as ambient_env, transaction_scope)
+from orm.environments import (
+    EMPTY_DICT,
+    MAX_FIXPOINT_ITERATIONS,
+    Cache,
+    Starred,
+    activate_companies,
+    get_current_companies,
+    env as ambient_env,
+    transaction_scope,
+)
 from orm.fields_nonstored import non_stored_fields
 from orm.utils import record_ids
 from tools.misc import frozendict
@@ -86,11 +94,17 @@ def field_of(name):
 
 
 def test_allowed_company_cache_key_tracks_the_validated_channel(monkeypatch):
-    """El mismo primer ID no identifica dos conjuntos de compañías distintos."""
+    """
+    El mismo primer ID no identifica dos conjuntos de compañías distintos.
+    """
     field = field_of('label')
-    monkeypatch.setattr(registry, 'field_depends_context', {
-        field: ('allowed_company_ids',),
-    })
+    monkeypatch.setattr(
+        registry,
+        'field_depends_context',
+        {
+            field: ('allowed_company_ids',),
+        },
+    )
     previous = get_current_companies()
     try:
         activate_companies([17], [17, 23])
@@ -109,18 +123,24 @@ def test_allowed_company_cache_key_tracks_the_validated_channel(monkeypatch):
 def test_allowed_company_cache_key_normalizes_explicit_lists(monkeypatch):
     """La clave es hashable y no modifica la lista aportada por el llamador."""
     field = field_of('label')
-    monkeypatch.setattr(registry, 'field_depends_context', {
-        field: ('allowed_company_ids',),
-    })
+    monkeypatch.setattr(
+        registry,
+        'field_depends_context',
+        {
+            field: ('allowed_company_ids',),
+        },
+    )
     values = [23, 17]
     environment = ambient_env()(context={'allowed_company_ids': values})
     key = environment.cache_key(field)
     assert key == ((23, 17),)
     assert values == [23, 17]
     assert {key: 'value'}[key] == 'value'
-    assert key != ambient_env()(context={
-        'allowed_company_ids': [17, 23],
-    }).cache_key(field)
+    assert key != ambient_env()(
+        context={
+            'allowed_company_ids': [17, 23],
+        }
+    ).cache_key(field)
 
 
 class TestTheModuleConstants:
@@ -152,7 +172,9 @@ class TestTheStarredMarksTheValue:
         assert repr(Starred(7)) == '7*'
 
     def test_the_repr_of_the_value_is_the_one_used(self):
-        """Es ``repr`` del valor, no ``str``: una cadena sale entrecomillada."""
+        """
+        Es ``repr`` del valor, no ``str``: una cadena sale entrecomillada.
+        """
         assert repr(Starred('a')) == "'a'*"
 
     def test_the_slots_keep_it_light(self):
@@ -170,7 +192,9 @@ class TestTheTransactionOwnsItsCache:
     def test_the_cache_points_back_at_its_transaction(self, open_transaction):
         assert open_transaction.cache.transaction is open_transaction
 
-    def test_the_cache_is_the_same_object_between_reads(self, open_transaction):
+    def test_the_cache_is_the_same_object_between_reads(
+        self, open_transaction
+    ):
         assert open_transaction.cache is open_transaction.cache
 
 
@@ -191,11 +215,14 @@ class TestTheCacheReadsAndWritesOneValue:
     def test_a_miss_raises_cache_miss(self, open_transaction):
         """Sin valor y sin ``default``, la fuente levanta ``CacheMiss``."""
         with pytest.raises(CacheMiss):
-            open_transaction.cache.get(CacheFacadeProbe(pk=9), field_of('source'))
+            open_transaction.cache.get(
+                CacheFacadeProbe(pk=9), field_of('source')
+            )
 
     def test_a_miss_returns_the_given_default(self, open_transaction):
         got = open_transaction.cache.get(
-            CacheFacadeProbe(pk=9), field_of('source'), default='sin valor')
+            CacheFacadeProbe(pk=9), field_of('source'), default='sin valor'
+        )
         assert got == 'sin valor'
 
     def test_remove_drops_the_value(self, open_transaction):
@@ -205,8 +232,12 @@ class TestTheCacheReadsAndWritesOneValue:
         assert not open_transaction.cache.contains(record, field)
 
     def test_remove_of_an_absent_value_is_silent(self, open_transaction):
-        """La fuente traga el ``KeyError`` — borrar lo que no está no es error."""
-        open_transaction.cache.remove(CacheFacadeProbe(pk=9), field_of('source'))
+        """
+        La fuente traga el ``KeyError`` — borrar lo que no está no es error.
+        """
+        open_transaction.cache.remove(
+            CacheFacadeProbe(pk=9), field_of('source')
+        )
 
 
 class TestTheCacheWorksOnSeveralRecords:
@@ -216,14 +247,21 @@ class TestTheCacheWorksOnSeveralRecords:
         records = [CacheFacadeProbe(pk=1), CacheFacadeProbe(pk=2)]
         field = field_of('source')
         open_transaction.cache.update(records, field, [10, 20])
-        assert list(open_transaction.cache.get_values(records, field)) == [10, 20]
+        assert list(open_transaction.cache.get_values(records, field)) == [
+            10,
+            20,
+        ]
 
     def test_update_raw_writes_the_same_without_the_language_logic(
-            self, open_transaction):
+        self, open_transaction
+    ):
         records = [CacheFacadeProbe(pk=1), CacheFacadeProbe(pk=2)]
         field = field_of('label')
         open_transaction.cache.update_raw(records, field, ['a', 'b'])
-        assert list(open_transaction.cache.get_values(records, field)) == ['a', 'b']
+        assert list(open_transaction.cache.get_values(records, field)) == [
+            'a',
+            'b',
+        ]
 
     def test_get_values_skips_what_is_not_cached(self, open_transaction):
         """La fuente hace ``continue`` ante un ``KeyError``, no rellena."""
@@ -232,11 +270,15 @@ class TestTheCacheWorksOnSeveralRecords:
         records = [CacheFacadeProbe(pk=1), CacheFacadeProbe(pk=2)]
         assert list(open_transaction.cache.get_values(records, field)) == [20]
 
-    def test_get_missing_ids_names_the_ones_without_value(self, open_transaction):
+    def test_get_missing_ids_names_the_ones_without_value(
+        self, open_transaction
+    ):
         field = field_of('source')
         open_transaction.cache.set(CacheFacadeProbe(pk=2), field, 20)
         records = [CacheFacadeProbe(pk=1), CacheFacadeProbe(pk=2)]
-        assert list(open_transaction.cache.get_missing_ids(records, field)) == [1]
+        assert list(
+            open_transaction.cache.get_missing_ids(records, field)
+        ) == [1]
 
 
 class TestTheCacheAnswersAboutTheField:
@@ -258,11 +300,15 @@ class TestTheCacheAnswersAboutTheField:
 
 
 class TestTheDirtyFlagIsVisible:
-    """La marca de sucio: el ``repr`` con estrella y la superficie que la lee."""
+    """
+    La marca de sucio: el ``repr`` con estrella y la superficie que la lee.
+    """
 
     def test_the_repr_stars_the_dirty_id(self, open_transaction):
         field = field_of('source')
-        open_transaction.cache.set(CacheFacadeProbe(pk=1), field, 7, dirty=True)
+        open_transaction.cache.set(
+            CacheFacadeProbe(pk=1), field, 7, dirty=True
+        )
         assert '7' in repr(open_transaction.cache)
         assert '1*' in repr(open_transaction.cache)
 
@@ -275,26 +321,33 @@ class TestTheDirtyFlagIsVisible:
 class TestTheInvalidationClearsWhatItSays:
     """``invalidate`` · ``clear`` — el alcance de cada uno."""
 
-    def test_invalidate_without_spec_empties_everything(self, open_transaction):
+    def test_invalidate_without_spec_empties_everything(
+        self, open_transaction
+    ):
         field = field_of('source')
         open_transaction.cache.set(CacheFacadeProbe(pk=1), field, 1)
         open_transaction.cache.invalidate()
         assert not open_transaction.cache.contains_field(field)
 
     def test_invalidate_with_spec_only_touches_the_named_ids(
-            self, open_transaction):
+        self, open_transaction
+    ):
         field = field_of('source')
         open_transaction.cache.set(CacheFacadeProbe(pk=1), field, 1)
         open_transaction.cache.set(CacheFacadeProbe(pk=2), field, 2)
         open_transaction.cache.invalidate([(field, [1])])
-        assert not open_transaction.cache.contains(CacheFacadeProbe(pk=1), field)
+        assert not open_transaction.cache.contains(
+            CacheFacadeProbe(pk=1), field
+        )
         assert open_transaction.cache.contains(CacheFacadeProbe(pk=2), field)
 
     def test_clear_also_drops_the_dirty_flags(self, open_transaction):
         """``invalidate`` deja la marca de sucio; ``clear`` la borra — es la
         distinción que la fuente escribe entre los dos métodos."""
         field = field_of('source')
-        open_transaction.cache.set(CacheFacadeProbe(pk=1), field, 1, dirty=True)
+        open_transaction.cache.set(
+            CacheFacadeProbe(pk=1), field, 1, dirty=True
+        )
         open_transaction.cache.clear()
         assert not open_transaction.field_dirty.get(field)
 
@@ -318,17 +371,20 @@ class TestTheDeprecatedSurfaceWarns:
     def test_insert_missing_warns(self, open_transaction):
         with pytest.warns(DeprecationWarning):
             open_transaction.cache.insert_missing(
-                [CacheFacadeProbe(pk=1)], field_of('source'), [1])
+                [CacheFacadeProbe(pk=1)], field_of('source'), [1]
+            )
 
     def test_patch_and_set_warns(self, open_transaction):
         with pytest.warns(DeprecationWarning):
             open_transaction.cache.patch_and_set(
-                CacheFacadeProbe(pk=1), field_of('source'), 1)
+                CacheFacadeProbe(pk=1), field_of('source'), 1
+            )
 
     def test_get_until_miss_warns(self, open_transaction):
         with pytest.warns(UserWarning):
             open_transaction.cache.get_until_miss(
-                [CacheFacadeProbe(pk=1)], field_of('source'))
+                [CacheFacadeProbe(pk=1)], field_of('source')
+            )
 
     def test_get_dirty_fields_warns(self, open_transaction):
         with pytest.warns(UserWarning):
@@ -337,7 +393,8 @@ class TestTheDeprecatedSurfaceWarns:
     def test_has_dirty_fields_warns(self, open_transaction):
         with pytest.warns(UserWarning):
             open_transaction.cache.has_dirty_fields(
-                [CacheFacadeProbe(pk=1)], [field_of('source')])
+                [CacheFacadeProbe(pk=1)], [field_of('source')]
+            )
 
     def test_clear_dirty_field_warns(self, open_transaction):
         with pytest.warns(UserWarning):
@@ -345,16 +402,23 @@ class TestTheDeprecatedSurfaceWarns:
 
 
 class TestTheDeprecatedSurfaceStillAnswers:
-    """Obsoleto no es ausente: los que devuelven valor lo siguen devolviendo."""
+    """
+    Obsoleto no es ausente: los que devuelven valor lo siguen devolviendo.
+    """
 
     def test_get_until_miss_stops_at_the_first_gap(self, open_transaction):
         field = field_of('source')
         open_transaction.cache.set(CacheFacadeProbe(pk=1), field, 10)
-        records = [CacheFacadeProbe(pk=1), CacheFacadeProbe(pk=2),
-                   CacheFacadeProbe(pk=3)]
+        records = [
+            CacheFacadeProbe(pk=1),
+            CacheFacadeProbe(pk=2),
+            CacheFacadeProbe(pk=3),
+        ]
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            assert open_transaction.cache.get_until_miss(records, field) == [10]
+            assert open_transaction.cache.get_until_miss(records, field) == [
+                10
+            ]
 
     def test_insert_missing_does_not_overwrite(self, open_transaction):
         field = field_of('source')
@@ -362,14 +426,20 @@ class TestTheDeprecatedSurfaceStillAnswers:
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             open_transaction.cache.insert_missing(
-                [CacheFacadeProbe(pk=1), CacheFacadeProbe(pk=2)], field, [99, 20])
+                [CacheFacadeProbe(pk=1), CacheFacadeProbe(pk=2)],
+                field,
+                [99, 20],
+            )
         assert open_transaction.cache.get(CacheFacadeProbe(pk=1), field) == 10
         assert open_transaction.cache.get(CacheFacadeProbe(pk=2), field) == 20
 
     def test_clear_dirty_field_returns_the_formerly_dirty_ids(
-            self, open_transaction):
+        self, open_transaction
+    ):
         field = field_of('source')
-        open_transaction.cache.set(CacheFacadeProbe(pk=1), field, 1, dirty=True)
+        open_transaction.cache.set(
+            CacheFacadeProbe(pk=1), field, 1, dirty=True
+        )
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             assert 1 in open_transaction.cache.clear_dirty_field(field)
@@ -377,13 +447,17 @@ class TestTheDeprecatedSurfaceStillAnswers:
 
     def test_has_dirty_fields_sees_the_marked_one(self, open_transaction):
         field = field_of('source')
-        open_transaction.cache.set(CacheFacadeProbe(pk=1), field, 1, dirty=True)
+        open_transaction.cache.set(
+            CacheFacadeProbe(pk=1), field, 1, dirty=True
+        )
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             assert open_transaction.cache.has_dirty_fields(
-                [CacheFacadeProbe(pk=1)], [field])
+                [CacheFacadeProbe(pk=1)], [field]
+            )
             assert not open_transaction.cache.has_dirty_fields(
-                [CacheFacadeProbe(pk=2)], [field])
+                [CacheFacadeProbe(pk=2)], [field]
+            )
 
 
 @pytest.mark.django_db
@@ -398,21 +472,27 @@ class TestTheMethodsThatReturnRows:
 
     @pytest.fixture
     def two_partners(self):
-        return (ResPartner.objects.create(name='Alfa'),
-                ResPartner.objects.create(name='Bravo'))
+        return (
+            ResPartner.objects.create(name='Alfa'),
+            ResPartner.objects.create(name='Bravo'),
+        )
 
     def _partner_field(self):
         return ResPartner, ResPartner._meta.get_field('comment')
 
     def test_get_records_returns_the_rows_with_a_value(
-            self, open_transaction, two_partners):
+        self, open_transaction, two_partners
+    ):
         alpha, _bravo = two_partners
         model, field = self._partner_field()
         open_transaction.cache.set(alpha, field, 'x')
-        assert record_ids(open_transaction.cache.get_records(model, field)) == (alpha.pk,)
+        assert record_ids(
+            open_transaction.cache.get_records(model, field)
+        ) == (alpha.pk,)
 
     def test_filtered_dirty_records_keeps_only_the_marked(
-            self, open_transaction, two_partners):
+        self, open_transaction, two_partners
+    ):
         alpha, bravo = two_partners
         model, field = self._partner_field()
         open_transaction.cache.set(alpha, field, 'x', dirty=True)
@@ -420,14 +500,17 @@ class TestTheMethodsThatReturnRows:
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             dirty_rows = open_transaction.cache.filtered_dirty_records(
-                model.objects.filter(pk__in=[alpha.pk, bravo.pk]), field)
+                model.objects.filter(pk__in=[alpha.pk, bravo.pk]), field
+            )
             clean_rows = open_transaction.cache.filtered_clean_records(
-                model.objects.filter(pk__in=[alpha.pk, bravo.pk]), field)
+                model.objects.filter(pk__in=[alpha.pk, bravo.pk]), field
+            )
         assert record_ids(dirty_rows) == (alpha.pk,)
         assert record_ids(clean_rows) == (bravo.pk,)
 
     def test_get_records_different_from_names_the_others(
-            self, open_transaction, two_partners):
+        self, open_transaction, two_partners
+    ):
         """Delega en ``Field._filter_not_equal``, que #326 porta."""
         alpha, bravo = two_partners
         model, field = self._partner_field()
@@ -436,7 +519,8 @@ class TestTheMethodsThatReturnRows:
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             differing = open_transaction.cache.get_records_different_from(
-                model.objects.filter(pk__in=[alpha.pk, bravo.pk]), field, 'x')
+                model.objects.filter(pk__in=[alpha.pk, bravo.pk]), field, 'x'
+            )
         assert record_ids(differing) == (bravo.pk,)
 
 
@@ -478,7 +562,8 @@ class TestTheFieldWithoutAColumnAlsoLivesInTheCache:
     """
 
     def test_the_cache_holds_a_value_for_a_field_without_a_column(
-            self, open_transaction):
+        self, open_transaction
+    ):
         record = CacheFacadeProbe(pk=1)
         field = non_stored_fields(CacheFacadeProbe)['display_name']
         open_transaction.cache.set(record, field, 'Sonda')
@@ -492,12 +577,16 @@ class TestTheFieldWithoutAColumnAlsoLivesInTheCache:
         assert open_transaction.cache.contains(record, field)
 
     def test_get_fields_enumerates_it_alongside_the_stored_one(
-            self, open_transaction):
+        self, open_transaction
+    ):
         """``get_fields`` recorre ``_fields``, que incluye los dos ejes."""
         record = CacheFacadeProbe(pk=1)
         open_transaction.cache.set(record, field_of('source'), 1)
         open_transaction.cache.set(
-            record, non_stored_fields(CacheFacadeProbe)['display_name'], 'Sonda')
+            record,
+            non_stored_fields(CacheFacadeProbe)['display_name'],
+            'Sonda',
+        )
         names = {f.name for f in open_transaction.cache.get_fields(record)}
         assert names == {'source', 'display_name'}
 

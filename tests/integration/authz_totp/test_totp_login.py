@@ -1,6 +1,7 @@
 """Tests — el segundo paso del login y la cookie ``td_id``.
 
-Contrato adaptado de ``odoo19c: addons/auth_totp/controllers/home.py::web_totp``
+Contrato adaptado de ``odoo19c:
+addons/auth_totp/controllers/home.py::web_totp``
 (``odoo-tools@622ddc2a``), con las dos divergencias que el endpoint declara: la
 fuente **redirige** y renderiza un formulario; aquí el cliente es REST, así que
 el desenlace es un código y un cuerpo.
@@ -32,6 +33,7 @@ Los controles que exige el sub-patrón D de ``metrica-decide-la-conclusion.md``
     lo exceden por construcción: si el ``sudo()`` desapareciera, este caso cae
     con ``ValidationError`` y ninguno de los otros lo notaría.
 """
+
 import base64
 from datetime import timedelta
 
@@ -40,7 +42,9 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from addons.authz_totp.models.auth_totp import (
-    TRUSTED_DEVICE_COOKIE, AuthTotpDevice)
+    TRUSTED_DEVICE_COOKIE,
+    AuthTotpDevice,
+)
 from addons.authz_totp.models.totp import TOTP, TIMESTEP, hotp
 from addons.authz_totp.services import begin_setup, confirm_setup
 
@@ -49,8 +53,8 @@ User = get_user_model()
 pytestmark = pytest.mark.integration
 
 AUTHENTICATE = '/api/v2/web/session/authenticate/'
-SESSION      = '/api/v2/web/session/'
-TOTP_LOGIN   = '/api/v2/authz/totp/login/'
+SESSION = '/api/v2/web/session/'
+TOTP_LOGIN = '/api/v2/authz/totp/login/'
 
 PASSWORD = 'SegundoPaso123!'
 
@@ -95,7 +99,8 @@ def partial_session(api_client, totp_user):
     r = api_client.post(
         AUTHENTICATE,
         {'login': totp_user.login, 'password': PASSWORD},
-        format='json')
+        format='json',
+    )
     assert r.status_code == 401
     assert r.data['codigo_error'] == 'MFA_REQUIRED'
     return api_client
@@ -113,11 +118,13 @@ class TestPartialSession:
         assert partial_session.get(SESSION).status_code in (401, 403)
 
     def test_mfa_url_points_at_the_second_step_screen(
-            self, api_client, totp_user):
+        self, api_client, totp_user
+    ):
         r = api_client.post(
             AUTHENTICATE,
             {'login': totp_user.login, 'password': PASSWORD},
-            format='json')
+            format='json',
+        )
         assert r.data['mfa_url'] == '/login/totp'
 
     def test_without_partial_session_the_second_step_refuses(self, api_client):
@@ -133,7 +140,8 @@ class TestCode:
         r = partial_session.post(
             TOTP_LOGIN,
             {'code': _current_code(totp_user.totp_secret_value)},
-            format='json')
+            format='json',
+        )
         assert r.status_code == 200
         assert r.data['uid'] == totp_user.pk
         # El cuerpo es el mismo que habría devuelto `session_authenticate`.
@@ -143,25 +151,32 @@ class TestCode:
     def test_recovery_code_opens_session(self, partial_session, totp_user):
         """Divergencia declarada: la fuente sólo admite el código de la app."""
         r = partial_session.post(
-            TOTP_LOGIN, {'code': totp_user.recovery_codes[0]}, format='json')
+            TOTP_LOGIN, {'code': totp_user.recovery_codes[0]}, format='json'
+        )
         assert r.status_code == 200
         assert r.data['uid'] == totp_user.pk
 
     def test_recovery_code_is_single_use(self, partial_session, totp_user):
         code = totp_user.recovery_codes[0]
-        assert partial_session.post(
-            TOTP_LOGIN, {'code': code}, format='json').status_code == 200
+        assert (
+            partial_session.post(
+                TOTP_LOGIN, {'code': code}, format='json'
+            ).status_code
+            == 200
+        )
         partial_session.logout()
         partial_session.post(
             AUTHENTICATE,
             {'login': totp_user.login, 'password': PASSWORD},
-            format='json')
+            format='json',
+        )
         r = partial_session.post(TOTP_LOGIN, {'code': code}, format='json')
         assert r.status_code == 401
         assert r.data['codigo_error'] == 'TOTP_INVALID'
 
-    def test_wrong_code_keeps_the_session_partial(self, partial_session,
-                                                  totp_user):
+    def test_wrong_code_keeps_the_session_partial(
+        self, partial_session, totp_user
+    ):
         r = partial_session.post(TOTP_LOGIN, {'code': '000000'}, format='json')
         assert r.status_code == 401
         assert r.data['codigo_error'] == 'TOTP_INVALID'
@@ -169,15 +184,17 @@ class TestCode:
         ok = partial_session.post(
             TOTP_LOGIN,
             {'code': _current_code(totp_user.totp_secret_value)},
-            format='json')
+            format='json',
+        )
         assert ok.status_code == 200
 
 
 class TestFinalize:
     """≙ ``request.session.finalize(env)`` (``odoo19c: odoo/http.py:1265``)."""
 
-    def test_partial_keys_do_not_survive_login(self, partial_session,
-                                               totp_user):
+    def test_partial_keys_do_not_survive_login(
+        self, partial_session, totp_user
+    ):
         """CONTROL — ``login()`` cicla la clave pero conserva los datos.
 
         Qué lo haría fallar: retirar los dos ``pop`` de ``_finalize``. Sin
@@ -187,17 +204,20 @@ class TestFinalize:
         partial_session.post(
             TOTP_LOGIN,
             {'code': _current_code(totp_user.totp_secret_value)},
-            format='json')
+            format='json',
+        )
         assert 'pre_uid' not in partial_session.session
         assert 'pre_login' not in partial_session.session
 
-    def test_second_step_on_an_open_session_is_a_no_op(self, partial_session,
-                                                       totp_user):
+    def test_second_step_on_an_open_session_is_a_no_op(
+        self, partial_session, totp_user
+    ):
         """≙ ``if request.session.uid: redirect(...)`` (``:24-25``)."""
         partial_session.post(
             TOTP_LOGIN,
             {'code': _current_code(totp_user.totp_secret_value)},
-            format='json')
+            format='json',
+        )
         r = partial_session.get(TOTP_LOGIN)
         assert r.status_code == 200
         assert r.data['uid'] == totp_user.pk
@@ -206,22 +226,28 @@ class TestFinalize:
 class TestRemember:
     """``remember`` → ``_generate`` + ``set_cookie`` — ≙ ``:59-81``."""
 
-    def test_without_remember_no_cookie_and_no_device(self, partial_session,
-                                                      totp_user):
+    def test_without_remember_no_cookie_and_no_device(
+        self, partial_session, totp_user
+    ):
         r = partial_session.post(
             TOTP_LOGIN,
             {'code': _current_code(totp_user.totp_secret_value)},
-            format='json')
+            format='json',
+        )
         assert TRUSTED_DEVICE_COOKIE not in r.cookies
         assert not AuthTotpDevice.objects.filter(user_id=totp_user.pk).exists()
 
-    def test_remember_emits_the_cookie_and_the_device(self, partial_session,
-                                                      totp_user):
+    def test_remember_emits_the_cookie_and_the_device(
+        self, partial_session, totp_user
+    ):
         r = partial_session.post(
             TOTP_LOGIN,
-            {'code': _current_code(totp_user.totp_secret_value),
-             'remember': True},
-            format='json')
+            {
+                'code': _current_code(totp_user.totp_secret_value),
+                'remember': True,
+            },
+            format='json',
+        )
         assert r.status_code == 200
         cookie = r.cookies[TRUSTED_DEVICE_COOKIE]
         assert cookie.value
@@ -229,11 +255,16 @@ class TestRemember:
         # clave queda al alcance de cualquier script de la página.
         assert cookie['httponly']
         assert cookie['samesite'] == 'Lax'
-        assert AuthTotpDevice.objects.filter(
-            user_id=totp_user.pk, scope='browser').count() == 1
+        assert (
+            AuthTotpDevice.objects.filter(
+                user_id=totp_user.pk, scope='browser'
+            ).count()
+            == 1
+        )
 
-    def test_expiry_exceeds_the_default_api_key_cap(self, partial_session,
-                                                    totp_user):
+    def test_expiry_exceeds_the_default_api_key_cap(
+        self, partial_session, totp_user
+    ):
         """CONTROL — los 90 días sólo caben con privilegio.
 
         Qué lo haría fallar: retirar el ``sudo()`` del bloque de ``remember``.
@@ -244,9 +275,12 @@ class TestRemember:
         """
         partial_session.post(
             TOTP_LOGIN,
-            {'code': _current_code(totp_user.totp_secret_value),
-             'remember': True},
-            format='json')
+            {
+                'code': _current_code(totp_user.totp_secret_value),
+                'remember': True,
+            },
+            format='json',
+        )
         device = AuthTotpDevice.objects.get(user_id=totp_user.pk)
         assert device.expiration_date > timezone.now() + timedelta(days=2)
 
@@ -258,12 +292,16 @@ class TestTrustedDeviceCookie:
         api_client.post(
             AUTHENTICATE,
             {'login': totp_user.login, 'password': PASSWORD},
-            format='json')
+            format='json',
+        )
         r = api_client.post(
             TOTP_LOGIN,
-            {'code': _current_code(totp_user.totp_secret_value),
-             'remember': True},
-            format='json')
+            {
+                'code': _current_code(totp_user.totp_secret_value),
+                'remember': True,
+            },
+            format='json',
+        )
         return r.cookies[TRUSTED_DEVICE_COOKIE].value
 
     def test_get_without_cookie_asks_for_the_code(self, partial_session):
@@ -271,8 +309,9 @@ class TestTrustedDeviceCookie:
         assert r.status_code == 401
         assert r.data['codigo_error'] == 'TRUSTED_DEVICE_REQUIRED'
 
-    def test_remembered_cookie_skips_the_second_step(self, api_client,
-                                                     totp_user):
+    def test_remembered_cookie_skips_the_second_step(
+        self, api_client, totp_user
+    ):
         """El ciclo completo: la cookie emitida vale en el login siguiente."""
         key = self._remembered_cookie(api_client, totp_user)
         api_client.logout()
@@ -280,14 +319,16 @@ class TestTrustedDeviceCookie:
         api_client.post(
             AUTHENTICATE,
             {'login': totp_user.login, 'password': PASSWORD},
-            format='json')
+            format='json',
+        )
         r = api_client.get(TOTP_LOGIN)
         assert r.status_code == 200
         assert r.data['uid'] == totp_user.pk
         assert api_client.get(SESSION).status_code == 200
 
-    def test_cookie_of_another_user_does_not_skip(self, api_client, totp_user,
-                                                  django_user_model):
+    def test_cookie_of_another_user_does_not_skip(
+        self, api_client, totp_user, django_user_model
+    ):
         """CONTROL — la clave es de su dueño, no de quien la presente.
 
         Qué lo haría fallar: que ``_check_credentials_for_uid`` dejara de
@@ -309,7 +350,8 @@ class TestTrustedDeviceCookie:
         api_client.post(
             AUTHENTICATE,
             {'login': intruder.login, 'password': PASSWORD},
-            format='json')
+            format='json',
+        )
         r = api_client.get(TOTP_LOGIN)
         assert r.status_code == 401
         assert r.data['codigo_error'] == 'TRUSTED_DEVICE_REQUIRED'

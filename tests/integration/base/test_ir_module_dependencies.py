@@ -11,22 +11,24 @@ a instalar— es otra cosa, y no se porta.
 
 Qué haría fallar a cada control se declara en su caso.
 """
+
 import pytest
 
 from django.db import IntegrityError, transaction
 
-from addons.base.models import (IrModule, IrModuleDependency,
-                                IrModuleExclusion)
+from addons.base.models import IrModule, IrModuleDependency, IrModuleExclusion
 
 pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
 def catalogue(db):
-    """Tres addons: ``sale`` depende de ``product``, que depende de ``base``."""
-    base    = IrModule.objects.create(name='base', state='installed')
+    """
+    Tres addons: ``sale`` depende de ``product``, que depende de ``base``.
+    """
+    base = IrModule.objects.create(name='base', state='installed')
     product = IrModule.objects.create(name='product', state='installed')
-    sale    = IrModule.objects.create(name='sale', state='uninstalled')
+    sale = IrModule.objects.create(name='sale', state='uninstalled')
     IrModuleDependency.objects.create(module=product, name='base')
     IrModuleDependency.objects.create(module=sale, name='product')
     return {'base': base, 'product': product, 'sale': sale}
@@ -39,18 +41,22 @@ class TestComputeDepend:
         edge = IrModuleDependency.objects.get(name='product')
         assert edge._compute_depend() == catalogue['product']
 
-    def test_a_name_absent_from_the_catalogue_resolves_to_none(self, catalogue):
+    def test_a_name_absent_from_the_catalogue_resolves_to_none(
+        self, catalogue
+    ):
         """El caso que justifica que la tabla guarde un nombre y no una FK.
 
         Sin él, un porte que hubiera declarado la columna como FK pasaría todo
         lo demás: la arista huérfana es el único caso que una FK prohíbe.
         """
         edge = IrModuleDependency.objects.create(
-            module=catalogue['sale'], name='addon_que_no_esta')
+            module=catalogue['sale'], name='addon_que_no_esta'
+        )
         assert edge._compute_depend() is None
 
     def test_the_batch_resolves_every_edge_in_one_query(
-            self, catalogue, django_assert_num_queries):
+        self, catalogue, django_assert_num_queries
+    ):
         """La razón de portar la forma de lote de la fuente, medida.
 
         Sin ella, resolver N aristas cuesta N consultas. El caso fija el
@@ -61,8 +67,10 @@ class TestComputeDepend:
         assert len(edges) == 2
         with django_assert_num_queries(1):
             resolved = IrModuleDependency._compute_depend_batch(edges)
-        assert set(resolved.values()) == {catalogue['base'],
-                                          catalogue['product']}
+        assert set(resolved.values()) == {
+            catalogue['base'],
+            catalogue['product'],
+        }
 
 
 class TestSearchDepend:
@@ -98,7 +106,8 @@ class TestComputeState:
         que es un hecho distinto de "no sé si existe".
         """
         edge = IrModuleDependency.objects.create(
-            module=catalogue['sale'], name='addon_que_no_esta')
+            module=catalogue['sale'], name='addon_que_no_esta'
+        )
         assert edge._compute_state() == 'unknown'
         assert edge._compute_state() != IrModule.STATE_UNINSTALLED
 
@@ -119,7 +128,9 @@ class TestAllDependencies:
         graph = IrModuleDependency.all_dependencies(['sale'])
         assert graph == {'sale': ['product'], 'product': ['base']}
 
-    def test_a_module_without_dependencies_yields_an_empty_graph(self, catalogue):
+    def test_a_module_without_dependencies_yields_an_empty_graph(
+        self, catalogue
+    ):
         assert IrModuleDependency.all_dependencies(['base']) == {}
 
     def test_a_cycle_terminates(self, catalogue):
@@ -129,42 +140,55 @@ class TestAllDependencies:
         Es el control que distingue "resuelve el grafo" de "resuelve el árbol".
         """
         IrModuleDependency.objects.create(
-            module=catalogue['base'], name='sale')
+            module=catalogue['base'], name='sale'
+        )
         graph = IrModuleDependency.all_dependencies(['sale'])
-        assert graph == {'sale': ['product'], 'product': ['base'],
-                         'base': ['sale']}
+        assert graph == {
+            'sale': ['product'],
+            'product': ['base'],
+            'base': ['sale'],
+        }
 
 
 class TestExclusion:
-    """≙ ``ir.module.module.exclusion`` (``odoo19c: ir_module.py:1065-1102``)."""
+    """
+    ≙ ``ir.module.module.exclusion`` (``odoo19c: ir_module.py:1065-1102``).
+    """
 
     def test_the_name_resolves_to_the_excluded_module(self, catalogue):
         excl = IrModuleExclusion.objects.create(
-            module=catalogue['sale'], name='product')
+            module=catalogue['sale'], name='product'
+        )
         assert excl._compute_exclusion() == catalogue['product']
 
     def test_an_absent_name_resolves_to_none_and_the_state_is_unknown(
-            self, catalogue):
+        self, catalogue
+    ):
         excl = IrModuleExclusion.objects.create(
-            module=catalogue['sale'], name='addon_que_no_esta')
+            module=catalogue['sale'], name='addon_que_no_esta'
+        )
         assert excl._compute_exclusion() is None
         assert excl._compute_state() == 'unknown'
 
     def test_the_state_is_that_of_the_excluded_module(self, catalogue):
         excl = IrModuleExclusion.objects.create(
-            module=catalogue['sale'], name='base')
+            module=catalogue['sale'], name='base'
+        )
         assert excl._compute_state() == 'installed'
 
     def test_the_search_finds_the_edges_that_exclude_a_module(self, catalogue):
         IrModuleExclusion.objects.create(
-            module=catalogue['sale'], name='product')
+            module=catalogue['sale'], name='product'
+        )
         found = IrModuleExclusion._search_exclusion([catalogue['product']])
         assert [edge.name for edge in found] == ['product']
 
     def test_the_search_of_a_module_nobody_excludes_yields_nothing(
-            self, catalogue):
+        self, catalogue
+    ):
         IrModuleExclusion.objects.create(
-            module=catalogue['sale'], name='product')
+            module=catalogue['sale'], name='product'
+        )
         assert not IrModuleExclusion._search_exclusion([catalogue['base']])
 
     def test_the_same_pair_cannot_be_declared_twice(self, catalogue):
@@ -172,11 +196,13 @@ class TestExclusion:
         hecho, no una cuenta.
         """
         IrModuleExclusion.objects.create(
-            module=catalogue['sale'], name='product')
+            module=catalogue['sale'], name='product'
+        )
         with pytest.raises(IntegrityError):
             with transaction.atomic():
                 IrModuleExclusion.objects.create(
-                    module=catalogue['sale'], name='product')
+                    module=catalogue['sale'], name='product'
+                )
 
 
 class TestWalkDependencies:
@@ -224,7 +250,8 @@ class TestWalkDependencies:
         no es un hecho del grafo sino un artefacto del recorrido.
         """
         IrModuleDependency.objects.create(
-            module=catalogue['base'], name='sale')
+            module=catalogue['base'], name='sale'
+        )
         reached = catalogue['sale'].upstream_dependencies(exclude_states=())
         assert catalogue['sale'] not in reached
         assert {module.name for module in reached} == {'product', 'base'}
@@ -234,7 +261,8 @@ class TestWalkDependencies:
         no falla. Es el control que separa grafo de árbol.
         """
         IrModuleDependency.objects.create(
-            module=catalogue['base'], name='sale')
+            module=catalogue['base'], name='sale'
+        )
         assert catalogue['product'].upstream_dependencies(exclude_states=())
         assert catalogue['product'].downstream_dependencies(exclude_states=())
 

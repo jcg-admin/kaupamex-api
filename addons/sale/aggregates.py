@@ -15,7 +15,8 @@ addons contribuyentes lo saben (``delivery``/``sale_loyalty``)— así que aquí
 queda el motor genérico parametrizable:
 
 - ``delivery/aggregates.py``     → importe de envío (``Q(is_delivery=True)``).
-- ``sale_loyalty/aggregates.py`` → importe de recompensa (``Q(is_reward=True)``).
+- ``sale_loyalty/aggregates.py`` → importe de recompensa
+  (``Q(is_reward=True)``).
 
 **Paridad exacta con el método Python, no aproximada.**
 ``price_total`` cuantiza **por línea** antes de sumar
@@ -30,6 +31,7 @@ filas de la orden por sus líneas, así que un ``Count('id')`` en el mismo
 ``aggregate()`` contaría líneas en vez de órdenes — el defecto clásico de
 fan-out. La anotación usa ``Subquery`` para que cada orden aporte una fila.
 """
+
 from decimal import Decimal
 
 from django.db.models import DecimalField, F, OuterRef, Subquery, Sum, Value
@@ -45,7 +47,8 @@ MONEY = DecimalField(max_digits=12, decimal_places=2)
 # Total de una línea: price_unit * qty * (1 - discount/100), redondeado a
 # centavos. Espejo SQL de ``SaleOrderLine._compute_amount``.
 LINE_TOTAL = Round(
-    F('price_unit') * F('product_uom_qty')
+    F('price_unit')
+    * F('product_uom_qty')
     * (Value(Decimal('1')) - F('discount') / Value(Decimal('100'))),
     2,
     output_field=MONEY,
@@ -67,5 +70,7 @@ def line_sum_subquery(line_filter=None):
     if line_filter is not None:
         lines = lines.filter(line_filter)
     lines = lines.values('order').annotate(t=Sum(LINE_TOTAL)).values('t')
-    return Coalesce(Subquery(lines, output_field=MONEY),
-                    Value(Decimal('0.00'), output_field=MONEY))
+    return Coalesce(
+        Subquery(lines, output_field=MONEY),
+        Value(Decimal('0.00'), output_field=MONEY),
+    )

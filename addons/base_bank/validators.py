@@ -19,6 +19,7 @@ la CLABE **sí** se valida: su algoritmo es determinista y estándar (mod-10
 ponderado), sin riesgo de falsos rechazos — igual que Odoo valida el mod-97 del
 IBAN.
 """
+
 import re
 
 from django.core.exceptions import ValidationError
@@ -31,7 +32,9 @@ _CLABE_WEIGHTS = (3, 7, 1)
 
 
 def _clabe_check_digit(first17):
-    """Dígito verificador CLABE (mod-10 ponderado) de los 17 primeros dígitos."""
+    """
+    Dígito verificador CLABE (mod-10 ponderado) de los 17 primeros dígitos.
+    """
     total = 0
     for i, ch in enumerate(first17):
         total += (int(ch) * _CLABE_WEIGHTS[i % 3]) % 10
@@ -39,7 +42,9 @@ def _clabe_check_digit(first17):
 
 
 def validate_clabe(value):
-    """Valida una CLABE mexicana (18 dígitos + verificador). Vacío se ignora."""
+    """
+    Valida una CLABE mexicana (18 dígitos + verificador). Vacío se ignora.
+    """
     if not value:
         return
     v = re.sub(r'[\s-]', '', str(value))
@@ -66,7 +71,8 @@ _VALIDATORS = {
 def validate_bank_account(value, country='MX'):
     """Valida ``value`` como cuenta bancaria del ``country`` (default MX).
 
-    Si no hay validador para el país, no restringe (paridad con Odoo: países sin
+    Si no hay validador para el país, no restringe (paridad con Odoo: países
+    sin
     reglas registradas no fallan)."""
     validator = _VALIDATORS.get((country or 'MX').upper())
     if validator is not None:

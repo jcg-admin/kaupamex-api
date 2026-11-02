@@ -1,10 +1,14 @@
 """Contract for the user<->company (L1) link.
 
-``IdentityUser.company`` is a nullable FK to ``base.ResCompany``: L1 users belong
-to one company; L0 operators (superadmin/platform-operator) and legacy/unassigned
-users keep ``company=None`` (cross-company). Slice 2 adds only the schema link —
+``IdentityUser.company`` is a nullable FK to ``base.ResCompany``: L1 users
+belong
+to one company; L0 operators (superadmin/platform-operator) and
+legacy/unassigned
+users keep ``company=None`` (cross-company). Slice 2 adds only the schema link
+—
 the resolver L1 filter that consumes it comes later.
 """
+
 import pytest
 from django.db.models import ProtectedError
 
@@ -16,7 +20,8 @@ pytestmark = pytest.mark.django_db
 
 class TestUserCompanyLink:
     def test_user_defaults_to_no_company(self):
-        # existing behaviour preserved: a user needs no company (L0 / unassigned)
+        # existing behaviour preserved: a user needs no company (L0 /
+        # unassigned)
         u = UserFactory()
         assert u.company is None
 

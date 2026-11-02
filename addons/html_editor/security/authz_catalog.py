@@ -1,4 +1,5 @@
-"""Catálogo L0 que dueña ``html_editor`` — ≙ su ``security/ir.model.access.csv``.
+"""
+Catálogo L0 que dueña ``html_editor`` — ≙ su ``security/ir.model.access.csv``.
 
 Lo recoge ``seed_authz`` vía ``addons.authz.declaration.discover()``.
 
@@ -27,11 +28,15 @@ Las dos rutas públicas de la fuente —``shape`` e ``image_shape``, que declara
 ``auth='public'``— no consumen capacidad: van con ``AllowAny`` explícito y
 documentado en ``controllers/main.py``.
 """
+
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
 MODULES = [
-    ModuleSpec(code='html_editor', name='Editor de contenido enriquecido',
-               category='Platform'),
+    ModuleSpec(
+        code='html_editor',
+        name='Editor de contenido enriquecido',
+        category='Platform',
+    ),
 ]
 
 CAPABILITIES = [

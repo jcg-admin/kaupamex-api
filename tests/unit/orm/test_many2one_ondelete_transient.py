@@ -1,4 +1,5 @@
-r"""La rama ``is_transient()`` del default de ``ondelete`` — el tramo que faltaba.
+r"""
+La rama ``is_transient()`` del default de ``ondelete`` — el tramo que faltaba.
 
 ``:274-282`` de ``odoo19c: odoo/orm/fields_relational.py`` NO tiene dos casos,
 tiene tres, y el tercero se decide por el ``_transient`` de las DOS clases::
@@ -43,6 +44,7 @@ tabla), con su propio porte; y al modelo transitorio cuyo comodelo nunca se
 registra, donde ``lazy_related_operation`` no dispara y el default declarado
 se queda.
 """
+
 from django.db import models as django_models
 
 import fields
@@ -56,6 +58,7 @@ class TestTheThirdCaseOfTheSource:
 
     def test_required_towards_a_persistent_model_cascades(self):
         """EL DISCRIMINANTE — sin la rama esto daria RESTRICT."""
+
         class WizardPointsAtPartnerProbe(TransientModel):
             partner_id = fields.Many2one('base.ResPartner', null=False)
 
@@ -94,6 +97,7 @@ class TestTheBranchDoesNotSwallowTheOtherTwo:
 
     def test_a_wizard_towards_another_wizard_restricts(self):
         """``comodel.is_transient()`` verdadero cae al ``else`` de ``:282``."""
+
         class WizardTargetProbe(TransientModel):
             _name = 'test.transient.target'
 
@@ -143,6 +147,8 @@ class TestTheReaderAnswersForAnyModelClass:
 
         assert is_transient(AnswersFalseProbe) is False
 
-    def test_the_classmethod_of_the_source_is_ported_where_it_declares_it(self):
+    def test_the_classmethod_of_the_source_is_ported_where_it_declares_it(
+        self,
+    ):
         """``BaseModel.is_transient`` existe: el simbolo NO se omite."""
         assert BaseModel.is_transient() is False

@@ -1,6 +1,8 @@
-"""El AST de dominios — ``orm/domains.py`` (≙ ``odoo19c: odoo/orm/domains.py``).
+"""
+El AST de dominios — ``orm/domains.py`` (≙ ``odoo19c: odoo/orm/domains.py``).
 
-Cubre los cuatro defectos que :ref:`h-api-613` y :ref:`h-api-614` registraron, y
+Cubre los cuatro defectos que :ref:`h-api-613` y :ref:`h-api-614` registraron,
+y
 las propiedades del AST que los hacen imposibles de reintroducir: el álgebra
 booleana, el parseo de la notación polaca y el empuje de la negación a las
 hojas.
@@ -9,6 +11,7 @@ El eje del archivo es la **semántica ante NULL**. La forma de la fuente incluye
 la fila sin valor al negar; la de Django la descarta. Los tests de SQL emitido
 lo comparan contra PostgreSQL real, que es donde la diferencia se observa.
 """
+
 import pytest
 from django.db import connection
 from django.db.models import Q
@@ -39,6 +42,7 @@ def sql_of(queryset):
 
 # === El AST: construcción y álgebra ========================================
 
+
 class TestDomainConstruction:
     """``Domain()`` como fábrica — ≙ ``domains.py:206``."""
 
@@ -60,7 +64,11 @@ class TestDomainConstruction:
     def test_single_condition_builds_a_condition_node(self):
         domain = Domain([('name', '=', 'x')])
         assert isinstance(domain, DomainCondition)
-        assert (domain.field_expr, domain.operator, domain.value) == ('name', '=', 'x')
+        assert (domain.field_expr, domain.operator, domain.value) == (
+            'name',
+            '=',
+            'x',
+        )
 
     def test_implicit_and_between_consecutive_conditions(self):
         domain = Domain([('a', '=', 1), ('b', '=', 2)])
@@ -119,10 +127,12 @@ class TestDomainAlgebra:
         assert ~(~condition) == condition
 
     def test_nested_ands_are_flattened(self):
-        domain = Domain.AND([
-            Domain.AND([Domain([('a', '=', 1)]), Domain([('b', '=', 2)])]),
-            Domain([('c', '=', 3)]),
-        ])
+        domain = Domain.AND(
+            [
+                Domain.AND([Domain([('a', '=', 1)]), Domain([('b', '=', 2)])]),
+                Domain([('c', '=', 3)]),
+            ]
+        )
         assert isinstance(domain, DomainAnd)
         assert len(domain.children) == 3
 
@@ -163,7 +173,9 @@ class TestNegationReachesTheLeaves:
         assert all(child.operator == 'not in' for child in domain.children)
 
     def test_a_negated_inequality_adds_its_null_branch(self):
-        """Sin valor *falsy*, ``NOT (a < v)`` debe incluir la fila sin valor."""
+        """
+        Sin valor *falsy*, ``NOT (a < v)`` debe incluir la fila sin valor.
+        """
         domain = Domain(['!', ('a', '<', 5)]).optimize()
         assert isinstance(domain, DomainOr)
         operators = {child.operator for child in domain.children}
@@ -180,6 +192,7 @@ class TestNegationReachesTheLeaves:
 
 
 # === La compilación a Q =====================================================
+
 
 class TestCompilationToQ:
     """``_to_q`` — la forma del filtro, sin tocar la base."""
@@ -209,7 +222,9 @@ class TestCompilationToQ:
             assert to_q([('name', operator, 'x%')]) is not None
 
     def test_a_raw_pattern_keeps_its_wildcards(self):
-        """``=like`` NO envuelve: el patrón lo pone quien escribe el dominio."""
+        """
+        ``=like`` NO envuelve: el patrón lo pone quien escribe el dominio.
+        """
         assert to_q([('name', '=like', 'x%')]) == Q(name__sql_like='x%')
 
     def test_like_wraps_the_value_in_wildcards(self):
@@ -234,7 +249,8 @@ class TestTheNullRule:
     La premisa de la iniciativa decía que Django pierde la fila sin valor al
     negar. **Es falso:** su compilador añade ``AND col IS NOT NULL`` dentro de
     la negación, con lo que la fila entra, igual que en la fuente. Lo que sí
-    diverge es el caso contrario: donde la fuente **excluye** la fila sin valor,
+    diverge es el caso contrario: donde la fuente **excluye** la fila sin
+    valor,
     Django la incluiría.
     """
 
@@ -251,7 +267,8 @@ class TestTheNullRule:
     def test_in_with_false_adds_the_null_branch(self):
         """``in {x, False}`` es «vale x o no tiene valor» — ahí sí se añade."""
         assert to_q([('name', 'in', ['x', False])]) == (
-            Q(name__in=['x']) | Q(name__isnull=True))
+            Q(name__in=['x']) | Q(name__isnull=True)
+        )
 
     def test_not_in_with_false_excludes_the_unset_rows(self):
         """La divergencia real: la fuente excluye la fila sin valor.
@@ -260,7 +277,8 @@ class TestTheNullRule:
         Django la incluiría, así que se fuerza con ``isnull=False``.
         """
         assert to_q([('name', 'not in', ['x', False])]) == (
-            ~Q(name__in=['x']) & Q(name__isnull=False))
+            ~Q(name__in=['x']) & Q(name__isnull=False)
+        )
 
     def test_not_in_only_false_asks_for_a_set_value(self):
         assert to_q([('name', 'not in', [False])]) == Q(name__isnull=False)
@@ -282,11 +300,14 @@ class TestTheNullRule:
         """El mismo mecanismo sobre un entero, y con columna nulable.
 
         ``ResGroups.sequence`` es ``IntegerField(null=True)``: su *falsy value*
-        es ``0`` y además hace falta el ``isnull=False`` que excluye la fila sin
+        es ``0`` y además hace falta el ``isnull=False`` que excluye la fila
+        sin
         valor.
         """
         compiled = to_q([('sequence', 'not in', [5, False])], model=ResGroups)
-        assert compiled == (~Q(sequence__in=[5, 0]) & Q(sequence__isnull=False))
+        assert compiled == (
+            ~Q(sequence__in=[5, 0]) & Q(sequence__isnull=False)
+        )
 
 
 @pytest.mark.django_db
@@ -301,12 +322,18 @@ class TestEmittedSql:
 
     def test_django_emits_its_own_null_guard(self):
         """La medición que corrigió la premisa (:ref:`h-api-614`)."""
-        sql = sql_of(ResGroups.objects.filter(to_q([('user_type', 'not like', 'x')])))
-        assert 'IS NOT NULL' in sql, 'Django añade la guarda dentro de la negación'
+        sql = sql_of(
+            ResGroups.objects.filter(to_q([('user_type', 'not like', 'x')]))
+        )
+        assert (
+            'IS NOT NULL' in sql
+        ), 'Django añade la guarda dentro de la negación'
         assert 'NOT (' in sql
 
     def test_a_non_nullable_column_gets_no_guard(self):
-        sql = sql_of(ResGroups.objects.filter(to_q([('name', 'not like', 'x')])))
+        sql = sql_of(
+            ResGroups.objects.filter(to_q([('name', 'not like', 'x')]))
+        )
         assert 'IS NOT NULL' not in sql
 
     def test_the_raw_like_reaches_postgresql_as_like(self):
@@ -338,13 +365,17 @@ class TestEmittedSql:
         ``ResGroups.user_type`` es la columna nulable que el árbol ofrece
         (``null=True``); es lo que hace observable la diferencia.
         """
-        with_value = ResGroups.objects.create(name='con-valor', user_type='portal')
-        without_value = ResGroups.objects.create(name='sin-valor', user_type=None)
+        with_value = ResGroups.objects.create(
+            name='con-valor', user_type='portal'
+        )
+        without_value = ResGroups.objects.create(
+            name='sin-valor', user_type=None
+        )
 
         found = set(
-            ResGroups.objects
-            .filter(to_q([('user_type', 'not like', 'nunca-coincide')]))
-            .values_list('pk', flat=True)
+            ResGroups.objects.filter(
+                to_q([('user_type', 'not like', 'nunca-coincide')])
+            ).values_list('pk', flat=True)
         )
         assert with_value.pk in found
         assert without_value.pk in found, 'la fila sin valor debe entrar'
@@ -356,29 +387,38 @@ class TestEmittedSql:
         Django incluiría la fila sin valor y ``not in {x, False}`` dejaría de
         significar «tiene valor y no es x».
         """
-        with_value = ResGroups.objects.create(name='con-valor', user_type='portal')
-        without_value = ResGroups.objects.create(name='sin-valor', user_type=None)
+        with_value = ResGroups.objects.create(
+            name='con-valor', user_type='portal'
+        )
+        without_value = ResGroups.objects.create(
+            name='sin-valor', user_type=None
+        )
 
         found = set(
-            ResGroups.objects
-            .filter(to_q([('user_type', 'not in', ['portal', False])]))
-            .values_list('pk', flat=True)
+            ResGroups.objects.filter(
+                to_q([('user_type', 'not in', ['portal', False])])
+            ).values_list('pk', flat=True)
         )
         assert with_value.pk not in found
-        assert without_value.pk not in found, 'la fila sin valor NO debe entrar'
+        assert (
+            without_value.pk not in found
+        ), 'la fila sin valor NO debe entrar'
 
         naive = set(
-            ResGroups.objects
-            .filter(~Q(user_type__in=['portal']))
-            .values_list('pk', flat=True)
+            ResGroups.objects.filter(~Q(user_type__in=['portal'])).values_list(
+                'pk', flat=True
+            )
         )
         assert without_value.pk in naive, 'el ~Q pelado sí la incluye'
 
 
 # === La fachada sobre Q =====================================================
 
+
 class TestQFacade:
-    """``AND``/``OR``/``NOT`` sobre ``Q`` — el contrato que el árbol consume."""
+    """
+    ``AND``/``OR``/``NOT`` sobre ``Q`` — el contrato que el árbol consume.
+    """
 
     def test_and_of_nothing_is_the_true_domain(self):
         assert AND([]) == TRUE_DOMAIN

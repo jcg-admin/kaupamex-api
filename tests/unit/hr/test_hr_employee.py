@@ -7,6 +7,7 @@ y el docstring de ``hr_employee.py`` — sección "Delegación a hr.version").
 La cobertura del resto del modelo (identidad, avatar, bancario, etc.) es
 deuda pre-existente de H-API-683, fuera de este alcance.
 """
+
 from datetime import date
 from decimal import Decimal
 
@@ -57,12 +58,15 @@ class TestHrEmployeeVersionDelegationWithoutAVersion:
 
 class TestHrEmployeeVersionDelegationWithAVersion:
     """Con ``version`` asignada, cada propiedad lee a través de ella —
-    ≙ los campos ``related='version_id.*', inherited=True`` de la referencia."""
+    ≙ los campos ``related='version_id.*', inherited=True`` de la referencia.
+    """
 
     def _employee_with_version(self, **version_kwargs):
         employee = HrEmployee.objects.create(name='Con versión')
         version = HrVersion.objects.create(
-            employee=employee, date_version=date(2026, 1, 1), **version_kwargs,
+            employee=employee,
+            date_version=date(2026, 1, 1),
+            **version_kwargs,
         )
         employee.version = version
         employee.save()
@@ -79,7 +83,9 @@ class TestHrEmployeeVersionDelegationWithAVersion:
 
     def test_versions_count_reflects_the_employee_history(self):
         employee, _version = self._employee_with_version()
-        HrVersion.objects.create(employee=employee, date_version=date(2026, 6, 1))
+        HrVersion.objects.create(
+            employee=employee, date_version=date(2026, 6, 1)
+        )
         assert employee.versions_count == 2
 
     def test_contract_date_start_reads_through_version(self):
@@ -89,7 +95,9 @@ class TestHrEmployeeVersionDelegationWithAVersion:
         assert employee.contract_date_start == date(2026, 1, 1)
 
     def test_contract_wage_reads_through_version(self):
-        employee, _version = self._employee_with_version(wage=Decimal('22000.00'))
+        employee, _version = self._employee_with_version(
+            wage=Decimal('22000.00')
+        )
         assert employee.contract_wage == Decimal('22000.00')
 
     def test_department_reads_through_version(self):
@@ -104,7 +112,8 @@ class TestHrEmployeeVersionDelegationWithAVersion:
     def test_is_current_reads_through_version(self):
         employee = HrEmployee.objects.create(name='Con versión vigente')
         version = HrVersion.objects.create(
-            employee=employee, date_version=date.today(),
+            employee=employee,
+            date_version=date.today(),
         )
         employee.version = version
         employee.save()

@@ -1,4 +1,6 @@
-"""Utilidades del addon ``website`` — espejo de ``odoo19c: addons/website/tools.py``.
+"""
+Utilidades del addon ``website`` — espejo de ``odoo19c:
+addons/website/tools.py``.
 
 La raíz ``addons/website/`` está espejada, así que este archivo va aquí y no en
 ``src/tools/``: la referencia lo declara **dentro del addon**, no en el núcleo
@@ -11,10 +13,12 @@ porta **5**. El sexto tiene su bloqueo medido y su dueño:
 
 - ``create_image_attachment`` — llama ``Attachments.get_base_url()``, y ese
   método **no existe en el árbol**: medido, 0 declaraciones de ``get_base_url``
-  en ``src/`` y ``addons/``. Portarlo hoy produciría un ``AttributeError`` en su
+  en ``src/`` y ``addons/``. Portarlo hoy produciría un ``AttributeError`` en
+  su
   primera llamada. Sucesor: tarea **#541**, que lo cierra junto con el porte de
   ``get_base_url`` en ``IrAttachment``.
 """
+
 import re
 from urllib.parse import urlsplit
 
@@ -111,7 +115,9 @@ def text_from_html(html_fragment, collapse_whitespace=False):
     :returns: el texto extraído.
     """
     # lxml exige un único elemento raíz.
-    tree = etree.fromstring('<p>%s</p>' % html_fragment, etree.XMLParser(recover=True))
+    tree = etree.fromstring(
+        '<p>%s</p>' % html_fragment, etree.XMLParser(recover=True)
+    )
 
     # Retirar los nodos técnicos que no deben convertirse en texto.
     xpath_filters = [
@@ -191,7 +197,8 @@ def add_form_signature(html_fragment, env_sudo):
             continue
 
         existing_hash_node = form.find(
-            './/input[@type="hidden"][@name="website_form_signature"]')
+            './/input[@type="hidden"][@name="website_form_signature"]'
+        )
         if existing_hash_node is not None:
             existing_hash_node.getparent().remove(existing_hash_node)
         input_nodes = form.xpath('.//input[contains(@name, "email_")]')
@@ -202,10 +209,11 @@ def add_form_signature(html_fragment, env_sudo):
             continue
 
         email_to_value = form_values['email_to'].attrib.get('value')
-        if (not email_to_value
-                or (email_to_value == 'info@yourcompany.example.com'
-                    and html_fragment.xpath('//span[@data-for="contactus_form"]')
-                    and html_fragment.xpath('//form[@id="contactus_form"]'))):
+        if not email_to_value or (
+            email_to_value == 'info@yourcompany.example.com'
+            and html_fragment.xpath('//span[@data-for="contactus_form"]')
+            and html_fragment.xpath('//form[@id="contactus_form"]')
+        ):
             # El correo irá al valor del ``data-for``, que es el de la empresa.
             email_to_value = env_sudo.company.email or ''
 
@@ -214,10 +222,15 @@ def add_form_signature(html_fragment, env_sudo):
         hash_value = hmac(env_sudo, 'website_form_signature', value)
         if has_cc:
             hash_value += ':email_cc'
-        hash_node = etree.Element('input', attrib={
-            'type': "hidden",
-            'value': hash_value,
-            'class': "form-control s_website_form_input s_website_form_custom",
-            'name': "website_form_signature",
-        })
+        hash_node = etree.Element(
+            'input',
+            attrib={
+                'type': "hidden",
+                'value': hash_value,
+                'class': (
+                    "form-control s_website_form_input s_website_form_custom"
+                ),
+                'name': "website_form_signature",
+            },
+        )
         form_values['email_to'].addnext(hash_node)

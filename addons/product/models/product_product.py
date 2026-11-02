@@ -25,7 +25,8 @@ razón de ser, sin ningún error: las escrituras fallarían por clave duplicada
 mucho después, en otro sitio.
 
 Así que aquí es una **FK real** más **delegación por propiedad** para los
-campos de la ficha que la referencia expone en la variante (``name``, ``categ``,
+campos de la ficha que la referencia expone en la variante (``name``,
+``categ``,
 ``uom``, ``list_price``, ``type``…). Es más verboso y es lo que hace la fuente.
 
 Los tres campos que **la variante sobreescribe**
@@ -65,7 +66,8 @@ Qué NO se porta, con su medición
   (``depends_context=('uom',)``) **no** se porta: este archivo no conoce el
   contexto de la petición, y la conversión ya la sabe hacer ``Uom``.
 - **``code`` / ``partner_ref``** — **cerrados**, con un cambio de forma. La
-  referencia los declara ``compute`` con ``@api.depends_context('partner_id')``:
+  referencia los declara ``compute`` con
+  ``@api.depends_context('partner_id')``:
   el mismo producto muestra un código distinto según **quién** pregunta, y ese
   "quién" viaja en el contexto de la petición. Aquí no hay ese contexto, así
   que la clave del contexto pasa a ser un **argumento**: ``code_for(partner)``
@@ -93,6 +95,7 @@ Qué NO se porta, con su medición
   materializarlo. Se porta como la propiedad ``product_document_ids`` de abajo.
   Ver H-API-193.
 """
+
 import api
 import fields
 import models
@@ -115,49 +118,79 @@ class ProductProduct(TimeStampedModel):
     """``product.product`` — una combinación concreta de la ficha."""
 
     product_tmpl = fields.Many2one(
-        ProductTemplate, on_delete=models.CASCADE, db_index=True,
-        related_name='product_variant_ids', verbose_name='Ficha de producto',
-        help_text='Odoo product_tmpl_id. FK real, NO herencia multi-tabla: '
-                  'muchas variantes por ficha. Ver el docstring del módulo.',
+        ProductTemplate,
+        on_delete=models.CASCADE,
+        db_index=True,
+        related_name='product_variant_ids',
+        verbose_name='Ficha de producto',
+        help_text=(
+            'Odoo product_tmpl_id. FK real, NO herencia multi-tabla: '
+            'muchas variantes por ficha. Ver el docstring del módulo.'
+        ),
     )
     default_code = fields.Char(
-        max_length=64, blank=True, default='', db_index=True,
-        verbose_name='Referencia interna')
+        max_length=64,
+        blank=True,
+        default='',
+        db_index=True,
+        verbose_name='Referencia interna',
+    )
     barcode = fields.Char(
-        max_length=64, blank=True, default='', db_index=True,
+        max_length=64,
+        blank=True,
+        default='',
+        db_index=True,
         verbose_name='Código de barras',
         help_text='Número de artículo internacional. Único por compañía.',
     )
     active = fields.Boolean(
-        default=True, verbose_name='Activo',
-        help_text='Desmarcar oculta la variante sin borrarla.')
+        default=True,
+        verbose_name='Activo',
+        help_text='Desmarcar oculta la variante sin borrarla.',
+    )
     combination_indices = fields.Char(
-        max_length=255, blank=True, default='', db_index=True,
+        max_length=255,
+        blank=True,
+        default='',
+        db_index=True,
         verbose_name='Índices de la combinación',
-        help_text='Ids de los valores de atributo, ORDENADOS y separados por '
-                  'coma. Almacenado para poder buscar una combinación en una '
-                  'consulta.',
+        help_text=(
+            'Ids de los valores de atributo, ORDENADOS y separados por '
+            'coma. Almacenado para poder buscar una combinación en una '
+            'consulta.'
+        ),
     )
     product_template_attribute_values = fields.Many2many(
-        ProductTemplateAttributeValue, blank=True,
+        ProductTemplateAttributeValue,
+        blank=True,
         db_table='product_variant_combination',
         related_name='product_variant_ids',
         verbose_name='Valores de atributo',
     )
     # Los tres que la variante SOBREESCRIBE — el valor de la ficha no aplica.
     standard_price = fields.Monetary(
-        max_digits=16, decimal_places=2, default=0, verbose_name='Coste',
-        help_text='Coste POR VARIANTE: dos tallas pueden costar distinto. '
-                  'Sobreescribe el de la ficha.',
+        max_digits=16,
+        decimal_places=2,
+        default=0,
+        verbose_name='Coste',
+        help_text=(
+            'Coste POR VARIANTE: dos tallas pueden costar distinto. '
+            'Sobreescribe el de la ficha.'
+        ),
     )
     volume = fields.Float(
-        default=0, verbose_name='Volumen',
-        help_text='Sobreescribe el de la ficha: el envío se calcula sobre lo '
-                  'que se mueve.',
+        default=0,
+        verbose_name='Volumen',
+        help_text=(
+            'Sobreescribe el de la ficha: el envío se calcula sobre lo '
+            'que se mueve.'
+        ),
     )
     weight = fields.Float(
-        default=0, verbose_name='Peso',
-        help_text='Sobreescribe el de la ficha, por la misma razón.')
+        default=0,
+        verbose_name='Peso',
+        help_text='Sobreescribe el de la ficha, por la misma razón.',
+    )
 
     class Meta:
         db_table = 'product_product'
@@ -176,8 +209,11 @@ class ProductProduct(TimeStampedModel):
         ]
 
     def __str__(self):
-        return f'[{self.default_code}] {self.display_name}' \
-            if self.default_code else self.display_name
+        return (
+            f'[{self.default_code}] {self.display_name}'
+            if self.default_code
+            else self.display_name
+        )
 
     # === DELEGACIÓN A LA FICHA ===========================================
     # La ``_inherits`` de la referencia hace esto transparente; aquí es
@@ -275,18 +311,19 @@ class ProductProduct(TimeStampedModel):
         distintas y la comprobación de "¿existe ya esta variante?" crearía
         duplicados.
         """
-        ids = sorted(
-            getattr(value, 'pk', value) for value in attribute_values)
+        ids = sorted(getattr(value, 'pk', value) for value in attribute_values)
         return COMBINATION_SEPARATOR.join(str(pk) for pk in ids)
 
     def refresh_combination_indices(self):
         """``_compute_combination_indices`` — recalcula desde los valores."""
         self.combination_indices = self.build_combination_indices(
-            self.product_template_attribute_values.all())
+            self.product_template_attribute_values.all()
+        )
         return self.combination_indices
 
     @api.depends(
-        'product_tmpl.name', 'product_template_attribute_values',
+        'product_tmpl.name',
+        'product_template_attribute_values',
         'product_template_attribute_values.attribute_value.name',
         'product_template_attribute_values.price_extra',
     )
@@ -326,7 +363,8 @@ class ProductProduct(TimeStampedModel):
 
     @property
     def lst_price(self):
-        """``_compute_product_lst_price`` — precio de catálogo **más** el extra.
+        """
+        ``_compute_product_lst_price`` — precio de catálogo **más** el extra.
 
         La conversión de unidad que la referencia hace por contexto no se
         porta; ver el docstring del módulo.
@@ -358,10 +396,10 @@ class ProductProduct(TimeStampedModel):
             if seller.partner_id != partner_id:
                 continue
             if seller.product_id and seller.product_id != self.pk:
-                continue        # tarifa específica de otra variante
+                continue  # tarifa específica de otra variante
             code = seller.product_code or self.default_code
             if seller.product_id == self.pk:
-                break           # específica de ésta: manda y termina
+                break  # específica de ésta: manda y termina
         return code
 
     def partner_ref_for(self, partner):
@@ -420,8 +458,15 @@ class ProductProduct(TimeStampedModel):
             key=lambda s: (s.sequence, -s.min_qty, s.price, s.pk),
         )
 
-    def _get_filtered_sellers(self, partner_id=False, quantity=0.0, date=None,
-                              uom_id=False, params=False, company=None):
+    def _get_filtered_sellers(
+        self,
+        partner_id=False,
+        quantity=0.0,
+        date=None,
+        uom_id=False,
+        params=False,
+        company=None,
+    ):
         """≙ ``_get_filtered_sellers`` (``odoo19c: :1020-1045``).
 
         Las seis condiciones de la fuente, en su orden y con su semántica:
@@ -459,30 +504,47 @@ class ProductProduct(TimeStampedModel):
             quantity_uom_seller = quantity
             if quantity_uom_seller and uom_id and uom_id != seller.product_uom:
                 quantity_uom_seller = uom_id.compute_quantity(
-                    quantity_uom_seller, seller.product_uom)
+                    quantity_uom_seller, seller.product_uom
+                )
 
             if seller.date_start and seller.date_start > date:
                 continue
             if seller.date_end and seller.date_end < date:
                 continue
-            if params and params.get('force_uom') \
-                    and seller.product_uom != uom_id \
-                    and seller.product_uom != self.uom:
+            if (
+                params
+                and params.get('force_uom')
+                and seller.product_uom != uom_id
+                and seller.product_uom != self.uom
+            ):
                 continue
             if partner_pk and seller.partner_id not in (partner_pk, parent_pk):
                 continue
-            if quantity is not None and float_compare(
-                    quantity_uom_seller, seller.min_qty,
-                    precision_digits=precision) == -1:
+            if (
+                quantity is not None
+                and float_compare(
+                    quantity_uom_seller,
+                    seller.min_qty,
+                    precision_digits=precision,
+                )
+                == -1
+            ):
                 continue
             if seller.product_id and seller.product_id != self.pk:
                 continue
             sellers.append(seller)
         return sellers
 
-    def _select_seller(self, partner_id=False, quantity=0.0, date=None,
-                       uom_id=False, ordered_by='price_discounted',
-                       params=False, company=None):
+    def _select_seller(
+        self,
+        partner_id=False,
+        quantity=0.0,
+        date=None,
+        uom_id=False,
+        ordered_by='price_discounted',
+        params=False,
+        company=None,
+    ):
         """≙ ``_select_seller`` (``odoo19c: :1047-1071``).
 
         **La** tarifa que aplica, o nada. Dos pasos que la fuente separa a
@@ -513,7 +575,10 @@ class ProductProduct(TimeStampedModel):
             vals = {}
             if record.currency is not None and owner_currency is not None:
                 vals['price_discounted'] = record.currency._convert(
-                    record.price_discounted, owner_currency, owner, moment,
+                    record.price_discounted,
+                    owner_currency,
+                    owner,
+                    moment,
                     round=False,
                 )
             else:
@@ -521,8 +586,13 @@ class ProductProduct(TimeStampedModel):
             return [vals.get(key, getattr(record, key)) for key in sort_key]
 
         sellers = self._get_filtered_sellers(
-            partner_id=partner_id, quantity=quantity, date=date,
-            uom_id=uom_id, params=params, company=company)
+            partner_id=partner_id,
+            quantity=quantity,
+            date=date,
+            uom_id=uom_id,
+            params=params,
+            company=company,
+        )
         res = []
         for seller in sellers:
             if not res or res[0].partner_id == seller.partner_id:

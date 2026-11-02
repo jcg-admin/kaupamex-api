@@ -9,6 +9,7 @@ eso — ``metrica-decide-la-conclusion.md``, sub-patrón D. Un test que siga ver
 con la guarda retirada mide otra cosa; los de aquí se miden con
 ``scripts/neutralize_and_measure.sh``.
 """
+
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
@@ -34,8 +35,15 @@ class TestTheFacadeExposesWhatTheSourceExposes:
     """Los siete símbolos que ``__init__`` reexporta, y el techo de espera."""
 
     def test_the_package_reexports_the_seven_names_of_the_source(self):
-        for name in ('Client', 'Plugin', 'Settings', 'Transport',
-                     'exceptions', 'ns', 'wsdl'):
+        for name in (
+            'Client',
+            'Plugin',
+            'Settings',
+            'Transport',
+            'exceptions',
+            'ns',
+            'wsdl',
+        ):
             assert hasattr(zeep, name), name
 
     def test_the_timeout_is_thirty_seconds_like_the_source(self):
@@ -45,10 +53,21 @@ class TestTheFacadeExposesWhatTheSourceExposes:
 class TestTheSerializationBoundaryRejectsWhatItCannotName:
     """``__serialize_object`` deja pasar los tipos declarados y nada más."""
 
-    @pytest.mark.parametrize('value', [
-        None, True, 3, 3.5, 'texto', b'bytes', Decimal('1.5'),
-        date(2026, 1, 1), datetime(2026, 1, 1), timedelta(seconds=1),
-    ])
+    @pytest.mark.parametrize(
+        'value',
+        [
+            None,
+            True,
+            3,
+            3.5,
+            'texto',
+            b'bytes',
+            Decimal('1.5'),
+            date(2026, 1, 1),
+            datetime(2026, 1, 1),
+            timedelta(seconds=1),
+        ],
+    )
     def test_a_declared_type_crosses_untouched(self, value):
         assert serialize(value) == value
 
@@ -59,6 +78,7 @@ class TestTheSerializationBoundaryRejectsWhatItCannotName:
         dejara de levantar, un grafo remoto entraría al proceso y este caso
         sería el único en rojo.
         """
+
         class Remote:
             pass
 
@@ -87,12 +107,17 @@ class TestTheSerializationBoundaryRejectsWhatItCannotName:
 
 
 class TestTheProxyPassesForACompoundValue:
-    """``SerialProxy`` miente su ``__class__`` a propósito, y es su razón de ser."""
+    """
+    ``SerialProxy`` miente su ``__class__`` a propósito, y es su razón de ser.
+    """
 
     def test_it_reports_the_class_zeep_expects(self):
         # Sin esto, ``zeep.helpers.serialize_object`` no lo reconoce al
         # enviarlo dentro de la carga útil de una petición.
-        assert SerialProxy(a=1).__class__ is zeep_lib.xsd.valueobjects.CompoundValue
+        assert (
+            SerialProxy(a=1).__class__
+            is zeep_lib.xsd.valueobjects.CompoundValue
+        )
 
     def test_it_refuses_a_key_with_a_leading_underscore(self):
         with pytest.raises(AssertionError):
@@ -113,7 +138,7 @@ class TestTheProxyPassesForACompoundValue:
 
     def test_setitem_is_refused_while_setattr_is_allowed(self):
         proxy = SerialProxy(a=1)
-        proxy.a = 2                       # permitido: la fuente lo permite
+        proxy.a = 2  # permitido: la fuente lo permite
         assert proxy['a'] == 2
         with pytest.raises(NotImplementedError):
             proxy['a'] = 3
@@ -128,7 +153,9 @@ class TestTheProxyPassesForACompoundValue:
 
 
 class TestTheNamespaceIsReadOnly:
-    """``ReadOnlyMethodNamespace`` es el que devuelven ``service`` y ``bind``."""
+    """
+    ``ReadOnlyMethodNamespace`` es el que devuelven ``service`` y ``bind``.
+    """
 
     def test_setattr_and_delattr_are_refused(self):
         namespace = ReadOnlyMethodNamespace(operacion=lambda: None)
@@ -145,12 +172,16 @@ class TestTheNamespaceIsReadOnly:
 
     def test_binding_options_is_the_only_underscore_key_admitted(self):
         # ``bind`` la añade; es la excepción que la fuente declara.
-        namespace = ReadOnlyMethodNamespace(op=lambda: None, _binding_options={'address': 'x'})
+        namespace = ReadOnlyMethodNamespace(
+            op=lambda: None, _binding_options={'address': 'x'}
+        )
         assert namespace['_binding_options'] == {'address': 'x'}
 
 
 class TestTheTimeoutsAreSetHereAndNotInheritedFromTheRemote:
-    """``Client.__init__`` fija los dos techos y la sesión antes de construir."""
+    """
+    ``Client.__init__`` fija los dos techos y la sesión antes de construir.
+    """
 
     @pytest.fixture
     def zeep_client_spy(self, monkeypatch):
@@ -165,7 +196,9 @@ class TestTheTimeoutsAreSetHereAndNotInheritedFromTheRemote:
         monkeypatch.setattr(zeep_lib, 'Client', fake)
         return captured
 
-    def test_the_ceiling_only_floors_the_operation_timeout(self, zeep_client_spy):
+    def test_the_ceiling_only_floors_the_operation_timeout(
+        self, zeep_client_spy
+    ):
         """``TIMEOUT`` es piso de la operación, no de la carga — medido.
 
         La cadena ``kwargs or transport.<x> or TIMEOUT`` de la fuente sólo

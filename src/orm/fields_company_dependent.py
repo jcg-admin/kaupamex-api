@@ -132,6 +132,7 @@ mecanismo legítimamente construido (``porte-completo-no-parcial.md``: *si el
 stack no trae el mecanismo, se construye*), en un archivo que la raíz
 espejada no tiene. Se declara aquí por lo mismo que aquél lo declara.
 """
+
 from django.apps import apps
 from django.db import models
 from django.db.models.query_utils import DeferredAttribute
@@ -144,22 +145,35 @@ from orm.fields_nonstored import (
 )
 from tools.sql import SQL
 
-__all__ = ['COMPANY_DEPENDENT_FIELDS', 'CompanyDependent',
-           'make_dispatcher']
+__all__ = ['COMPANY_DEPENDENT_FIELDS', 'CompanyDependent', 'make_dispatcher']
 
 #: ≙ ``COMPANY_DEPENDENT_FIELDS`` (``odoo19c: odoo/orm/fields.py:42-44``). Los
 #: diez tipos que la fuente admite; declararlo en otro tipo es un aviso allá.
 COMPANY_DEPENDENT_FIELDS = (
-    'char', 'float', 'boolean', 'integer', 'text', 'many2one', 'date',
-    'datetime', 'selection', 'html',
+    'char',
+    'float',
+    'boolean',
+    'integer',
+    'text',
+    'many2one',
+    'date',
+    'datetime',
+    'selection',
+    'html',
 )
 
 #: Tipo de columna de PostgreSQL por tipo de la fuente — es el ``CAST`` que
 #: ``to_sql`` necesita para devolver el ``jsonb`` como el escalar que era.
 _SQL_CAST = {
-    'char': 'varchar', 'text': 'text', 'html': 'text',
-    'selection': 'varchar', 'integer': 'integer', 'float': 'double precision',
-    'boolean': 'boolean', 'date': 'date', 'datetime': 'timestamp',
+    'char': 'varchar',
+    'text': 'text',
+    'html': 'text',
+    'selection': 'varchar',
+    'integer': 'integer',
+    'float': 'double precision',
+    'boolean': 'boolean',
+    'date': 'date',
+    'datetime': 'timestamp',
     'many2one': 'integer',
 }
 
@@ -190,10 +204,13 @@ class _CompanyDependentAttribute(DeferredAttribute):
         if company_id is None:
             raise ValueError(
                 f'No hay empresa activa: {self.field.name!r} es dependiente '
-                f'de empresa y no se puede escribir sin saber a cuál.')
+                'de empresa y no se puede escribir sin saber a cuál.'
+            )
         stored = instance.__dict__.get(self.field.attname) or {}
         instance.__dict__[self.field.attname] = {
-            **stored, str(company_id): value}
+            **stored,
+            str(company_id): value,
+        }
 
 
 class CompanyDependent(models.JSONField):
@@ -219,7 +236,8 @@ class CompanyDependent(models.JSONField):
     RAW_ATTNAME_SUFFIX = '_company_values'
 
     def get_attname(self):
-        """El atributo interno guarda el MAPA; el público, el valor por empresa.
+        """
+        El atributo interno guarda el MAPA; el público, el valor por empresa.
 
         Django reserva ``attname`` para el valor **tal como viaja a la
         columna**, y ``name`` para el atributo público. Un campo normal los
@@ -268,7 +286,8 @@ class CompanyDependent(models.JSONField):
         if base_type not in COMPANY_DEPENDENT_FIELDS:
             raise ValueError(
                 f'company_dependent field of type {base_type!r} is not one of '
-                f'the allowed types {COMPANY_DEPENDENT_FIELDS}')
+                f'the allowed types {COMPANY_DEPENDENT_FIELDS}'
+            )
         # ≙ los dos avisos de la fuente (``:466-470``). Aquí son errores, no
         # avisos: un campo requerido dependiente de empresa no tiene sentido
         # —la columna guarda un mapa, y estar "no vacío" no dice nada de la
@@ -292,13 +311,19 @@ class CompanyDependent(models.JSONField):
         kwargs.setdefault('blank', True)
         kwargs.setdefault('default', dict)
         # Los argumentos del campo base que no aplican a una columna jsonb.
-        for scalar_only in ('max_length', 'choices', 'max_digits',
-                            'decimal_places'):
+        for scalar_only in (
+            'max_length',
+            'choices',
+            'max_digits',
+            'decimal_places',
+        ):
             kwargs.pop(scalar_only, None)
         super().__init__(*args, **kwargs)
 
     def deconstruct(self):
-        """Django serializa el campo para la migración; ``base_type`` va con él."""
+        """
+        Django serializa el campo para la migración; ``base_type`` va con él.
+        """
         name, path, args, kwargs = super().deconstruct()
         if self.base_type != 'char':
             kwargs['base_type'] = self.base_type
@@ -312,7 +337,8 @@ class CompanyDependent(models.JSONField):
         return _SQL_CAST[self.base_type]
 
     def get_company_dependent_fallback(self, record):
-        """El default de ``ir.default`` cuando la empresa no tiene valor propio.
+        """
+        El default de ``ir.default`` cuando la empresa no tiene valor propio.
 
         ≙ ``get_company_dependent_fallback`` (``odoo19c: odoo/orm/fields.py:
         794-801``). La fuente lo pide con ``SUPERUSER_ID`` y la empresa
@@ -322,7 +348,8 @@ class CompanyDependent(models.JSONField):
         """
         IrDefault = apps.get_model('base', 'IrDefault')
         defaults = IrDefault._get_model_defaults(
-            type(record)._meta.label, company_id=get_current_company())
+            type(record)._meta.label, company_id=get_current_company()
+        )
         return defaults.get(self.name)
 
     def get_company_dependent_fallback_sql(self, model):
@@ -338,7 +365,8 @@ class CompanyDependent(models.JSONField):
         """
         IrDefault = apps.get_model('base', 'IrDefault')
         defaults = IrDefault._get_model_defaults(
-            model._meta.label, company_id=get_current_company())
+            model._meta.label, company_id=get_current_company()
+        )
         return SQL("%s::" + self.sql_cast_type, defaults.get(self.name))
 
     def value_for_current_company(self, stored, record):
@@ -389,11 +417,14 @@ class CompanyDependent(models.JSONField):
         return self.raw_company_values(model_instance)
 
     def value_from_object(self, obj):
-        """El mapa crudo también para serializar (``dumpdata``, formularios)."""
+        """
+        El mapa crudo también para serializar (``dumpdata``, formularios).
+        """
         return self.raw_company_values(obj)
 
     def get_prep_value(self, value):
-        """Lo que va a la base es siempre el mapa, nunca el valor de una empresa.
+        """
+        Lo que va a la base es siempre el mapa, nunca el valor de una empresa.
 
         Devuelve el ``dict`` **sin serializar**: en Django 6 la serialización
         la hace ``get_db_prep_value`` llamando a
@@ -407,9 +438,10 @@ class CompanyDependent(models.JSONField):
             return None
         if not isinstance(value, dict):
             raise ValueError(
-                f'{self.name!r} guarda un mapa por empresa; recibió '
-                f'{type(value).__name__}. Asigne por el atributo para escribir '
-                f'el valor de la empresa activa.')
+                f'{self.name!r} guarda un mapa por empresa; recibió'
+                f' {type(value).__name__}. Asigne por el atributo para'
+                ' escribir el valor de la empresa activa.'
+            )
         return value
 
 
@@ -453,10 +485,12 @@ def make_dispatcher(name, base_type, plain, extra_doc=''):
     """
     if base_type not in COMPANY_DEPENDENT_FIELDS:
         raise ValueError(
-            f'{base_type!r} no es uno de {COMPANY_DEPENDENT_FIELDS}')
+            f'{base_type!r} no es uno de {COMPANY_DEPENDENT_FIELDS}'
+        )
 
-    def dispatcher(*args, company_dependent=False, required=None,
-                   related=None, **kwargs):
+    def dispatcher(
+        *args, company_dependent=False, required=None, related=None, **kwargs
+    ):
         #: ``related=`` se resuelve ANTES de construir, pero **ya no elige
         #: clase**: el tipo se construye siempre y ``store`` queda como
         #: atributo, que es la forma de la fuente (``odoo19c:
@@ -464,7 +498,8 @@ def make_dispatcher(name, base_type, plain, extra_doc=''):
         #: Lo que la derivación decide aquí es el valor de ese atributo y el
         #: ``editable`` que Django necesita al construir.
         related_attrs = apply_source_defaults(
-            related, kwargs, company_dependent=company_dependent)
+            related, kwargs, company_dependent=company_dependent
+        )
         if required is not None:
             # Los dos, y no solo ``blank``: en la fuente el valor vacio de un
             # escalar no-requerido es ``False``, que en la columna es NULL —
@@ -476,11 +511,13 @@ def make_dispatcher(name, base_type, plain, extra_doc=''):
             # La guarda de ``CompanyDependent`` lee ``required`` de kwargs;
             # el despachador ya lo sacó de ahí, así que se le devuelve para
             # que el aviso de la fuente siga disparando.
-            field = CompanyDependent(*args, base_type=base_type,
-                                     required=required, **kwargs)
+            field = CompanyDependent(
+                *args, base_type=base_type, required=required, **kwargs
+            )
         else:
             field = plain(*args, **kwargs)
-        # ``required`` de la fuente se ANOTA, no se deduce de ``null``/``blank``:
+        # ``required`` de la fuente se ANOTA, no se deduce de
+        # ``null``/``blank``:
         # Django los trae en ``False`` por omision, asi que leerlos daria
         # "requerido" en los 181 campos que no declaran ninguno de los dos.
         # La fuente hace lo contrario — ``required`` ausente significa False
@@ -488,11 +525,13 @@ def make_dispatcher(name, base_type, plain, extra_doc=''):
         field.required = bool(required)
         #: El tipo lo declara la FACHADA, no la conducta del campo construido.
         #: En la fuente ``type`` es un atributo de clase —``Selection.type =
-        #: 'selection'`` (``odoo19c: odoo/orm/fields_selection.py``)— así que un
+        #: 'selection'`` (``odoo19c: odoo/orm/fields_selection.py``)—
+        #: así que un
         #: ``Selection(related=…)`` es ``selection`` desde su declaración,
         #: antes de heredar la enumeración de su destino. Aquí ``type`` es una
         #: ``property`` que despacha por conducta (``orm/fields.py``:
-        #: ``type_for``), y un ``CharField`` sin ``choices`` publicaba ``char``:
+        #: ``type_for``), y un ``CharField`` sin ``choices`` publicaba
+        #: ``char``:
         #: ``setup_related`` comparaba ``char`` contra el ``selection`` del
         #: destino y abortaba la costura. La anotación es el porte del atributo
         #: de clase; la ``property`` la lee primero. Ver :ref:`h-api-1109`.
@@ -503,14 +542,15 @@ def make_dispatcher(name, base_type, plain, extra_doc=''):
     dispatcher.__qualname__ = name
     dispatcher.__doc__ = (
         f'``fields.{name}`` — ≙ el de la referencia, escalar o por empresa.\n'
-        f'\n'
+        '\n'
         f'Sin ``company_dependent`` devuelve un ``{plain.__module__}.'
         f'{plain.__name__}``, exactamente como el alias que reemplaza. Con\n'
-        f'``company_dependent=True`` devuelve un\n'
-        f':class:`~orm.fields_company_dependent.CompanyDependent` de\n'
+        '``company_dependent=True`` devuelve un\n'
+        ':class:`~orm.fields_company_dependent.CompanyDependent` de\n'
         f'``base_type={base_type!r}``: columna ``jsonb`` con\n'
-        f'``{{empresa: valor}}`` y lectura por la empresa activa.\n'
-        f'{extra_doc}')
+        '``{empresa: valor}`` y lectura por la empresa activa.\n'
+        f'{extra_doc}'
+    )
     #: El tipo base que este despachador construye — lo lee el gate de porte
     #: y el test, para no depender de leer el cuerpo.
     dispatcher.company_dependent_base_type = base_type

@@ -8,27 +8,36 @@ de trabajadores pasa al de nucleos.
 Reparte una carga FIJA entre N trabajadores y mide el reloj de pared. El
 trabajo total es constante: lo que cambia es en cuantas partes se corta.
 """
+
 import os
 import subprocess
 import sys
 import time
 
 TOTAL_UNITS = 24
-BODY = ("python3 -c \"import hashlib;"
-        "d=b'x'*4096;"
-        "[hashlib.sha256(d*64).digest() for _ in range(1200)]\"")
+BODY = (
+    "python3 -c \"import hashlib;"
+    "d=b'x'*4096;"
+    "[hashlib.sha256(d*64).digest() for _ in range(1200)]\""
+)
 
 
 def run_with(workers):
-    """Corre TOTAL_UNITS unidades repartidas en ``workers`` procesos a la vez."""
+    """
+    Corre TOTAL_UNITS unidades repartidas en ``workers`` procesos a la vez.
+    """
     started = time.time()
     pending, running = list(range(TOTAL_UNITS)), []
     while pending or running:
         while pending and len(running) < workers:
             pending.pop()
-            running.append(subprocess.Popen(
-                ['bash', '-c', BODY],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
+            running.append(
+                subprocess.Popen(
+                    ['bash', '-c', BODY],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            )
         running = [p for p in running if p.poll() is None] or running
         for process in list(running):
             if process.poll() is not None:

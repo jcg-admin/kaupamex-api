@@ -81,6 +81,7 @@ Divergencias declaradas
    para el patrón completo (propiedad asignada sobre la clase, análogo a
    ``sale_subscription/models/res_company.py``).
 """
+
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -101,8 +102,11 @@ SCHEDULE_TYPES = [
 ]
 
 _DEFAULT_WEEK_SPEC = [
-    ('Lunes', '0'), ('Martes', '1'), ('Miércoles', '2'),
-    ('Jueves', '3'), ('Viernes', '4'),
+    ('Lunes', '0'),
+    ('Martes', '1'),
+    ('Miércoles', '2'),
+    ('Jueves', '3'),
+    ('Viernes', '4'),
 ]
 
 
@@ -118,11 +122,17 @@ class ResourceCalendar(TimeStampedModel):
         ),
     )
     company = fields.Many2one(
-        ResCompany, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='resource_calendars', help_text='Odoo company_id.',
+        ResCompany,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='resource_calendars',
+        help_text='Odoo company_id.',
     )
     schedule_type = fields.Selection(
-        max_length=12, choices=SCHEDULE_TYPES, default='fully_fixed',
+        max_length=12,
+        choices=SCHEDULE_TYPES,
+        default='fully_fixed',
         help_text='Odoo schedule_type (required).',
     )
     duration_based = fields.Boolean(
@@ -141,12 +151,17 @@ class ResourceCalendar(TimeStampedModel):
         ),
     )
     two_weeks_calendar = fields.Boolean(
-        default=False, help_text='Odoo two_weeks_calendar.',
+        default=False,
+        help_text='Odoo two_weeks_calendar.',
     )
     tz = fields.Selection(
-        max_length=TZ_MAX_LENGTH, choices=TZ_CHOICES,
+        max_length=TZ_MAX_LENGTH,
+        choices=TZ_CHOICES,
         default=settings.TIME_ZONE,
-        help_text='Odoo tz (required) — zona horaria en la que trabajan los recursos.',
+        help_text=(
+            'Odoo tz (required) — zona horaria en la que trabajan los'
+            ' recursos.'
+        ),
     )
     is_default = fields.Boolean(
         default=False,
@@ -178,7 +193,10 @@ class ResourceCalendar(TimeStampedModel):
 
     @flexible_hours.setter
     def flexible_hours(self, value):
-        """≙ ``_inverse_flexible_hours`` (``odoo19c: resource/models/resource_calendar.py``)."""
+        """
+        ≙ ``_inverse_flexible_hours`` (``odoo19c:
+        resource/models/resource_calendar.py``).
+        """
         self.schedule_type = 'flexible' if value else 'fully_fixed'
 
     # --------------------------------------------------------------
@@ -187,7 +205,9 @@ class ResourceCalendar(TimeStampedModel):
 
     @property
     def tz_offset(self):
-        """≙ ``tz_offset`` / ``_compute_tz_offset`` (``:114``, ``:238-240``)."""
+        """
+        ≙ ``tz_offset`` / ``_compute_tz_offset`` (``:114``, ``:238-240``).
+        """
         tzinfo = ZoneInfo(self.tz or 'UTC')
         return datetime.now(tzinfo).strftime('%z')
 
@@ -219,7 +239,8 @@ class ResourceCalendar(TimeStampedModel):
         total = 0.0
         for attendance in self._global_attendances():
             total += (
-                attendance.duration_hours if self.duration_based
+                attendance.duration_hours
+                if self.duration_based
                 else attendance.hour_to - attendance.hour_from
             )
         return total / 2 if self.two_weeks_calendar else total
@@ -273,8 +294,12 @@ class ResourceCalendar(TimeStampedModel):
             a for a in self.attendances.all() if not a.display_type
         ]
         if self.two_weeks_calendar:
-            self._check_overlap([a for a in real_attendances if a.week_type == '0'])
-            self._check_overlap([a for a in real_attendances if a.week_type == '1'])
+            self._check_overlap(
+                [a for a in real_attendances if a.week_type == '0']
+            )
+            self._check_overlap(
+                [a for a in real_attendances if a.week_type == '1']
+            )
         else:
             self._check_overlap(real_attendances)
 
@@ -290,8 +315,12 @@ class ResourceCalendar(TimeStampedModel):
         previous_end = None
         for start, end in intervals:
             if previous_end is not None and start < previous_end:
-                raise ValidationError('Los tramos de horario no pueden traslaparse.')
-            previous_end = end if previous_end is None else max(previous_end, end)
+                raise ValidationError(
+                    'Los tramos de horario no pueden traslaparse.'
+                )
+            previous_end = (
+                end if previous_end is None else max(previous_end, end)
+            )
 
     # --------------------------------------------------------------
     # Generación de tramos por defecto (Odoo _get_default_attendance_ids /
@@ -312,41 +341,71 @@ class ResourceCalendar(TimeStampedModel):
                     return [a.copy_vals() for a in attendances]
         specs = []
         for day_name, day_code in _DEFAULT_WEEK_SPEC:
-            specs.append({
-                'name': f'{day_name} mañana', 'dayofweek': day_code,
-                'hour_from': 8, 'hour_to': 12, 'day_period': 'morning',
-            })
-            specs.append({
-                'name': f'{day_name} descanso', 'dayofweek': day_code,
-                'hour_from': 12, 'hour_to': 13, 'day_period': 'lunch',
-            })
-            specs.append({
-                'name': f'{day_name} tarde', 'dayofweek': day_code,
-                'hour_from': 13, 'hour_to': 17, 'day_period': 'afternoon',
-            })
+            specs.append(
+                {
+                    'name': f'{day_name} mañana',
+                    'dayofweek': day_code,
+                    'hour_from': 8,
+                    'hour_to': 12,
+                    'day_period': 'morning',
+                }
+            )
+            specs.append(
+                {
+                    'name': f'{day_name} descanso',
+                    'dayofweek': day_code,
+                    'hour_from': 12,
+                    'hour_to': 13,
+                    'day_period': 'lunch',
+                }
+            )
+            specs.append(
+                {
+                    'name': f'{day_name} tarde',
+                    'dayofweek': day_code,
+                    'hour_from': 13,
+                    'hour_to': 17,
+                    'day_period': 'afternoon',
+                }
+            )
         return specs
 
     def create_default_attendances(self, template_company=None):
         """Crea los tramos por defecto para este calendario (ver
         ``default_attendance_specs``)."""
-        specs = self.default_attendance_specs(template_company=template_company)
-        ResourceCalendarAttendance.objects.bulk_create([
-            ResourceCalendarAttendance(calendar=self, **spec) for spec in specs
-        ])
+        specs = self.default_attendance_specs(
+            template_company=template_company
+        )
+        ResourceCalendarAttendance.objects.bulk_create(
+            [
+                ResourceCalendarAttendance(calendar=self, **spec)
+                for spec in specs
+            ]
+        )
 
     def two_weeks_attendance_specs(self):
         """Odoo ``_get_two_weeks_attendance`` — duplica los tramos actuales
         en semana 0 y semana 1, con dos secciones técnicas iniciales."""
         specs = [
             {
-                'name': 'Primera semana', 'dayofweek': '0', 'sequence': 0,
-                'hour_from': 0, 'hour_to': 0, 'day_period': 'morning',
-                'week_type': '0', 'display_type': 'line_section',
+                'name': 'Primera semana',
+                'dayofweek': '0',
+                'sequence': 0,
+                'hour_from': 0,
+                'hour_to': 0,
+                'day_period': 'morning',
+                'week_type': '0',
+                'display_type': 'line_section',
             },
             {
-                'name': 'Segunda semana', 'dayofweek': '0', 'sequence': 25,
-                'hour_from': 0, 'hour_to': 0, 'day_period': 'morning',
-                'week_type': '1', 'display_type': 'line_section',
+                'name': 'Segunda semana',
+                'dayofweek': '0',
+                'sequence': 25,
+                'hour_from': 0,
+                'hour_to': 0,
+                'day_period': 'morning',
+                'week_type': '1',
+                'display_type': 'line_section',
             },
         ]
         for index, attendance in enumerate(self.attendances.all()):
@@ -363,9 +422,12 @@ class ResourceCalendar(TimeStampedModel):
             self.two_weeks_calendar = True
             specs = self.two_weeks_attendance_specs()
             self.attendances.all().delete()
-            ResourceCalendarAttendance.objects.bulk_create([
-                ResourceCalendarAttendance(calendar=self, **spec) for spec in specs
-            ])
+            ResourceCalendarAttendance.objects.bulk_create(
+                [
+                    ResourceCalendarAttendance(calendar=self, **spec)
+                    for spec in specs
+                ]
+            )
         else:
             self.two_weeks_calendar = False
             self.attendances.all().delete()
@@ -384,7 +446,10 @@ class ResourceCalendar(TimeStampedModel):
             if self.two_weeks_calendar:
                 specs = self.two_weeks_attendance_specs()
                 self.attendances.all().delete()
-                ResourceCalendarAttendance.objects.bulk_create([
-                    ResourceCalendarAttendance(calendar=self, **spec) for spec in specs
-                ])
+                ResourceCalendarAttendance.objects.bulk_create(
+                    [
+                        ResourceCalendarAttendance(calendar=self, **spec)
+                        for spec in specs
+                    ]
+                )
         self.save()

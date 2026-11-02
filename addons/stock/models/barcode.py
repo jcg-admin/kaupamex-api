@@ -41,7 +41,8 @@ Por qué NO se porta — medido, no supuesto
 [PROVEN, medido en el pase que escribe este archivo.]
 
 No es una divergencia de mecanismo: ``selection_add`` tiene equivalente aquí
-—ampliar los ``choices`` de un campo existente— y el addon ``base`` ya construye
+—ampliar los ``choices`` de un campo existente— y el addon ``base`` ya
+construye
 mecanismos comparables. Lo que falta es el **destino**: sin ``barcode.rule`` no
 hay campo ``type`` cuyo vocabulario ampliar, y fabricar el modelo entero desde
 ``stock`` sería portar ``barcodes`` con otro nombre — el defecto de sitio que

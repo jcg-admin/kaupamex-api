@@ -1,4 +1,6 @@
-"""Por qué Django separa símbolo, ``attname`` y columna — y qué ve cada capa (#141).
+"""
+Por qué Django separa símbolo, ``attname`` y columna — y qué ve cada capa
+(#141).
 
 ≙ ADR-029. Complementa a ``test_fk_column_naming.py``: aquél mide **qué
 columna** tienen nuestras FK portadas; éste mide **por qué existen los tres
@@ -6,7 +8,8 @@ ejes** y qué consume cada capa del stack, que es lo que decide si
 ``db_column`` es cosmético o carga contrato.
 
 La referencia colapsa los tres en un nombre
-(``odoo19c: odoo/orm/fields_relational.py`` — ``partner_id = fields.Many2one(...)``
+(``odoo19c: odoo/orm/fields_relational.py`` — ``partner_id =
+fields.Many2one(...)``
 nombra atributo, columna y etiqueta). Django los separa porque una FK crea
 **dos atributos de Python sobre la misma columna**, y eso no es una
 peculiaridad de estilo: es lo que permite leer el pk sin traer el objeto.
@@ -34,6 +37,7 @@ la columna: los dos primeros bloques rompen. Que DRF empezara a leer la
 columna en vez del símbolo: rompe el tercero, que es el que sostiene la
 afirmación *"cambiar ``db_column`` no toca el contrato del API"*.
 """
+
 import pytest
 from django.db import connection, models
 from rest_framework import serializers
@@ -55,8 +59,10 @@ class TestDjangoSeparatesThreeAxes:
         field = BaseAutomation._meta.get_field('model_id')
 
         assert field.attname == 'model_id_id'
-        assert BaseAutomation.__dict__['model_id_id'].__class__.__name__ == (
-            'ForeignKeyDeferredAttribute')
+        assert (
+            BaseAutomation.__dict__['model_id_id'].__class__.__name__
+            == 'ForeignKeyDeferredAttribute'
+        )
 
     def test_the_column_is_the_third_axis_and_db_column_governs_it(self):
         """``column = self.db_column or attname`` — con ``db_column``, fiel."""
@@ -66,7 +72,9 @@ class TestDjangoSeparatesThreeAxes:
         assert field.column == 'model_id'
         assert field.column != field.attname
 
-    def test_without_db_column_the_column_would_inherit_the_double_suffix(self):
+    def test_without_db_column_the_column_would_inherit_the_double_suffix(
+        self,
+    ):
         """El contrafactual, sobre un campo declarado al vuelo.
 
         Es el control que hace no-vacío al caso anterior: sin él, «la columna
@@ -89,7 +97,8 @@ class TestWhatEachLayerConsumes:
         #: ``get_or_create``: la reflexión de modelos ya siembra la fila y
         #: ``ir_model.model`` es único.
         model_row, _ = IrModel.objects.get_or_create(
-            model='base.ResPartner', defaults={'name': 'Contacto'})
+            model='base.ResPartner', defaults={'name': 'Contacto'}
+        )
         automation = BaseAutomation(model_id=model_row)
 
         assert automation.serializable_value('model_id') == model_row.pk
@@ -98,12 +107,14 @@ class TestWhatEachLayerConsumes:
     def test_drf_reads_the_symbol_never_the_column(self):
         """El contrato del API no cambia al declarar ``db_column``.
 
-        ``rest_framework/relations.py:172-187`` — ``RelatedField.get_attribute``
+        ``rest_framework/relations.py:172-187`` —
+        ``RelatedField.get_attribute``
         llama ``serializable_value(self.source_attrs[-1])``, y ese argumento es
         el NOMBRE del campo. La columna no aparece en ninguna capa de DRF.
         """
         model_row, _ = IrModel.objects.get_or_create(
-            model='base.ResCountry', defaults={'name': 'Pais'})
+            model='base.ResCountry', defaults={'name': 'Pais'}
+        )
         automation = BaseAutomation(name='A', model_id=model_row)
 
         class _Serializer(serializers.ModelSerializer):
@@ -126,7 +137,9 @@ class TestWhatEachLayerConsumes:
 
 
 class TestPostgresConsequences:
-    """El nombre de columna gobierna el del índice, y PostgreSQL corta en 63."""
+    """
+    El nombre de columna gobierna el del índice, y PostgreSQL corta en 63.
+    """
 
     @pytest.mark.django_db
     def test_the_index_name_derives_from_the_column_name(self):
@@ -138,8 +151,12 @@ class TestPostgresConsequences:
         cambio de anotación.
         """
         with connection.schema_editor(collect_sql=True) as editor:
-            faithful = editor._create_index_name('base_automation', ['model_id'])
-            doubled = editor._create_index_name('base_automation', ['model_id_id'])
+            faithful = editor._create_index_name(
+                'base_automation', ['model_id']
+            )
+            doubled = editor._create_index_name(
+                'base_automation', ['model_id_id']
+            )
 
         assert faithful != doubled
         assert 'model_id' in faithful
@@ -168,7 +185,8 @@ class TestTheCostThatJustifiesTheSplit:
       None"* (``odoo19c: odoo/orm/fields_relational.py:329-330``) y
       ``convert_to_record`` (``:354-358``) construye el recordset con
       ``record.pool[comodel](env, ids, prefetch_ids)`` — sin consultar; un
-      recordset es ``(modelo, ids, env)`` y ``browse`` (``odoo/orm/models.py:5883``)
+      recordset es ``(modelo, ids, env)`` y ``browse``
+      (``odoo/orm/models.py:5883``)
       no emite ninguna consulta. Así que ``record.partner_id`` devuelve el
       recordset y ``record.partner_id.id`` devuelve el pk, **ambos con coste
       de consulta cero**: no hay dos caminos de acceso con costes distintos,
@@ -188,7 +206,8 @@ class TestTheCostThatJustifiesTheSplit:
 
     def test_reading_the_symbol_costs_a_query(self, django_assert_num_queries):
         model_row, _ = IrModel.objects.get_or_create(
-            model='base.ResUsers', defaults={'name': 'Usuario'})
+            model='base.ResUsers', defaults={'name': 'Usuario'}
+        )
         BaseAutomation.objects.create(name='A', model_id=model_row)
         fresh = BaseAutomation.objects.get(name='A')
 
@@ -198,7 +217,8 @@ class TestTheCostThatJustifiesTheSplit:
     def test_reading_the_attname_costs_none(self, django_assert_num_queries):
         """El acceso al pk que la referencia no necesita declarar aparte."""
         model_row, _ = IrModel.objects.get_or_create(
-            model='base.ResLang', defaults={'name': 'Idioma'})
+            model='base.ResLang', defaults={'name': 'Idioma'}
+        )
         BaseAutomation.objects.create(name='B', model_id=model_row)
         fresh = BaseAutomation.objects.get(name='B')
 
@@ -250,11 +270,13 @@ class TestDjangoDoesHaveAttributeLevelLaziness:
 
     def _automation(self, model_name, label):
         model_row, _ = IrModel.objects.get_or_create(
-            model=model_name, defaults={'name': label})
+            model=model_name, defaults={'name': label}
+        )
         return BaseAutomation.objects.create(name=label, model_id=model_row)
 
     def test_a_deferred_field_fires_its_own_query_on_first_access(
-            self, django_assert_num_queries):
+        self, django_assert_num_queries
+    ):
         """``only`` deja la instancia incompleta y el campo se trae solo."""
         self._automation('base.ResGroups', 'Diferido')
         fresh = BaseAutomation.objects.only('name').get(name='Diferido')
@@ -264,17 +286,19 @@ class TestDjangoDoesHaveAttributeLevelLaziness:
             fresh.trigger
 
     def test_select_related_with_only_builds_the_pk_only_proxy(
-            self, django_assert_num_queries):
+        self, django_assert_num_queries
+    ):
         """La relación a coste cero y su campo a una consulta.
 
         Es el reparto que se atribuye a los proxies de otros ORM: obtener la
         referencia no consulta; tocar un atributo del referenciado, sí.
         """
         self._automation('base.ResCountry', 'Proxy')
-        fresh = (BaseAutomation.objects
-                 .select_related('model_id')
-                 .only('name', 'model_id__id')
-                 .get(name='Proxy'))
+        fresh = (
+            BaseAutomation.objects.select_related('model_id')
+            .only('name', 'model_id__id')
+            .get(name='Proxy')
+        )
 
         with django_assert_num_queries(0):
             related = fresh.model_id
@@ -284,7 +308,8 @@ class TestDjangoDoesHaveAttributeLevelLaziness:
             related.model
 
     def test_a_nullable_fk_returns_none_without_a_query(
-            self, django_assert_num_queries):
+        self, django_assert_num_queries
+    ):
         """El otro camino sin consulta: ``has_value`` es falso.
 
         ``related_descriptors.py:246`` corta antes de ``get_object`` cuando el

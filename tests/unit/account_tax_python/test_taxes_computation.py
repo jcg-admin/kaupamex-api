@@ -12,8 +12,10 @@ Dos caminos de invocación, documentados en el módulo ``account_tax.py``:
   que sí referencian producto/uom, vía ``build_evaluation_context`` (helper
   local, ver su docstring).
 
-Referencia medida sobre ``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``.
+Referencia medida sobre
+``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -38,8 +40,11 @@ def _code_tax(company, formula, price_include=False, **kwargs):
     vinculada — el análogo de ``python_tax`` de la referencia.
     """
     tax = AccountTax.objects.create(
-        name='Impuesto fórmula', company=company, amount_type='code',
-        price_include=price_include, **kwargs,
+        name='Impuesto fórmula',
+        company=company,
+        amount_type='code',
+        price_include=price_include,
+        **kwargs,
     )
     AccountTaxFormula.objects.create(tax=tax, formula=formula)
     return tax
@@ -54,12 +59,14 @@ def _sobre(*taxes):
 
 # -- vía compute_all() real: sólo price_unit/quantity/base ------------------
 
+
 class TestViaComputeAllReal:
     """``odoo19c: :11-34`` — el mismo caso, tax_excluded y tax_included."""
 
     def test_max_de_dos_expresiones_tax_excluded(self, company):
         tax = _code_tax(
-            company, 'max(quantity * price_unit * 0.21, quantity * 4.17)')
+            company, 'max(quantity * price_unit * 0.21, quantity * 4.17)'
+        )
         r = _sobre(tax).compute_all(Decimal('130'))
         assert r['total_excluded'] == Decimal('130.00')
         assert r['total_included'] == Decimal('157.30')
@@ -67,8 +74,10 @@ class TestViaComputeAllReal:
 
     def test_max_de_dos_expresiones_tax_included(self, company):
         tax = _code_tax(
-            company, 'max(quantity * price_unit * 0.21, quantity * 4.17)',
-            price_include=True)
+            company,
+            'max(quantity * price_unit * 0.21, quantity * 4.17)',
+            price_include=True,
+        )
         r = _sobre(tax).compute_all(Decimal('130'))
         assert r['total_excluded'] == Decimal('102.70')
         assert r['total_included'] == Decimal('130.00')
@@ -86,12 +95,14 @@ class TestViaComputeAllReal:
         vinculada no computa silencioso en 0 — levanta, con el impuesto
         nombrado en el mensaje."""
         tax = AccountTax.objects.create(
-            name='Huérfano', company=company, amount_type='code')
+            name='Huérfano', company=company, amount_type='code'
+        )
         with pytest.raises(ValidationError, match='Huérfano'):
             _sobre(tax).compute_all(Decimal('100'))
 
 
 # -- invocación directa: fórmulas con product.*/uom.* ------------------------
+
 
 class TestInvocacionDirectaConProductoYUom:
     """``odoo19c: :36-70,127-138`` — mismos casos, vía
@@ -103,8 +114,12 @@ class TestInvocacionDirectaConProductoYUom:
         formula_record = tax.formula_record
         producto = make_product(volume=100.0)
         ctx = AccountTaxFormula.build_evaluation_context(
-            price_unit=100.0, quantity=1.0, product=producto,
-            product_fields=formula_record.formula_decoded_info['product_fields'],
+            price_unit=100.0,
+            quantity=1.0,
+            product=producto,
+            product_fields=formula_record.formula_decoded_info[
+                'product_fields'
+            ],
         )
         assert formula_record._eval_tax_amount_formula(100.0, ctx) == 35.0
 
@@ -114,8 +129,12 @@ class TestInvocacionDirectaConProductoYUom:
         formula_record = tax.formula_record
         producto = make_product(volume=105.0)
         ctx = AccountTaxFormula.build_evaluation_context(
-            price_unit=100.0, quantity=1.0, product=producto,
-            product_fields=formula_record.formula_decoded_info['product_fields'],
+            price_unit=100.0,
+            quantity=1.0,
+            product=producto,
+            product_fields=formula_record.formula_decoded_info[
+                'product_fields'
+            ],
         )
         assert formula_record._eval_tax_amount_formula(100.0, ctx) == 10
 
@@ -125,12 +144,17 @@ class TestInvocacionDirectaConProductoYUom:
         tax = _code_tax(
             company,
             "min(max(price_unit, quantity), base) * 0.10 + "
-            "(5 < product['volume'] < 10 and 1.0 or 0.0)")
+            "(5 < product['volume'] < 10 and 1.0 or 0.0)",
+        )
         formula_record = tax.formula_record
         producto = make_product(volume=7.0)
         ctx = AccountTaxFormula.build_evaluation_context(
-            price_unit=20.0, quantity=1.0, product=producto,
-            product_fields=formula_record.formula_decoded_info['product_fields'],
+            price_unit=20.0,
+            quantity=1.0,
+            product=producto,
+            product_fields=formula_record.formula_decoded_info[
+                'product_fields'
+            ],
         )
         assert formula_record._eval_tax_amount_formula(20.0, ctx) == 3.0
 
@@ -147,20 +171,30 @@ class TestInvocacionDirectaConProductoYUom:
         formula_record = tax.formula_record
         base = Uom.objects.create(name='Base', relative_factor=1.0)
         unidad = Uom.objects.create(
-            name='Prueba', relative_factor=42.0, relative_uom_id=base)
+            name='Prueba', relative_factor=42.0, relative_uom_id=base
+        )
         ctx = AccountTaxFormula.build_evaluation_context(
-            price_unit=100.0, quantity=1.0, product_uom=unidad,
-            uom_fields=formula_record.formula_decoded_info['product_uom_fields'],
+            price_unit=100.0,
+            quantity=1.0,
+            product_uom=unidad,
+            uom_fields=formula_record.formula_decoded_info[
+                'product_uom_fields'
+            ],
         )
         assert formula_record._eval_tax_amount_formula(100.0, ctx) == 42.0
 
-    def test_context_without_product_raises_keyerror_not_assertion(self, company):
-        """Sin producto en el contexto, el fallo llega del ``eval``, no del guard.
+    def test_context_without_product_raises_keyerror_not_assertion(
+        self, company
+    ):
+        """
+        Sin producto en el contexto, el fallo llega del ``eval``, no del guard.
 
-        La primera versión de este test afirmaba ``pytest.raises(AssertionError)``
+        La primera versión de este test afirmaba
+        ``pytest.raises(AssertionError)``
         creyendo el docstring de ``account_tax.py``, que presenta el
         ``assert accessed_fields['product'] <= …`` como la red de seguridad.
-        **Ese assert está muerto**, aquí y en la referencia: ``accessed_fields``
+        **Ese assert está muerto**, aquí y en la referencia:
+        ``accessed_fields``
         es un ``defaultdict`` con claves ``'product.product'``/``'uom.uom'``
         (``formula_utils.py:60,64``) y el guard lee ``['product']``, así que
         siempre compara el conjunto vacío — y ``set() <= cualquier_cosa`` es
@@ -174,28 +208,38 @@ class TestInvocacionDirectaConProductoYUom:
         formula_record = tax.formula_record
         with pytest.raises(KeyError, match='volume'):
             formula_record._eval_tax_amount_formula(
-                100.0, {'price_unit': 100.0, 'quantity': 1.0})
+                100.0, {'price_unit': 100.0, 'quantity': 1.0}
+            )
 
 
 # -- formula_decoded_info / clean() -----------------------------------------
+
 
 class TestFormulaDecodedInfoANDValidation:
 
     def test_formula_decoded_info_none_si_no_es_code(self, company):
         tax = AccountTax.objects.create(
-            name='Percent', company=company, amount_type='percent',
-            amount=Decimal('16'))
+            name='Percent',
+            company=company,
+            amount_type='percent',
+            amount=Decimal('16'),
+        )
         formula_record = AccountTaxFormula.objects.create(
-            tax=tax, formula='product.field_que_no_existe')
+            tax=tax, formula='product.field_que_no_existe'
+        )
         # amount_type != 'code': la fórmula queda dormida, sin validar.
         assert formula_record.formula_decoded_info is None
 
     def test_clean_valida_solo_cuando_amount_type_es_code(self, company):
         tax = AccountTax.objects.create(
-            name='Percent con basura', company=company,
-            amount_type='percent', amount=Decimal('16'))
+            name='Percent con basura',
+            company=company,
+            amount_type='percent',
+            amount=Decimal('16'),
+        )
         formula_record = AccountTaxFormula(
-            tax=tax, formula='esto no es una fórmula válida ((')
+            tax=tax, formula='esto no es una fórmula válida (('
+        )
         formula_record.clean()  # no levanta: dormida.
 
         tax.amount_type = 'code'
@@ -208,23 +252,34 @@ class TestFormulaDecodedInfoANDValidation:
         info = tax.formula_record.formula_decoded_info
         assert info['product_fields'] == ['volume']
         assert info['product_uom_fields'] == ['relative_factor']
-        assert info['py_formula'] == "product['volume'] + uom['relative_factor']"
+        assert (
+            info['py_formula'] == "product['volume'] + uom['relative_factor']"
+        )
 
 
 # -- hooks de AccountTaxQuerySet (monkeypatch de account_tax_extensions.py) --
 
+
 class TestHooksOfQuerySet:
 
-    def test_prepare_product_fields_agrega_solo_de_impuestos_code(self, company):
+    def test_prepare_product_fields_agrega_solo_de_impuestos_code(
+        self, company
+    ):
         code_tax = _code_tax(company, 'product.volume * 0.1')
         percent_tax = AccountTax.objects.create(
-            name='IVA', company=company, amount_type='percent',
-            amount=Decimal('16'))
-        campos = _sobre(code_tax, percent_tax)\
-            ._eval_taxes_computation_prepare_product_fields()
+            name='IVA',
+            company=company,
+            amount_type='percent',
+            amount=Decimal('16'),
+        )
+        campos = _sobre(
+            code_tax, percent_tax
+        )._eval_taxes_computation_prepare_product_fields()
         assert campos == {'volume'}
 
     def test_prepare_product_uom_fields(self, company):
         tax = _code_tax(company, 'uom.relative_factor * 2')
-        campos = _sobre(tax)._eval_taxes_computation_prepare_product_uom_fields()
+        campos = _sobre(
+            tax
+        )._eval_taxes_computation_prepare_product_uom_fields()
         assert campos == {'relative_factor'}

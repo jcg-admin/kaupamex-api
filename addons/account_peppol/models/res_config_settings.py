@@ -45,7 +45,8 @@ Los 11 botones y dónde vive hoy lo que hacen
    * - Botón (línea)
      - Dónde vive su trabajo en este árbol
    * - ``button_peppol_register_sender_as_receiver`` (``:145-148``)
-     - **portado** — ``AccountEdiProxyUser._peppol_register_sender_as_receiver``.
+     - **portado** —
+       ``AccountEdiProxyUser._peppol_register_sender_as_receiver``.
    * - ``button_peppol_deregister`` (``:163-169``)
      - **portado** — ``_peppol_deregister_participant``.
    * - ``button_reconnect_this_database`` (``:150-153``)

@@ -3,6 +3,7 @@ BaseGateway — Strategy Pattern para gateways de pago (BR-008).
 
 Permite incorporar Stripe u otros gateways sin cambiar el servicio de pagos.
 """
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from decimal import Decimal
@@ -12,34 +13,38 @@ from typing import Optional
 @dataclass
 class PreferenceResult:
     """Resultado de crear una preferencia de pago en el gateway."""
+
     preference_id: str
-    checkout_url:  str   # URL a la que redirigir al comprador
+    checkout_url: str  # URL a la que redirigir al comprador
 
 
 @dataclass
 class InstallmentPlan:
     """Plan de cuotas disponible para un monto dado."""
-    installments:       int
+
+    installments: int
     amount_per_installment: Decimal
-    total_amount:       Decimal
-    interest_rate:      Decimal  # 0.00 = sin intereses (MSI)
+    total_amount: Decimal
+    interest_rate: Decimal  # 0.00 = sin intereses (MSI)
 
 
 @dataclass
 class PaymentVerification:
     """Resultado de verificar el estado de un pago en el gateway."""
+
     gateway_payment_id: Optional[str]
-    status:             str   # 'approved' | 'rejected' | 'pending' | 'in_process'
-    amount:             Optional[Decimal]
-    installments:       int = 1
+    status: str  # 'approved' | 'rejected' | 'pending' | 'in_process'
+    amount: Optional[Decimal]
+    installments: int = 1
 
 
 @dataclass
 class RefundResult:
     """Resultado de ejecutar un reembolso en el gateway."""
+
     refund_id: str
-    status:    str    # 'approved' | 'failed'
-    amount:    Decimal
+    status: str  # 'approved' | 'failed'
+    amount: Decimal
 
 
 @dataclass
@@ -51,18 +56,22 @@ class PaymentResult:
 
     Campos para métodos no-tarjeta (OXXO, SPEI, cajero):
       external_resource_url — URL del voucher/barcode (OXXO, Paycash, cajeros)
-      date_of_expiration    — fecha límite de pago ISO-8601 (OXXO, SPEI, cajeros)
-      transaction_data      — dict con CLABE (SPEI) o datos de barcode (ATM/OXXO)
+      date_of_expiration    — fecha límite de pago ISO-8601 (OXXO, SPEI,
+      cajeros)
+      transaction_data      — dict con CLABE (SPEI) o datos de barcode
+      (ATM/OXXO)
     """
+
     gateway_payment_id: str
-    status:             str   # 'approved' | 'rejected' | 'pending' | 'in_process'
-    status_detail:      str   # 'accredited' | 'cc_rejected_*' | etc.
-    amount:             Decimal
-    installments:       int = 1
+    status: str  # 'approved' | 'rejected' | 'pending' | 'in_process'
+    status_detail: str  # 'accredited' | 'cc_rejected_*' | etc.
+    amount: Decimal
+    installments: int = 1
     external_resource_url: str = ''
-    date_of_expiration:    str = ''
-    transaction_data:      dict = None
-    mp_order_id:           str = ''   # ORD... del Orders API (DEC-ORD-03); '' en Payments-legacy
+    date_of_expiration: str = ''
+    transaction_data: dict = None
+    # ORD... del Orders API (DEC-ORD-03); '' en Payments-legacy
+    mp_order_id: str = ''
 
 
 class BaseGateway(ABC):
@@ -141,8 +150,8 @@ class BaseGateway(ABC):
         :raises NotImplementedError: si el gateway no soporta Checkout API
         """
         raise NotImplementedError(
-            f'{self.__class__.__name__} no soporta Checkout API. '
-            'Usa create_preference() para pagos con redirección (Checkout Pro).'
+            f'{self.__class__.__name__} no soporta Checkout API. Usa'
+            ' create_preference() para pagos con redirección (Checkout Pro).'
         )
 
     @abstractmethod

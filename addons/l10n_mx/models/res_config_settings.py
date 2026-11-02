@@ -30,7 +30,8 @@ propia subclase concreta** (``base_setup.SiteConfigSettings`` es la única que
 existe hoy), no un modelo único donde varios addons cuelguen campos con
 ``add_to_class`` como si fuera ``ResCompany`` o ``ResBank``.
 
-*Métrica:* ``grep -rn "class .*(ResConfigSettings)" src/addons --include=*.py``.
+*Métrica:* ``grep -rn "class .*(ResConfigSettings)" src/addons
+--include=*.py``.
 *Ciega a:* un mecanismo de fusión que registrara subclases bajo un mismo
 nombre lógico sin que aparezca como herencia directa de ``ResConfigSettings``.
 Medido (2026-08-07): **una sola subclase concreta**,

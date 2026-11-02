@@ -1,4 +1,5 @@
-"""Los tres motivos de baja maestros — ≙ ``odoo19c: hr/data/hr_data.xml:56-73``.
+"""
+Los tres motivos de baja maestros — ≙ ``odoo19c: hr/data/hr_data.xml:56-73``.
 
 La referencia los declara como registros XML del módulo, y su instalador los
 carga en cada ``-i``/``-u``. Aquí ese cargador no existe, así que el mecanismo
@@ -21,7 +22,8 @@ Tres decisiones que salen de leer la fuente, no de la costumbre:
 La fuente numera los tres maestros por debajo de cualquier motivo que un
 usuario añada después, que es lo que los mantiene arriba en el catálogo.
 
-``country`` **explícitamente nulo** — ≙ ``<field name="country_id" eval="False"/>``.
+``country`` **explícitamente nulo** — ≙ ``<field name="country_id"
+eval="False"/>``.
 El campo tiene ``default=_default_country`` (el país de la compañía activa),
 así que crear sin pasarlo ataría los tres maestros a la compañía que estuviera
 activa al sembrar. La fuente lo anula a propósito: son universales.
@@ -31,6 +33,7 @@ Los nombres van **en español** porque son dato visible para el usuario final
 drift: ``identificadores-en-ingles.md`` gobierna identificadores, no
 contenido.
 """
+
 from django.db import DEFAULT_DB_ALIAS
 
 from addons.base.models.ir_model import IrModelData
@@ -61,20 +64,31 @@ def _seed(departure_reason_model, ir_model_data_model, using):
     seeded = []
 
     for name, label_text, sequence in DEFAULT_DEPARTURE_REASONS:
-        row = ir_model_data_model.objects.using(using).filter(
-            module=MODULE, name=name).first()
+        row = (
+            ir_model_data_model.objects.using(using)
+            .filter(module=MODULE, name=name)
+            .first()
+        )
         existing = None
         if row is not None:
-            existing = departure_reason_model.objects.using(using).filter(
-                pk=row.res_id).first()
+            existing = (
+                departure_reason_model.objects.using(using)
+                .filter(pk=row.res_id)
+                .first()
+            )
         if existing is None:
-            existing = departure_reason_model.objects.using(using).filter(
-                name=label_text).first()
+            existing = (
+                departure_reason_model.objects.using(using)
+                .filter(name=label_text)
+                .first()
+            )
         if existing is None:
             existing = departure_reason_model.objects.using(using).create(
-                name=label_text, sequence=sequence, country=None)
+                name=label_text, sequence=sequence, country=None
+            )
         ir_model_data_model.objects.using(using).update_or_create(
-            module=MODULE, name=name,
+            module=MODULE,
+            name=name,
             defaults={'model': label, 'res_id': existing.pk, 'noupdate': True},
         )
         seeded.append(existing)

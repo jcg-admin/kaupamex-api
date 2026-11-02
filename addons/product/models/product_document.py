@@ -89,6 +89,7 @@ ninguna FK**. Sin el ``delete()`` de abajo, cada documento borrado dejaría su
 ``ir.attachment`` huérfano, con el archivo ocupando disco y sin nada que lo
 referencie.
 """
+
 import fields
 import models
 from django.core.exceptions import ValidationError
@@ -107,18 +108,26 @@ class ProductDocument(TimeStampedModel):
     """``product.document`` — adjunto de producto, ordenable y archivable."""
 
     ir_attachment = fields.Many2one(
-        IrAttachment, on_delete=models.CASCADE, db_index=True,
+        IrAttachment,
+        on_delete=models.CASCADE,
+        db_index=True,
         related_name='product_document_ids',
         verbose_name='Adjunto relacionado',
-        help_text='Odoo ir_attachment_id: el enlace de _inherits. FK real, NO '
-                  'herencia multi-tabla (ver el docstring del módulo).',
+        help_text=(
+            'Odoo ir_attachment_id: el enlace de _inherits. FK real, NO '
+            'herencia multi-tabla (ver el docstring del módulo).'
+        ),
     )
     active = fields.Boolean(
-        default=True, verbose_name='Activo',
-        help_text='Desmarcar archiva el documento sin borrar el adjunto.')
+        default=True,
+        verbose_name='Activo',
+        help_text='Desmarcar archiva el documento sin borrar el adjunto.',
+    )
     sequence = fields.Integer(
-        default=10, verbose_name='Secuencia',
-        help_text='Orden de presentación dentro del producto.')
+        default=10,
+        verbose_name='Secuencia',
+        help_text='Orden de presentación dentro del producto.',
+    )
 
     class Meta:
         db_table = 'product_document'
@@ -175,7 +184,8 @@ class ProductDocument(TimeStampedModel):
 
         Equivale al ``One2many`` con ``inverse_name='res_id'`` y
         ``domain=[('res_model', '=', self._name)]`` que declaran
-        ``odoo19c: product_product.py:81-85`` y ``product_template.py:164-168``.
+        ``odoo19c: product_product.py:81-85`` y
+        ``product_template.py:164-168``.
         El ``_name`` de la fuente es aquí ``_meta.label`` — convenio del árbol,
         no de este archivo (``mail_thread.py:45-53``).
 
@@ -207,11 +217,15 @@ class ProductDocument(TimeStampedModel):
         if not self.ir_attachment_id:
             return
         attachment = self.ir_attachment
-        if attachment.type == TYPE_URL and attachment.url and \
-                not attachment.url.startswith(URL_SCHEMES):
+        if (
+            attachment.type == TYPE_URL
+            and attachment.url
+            and not attachment.url.startswith(URL_SCHEMES)
+        ):
             raise ValidationError(
-                f'La URL del documento no es válida. Ejemplo: '
-                f'https://www.example.com — recibido: {attachment.url}')
+                'La URL del documento no es válida. Ejemplo: '
+                f'https://www.example.com — recibido: {attachment.url}'
+            )
 
     # === BORRADO ==========================================================
 

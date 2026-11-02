@@ -16,6 +16,7 @@ Los lectores no son hipotéticos —se midieron antes de tocar nada—: viven en
 ``src/orm/fields.py`` y son ``is_editable``, ``_description_string``,
 ``_description_aggregator`` y la ``property`` ``column_type``.
 """
+
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.db import models
 
@@ -31,8 +32,11 @@ class TestThePrimaryKeyAnswersLikeTheSource:
     es donde ``Id`` no está.
     """
 
-    AUTO_PK_CLASSES = (models.AutoField, models.BigAutoField,
-                       models.SmallAutoField)
+    AUTO_PK_CLASSES = (
+        models.AutoField,
+        models.BigAutoField,
+        models.SmallAutoField,
+    )
 
     def test_it_is_readonly(self):
         """``readonly = True`` (``:94``). Su lector es ``is_editable``."""
@@ -49,7 +53,9 @@ class TestThePrimaryKeyAnswersLikeTheSource:
             assert field_class(primary_key=True).is_editable() is False
 
     def test_its_label_is_the_one_of_the_source(self):
-        """``string = 'ID'`` (``:93``). Su lector es ``_description_string``."""
+        """
+        ``string = 'ID'`` (``:93``). Su lector es ``_description_string``.
+        """
         for field_class in self.AUTO_PK_CLASSES:
             assert field_class.string == 'ID', field_class.__name__
 
@@ -62,7 +68,10 @@ class TestThePrimaryKeyAnswersLikeTheSource:
         """``column_type = ('int4', 'int4')`` (``:92``) — la fuente lo declara
         en el atributo **público**, saltándose ``_column_type``."""
         for field_class in self.AUTO_PK_CLASSES:
-            assert field_class(primary_key=True).column_type == ('int4', 'int4')
+            assert field_class(primary_key=True).column_type == (
+                'int4',
+                'int4',
+            )
 
 
 class TestTheNumericAggregate:
@@ -98,8 +107,10 @@ class TestTheColumnTypeOfEachFamily:
         ``('varchar', pg_varchar(self.size))``. El equivalente de ``size`` en
         este stack es ``max_length``.
         """
-        assert models.CharField(max_length=64).column_type == \
-            ('varchar', 'VARCHAR(64)')
+        assert models.CharField(max_length=64).column_type == (
+            'varchar',
+            'VARCHAR(64)',
+        )
         assert models.CharField().column_type == ('varchar', 'VARCHAR')
 
     def test_float_without_declared_digits_is_a_double(self):
@@ -132,8 +143,11 @@ class TestTheReadersThatConsumeThem:
         ``property`` que distingue ``Char`` de ``Selection``, y el
         ``column_type`` de las dos coincide por serlo de la misma clase."""
         assert type_for(models.CharField(max_length=8)) == 'char'
-        assert type_for(models.CharField(max_length=8,
-                                         choices=[('a', 'A')])) == 'selection'
+        assert (
+            type_for(models.CharField(max_length=8, choices=[('a', 'A')]))
+            == 'selection'
+        )
+
 
 class TestTheColumnTypeOfTheTwoTreeDivergences:
     """``_column_type`` donde el árbol de Django no es el de la fuente.
@@ -149,12 +163,16 @@ class TestTheColumnTypeOfTheTwoTreeDivergences:
         declara ``class Id(Field)``.
 
         Aquí las tres claves automáticas descienden de ``IntegerField``, que sí
-        recibe el ``('int4','int4')`` de ``Integer``. Es la misma divergencia de
+        recibe el ``('int4','int4')`` de ``Integer``. Es la misma divergencia
+        de
         árbol de :ref:`h-api-970`, y sin declararlo la clave primaria respondía
         un ``_column_type`` que su contraparte no tiene.
         """
-        for field_class in (models.AutoField, models.BigAutoField,
-                            models.SmallAutoField):
+        for field_class in (
+            models.AutoField,
+            models.BigAutoField,
+            models.SmallAutoField,
+        ):
             assert field_class._column_type is None, field_class.__name__
         #: Lo que sí publica el tipo de la columna de la clave — ``:781-783``
         #: lo lee a través de ``column_type``, no de ``_column_type``.

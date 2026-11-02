@@ -60,6 +60,7 @@ Correspondencia Odoo -> Django (adaptación sin azúcar sintáctica):
   como efecto lateral de un ``create``, porque un efecto lateral global
   disparado por el primer ``INSERT`` es difícil de razonar y de testear.
 """
+
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -71,33 +72,52 @@ from addons.mail.models.mail_alias import DOT_ATOM_TEXT, MailAlias
 
 
 class MailAliasDomain(TimeStampedModel):
-    """Dominio de correo usado por los alias catchall / bounce de una empresa."""
+    """
+    Dominio de correo usado por los alias catchall / bounce de una empresa.
+    """
 
     name = fields.Char(
         max_length=255,
-        help_text="Odoo ``name``: dominio de correo, p. ej. 'example.com' en "
-                  "'kaupamex@example.com'.")
+        help_text=(
+            "Odoo ``name``: dominio de correo, p. ej. 'example.com' en "
+            "'kaupamex@example.com'."
+        ),
+    )
     sequence = fields.Integer(
-        default=10,
-        help_text="Odoo ``sequence``: orden de presentación.")
+        default=10, help_text="Odoo ``sequence``: orden de presentación."
+    )
 
     bounce_alias = fields.Char(
-        max_length=255, default='bounce',
-        help_text="Odoo ``bounce_alias``: parte local del correo usado como "
-                  "Return-Path cuando un mensaje rebota, p. ej. 'bounce' en "
-                  "'bounce@example.com'.")
+        max_length=255,
+        default='bounce',
+        help_text=(
+            "Odoo ``bounce_alias``: parte local del correo usado como "
+            "Return-Path cuando un mensaje rebota, p. ej. 'bounce' en "
+            "'bounce@example.com'."
+        ),
+    )
     catchall_alias = fields.Char(
-        max_length=255, default='catchall',
-        help_text="Odoo ``catchall_alias``: parte local del correo usado como "
-                  "Reply-To para capturar respuestas, p. ej. 'catchall' en "
-                  "'catchall@example.com'.")
+        max_length=255,
+        default='catchall',
+        help_text=(
+            "Odoo ``catchall_alias``: parte local del correo usado como "
+            "Reply-To para capturar respuestas, p. ej. 'catchall' en "
+            "'catchall@example.com'."
+        ),
+    )
     default_from = fields.Char(
-        max_length=255, null=True, blank=True, default='notifications',
-        help_text="Odoo ``default_from``: remitente por defecto cuando no casa "
-                  "ningún filtro del servidor saliente. Admite parte local "
-                  "('notifications') o correo completo "
-                  "('notifications@example.com') para sobreescribir todo el "
-                  "correo saliente.")
+        max_length=255,
+        null=True,
+        blank=True,
+        default='notifications',
+        help_text=(
+            "Odoo ``default_from``: remitente por defecto cuando no casa "
+            "ningún filtro del servidor saliente. Admite parte local "
+            "('notifications') o correo completo "
+            "('notifications@example.com') para sobreescribir todo el "
+            "correo saliente."
+        ),
+    )
 
     class Meta:
         db_table = 'mail_alias_domain'
@@ -151,7 +171,9 @@ class MailAliasDomain(TimeStampedModel):
     # -- Validación (Odoo @api.constrains) ----------------------------------
 
     def clean(self):
-        """Odoo ``_check_name`` (líneas 128-141) + ``_check_bounce_catchall_uniqueness``.
+        """
+        Odoo ``_check_name`` (líneas 128-141) +
+        ``_check_bounce_catchall_uniqueness``.
 
         El nombre debe casar ``DOT_ATOM_TEXT``. Odoo **no** lo sanea aquí a
         propósito (cambiar el valor dinámicamente confundiría al usuario):
@@ -159,11 +181,15 @@ class MailAliasDomain(TimeStampedModel):
         """
         super().clean()
         if not self.name:
-            raise ValidationError('No se puede asignar un nombre de dominio vacío.')
+            raise ValidationError(
+                'No se puede asignar un nombre de dominio vacío.'
+            )
         if not DOT_ATOM_TEXT.match(self.name):
             raise ValidationError(
                 'No se puede usar nada distinto de caracteres latinos sin '
-                'acentos en el nombre de dominio %s.' % self.name)
+                'acentos en el nombre de dominio %s.'
+                % self.name
+            )
         self._check_bounce_catchall_uniqueness()
 
     def _check_bounce_catchall_uniqueness(self):
@@ -182,31 +208,39 @@ class MailAliasDomain(TimeStampedModel):
         if not propios:
             return
 
-        gemelos = (type(self).objects
-                   .filter(name=self.name)
-                   .exclude(pk=self.pk))
+        gemelos = type(self).objects.filter(name=self.name).exclude(pk=self.pk)
         for gemelo in gemelos:
             if self.bounce_alias and gemelo.bounce_alias == self.bounce_alias:
                 raise ValidationError(
                     'El alias de rebote %s ya se usa en otro dominio con el '
-                    'mismo nombre.' % self.bounce_email)
-            if self.catchall_alias and gemelo.catchall_alias == self.catchall_alias:
+                    'mismo nombre.'
+                    % self.bounce_email
+                )
+            if (
+                self.catchall_alias
+                and gemelo.catchall_alias == self.catchall_alias
+            ):
                 raise ValidationError(
                     'El alias catchall %s ya se usa en otro dominio con el '
-                    'mismo nombre.' % self.catchall_email)
+                    'mismo nombre.'
+                    % self.catchall_email
+                )
 
         # Odoo busca por parte izquierda para acotar y luego filtra por la
         # derecha (líneas 100-109). Aquí se filtra por la dirección completa,
         # que ``MailAlias`` almacena en ``alias_full_name`` — mismo resultado,
         # una consulta menos.
-        existente = (MailAlias.objects
-                     .filter(alias_full_name__in=propios)
-                     .exclude(alias_domain__isnull=True)
-                     .first())
+        existente = (
+            MailAlias.objects.filter(alias_full_name__in=propios)
+            .exclude(alias_domain__isnull=True)
+            .first()
+        )
         if existente is not None:
             raise ValidationError(
                 "El bounce/catchall '%s' ya está en uso. Elige otro alias o "
-                "cámbialo en el modelo enlazado." % existente.display_name)
+                "cámbialo en el modelo enlazado."
+                % existente.display_name
+            )
 
     # -- Saneo de la configuración (Odoo _sanitize_configuration) -----------
 
@@ -222,22 +256,31 @@ class MailAliasDomain(TimeStampedModel):
         if config_values.get('name'):
             config_values['name'] = sanear(config_values['name'])
         if config_values.get('bounce_alias'):
-            config_values['bounce_alias'] = sanear(config_values['bounce_alias'])
+            config_values['bounce_alias'] = sanear(
+                config_values['bounce_alias']
+            )
         if config_values.get('catchall_alias'):
-            config_values['catchall_alias'] = sanear(config_values['catchall_alias'])
+            config_values['catchall_alias'] = sanear(
+                config_values['catchall_alias']
+            )
         if config_values.get('default_from'):
             config_values['default_from'] = sanear(
-                config_values['default_from'], is_email=True)
+                config_values['default_from'], is_email=True
+            )
         return config_values
 
     def save(self, *args, **kwargs):
-        """Sanea antes de guardar (Odoo lo hace en ``create`` y en ``write``)."""
-        saneado = self.sanitize_configuration({
-            'name': self.name,
-            'bounce_alias': self.bounce_alias,
-            'catchall_alias': self.catchall_alias,
-            'default_from': self.default_from,
-        })
+        """
+        Sanea antes de guardar (Odoo lo hace en ``create`` y en ``write``).
+        """
+        saneado = self.sanitize_configuration(
+            {
+                'name': self.name,
+                'bounce_alias': self.bounce_alias,
+                'catchall_alias': self.catchall_alias,
+                'default_from': self.default_from,
+            }
+        )
         self.name = saneado['name'] or self.name
         self.bounce_alias = saneado['bounce_alias'] or self.bounce_alias
         self.catchall_alias = saneado['catchall_alias'] or self.catchall_alias
@@ -265,16 +308,26 @@ class MailAliasDomain(TimeStampedModel):
         alias_de_dominio = set()
         for d in dominios:
             alias_de_dominio.update(
-                x for x in (d.bounce_email, d.catchall_email, d.default_from_email) if x)
+                x
+                for x in (
+                    d.bounce_email,
+                    d.catchall_email,
+                    d.default_from_email,
+                )
+                if x
+            )
 
         # Dominios permitidos como catchall, de SystemParameter
         # (Odoo: ir.config_parameter 'mail.catchall.domain.allowed').
-        permitidos_raw = SystemParameter.get_param('mail.catchall.domain.allowed') or ''
+        permitidos_raw = (
+            SystemParameter.get_param('mail.catchall.domain.allowed') or ''
+        )
         permitidos = set(filter(None, permitidos_raw.split(',')))
         if permitidos:
             permitidos.update(d.name for d in dominios)
             partes_locales = [
-                e.partition('@')[0] for e in filtrados
+                e.partition('@')[0]
+                for e in filtrados
                 if e.partition('@')[2] in permitidos
             ]
         else:
@@ -282,12 +335,16 @@ class MailAliasDomain(TimeStampedModel):
 
         candidatos = MailAlias.objects.filter(
             models.Q(alias_full_name__in=filtrados)
-            | models.Q(alias_name__in=partes_locales, alias_incoming_local=True)
+            | models.Q(
+                alias_name__in=partes_locales, alias_incoming_local=True
+            )
         )
         # Los alias globales casan por nombre completo.
         alias_de_dominio.update(
-            a.alias_full_name for a in candidatos
-            if not a.alias_incoming_local and a.alias_full_name)
+            a.alias_full_name
+            for a in candidatos
+            if not a.alias_incoming_local and a.alias_full_name
+        )
         # Los locales casan por parte izquierda + validación del dominio.
         locales = {a.alias_name for a in candidatos if a.alias_incoming_local}
 
@@ -297,6 +354,8 @@ class MailAliasDomain(TimeStampedModel):
                 res.append(email)
                 continue
             parte_local, _, dominio = email.partition('@')
-            if parte_local in locales and (not permitidos or dominio in permitidos):
+            if parte_local in locales and (
+                not permitidos or dominio in permitidos
+            ):
                 res.append(email)
         return res

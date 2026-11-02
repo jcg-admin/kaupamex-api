@@ -1,14 +1,16 @@
 """
 Mapeo de estados del **Orders API** de MercadoPago al vocabulario interno.
 
-El Orders API NO devuelve ``approved``/``rejected``/``pending`` como el Payments
+El Orders API NO devuelve ``approved``/``rejected``/``pending`` como el
+Payments
 API: devuelve ``status`` de order/payment (``created``/``processed``/
 ``action_required``/``processing``/``canceled``/``failed``/``refunded``/
 ``charged_back``) + un ``status_detail`` anidado (``accredited``,
 ``waiting_payment``, ``pending_challenge``, ``cc_rejected_*``, …).
 
 El mapa Payments-era (``mercadopago.py`` ``MP_STATUS_MAP``) cae al default
-``pending`` para TODOS estos, clasificando un cobro ``processed/accredited`` como
+``pending`` para TODOS estos, clasificando un cobro ``processed/accredited``
+como
 ``pending``. Este modulo construye el mapa correcto para Orders.
 
 Vocabulario interno (``PaymentResult.status``): ``approved`` / ``rejected`` /
@@ -34,17 +36,18 @@ IN_PROCESS = 'in_process'
 # clasifica ``rejected`` a nivel de resultado de pago; el ciclo de disputa lo
 # gestiona la iniciativa gestionar-contracargos.
 _ORDER_PAYMENT_STATUS = {
-    'created':        PENDING,
-    'processed':      APPROVED,
-    'processing':     IN_PROCESS,
+    'created': PENDING,
+    'processed': APPROVED,
+    'processing': IN_PROCESS,
     'action_required': PENDING,
-    'canceled':       REJECTED,
-    'failed':         REJECTED,
-    'refunded':       APPROVED,
-    'charged_back':   REJECTED,
+    'canceled': REJECTED,
+    'failed': REJECTED,
+    'refunded': APPROVED,
+    'charged_back': REJECTED,
 }
 
-# ``status_detail`` accionables bajo ``action_required`` (siguen siendo PENDING).
+# ``status_detail`` accionables bajo ``action_required`` (siguen siendo
+# PENDING).
 _CHALLENGE_DETAIL = 'pending_challenge'
 _OFFLINE_PAYMENT_DETAIL = 'waiting_payment'
 _DEFERRED_CAPTURE_DETAIL = 'waiting_capture'
@@ -52,24 +55,27 @@ _DEFERRED_CAPTURE_DETAIL = 'waiting_capture'
 # ``status_detail`` de rechazo (``status = failed``) -> motivo legible para el
 # mensaje al usuario. Equivalente Orders de los ``cc_rejected_*`` de Payments.
 ORDER_REJECT_REASONS = {
-    'bad_filled_card_data':        'Datos de tarjeta incorrectos.',
-    'invalid_card_token':          'Token de tarjeta incorrecto.',
-    'high_risk':                   'Rechazado por prevención de fraude.',
-    'rejected_by_issuer':          'Rechazado por el emisor (se requería autorización).',
+    'bad_filled_card_data': 'Datos de tarjeta incorrectos.',
+    'invalid_card_token': 'Token de tarjeta incorrecto.',
+    'high_risk': 'Rechazado por prevención de fraude.',
+    'rejected_by_issuer': (
+        'Rechazado por el emisor (se requería autorización).'
+    ),
     'required_call_for_authorize': 'Rechazado por el emisor de la tarjeta.',
-    'max_attempts_exceeded':       'Rechazado por exceder el máximo de intentos.',
-    'card_disabled':               'La tarjeta está deshabilitada.',
-    'card_insufficient_amount':    'Fondos insuficientes.',
-    'amount_limit_exceeded':       'El monto excede el límite de la tarjeta.',
-    'invalid_installments':        'Cuotas inválidas.',
-    'processing_error':            'Error de procesamiento.',
+    'max_attempts_exceeded': 'Rechazado por exceder el máximo de intentos.',
+    'card_disabled': 'La tarjeta está deshabilitada.',
+    'card_insufficient_amount': 'Fondos insuficientes.',
+    'amount_limit_exceeded': 'El monto excede el límite de la tarjeta.',
+    'invalid_installments': 'Cuotas inválidas.',
+    'processing_error': 'Error de procesamiento.',
 }
 
 _DEFAULT_REJECT_REASON = 'El pago fue rechazado.'
 
 
 def map_order_payment_status(status: str, status_detail: str = '') -> str:
-    """Mapea el ``status`` de un ``payments[]`` de Orders al vocabulario interno.
+    """
+    Mapea el ``status`` de un ``payments[]`` de Orders al vocabulario interno.
 
     ``status`` es la clave primaria; ``status_detail`` solo refina el motivo de
     rechazo o el tipo de pendiente (no cambia la clase interna). Un ``status``
@@ -103,4 +109,6 @@ def awaiting_deferred_capture(status_detail: str = '') -> bool:
 
 def reject_reason(status_detail: str = '') -> str:
     """Motivo legible de un rechazo (``status = failed``) para el usuario."""
-    return ORDER_REJECT_REASONS.get((status_detail or '').strip(), _DEFAULT_REJECT_REASON)
+    return ORDER_REJECT_REASONS.get(
+        (status_detail or '').strip(), _DEFAULT_REJECT_REASON
+    )

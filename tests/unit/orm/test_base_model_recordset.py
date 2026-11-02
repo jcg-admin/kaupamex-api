@@ -80,6 +80,7 @@ Ninguno de los 14 homónimos que el censo del banco marcó ``STACK`` se reusa:
 el nombre coincide y el comportamiento no, que es el sub-patrón C de
 ``metrica-decide-la-conclusion.md``.
 """
+
 import collections.abc
 import operator
 
@@ -94,7 +95,8 @@ from tools.constants import PREFETCH_MAX
 
 
 class RecordsetProbe(BaseModel):
-    """Sonda del núcleo: declara ``_name`` porque es el caso que la fuente cubre.
+    """
+    Sonda del núcleo: declara ``_name`` porque es el caso que la fuente cubre.
 
     ``orm.registry.name_of`` lee ``__dict__`` y devuelve ``None`` para un
     modelo que no declara ``_name``; la referencia siempre lo tiene, así que
@@ -148,12 +150,15 @@ class TestBaseModelIsTheBaseTheModelsDeriveFrom:
         assert not isinstance(empty, QuerySet)
 
     def test_the_three_slots_of_the_reference_are_present(self, empty):
-        # odoo19c: odoo/orm/models.py:362 -> __slots__ = ['env','_ids','_prefetch_ids']
+        # odoo19c: odoo/orm/models.py:362 -> __slots__ =
+        # ['env','_ids','_prefetch_ids']
         assert empty.env is not None
         assert empty._ids == ()
         assert empty._prefetch_ids == ()
 
-    def test_from_ids_does_not_go_through_django_row_construction(self, ambient):
+    def test_from_ids_does_not_go_through_django_row_construction(
+        self, ambient
+    ):
         # django/db/models/base.py:604 -> new = cls(*values); la terna no puede
         # pasar por ahi. _from_ids asigna sin invocar Model.__init__.
         rs = RecordsetProbe._from_ids(ambient, (7,), (7,))
@@ -213,7 +218,9 @@ class TestEnsureOne:
         # El mensaje se ancla al repr del recordset, no al `ids=(...)` del
         # descriptor de `id`: los dos dicen "Expected singleton", asi que sin
         # el ancla el caso no distingue quien lo lanzo.
-        with pytest.raises(ValueError, match=r'Expected singleton: orm\.recordset\.probe'):
+        with pytest.raises(
+            ValueError, match=r'Expected singleton: orm\.recordset\.probe'
+        ):
             empty.browse([7, 18]).ensure_one()
 
     def test_empty_also_raises(self, empty):
@@ -240,12 +247,15 @@ class TestIteration:
     def test_the_order_is_the_order_of_ids(self, empty):
         assert [r._ids[0] for r in empty.browse([12, 7, 18])] == [12, 7, 18]
 
-    def test_below_the_cut_every_record_shares_the_prefetch_object(self, empty):
+    def test_below_the_cut_every_record_shares_the_prefetch_object(
+        self, empty
+    ):
         rs = empty.browse([7, 18])
         assert all(r._prefetch_ids is rs._prefetch_ids for r in rs)
 
     def test_above_the_cut_the_prefetch_is_split(self, empty):
-        # size > PREFETCH_MAX and prefetch_ids is ids -> split_every(PREFETCH_MAX, ids)
+        # size > PREFETCH_MAX and prefetch_ids is ids ->
+        # split_every(PREFETCH_MAX, ids)
         rs = empty.browse(range(PREFETCH_MAX + 1))
         assert rs._prefetch_ids is rs._ids
         for rec in rs:
@@ -277,13 +287,21 @@ class TestSetOperations:
     """Todas devuelven recordsets; ninguna delega en SQL."""
 
     def test_concat_keeps_duplicates_and_order(self, empty):
-        assert empty.browse([7]).concat(empty.browse([7, 18]))._ids == (7, 7, 18)
+        assert empty.browse([7]).concat(empty.browse([7, 18]))._ids == (
+            7,
+            7,
+            18,
+        )
 
     def test_add_is_concat(self, empty):
         assert (empty.browse([7]) + empty.browse([18]))._ids == (7, 18)
 
     def test_union_deduplicates_preserving_first_occurrence(self, empty):
-        assert empty.browse([7, 18]).union(empty.browse([18, 12]))._ids == (7, 18, 12)
+        assert empty.browse([7, 18]).union(empty.browse([18, 12]))._ids == (
+            7,
+            18,
+            12,
+        )
 
     def test_or_is_union(self, empty):
         assert (empty.browse([7]) | empty.browse([7, 18]))._ids == (7, 18)
@@ -292,7 +310,10 @@ class TestSetOperations:
         assert (empty.browse([12, 7, 18]) - empty.browse([7]))._ids == (12, 18)
 
     def test_and_preserves_first_occurrence_order(self, empty):
-        assert (empty.browse([12, 7, 18]) & empty.browse([18, 12]))._ids == (12, 18)
+        assert (empty.browse([12, 7, 18]) & empty.browse([18, 12]))._ids == (
+            12,
+            18,
+        )
 
     @pytest.mark.parametrize('op', ['__add__', '__sub__', '__and__', '__or__'])
     def test_a_mismatched_model_raises(self, ambient, empty, op):
@@ -385,7 +406,8 @@ class TestIdentity:
 
     def test_str_of_a_multi_recordset_is_its_repr(self, empty):
         # Control que DISCRIMINA el override de ``__str__``. Sin el,
-        # ``Model.__str__`` de Django lee ``self.pk`` -> el descriptor de ``id``
+        # ``Model.__str__`` de Django lee ``self.pk`` -> el descriptor
+        # de ``id``
         # -> ``ValueError`` sobre un recordset de N. Medido: con el override
         # mutado a ``Model.__str__``, este caso cae y los otros 64 no.
         assert str(empty.browse([7, 18])) == "orm.recordset.probe(7, 18)"
@@ -470,7 +492,9 @@ class TestProjection:
         rs = empty.browse([12, 7, 18])
         groups = rs.grouped(lambda r: r._ids[0] % 2)
         assert set(groups) == {0, 1}
-        assert all(g._prefetch_ids is rs._prefetch_ids for g in groups.values())
+        assert all(
+            g._prefetch_ids is rs._prefetch_ids for g in groups.values()
+        )
 
 
 class TestExistsIsNotTheDjangoHomonym:

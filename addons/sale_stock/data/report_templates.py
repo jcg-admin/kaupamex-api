@@ -1,4 +1,5 @@
-"""Extensión del reporte de la orden — el análogo del Incoterm de la referencia.
+"""
+Extensión del reporte de la orden — el análogo del Incoterm de la referencia.
 
 Espeja ``odoo19c: sale_stock/report/sale_order_report_templates.xml``
 (``odoo-tools@622ddc2a``): un ``<template inherit_id="sale.report_saleorder_
@@ -10,9 +11,9 @@ layout fijo dibuja línea a línea.
 La condición ``{% if %}`` reproduce el ``t-if="doc.incoterm"`` de la fuente:
 sin dato, el campo rinde vacío y el helper no dibuja la línea.
 """
+
 from addons.base.models.ir_ui_view import VIEW_TYPE_TEMPLATE, IrUiView
 from addons.sale.data.report_templates import REPORT_SALEORDER_KEY
-
 
 #: ``key`` propia de la extensión — como el ``id`` del template heredero de la
 #: referencia (``report_saleorder_document_inherit_sale_stock``).
@@ -36,14 +37,19 @@ def seed(using=None):
     manager = IrUiView.objects.using(using) if using else IrUiView.objects
     if manager.filter(key=REPORT_INCOTERM_KEY).exists():
         return
-    primary = manager.filter(
-        key=REPORT_SALEORDER_KEY, mode='primary').order_by(
-        'priority', 'id').first()
+    primary = (
+        manager.filter(key=REPORT_SALEORDER_KEY, mode='primary')
+        .order_by('priority', 'id')
+        .first()
+    )
     if primary is None:
         return
     manager.create(
         name='Incoterm en la orden de venta (sale_stock)',
-        type=VIEW_TYPE_TEMPLATE, key=REPORT_INCOTERM_KEY,
-        mode='extension', active=True, inherit_id=primary,
+        type=VIEW_TYPE_TEMPLATE,
+        key=REPORT_INCOTERM_KEY,
+        mode='extension',
+        active=True,
+        inherit_id=primary,
         arch_db=REPORT_INCOTERM_ARCH,
     )

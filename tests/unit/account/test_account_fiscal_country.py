@@ -7,17 +7,26 @@ mecanismo ``fiscal_country_codes`` que la referencia reparte en diez clases
 Es la raíz que mantenía bloqueados los dos campos de ``l10n_mx: res_bank.py``
 y los cuatro hermanos de ``account`` — ver :ref:`h-api-360`.
 """
+
 import pytest
 
 from addons.account.models.account_fiscal_position import AccountFiscalPosition
 from addons.account.models.account_payment_term import AccountPaymentTerm
 from addons.account.models.res_company import get_fiscal_country_codes
-from addons.base.models import ResBank, ResCompany, ResCountry, ResCurrency, ResPartner
+from addons.base.models import (
+    ResBank,
+    ResCompany,
+    ResCountry,
+    ResCurrency,
+    ResPartner,
+)
 from addons.base.models.res_bank import ResPartnerBank
 from addons.product.models.product_template import ProductTemplate
 from addons.uom.models.uom_uom import Uom
 from orm.environments import (
-    activate_companies, get_current_companies, set_current_company,
+    activate_companies,
+    get_current_companies,
+    set_current_company,
 )
 
 pytestmark = pytest.mark.django_db
@@ -36,7 +45,9 @@ def test_session_field_retains_a_zero_argument_default(model, company):
         set_current_company(None)
 
 
-@pytest.mark.parametrize('model', [Uom, ProductTemplate, AccountPaymentTerm, ResPartner])
+@pytest.mark.parametrize(
+    'model', [Uom, ProductTemplate, AccountPaymentTerm, ResPartner]
+)
 def test_record_field_is_computed_without_a_default_or_column(model):
     """La declaración fijada exige cómputo, no un default que recibe self."""
     field = model._meta.get_field('fiscal_country_codes')
@@ -47,9 +58,14 @@ def test_record_field_is_computed_without_a_default_or_column(model):
 
 
 def test_fiscal_compute_separates_active_company_sets(company, spain):
-    """Cambiar el conjunto con la misma compañía principal no reutiliza caché."""
+    """
+    Cambiar el conjunto con la misma compañía principal no reutiliza caché.
+    """
     other = ResCompany.objects.create(
-        code='fiscal-context-es', name='Context ES', account_fiscal_country=spain)
+        code='fiscal-context-es',
+        name='Context ES',
+        account_fiscal_country=spain,
+    )
     previous = get_current_companies()
     record = Uom()
     try:
@@ -75,8 +91,9 @@ def spain():
 
 @pytest.fixture
 def company(mexico):
-    return ResCompany.objects.create(code='fiscal-mx', name='Fiscal MX',
-                                     account_fiscal_country=mexico)
+    return ResCompany.objects.create(
+        code='fiscal-mx', name='Fiscal MX', account_fiscal_country=mexico
+    )
 
 
 class TestAccountFiscalCountry:
@@ -99,7 +116,8 @@ class TestAccountFiscalCountry:
         assert company.compute_account_tax_fiscal_country() == mexico
 
     def test_the_resolver_does_not_overwrite_an_explicit_value(
-            self, company, spain):
+        self, company, spain
+    ):
         """La referencia lo declara ``readonly=False``: lo puesto persiste."""
         assert company.compute_account_tax_fiscal_country() != spain
         company.account_fiscal_country = spain
@@ -111,7 +129,8 @@ class TestFiscalCountryGroupCodes:
 
     def test_returns_the_groups_of_its_fiscal_country(self, spain):
         company = ResCompany.objects.create(
-            code='fiscal-es', name='Fiscal ES', account_fiscal_country=spain)
+            code='fiscal-es', name='Fiscal ES', account_fiscal_country=spain
+        )
         assert 'EU' in company.account_fiscal_country_group_codes
 
     def test_returns_a_list_with_an_empty_string_when_there_is_none(self):
@@ -127,19 +146,25 @@ class TestEnabledTaxCountries:
         assert mexico in company.get_account_enabled_tax_countries()
 
     def test_includes_the_countries_of_its_foreign_vat_positions(
-            self, company, spain):
+        self, company, spain
+    ):
         """Una empresa registrada para IVA en otro país usa sus impuestos."""
         AccountFiscalPosition.objects.create(
-            company=company, name='IVA España', country=spain,
+            company=company,
+            name='IVA España',
+            country=spain,
             foreign_vat='ESX1234567',
         )
         enabled = company.get_account_enabled_tax_countries()
         assert spain in enabled
 
     def test_a_position_without_foreign_vat_does_not_enable_its_country(
-            self, company, spain):
+        self, company, spain
+    ):
         AccountFiscalPosition.objects.create(
-            company=company, name='Sin VAT propio', country=spain,
+            company=company,
+            name='Sin VAT propio',
+            country=spain,
         )
         assert spain not in company.get_account_enabled_tax_countries()
 
@@ -155,22 +180,30 @@ class TestFiscalCountryCodes:
             set_current_company(None)
 
     def test_the_helper_preserves_the_order_of_the_companies(
-            self, company, spain):
-        """``mapped`` respeta el orden del recordset; un ``pk__in`` lo perdería."""
+        self, company, spain
+    ):
+        """
+        ``mapped`` respeta el orden del recordset; un ``pk__in`` lo perdería.
+        """
         other = ResCompany.objects.create(
-            code='fiscal-es2', name='Fiscal ES2', account_fiscal_country=spain)
+            code='fiscal-es2', name='Fiscal ES2', account_fiscal_country=spain
+        )
         assert get_fiscal_country_codes([company.pk, other.pk]) == 'MX,ES'
         assert get_fiscal_country_codes([other.pk, company.pk]) == 'ES,MX'
 
     def test_a_company_without_fiscal_country_contributes_nothing(
-            self, company):
+        self, company
+    ):
         empty = ResCompany.objects.create(code='vacia', name='Vacía')
         assert get_fiscal_country_codes([company.pk, empty.pk]) == 'MX'
 
     @pytest.mark.parametrize('model', [ResBank, ResPartnerBank, ResCurrency])
     def test_the_session_shape_is_hung_on_its_three_models(
-            self, model, company):
-        """≙ ``res_currency.py`` y las dos clases de ``l10n_mx: res_bank.py``."""
+        self, model, company
+    ):
+        """
+        ≙ ``res_currency.py`` y las dos clases de ``l10n_mx: res_bank.py``.
+        """
         set_current_company(company.pk)
         try:
             assert model().fiscal_country_codes == 'MX'
@@ -178,16 +211,20 @@ class TestFiscalCountryCodes:
             set_current_company(None)
 
     def test_the_record_shape_prefers_the_company_of_the_record(
-            self, company, spain):
+        self, company, spain
+    ):
         """≙ ``product.py``/``account_payment_term.py``: ``record.company_id
         or self.env.companies``."""
         other = ResCompany.objects.create(
-            code='fiscal-es3', name='Fiscal ES3', account_fiscal_country=spain)
+            code='fiscal-es3', name='Fiscal ES3', account_fiscal_country=spain
+        )
         term = AccountPaymentTerm.objects.create(name='30 días', company=other)
         set_current_company(company.pk)
         try:
             assert term.fiscal_country_codes == 'ES'
-            assert AccountPaymentTerm(company=None).fiscal_country_codes == 'MX'
+            assert (
+                AccountPaymentTerm(company=None).fiscal_country_codes == 'MX'
+            )
         finally:
             set_current_company(None)
 

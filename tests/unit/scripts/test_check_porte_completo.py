@@ -10,6 +10,7 @@ El positivo conocido es ``base_sparse_field``: instala cuatro símbolos sobre
 ``base.IrModelFields`` desde ``ready()``, y antes de #316 el gate los
 reportaba como clase ausente.
 """
+
 import ast
 import contextlib
 import importlib.util
@@ -20,26 +21,39 @@ import pytest
 
 REPO = pathlib.Path(__file__).resolve().parents[3]
 _spec = importlib.util.spec_from_file_location(
-    'check_porte_completo', REPO / 'scripts' / 'check_porte_completo.py')
+    'check_porte_completo', REPO / 'scripts' / 'check_porte_completo.py'
+)
 gate = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gate)
 
 
 def _llamada(codigo):
     """El primer ``ast.Call`` de un fragmento."""
-    return next(n for n in ast.walk(ast.parse(codigo)) if isinstance(n, ast.Call))
+    return next(
+        n for n in ast.walk(ast.parse(codigo)) if isinstance(n, ast.Call)
+    )
 
 
 # --- las tres formas de instalación que el árbol usa hoy -------------------
 
 
-@pytest.mark.parametrize('codigo, esperado', [
-    ("chain_method(IrModelFields, 'save', guardia)", ('IrModelFields', 'save')),
-    ("ResBank.add_to_class('l10n_mx_edi_code', campo)",
-     ('ResBank', 'l10n_mx_edi_code')),
-    ("_add_if_absent(ResCompany, 'chart_template', campo)",
-     ('ResCompany', 'chart_template')),
-])
+@pytest.mark.parametrize(
+    'codigo, esperado',
+    [
+        (
+            "chain_method(IrModelFields, 'save', guardia)",
+            ('IrModelFields', 'save'),
+        ),
+        (
+            "ResBank.add_to_class('l10n_mx_edi_code', campo)",
+            ('ResBank', 'l10n_mx_edi_code'),
+        ),
+        (
+            "_add_if_absent(ResCompany, 'chart_template', campo)",
+            ('ResCompany', 'chart_template'),
+        ),
+    ],
+)
 def test_the_three_installation_forms_are_read(codigo, esperado):
     assert gate._destino_y_clave(_llamada(codigo)) == esperado
 
@@ -50,14 +64,19 @@ def test_a_call_that_is_not_an_installation_is_ignored():
 
 def test_a_non_literal_symbol_name_is_ignored():
     """Sin cadena constante no hay nombre que atribuir — el lado seguro."""
-    assert gate._destino_y_clave(
-        _llamada('chain_method(C, nombre, f)')) == (None, None)
+    assert gate._destino_y_clave(_llamada('chain_method(C, nombre, f)')) == (
+        None,
+        None,
+    )
 
 
 def test_a_variable_receiver_yields_no_class():
-    """``_add_if_absent(model, …)`` dentro de un bucle: el AST ve la variable."""
+    """
+    ``_add_if_absent(model, …)`` dentro de un bucle: el AST ve la variable.
+    """
     destino, clave = gate._destino_y_clave(
-        _llamada("_add_if_absent(model, 'is_published', campo)"))
+        _llamada("_add_if_absent(model, 'is_published', campo)")
+    )
     assert destino == 'model'
     assert destino in gate._RECEPTOR_NO_RESOLUBLE
     assert clave == 'is_published'
@@ -85,18 +104,25 @@ def test_the_real_addon_declares_its_installations():
     assert raiz is not None, 'base_sparse_field no se resuelve en ninguna raíz'
     mapa, no_resolubles = gate.addon_installations(raiz)
     assert mapa[gate.normaliza('IrModelFields')] == {
-        '_reflect_fields', 'save', 'serialization_field_id', 'ttype_for',
-        'write'}
+        '_reflect_fields',
+        'save',
+        'serialization_field_id',
+        'ttype_for',
+        'write',
+    }
     assert no_resolubles == 0
 
 
 def test_the_underscore_of_the_reference_normalizes_away():
-    """``_reflect_fields`` de la referencia casa con nuestro ``reflect_fields``.
+    """
+    ``_reflect_fields`` de la referencia casa con nuestro ``reflect_fields``.
 
     Es la resolución concreta que la tarea #314 necesitaba: sin ella el gate
     seguiría reportando ausente un método portado.
     """
-    assert gate.normaliza('_reflect_fields') == gate.normaliza('reflect_fields')
+    assert gate.normaliza('_reflect_fields') == gate.normaliza(
+        'reflect_fields'
+    )
 
 
 # --- el eje del guion bajo: aplanar para casar, discriminar para medir ------
@@ -118,25 +144,30 @@ class TestDespromovido:
     def test_the_public_name_where_the_reference_declares_a_private_one(self):
         assert gate._despromovido(
             '_prepare_rendering_values',
-            {'_prepare_rendering_values'}, {'prepare_rendering_values'})
+            {'_prepare_rendering_values'},
+            {'prepare_rendering_values'},
+        )
 
     def test_a_public_symbol_of_the_reference_is_never_a_demotion(self):
         """Sin guion bajo en la fuente no hay visibilidad que perder."""
-        assert not gate._despromovido('action_close', {'action_close'},
-                                      {'action_close'})
+        assert not gate._despromovido(
+            'action_close', {'action_close'}, {'action_close'}
+        )
 
-    def test_a_reference_that_declares_both_is_a_partial_port_not_a_demotion(self):
+    def test_a_reference_that_declares_both_is_a_partial_port_not_a_demotion(
+        self,
+    ):
         """Cuando la fuente declara ``foo`` **y** ``_foo``, tener solo el
         publico es porte PARCIAL — otro instrumento lo mide. Contarlo aqui
         tambien inflaria el hallazgo con el mismo defecto dos veces."""
         assert not gate._despromovido(
-            '_action_done', {'action_done', '_action_done'}, {'action_done'})
+            '_action_done', {'action_done', '_action_done'}, {'action_done'}
+        )
 
     def test_declaring_both_here_means_the_private_one_is_ported(self):
         """Si el privado esta, lo publico es un anadido nuestro, no una
         promocion de lo reservado."""
-        assert not gate._despromovido(
-            '_post', {'_post'}, {'_post', 'post'})
+        assert not gate._despromovido('_post', {'_post'}, {'_post', 'post'})
 
     def test_a_symbol_absent_here_is_a_gap_not_a_demotion(self):
         """Ausente entero lo mide ``MÉTODOS AUSENTES``; aqui no cuenta."""
@@ -144,7 +175,8 @@ class TestDespromovido:
 
 
 def test_the_baseline_freezes_inherited_demotions_and_nothing_else():
-    """El baseline se lee, tiene contenido, y sus lineas son ``Clase::_metodo``.
+    """
+    El baseline se lee, tiene contenido, y sus lineas son ``Clase::_metodo``.
 
     Un baseline vacio absolveria por accidente todo lo que el gate empieza a
     ver, que es el modo en que un congelado se vuelve una amnistia.
@@ -170,23 +202,25 @@ def test_a_class_nobody_extends_is_absent():
     hay nada que absolver, así que el contador es 0 — no el hallazgo solo.
     """
     assert gate._class_without_counterpart(
-        'x', 'f.py', 'Cualquiera', {'a', 'b'}, {}) == (
-            ('x', 'f.py', 'Cualquiera', 'CLASE AUSENTE', ['a', 'b']), 0)
+        'x', 'f.py', 'Cualquiera', {'a', 'b'}, {}
+    ) == (('x', 'f.py', 'Cualquiera', 'CLASE AUSENTE', ['a', 'b']), 0)
 
 
 def test_an_extended_class_reports_only_what_is_pending():
     """Nunca absuelve: lo instalado se descuenta, el resto se lista."""
     assert gate._class_without_counterpart(
-        'x', 'f.py', 'C', {'uno', 'dos', 'tres'}, {'C': {'uno'}}) == (
-            ('x', 'f.py', 'C', 'CLASE EXTENDIDA', ['dos', 'tres']), 0)
+        'x', 'f.py', 'C', {'uno', 'dos', 'tres'}, {'C': {'uno'}}
+    ) == (('x', 'f.py', 'C', 'CLASE EXTENDIDA', ['dos', 'tres']), 0)
 
 
 def test_a_fully_covered_extension_is_not_a_finding():
     """Una extensión de sólo campos cubre entera una clase sin métodos."""
     assert gate._class_without_counterpart(
-        'x', 'f.py', 'C', set(), {'C': {'campo'}}) == (None, 0)
+        'x', 'f.py', 'C', set(), {'C': {'campo'}}
+    ) == (None, 0)
     assert gate._class_without_counterpart(
-        'x', 'f.py', 'C', {'uno'}, {'C': {'uno'}}) == (None, 0)
+        'x', 'f.py', 'C', {'uno'}, {'C': {'uno'}}
+    ) == (None, 0)
 
 
 def test_absolved_symbols_are_counted_in_the_second_value():
@@ -197,7 +231,8 @@ def test_absolved_symbols_are_counted_in_the_second_value():
     "el contador existe y funciona" de "el contador siempre es cero".
     """
     finding, absolutions = gate._class_without_counterpart(
-        'x', 'f.py', 'C', {'uno', 'dos'}, {}, absueltos={'uno'})
+        'x', 'f.py', 'C', {'uno', 'dos'}, {}, absueltos={'uno'}
+    )
     assert finding == ('x', 'f.py', 'C', 'CLASE AUSENTE', ['dos'])
     assert absolutions == 1
 
@@ -241,8 +276,11 @@ def test_a_scoped_run_names_no_entry_as_dead():
     acotado. Entonces la línea nombra entradas de otros addons y el caso cae.
     """
     salida = _correr('--addon', 'base')
-    registro = [l for l in salida.splitlines()
-                if l.startswith('divergencias declaradas:')]
+    registro = [
+        item
+        for item in salida.splitlines()
+        if item.startswith('divergencias declaradas:')
+    ]
     assert len(registro) == 1, salida
     claves = gate.load_divergences()
     assert claves, 'el registro está vacío: el caso no mediría nada'
@@ -257,8 +295,11 @@ def test_a_scoped_run_names_the_scope_of_its_count():
     es exactamente el defecto, con o sin la lista.
     """
     salida = _correr('--addon', 'base')
-    registro = next(l for l in salida.splitlines()
-                    if l.startswith('divergencias declaradas:'))
+    registro = next(
+        item
+        for item in salida.splitlines()
+        if item.startswith('divergencias declaradas:')
+    )
     assert 'tocadas por el recorrido' in registro, registro
     assert '--addon base' in registro, registro
     assert 'de 248 entrada(s) vivas' not in registro, registro
@@ -275,8 +316,10 @@ class TestASiteScopedAliasAbsolvesOnlyItsSite:
     """
 
     def test_the_declared_site_resolves_to_its_installed_name(self):
-        assert gate.normaliza_en(
-            'ir_ui_view.py', 'IrUiView', 'save') == 'save_from_html'
+        assert (
+            gate.normaliza_en('ir_ui_view.py', 'IrUiView', 'save')
+            == 'save_from_html'
+        )
 
     def test_the_same_symbol_elsewhere_keeps_its_own_name(self):
         # Otro archivo, misma clase.
@@ -284,12 +327,15 @@ class TestASiteScopedAliasAbsolvesOnlyItsSite:
         # Mismo archivo, otra clase.
         assert gate.normaliza_en('ir_ui_view.py', 'IrModel', 'save') == 'save'
         # Mismo sitio, otro símbolo.
-        assert gate.normaliza_en('ir_ui_view.py', 'IrUiView', 'write') == 'write'
+        assert (
+            gate.normaliza_en('ir_ui_view.py', 'IrUiView', 'write') == 'write'
+        )
 
     def test_without_a_site_entry_it_matches_normaliza(self):
         for name in ('_compute_display_name', 'write', 'action_set_manual'):
-            assert gate.normaliza_en('cualquiera.py', 'Cualquiera', name) == \
-                gate.normaliza(name)
+            assert gate.normaliza_en(
+                'cualquiera.py', 'Cualquiera', name
+            ) == gate.normaliza(name)
 
     def test_the_class_key_flattens_the_separator_of_the_source(self):
         """La llave usa ``class_key``, no el literal.

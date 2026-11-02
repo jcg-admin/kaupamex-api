@@ -11,11 +11,14 @@ verifica comportamiento portado (no hay ninguno): verifica que el bloqueo
 sigue siendo cierto, para que este archivo no quede desactualizado en
 silencio si algún día las dos piezas aparecen.
 """
+
 import inspect
 
 import pytest
 
-from addons.account.models.account_analytic_account import apply_account_extensions
+from addons.account.models.account_analytic_account import (
+    apply_account_extensions,
+)
 from addons.account.models.account_move import AccountMove
 from addons.account.models.account_move_line import AccountMoveLine
 from addons.analytic.models import AccountAnalyticAccount
@@ -63,7 +66,8 @@ class TestThePremiseOfTheBlockIsStillTrue:
     def test_account_move_line_now_declares_analytic_distribution(self):
         """Reescrito, no ajustado: antes exigía su ausencia (tarea #526).
 
-        El campo no se declara suelto: llega por herencia de ``analytic.mixin``,
+        El campo no se declara suelto: llega por herencia de
+        ``analytic.mixin``,
         que es como la fuente lo tiende. Por eso el caso mide las dos cosas —
         la columna y su procedencia.
         """

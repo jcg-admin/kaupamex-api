@@ -41,11 +41,17 @@ Los controles, cada uno con lo que lo haria fallar
     CONTROL del filtro ``mode='primary'``: la de extension tiene prioridad
     MENOR en el caso, asi que un ``default_view`` sin ese filtro la elegiria.
 """
+
 import pytest
 from django.contrib.auth import get_user_model
 
 from addons.base.models.ir_ui_view import (
-    IrUiView, IrUiViewCustom, RESET_HARD, RESET_SOFT, ResetViewArchWizard)
+    IrUiView,
+    IrUiViewCustom,
+    RESET_HARD,
+    RESET_SOFT,
+    ResetViewArchWizard,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -55,8 +61,13 @@ FORM_V3 = '<form><field name="login"/></form>'
 
 
 def _view(**extra):
-    data = dict(name='vista de prueba', model='res.partner', type='form',
-                arch_db=FORM, mode='primary')
+    data = dict(
+        name='vista de prueba',
+        model='res.partner',
+        type='form',
+        arch_db=FORM,
+        mode='primary',
+    )
     data.update(extra)
     view = IrUiView(**data)
     view.save()
@@ -64,7 +75,9 @@ def _view(**extra):
 
 
 class TestArchPrev:
-    """≙ ``create:626`` y ``write:657-658`` — los dos sitios que la escriben."""
+    """
+    ≙ ``create:626`` y ``write:657-658`` — los dos sitios que la escriben.
+    """
 
     def test_the_arch_of_the_creation_is_its_own_previous(self, db):
         view = _view()
@@ -134,7 +147,9 @@ class TestReset:
         view.refresh_from_db()
         assert view.arch_db == FORM_V2, 'volvio dos pasos, no uno'
 
-    def test_the_soft_reset_does_not_save_the_broken_arch_as_previous(self, db):
+    def test_the_soft_reset_does_not_save_the_broken_arch_as_previous(
+        self, db
+    ):
         """``no_save_prev`` — el arch roto no se guarda como copia."""
         view = _view()
         view.arch_db = FORM_V2
@@ -168,7 +183,8 @@ class TestCustomCleanup:
     def test_writing_the_arch_drops_the_customisations(self, db):
         view = _view()
         who = get_user_model().objects.create_user(
-            login='custom.uno@kaupamex.mx', password='ViewCustom123!')
+            login='custom.uno@kaupamex.mx', password='ViewCustom123!'
+        )
         custom = IrUiViewCustom(ref_id=view, user=who, arch='<form/>')
         custom.save()
         view.arch_db = FORM_V2
@@ -176,10 +192,13 @@ class TestCustomCleanup:
         assert not IrUiViewCustom.objects.filter(pk=custom.pk).exists()
 
     def test_a_write_without_arch_keeps_them(self, db):
-        """CONTROL — la fuente las borra en CADA write; medido, tambien aqui."""
+        """
+        CONTROL — la fuente las borra en CADA write; medido, tambien aqui.
+        """
         view = _view()
         who = get_user_model().objects.create_user(
-            login='custom.dos@kaupamex.mx', password='ViewCustom123!')
+            login='custom.dos@kaupamex.mx', password='ViewCustom123!'
+        )
         custom = IrUiViewCustom(ref_id=view, user=who, arch='<form/>')
         custom.save()
         view.name = 'otro nombre'
@@ -198,8 +217,7 @@ class TestDefaultView:
     def test_an_extension_view_is_never_the_default(self, db):
         """CONTROL del filtro ``mode='primary'``."""
         padre = _view(name='primaria', priority=20)
-        _view(name='extension', priority=1, mode='extension',
-              inherit_id=padre)
+        _view(name='extension', priority=1, mode='extension', inherit_id=padre)
         assert IrUiView.default_view('res.partner', 'form') == padre.pk
 
     def test_without_any_view_there_is_no_default(self, db):

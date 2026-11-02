@@ -1,6 +1,9 @@
-"""``base_address_extended`` — los símbolos que la fuente cuelga de ``res.partner``.
+"""
+``base_address_extended`` — los símbolos que la fuente cuelga de
+``res.partner``.
 
-``_address_fields`` (``odoo19c: base_address_extended/models/res_partner.py:20``),
+``_address_fields`` (``odoo19c:
+base_address_extended/models/res_partner.py:20``),
 ``_onchange_city_id`` (``:47``), ``_onchange_country_id`` (``:58``),
 ``_get_res_city_by_name`` (``:64``), los tres de la calle (``:24``, ``:32``,
 ``:39``) y ``ResCity._compute_display_name`` (``res_city.py:17``).
@@ -10,6 +13,7 @@ declara. El almacén difiere —``city_id`` y las tres partes viven en el RELATE
 ``AddressStructured`` (DEC-SALE-01)— y esa travesía es justo lo que estos casos
 fijan.
 """
+
 import pytest
 
 from addons.base.models import ResCountry, ResCountryState, ResPartner
@@ -28,20 +32,25 @@ def mexico():
     archivo hermano ``test_base_address_extended.py``.
     """
     return ResCountry.objects.get_or_create(
-        code='MX', defaults={'name': 'México'})[0]
+        code='MX', defaults={'name': 'México'}
+    )[0]
 
 
 @pytest.fixture
 def jalisco(mexico):
     return ResCountryState.objects.create(
-        country=mexico, name='Jalisco', code='JAL')
+        country=mexico, name='Jalisco', code='JAL'
+    )
 
 
 @pytest.fixture
 def guadalajara(mexico, jalisco):
     return ResCity.objects.create(
-        name='Guadalajara', zipcode='44100', country_id=mexico,
-        state_id=jalisco)
+        name='Guadalajara',
+        zipcode='44100',
+        country_id=mexico,
+        state_id=jalisco,
+    )
 
 
 class TestAddressFields:
@@ -54,8 +63,14 @@ class TestAddressFields:
     def test_the_six_fields_of_base_survive(self):
         """ACUMULA: el terminal de ``base`` conserva los suyos."""
         campos = ResPartner._address_fields()
-        for esperado in ('street', 'street2', 'zip', 'city', 'state',
-                         'country'):
+        for esperado in (
+            'street',
+            'street2',
+            'zip',
+            'city',
+            'state',
+            'country',
+        ):
             assert esperado in campos
 
     def test_city_id_goes_last_like_the_source(self):
@@ -102,7 +117,8 @@ class TestOnchangeCityId:
         assert partner.state == guadalajara.state_id
 
     def test_clearing_the_city_clears_the_three_on_a_saved_partner(
-            self, guadalajara):
+        self, guadalajara
+    ):
         """La rama ``elif self._origin`` de la fuente — aquí ``self.pk``."""
         partner = ResPartner.objects.create(name='Zapatería El Andar')
         partner.city_id = guadalajara
@@ -120,9 +136,11 @@ class TestOnchangeCountryId:
     """``_onchange_country_id`` — ≙ ``:58-62``, con el ``super()`` delante."""
 
     def test_changing_country_drops_a_city_of_another_country(
-            self, guadalajara):
+        self, guadalajara
+    ):
         otro = ResCountry.objects.get_or_create(
-            code='GT', defaults={'name': 'Guatemala'})[0]
+            code='GT', defaults={'name': 'Guatemala'}
+        )[0]
         partner = ResPartner.objects.create(name='Café La Ceiba')
         partner.city_id = guadalajara
         partner.country = otro
@@ -147,7 +165,8 @@ class TestOnchangeCountryId:
         no invocara ``previous()``, el estado de otro país sobreviviría.
         """
         otro = ResCountry.objects.get_or_create(
-            code='BZ', defaults={'name': 'Belice'})[0]
+            code='BZ', defaults={'name': 'Belice'}
+        )[0]
         partner = ResPartner.objects.create(name='Hotel Río Hondo')
         partner.state = jalisco
         partner.country = otro
@@ -161,8 +180,10 @@ class TestGetResCityByName:
     """``_get_res_city_by_name`` — ≙ ``:64-76``."""
 
     def test_finds_the_city_ignoring_case(self, mexico, guadalajara):
-        assert ResPartner._get_res_city_by_name(
-            'guadalajara', mexico) == guadalajara
+        assert (
+            ResPartner._get_res_city_by_name('guadalajara', mexico)
+            == guadalajara
+        )
 
     def test_returns_none_without_a_name(self, mexico):
         assert ResPartner._get_res_city_by_name('', mexico) is None
@@ -172,7 +193,8 @@ class TestGetResCityByName:
 
     def test_does_not_cross_country_borders(self, guadalajara):
         otro = ResCountry.objects.get_or_create(
-            code='HN', defaults={'name': 'Honduras'})[0]
+            code='HN', defaults={'name': 'Honduras'}
+        )[0]
         assert ResPartner._get_res_city_by_name('Guadalajara', otro) is None
 
 
@@ -180,8 +202,9 @@ class TestStreetOnPartner:
     """Los tres de la calle, con el receptor de la fuente."""
 
     def _with_structured(self, name='Av. Insurgentes Sur 1234 - 5B'):
-        partner = ResPartner.objects.create(name='Mueblería El Roble',
-                                            street=name)
+        partner = ResPartner.objects.create(
+            name='Mueblería El Roble', street=name
+        )
         AddressStructured.objects.create(partner=partner)
         partner.refresh_from_db()
         return partner
@@ -198,8 +221,9 @@ class TestStreetOnPartner:
         partner = self._with_structured()
         partner._compute_street_data()
 
-        assert (partner._inverse_street_data()
-                == 'Av. Insurgentes Sur 1234 - 5B')
+        assert (
+            partner._inverse_street_data() == 'Av. Insurgentes Sur 1234 - 5B'
+        )
 
     def test_get_street_split_returns_the_stored_parts(self):
         partner = self._with_structured()
@@ -217,12 +241,16 @@ class TestStreetOnPartner:
         ``base.ResPartner._get_street_split`` parte la calle al vuelo, así que
         devuelve las tres claves igual — no ``None``.
         """
-        partner = ResPartner.objects.create(name='Vidriería La Esquina',
-                                            street='Calle Falsa 123')
+        partner = ResPartner.objects.create(
+            name='Vidriería La Esquina', street='Calle Falsa 123'
+        )
         partido = partner._get_street_split()
 
-        assert set(partido) == {'street_name', 'street_number',
-                                'street_number2'}
+        assert set(partido) == {
+            'street_name',
+            'street_number',
+            'street_number2',
+        }
 
 
 class TestResCityDisplayName:

@@ -27,14 +27,20 @@ ausente y que la tarea **#256** cierra.
 - ``test_the_flag_is_per_thread`` (en el tramo 3) sigue siendo el control de
   que la anotacion no se propaga a un hilo que no la hizo.
 """
+
 import threading
 import warnings
 
 import pytest
 from django.db import connection
 
-from orm.registry import (Registry, cache_of, clear_all_caches, clear_cache,
-                          signaling_table_names)
+from orm.registry import (
+    Registry,
+    cache_of,
+    clear_all_caches,
+    clear_cache,
+    signaling_table_names,
+)
 
 
 @pytest.fixture
@@ -65,11 +71,14 @@ class TestTheSignalingTables:
         assert len(names) == 7
 
     def test_every_table_exists_in_the_schema(self, cursor):
-        """El control: sin la migracion, este caso cae y nombra la que falta."""
+        """
+        El control: sin la migracion, este caso cae y nombra la que falta.
+        """
         cursor.execute(
             "SELECT table_name FROM information_schema.tables"
             " WHERE table_name = ANY(%s) AND table_schema = current_schema",
-            [list(signaling_table_names())])
+            [list(signaling_table_names())],
+        )
         found = {row[0] for row in cursor.fetchall()}
         assert found == set(signaling_table_names())
 
@@ -77,12 +86,19 @@ class TestTheSignalingTables:
 class TestGetSequences:
     """≙ ``get_sequences`` (``:1066-1074``)."""
 
-    def test_it_returns_the_registry_sequence_and_one_per_cache(self, registry,
-                                                                cursor):
+    def test_it_returns_the_registry_sequence_and_one_per_cache(
+        self, registry, cursor
+    ):
         registry_sequence, cache_sequences = registry.get_sequences(cursor)
         assert isinstance(registry_sequence, int)
-        assert set(cache_sequences) == {'default', 'assets', 'stable',
-                                        'templates', 'routing', 'groups'}
+        assert set(cache_sequences) == {
+            'default',
+            'assets',
+            'stable',
+            'templates',
+            'routing',
+            'groups',
+        }
 
     def test_every_sequence_starts_seeded(self, registry, cursor):
         """La fuente inserta una fila al crear la tabla, para que ``max(id)``
@@ -109,8 +125,10 @@ class TestSetupSignaling:
         migraciones, asi que el metodo **avisa** en vez de crear — el mismo
         desenlace que ``check_tables_exist`` (:ref:`h-api-1057`).
         """
-        monkeypatch.setattr('orm.registry.signaling_table_names',
-                            lambda: ('orm_signaling_no_existe',))
+        monkeypatch.setattr(
+            'orm.registry.signaling_table_names',
+            lambda: ('orm_signaling_no_existe',),
+        )
         with pytest.raises(RuntimeError, match='orm_signaling_no_existe'):
             registry.setup_signaling()
 
@@ -118,8 +136,9 @@ class TestSetupSignaling:
 class TestSignalChanges:
     """≙ ``signal_changes`` (``:1110-1140``)."""
 
-    def test_it_does_nothing_when_nothing_was_invalidated(self, registry,
-                                                          cursor):
+    def test_it_does_nothing_when_nothing_was_invalidated(
+        self, registry, cursor
+    ):
         registry.ready = True
         registry.setup_signaling()
         before = registry.get_sequences(cursor)
@@ -172,7 +191,9 @@ class TestSignalChanges:
         assert registry.cache_invalidated == set()
         assert registry.registry_invalidated is False
 
-    def test_a_registry_change_bumps_the_registry_table(self, registry, cursor):
+    def test_a_registry_change_bumps_the_registry_table(
+        self, registry, cursor
+    ):
         registry.ready = True
         registry.setup_signaling()
         before, _ = registry.get_sequences(cursor)
@@ -184,8 +205,9 @@ class TestSignalChanges:
         # valor de la SERIAL, asi que ``max(id)`` no es contiguo.
         assert after > before
 
-    def test_a_registry_change_does_not_also_bump_the_caches(self, registry,
-                                                             cursor):
+    def test_a_registry_change_does_not_also_bump_the_caches(
+        self, registry, cursor
+    ):
         """La fuente lo dice en un comentario: recargar el registro implica
         arrancar con la cache vacia, asi que no se senaliza dos veces.
         """
@@ -198,8 +220,9 @@ class TestSignalChanges:
         _, after = registry.get_sequences(cursor)
         assert after == before
 
-    def test_it_warns_and_returns_when_the_registry_is_not_ready(self, registry,
-                                                                 caplog):
+    def test_it_warns_and_returns_when_the_registry_is_not_ready(
+        self, registry, caplog
+    ):
         registry.ready = False
         clear_cache('groups')
         registry.signal_changes()
@@ -210,8 +233,9 @@ class TestSignalChanges:
 class TestCheckSignaling:
     """≙ ``check_signaling`` (``:1076-1108``)."""
 
-    def test_without_changes_it_returns_the_same_registry(self, registry,
-                                                          cursor):
+    def test_without_changes_it_returns_the_same_registry(
+        self, registry, cursor
+    ):
         registry.setup_signaling()
         assert registry.check_signaling(cursor) is registry
 
@@ -242,7 +266,9 @@ class TestCheckSignaling:
         registry.check_signaling(cursor)
         assert cache_of('assets')['clave'] == 'valor'
 
-    def test_a_registry_bump_returns_a_rebuilt_registry(self, registry, cursor):
+    def test_a_registry_bump_returns_a_rebuilt_registry(
+        self, registry, cursor
+    ):
         registry.setup_signaling()
         cursor.execute("INSERT INTO orm_signaling_registry DEFAULT VALUES")
         rebuilt = registry.check_signaling(cursor)
@@ -265,11 +291,15 @@ class TestResetChanges:
         assert 'clave' not in cache_of('groups')
         assert registry.cache_invalidated == set()
 
-    def test_it_re_runs_the_setup_when_the_registry_changed(self, registry,
-                                                            monkeypatch):
+    def test_it_re_runs_the_setup_when_the_registry_changed(
+        self, registry, monkeypatch
+    ):
         seen = []
-        monkeypatch.setattr(Registry, '_setup_models__',
-                            lambda self, cr, model_names=None: seen.append(cr))
+        monkeypatch.setattr(
+            Registry,
+            '_setup_models__',
+            lambda self, cr, model_names=None: seen.append(cr),
+        )
         registry.registry_invalidated = True
         registry.reset_changes()
         assert len(seen) == 1
@@ -280,8 +310,11 @@ class TestResetChanges:
         pasaria el positivo.
         """
         seen = []
-        monkeypatch.setattr(Registry, '_setup_models__',
-                            lambda self, cr, model_names=None: seen.append(cr))
+        monkeypatch.setattr(
+            Registry,
+            '_setup_models__',
+            lambda self, cr, model_names=None: seen.append(cr),
+        )
         cache_of('groups')['clave'] = 'valor'
         registry.reset_changes()
         assert seen == []
@@ -293,10 +326,12 @@ class TestManageChanges:
 
     def test_it_signals_on_a_clean_exit(self, registry, monkeypatch):
         seen = []
-        monkeypatch.setattr(Registry, 'signal_changes',
-                            lambda self: seen.append('signal'))
-        monkeypatch.setattr(Registry, 'reset_changes',
-                            lambda self: seen.append('reset'))
+        monkeypatch.setattr(
+            Registry, 'signal_changes', lambda self: seen.append('signal')
+        )
+        monkeypatch.setattr(
+            Registry, 'reset_changes', lambda self: seen.append('reset')
+        )
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', DeprecationWarning)
             with registry.manage_changes() as yielded:
@@ -305,10 +340,12 @@ class TestManageChanges:
 
     def test_it_resets_and_re_raises_on_failure(self, registry, monkeypatch):
         seen = []
-        monkeypatch.setattr(Registry, 'signal_changes',
-                            lambda self: seen.append('signal'))
-        monkeypatch.setattr(Registry, 'reset_changes',
-                            lambda self: seen.append('reset'))
+        monkeypatch.setattr(
+            Registry, 'signal_changes', lambda self: seen.append('signal')
+        )
+        monkeypatch.setattr(
+            Registry, 'reset_changes', lambda self: seen.append('reset')
+        )
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', DeprecationWarning)
             with pytest.raises(ValueError):
@@ -344,9 +381,13 @@ class TestCursor:
 
 
 class TestTheReconciledInvalidationRecord:
-    """Las dos estructuras de cache eran paralelas y disjuntas — ver el modulo."""
+    """
+    Las dos estructuras de cache eran paralelas y disjuntas — ver el modulo.
+    """
 
-    def test_the_module_invalidator_writes_what_the_signal_reads(self, registry):
+    def test_the_module_invalidator_writes_what_the_signal_reads(
+        self, registry
+    ):
         """El control del tramo: ``clear_cache`` y ``cache_invalidated`` tienen
         que ser el MISMO registro. Si vuelven a separarse, este caso cae y
         ninguno de los de ``signal_changes`` lo hace — senalizarian cero sin

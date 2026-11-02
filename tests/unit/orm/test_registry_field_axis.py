@@ -22,13 +22,21 @@ sub-patron D de ``metrica-decide-la-conclusion.md``. El segundo control es
 ``test_discarding_an_unknown_field_is_a_no_op``: la fuente usa ``pop(f, None)``
 a proposito, porque un campo a medida puede no estar en los mapas.
 """
+
 import warnings
 
 import pytest
 from django.apps import apps
 
-from orm.registry import (Registry, TriggerTree, _ComputedGrouper, _triggers,
-                          clear_field_depends, field_depends, field_inverses)
+from orm.registry import (
+    Registry,
+    TriggerTree,
+    _ComputedGrouper,
+    _triggers,
+    clear_field_depends,
+    field_depends,
+    field_inverses,
+)
 
 
 @pytest.fixture
@@ -48,8 +56,15 @@ def partner():
 class _Field:
     """Un doble de campo: lo que ``field_computed`` mira, y nada mas."""
 
-    def __init__(self, name, compute, *, compute_sudo=False,
-                 precompute=False, store=True):
+    def __init__(
+        self,
+        name,
+        compute,
+        *,
+        compute_sudo=False,
+        precompute=False,
+        store=True,
+    ):
         self.name = name
         self.compute = compute
         self.compute_sudo = compute_sudo
@@ -72,9 +87,13 @@ class _Model:
 
 
 class TestFieldInverses:
-    """``registry.field_inverses`` — cada lado de una relacion apunta al otro."""
+    """
+    ``registry.field_inverses`` — cada lado de una relacion apunta al otro.
+    """
 
-    def test_the_registry_reads_the_map_of_the_process(self, registry, partner):
+    def test_the_registry_reads_the_map_of_the_process(
+        self, registry, partner
+    ):
         parent = partner._meta.get_field('parent')
         assert registry.field_inverses[parent] == field_inverses[parent]
 
@@ -84,14 +103,20 @@ class TestFieldInverses:
         assert remote in registry.field_inverses[parent]
         assert parent in registry.field_inverses[remote]
 
-    def test_a_field_without_inverse_answers_the_empty_tuple(self, registry, partner):
-        """El contrato de ``Collector``: lo ausente devuelve ``()``, no levanta."""
+    def test_a_field_without_inverse_answers_the_empty_tuple(
+        self, registry, partner
+    ):
+        """
+        El contrato de ``Collector``: lo ausente devuelve ``()``, no levanta.
+        """
         name = partner._meta.get_field('name')
         assert registry.field_inverses[name] == ()
 
 
 class TestFieldComputed:
-    """``registry.field_computed`` — el grupo que comparte metodo de calculo."""
+    """
+    ``registry.field_computed`` — el grupo que comparte metodo de calculo.
+    """
 
     def test_a_computed_field_yields_its_whole_group(self, registry, partner):
         commercial = partner._meta.get_field('commercial_partner_id')
@@ -109,10 +134,25 @@ class TestFieldComputed:
 
         Sin este caso un ``warn`` incondicional pasaria los tres positivos.
         """
-        model = _Model('x.consistente', [
-            _Field('a', '_compute_par', compute_sudo=True, precompute=True, store=True),
-            _Field('b', '_compute_par', compute_sudo=True, precompute=True, store=True),
-        ])
+        model = _Model(
+            'x.consistente',
+            [
+                _Field(
+                    'a',
+                    '_compute_par',
+                    compute_sudo=True,
+                    precompute=True,
+                    store=True,
+                ),
+                _Field(
+                    'b',
+                    '_compute_par',
+                    compute_sudo=True,
+                    precompute=True,
+                    store=True,
+                ),
+            ],
+        )
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter('always')
             _ComputedGrouper()._build([model])
@@ -126,11 +166,14 @@ class TestFieldComputed:
             _ComputedGrouper()._build([model])
         assert caught == []
 
-    @pytest.mark.parametrize('bandera,esperado', [
-        ('compute_sudo', "inconsistent 'compute_sudo'"),
-        ('precompute', "inconsistent 'precompute'"),
-        ('store', "inconsistent 'store'"),
-    ])
+    @pytest.mark.parametrize(
+        'bandera,esperado',
+        [
+            ('compute_sudo', "inconsistent 'compute_sudo'"),
+            ('precompute', "inconsistent 'precompute'"),
+            ('store', "inconsistent 'store'"),
+        ],
+    )
     def test_it_warns_when_a_flag_disagrees(self, bandera, esperado):
         primero = _Field('a', '_compute_par')
         segundo = _Field('b', '_compute_par')
@@ -144,10 +187,13 @@ class TestFieldComputed:
         assert any('x.discorde' in m for m in mensajes), mensajes
 
     def test_the_warning_names_both_fields(self):
-        model = _Model('x.discorde', [
-            _Field('a', '_compute_par', store=True),
-            _Field('b', '_compute_par', store=False),
-        ])
+        model = _Model(
+            'x.discorde',
+            [
+                _Field('a', '_compute_par', store=True),
+                _Field('b', '_compute_par', store=False),
+            ],
+        )
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter('always')
             _ComputedGrouper()._build([model])
@@ -161,62 +207,93 @@ class TestFieldTriggers:
     def test_it_is_the_map_of_the_process(self, registry):
         assert registry._field_triggers is _triggers.field_triggers()
 
-    def test_a_dependency_names_the_fields_that_depend_on_it(self, registry, partner):
+    def test_a_dependency_names_the_fields_that_depend_on_it(
+        self, registry, partner
+    ):
         is_company = partner._meta.get_field('is_company')
         commercial = partner._meta.get_field('commercial_partner_id')
         assert commercial in registry._field_triggers[is_company][()]
 
 
 class TestTriggerTreeReaders:
-    """``get_field_trigger_tree``, ``get_trigger_tree`` y ``get_dependent_fields``."""
+    """
+    ``get_field_trigger_tree``, ``get_trigger_tree`` y
+    ``get_dependent_fields``.
+    """
 
-    def test_a_dependency_gets_a_tree_with_its_dependents(self, registry, partner):
+    def test_a_dependency_gets_a_tree_with_its_dependents(
+        self, registry, partner
+    ):
         is_company = partner._meta.get_field('is_company')
         tree = registry.get_field_trigger_tree(is_company)
         assert isinstance(tree, TriggerTree)
         assert partner._meta.get_field('commercial_partner_id') in tree.root
 
-    def test_a_field_without_triggers_gets_an_empty_tree(self, registry, partner):
+    def test_a_field_without_triggers_gets_an_empty_tree(
+        self, registry, partner
+    ):
         tree = registry.get_field_trigger_tree(partner._meta.get_field('id'))
         assert isinstance(tree, TriggerTree)
         assert not tree.root and not tree
 
     def test_the_tree_is_memoised(self, registry, partner):
         is_company = partner._meta.get_field('is_company')
-        assert (registry.get_field_trigger_tree(is_company)
-                is registry.get_field_trigger_tree(is_company))
+        assert registry.get_field_trigger_tree(
+            is_company
+        ) is registry.get_field_trigger_tree(is_company)
 
     def test_get_trigger_tree_merges_what_changed(self, registry, partner):
         is_company = partner._meta.get_field('is_company')
         company_name = partner._meta.get_field('company_name')
         merged = registry.get_trigger_tree([is_company, company_name])
         assert partner._meta.get_field('commercial_partner_id') in merged.root
-        assert partner._meta.get_field('commercial_company_name') in merged.root
+        assert (
+            partner._meta.get_field('commercial_company_name') in merged.root
+        )
 
     def test_select_drops_what_it_refuses(self, registry, partner):
-        """El control de ``select``: con un predicado falso el arbol queda vacio."""
+        """
+        El control de ``select``: con un predicado falso el arbol queda vacio.
+        """
         is_company = partner._meta.get_field('is_company')
-        merged = registry.get_trigger_tree([is_company], select=lambda field: False)
+        merged = registry.get_trigger_tree(
+            [is_company], select=lambda field: False
+        )
         assert not merged.root
 
-    def test_get_dependent_fields_yields_the_dependents(self, registry, partner):
+    def test_get_dependent_fields_yields_the_dependents(
+        self, registry, partner
+    ):
         is_company = partner._meta.get_field('is_company')
         dependientes = list(registry.get_dependent_fields(is_company))
         assert partner._meta.get_field('commercial_partner_id') in dependientes
 
     def test_an_independent_field_yields_nothing(self, registry, partner):
-        assert list(registry.get_dependent_fields(partner._meta.get_field('id'))) == []
+        assert (
+            list(registry.get_dependent_fields(partner._meta.get_field('id')))
+            == []
+        )
 
 
 class TestIsModifyingRelations:
-    """``registry.is_modifying_relations`` — si tocar el campo mueve las filas."""
+    """
+    ``registry.is_modifying_relations`` — si tocar el campo mueve las filas.
+    """
 
-    def test_a_relational_dependency_modifies_relations(self, registry, partner):
-        assert registry.is_modifying_relations(partner._meta.get_field('parent')) is True
+    def test_a_relational_dependency_modifies_relations(
+        self, registry, partner
+    ):
+        assert (
+            registry.is_modifying_relations(partner._meta.get_field('parent'))
+            is True
+        )
 
     def test_a_field_without_dependents_does_not(self, registry, partner):
         """El control: sin disparadores la respuesta es falsa, no verdadera."""
-        assert registry.is_modifying_relations(partner._meta.get_field('id')) is False
+        assert (
+            registry.is_modifying_relations(partner._meta.get_field('id'))
+            is False
+        )
 
     def test_the_answer_is_memoised(self, registry, partner):
         parent = partner._meta.get_field('parent')
@@ -225,7 +302,9 @@ class TestIsModifyingRelations:
 
 
 class TestDiscardFields:
-    """``registry._discard_fields`` — retira un campo de las cinco estructuras."""
+    """
+    ``registry._discard_fields`` — retira un campo de las cinco estructuras.
+    """
 
     @pytest.fixture(autouse=True)
     def restore(self):
@@ -248,7 +327,9 @@ class TestDiscardFields:
         assert _triggers._trees == {}
         assert _triggers._modifying == {}
 
-    def test_it_drops_the_field_from_both_sides_of_the_inverses(self, registry, partner):
+    def test_it_drops_the_field_from_both_sides_of_the_inverses(
+        self, registry, partner
+    ):
         parent = partner._meta.get_field('parent')
         remote = parent.remote_field
         assert registry.field_inverses[parent]
@@ -256,7 +337,9 @@ class TestDiscardFields:
         assert registry.field_inverses[parent] == ()
         assert parent not in registry.field_inverses[remote]
 
-    def test_it_drops_the_field_from_the_setup_dependents(self, registry, partner):
+    def test_it_drops_the_field_from_the_setup_dependents(
+        self, registry, partner
+    ):
         parent = partner._meta.get_field('parent')
         name = partner._meta.get_field('name')
         registry.field_setup_dependents.add(name, parent)

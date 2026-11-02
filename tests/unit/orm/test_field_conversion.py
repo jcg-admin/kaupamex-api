@@ -1,4 +1,6 @@
-"""La familia de conversion de ``Field`` — ≙ ``odoo19c: odoo/orm/fields.py:975-1095``.
+"""
+La familia de conversion de ``Field`` — ≙ ``odoo19c:
+odoo/orm/fields.py:975-1095``.
 
 Ejerce los nueve simbolos que la fuente agrupa bajo «Conversion of values»
 —``convert_to_column``, ``convert_to_column_insert``, ``get_column_update``,
@@ -27,6 +29,7 @@ method no existe o delega mal. Un ``convert_to_record(None)`` que devolviera
 ``None`` en vez de ``False`` pasaria un ``assert not result`` — por eso los
 casos afirman ``is False``, que si distingue los dos.
 """
+
 import datetime
 
 import pytest
@@ -38,11 +41,17 @@ from psycopg.types.json import Jsonb
 import fields
 from addons.base.models.ir_default import IrDefault
 from addons.base.models.res_company import ResCompany
-from orm.environments import company_scope, env as ambient_env, transaction_scope
+from orm.environments import (
+    company_scope,
+    env as ambient_env,
+    transaction_scope,
+)
 
 
 class ConversionProbe(django_models.Model):
-    """Sonda con una columna de cada forma que el orden de columna distingue."""
+    """
+    Sonda con una columna de cada forma que el orden de columna distingue.
+    """
 
     _name = 'orm.conversion.probe'
 
@@ -63,14 +72,18 @@ def field_of(name):
 
 # --- convert_to_column: los cuatro caminos de la fuente ---------------------
 
-@pytest.mark.parametrize('value, expected', [
-    (None, None),
-    (False, None),
-    ('texto', 'texto'),
-    (b'bytes', 'bytes'),
-    (42, '42'),
-    (datetime.date(2026, 9, 3), '2026-09-03'),
-])
+
+@pytest.mark.parametrize(
+    'value, expected',
+    [
+        (None, None),
+        (False, None),
+        ('texto', 'texto'),
+        (b'bytes', 'bytes'),
+        (42, '42'),
+        (datetime.date(2026, 9, 3), '2026-09-03'),
+    ],
+)
 def test_the_base_convert_to_column_follows_the_four_branches(value, expected):
     """≙ ``:981-992``: ``None``/``False`` a ``None``, ``str`` tal cual,
     ``bytes`` decodificado, y el resto por ``str``.
@@ -81,7 +94,9 @@ def test_the_base_convert_to_column_follows_the_four_branches(value, expected):
     decision por clase y este caso mide la clase raiz.
     """
     field = field_of('label')
-    assert django_models.Field.convert_to_column(field, value, None) == expected
+    assert (
+        django_models.Field.convert_to_column(field, value, None) == expected
+    )
 
 
 def test_the_base_convert_to_column_keeps_the_empty_string():
@@ -92,18 +107,23 @@ def test_the_base_convert_to_column_keeps_the_empty_string():
     assert django_models.Field.convert_to_column(field, '', None) == ''
 
 
-@pytest.mark.parametrize('name, value, expected', [
-    ('label', 0, '0'),
-    ('label', '', ''),
-    ('label', False, None),
-    ('label', b'bytes', 'bytes'),
-    ('amount', 0, 0),
-    ('amount', False, 0),
-    ('amount', '42', 42),
-    ('when', False, None),
-    ('when', '2026-09-03', datetime.date(2026, 9, 3)),
-])
-def test_each_type_declares_its_own_vocabulary_of_absence(name, value, expected):
+@pytest.mark.parametrize(
+    'name, value, expected',
+    [
+        ('label', 0, '0'),
+        ('label', '', ''),
+        ('label', False, None),
+        ('label', b'bytes', 'bytes'),
+        ('amount', 0, 0),
+        ('amount', False, 0),
+        ('amount', '42', 42),
+        ('when', False, None),
+        ('when', '2026-09-03', datetime.date(2026, 9, 3)),
+    ],
+)
+def test_each_type_declares_its_own_vocabulary_of_absence(
+    name, value, expected
+):
     """El reparto por clase que la fuente declara, medido tipo a tipo.
 
     ``Char`` delega en su cache, que descarta ``None`` y ``False`` **por
@@ -132,6 +152,7 @@ def test_the_boolean_is_the_one_that_keeps_false():
 
 # --- convert_to_column_insert ----------------------------------------------
 
+
 def test_convert_to_column_insert_delegates_when_not_company_dependent():
     """≙ ``:994-1006``: sin ``company_dependent`` es ``convert_to_column``."""
     assert field_of('label').convert_to_column_insert('texto', None) == 'texto'
@@ -143,7 +164,8 @@ def test_convert_to_column_insert_wraps_the_value_by_company():
     ``{empresa: valor}``, envuelto para la columna ``jsonb``."""
     with company_scope(7):
         envuelto = field_of('per_company').convert_to_column_insert(
-            'ABC', ConversionProbe(id=1))
+            'ABC', ConversionProbe(id=1)
+        )
     assert isinstance(envuelto, Jsonb)
     assert envuelto.obj == {7: 'ABC'}
 
@@ -158,11 +180,16 @@ def test_convert_to_column_insert_omits_the_value_equal_to_the_fallback():
     """
     IrDefault.set(ConversionProbe._meta.label, 'per_company', 'ABC')
     with company_scope(7):
-        assert field_of('per_company').convert_to_column_insert(
-            'ABC', ConversionProbe(id=1)) is None
+        assert (
+            field_of('per_company').convert_to_column_insert(
+                'ABC', ConversionProbe(id=1)
+            )
+            is None
+        )
 
 
 # --- convert_to_cache / record / read / write / export ----------------------
+
 
 def test_the_base_convert_to_cache_returns_the_value_verbatim():
     """≙ ``:1034-1044``: el ``Field`` base no transforma nada.
@@ -172,8 +199,10 @@ def test_the_base_convert_to_cache_returns_the_value_verbatim():
     medirlo a traves de el mediria la sobrecarga.
     """
     mark = object()
-    assert django_models.Field.convert_to_cache(
-        field_of('label'), mark, None) is mark
+    assert (
+        django_models.Field.convert_to_cache(field_of('label'), mark, None)
+        is mark
+    )
 
 
 @pytest.mark.parametrize('method', ['convert_to_record', 'convert_to_read'])
@@ -198,19 +227,23 @@ def test_convert_to_write_chains_the_three_conversions():
     assert field.convert_to_write('texto', None) == 'texto'
 
 
-@pytest.mark.parametrize('value, expected', [
-    (None, ''),
-    (False, ''),
-    (0, ''),
-    ('', ''),
-    ('texto', 'texto'),
-])
+@pytest.mark.parametrize(
+    'value, expected',
+    [
+        (None, ''),
+        (False, ''),
+        (0, ''),
+        ('', ''),
+        ('texto', 'texto'),
+    ],
+)
 def test_convert_to_export_empties_the_falsy(value, expected):
     """≙ ``:1073-1077``: todo lo falso sale como cadena vacia."""
     assert field_of('label').convert_to_export(value, None) == expected
 
 
 # --- convert_to_display_name ------------------------------------------------
+
 
 def test_convert_to_display_name_is_a_method_of_the_field():
     """≙ ``:1079-1081``. Era una funcion de modulo y nada mas; la fuente lo
@@ -225,8 +258,12 @@ def test_the_temporal_overload_still_wins_over_the_base():
     """La sobrecarga de ``Date`` estaba adjunta desde antes; adjuntar la base a
     ``models.Field`` no la puede tapar — la busqueda de atributo entra por la
     clase concreta."""
-    assert (field_of('when').convert_to_display_name(datetime.date(2026, 9, 3), None)
-            == '2026-09-03')
+    assert (
+        field_of('when').convert_to_display_name(
+            datetime.date(2026, 9, 3), None
+        )
+        == '2026-09-03'
+    )
 
 
 def test_the_collection_overload_refuses():
@@ -239,12 +276,16 @@ def test_the_collection_overload_refuses():
 
 # --- column_order -----------------------------------------------------------
 
-@pytest.mark.parametrize('name, expected', [
-    ('label', 2),        # varchar
-    ('amount', 1),       # int4
-    ('when', 3),         # date
-    ('per_company', 4),  # jsonb — la columna del field por empresa
-])
+
+@pytest.mark.parametrize(
+    'name, expected',
+    [
+        ('label', 2),  # varchar
+        ('amount', 1),  # int4
+        ('when', 3),  # date
+        ('per_company', 4),  # jsonb — la columna del field por empresa
+    ],
+)
 def test_column_order_reads_the_table_of_the_source(name, expected):
     """≙ ``:1090-1093``: el orden prescrito por tipo, que minimiza el relleno
     de la fila. Los valores son los de ``odoo19c: odoo/tools/sql.py:261``."""
@@ -267,6 +308,7 @@ def test_nonstored_char_keeps_the_native_type_order():
 
 
 # --- get_column_update ------------------------------------------------------
+
 
 def test_get_column_update_reads_the_cache_of_the_transaction():
     """≙ ``:1008-1032``: el valor que se va a escribir sale de la cache, no del
@@ -308,6 +350,7 @@ def test_normal_assignment_updates_the_transaction_cache():
 
 # --- el cableado a get_db_prep_save y la expresion SQL -----------------------
 
+
 class TestTheWiringLetsAnExpressionThrough:
     """El conversor traduce un VALOR; una expresion SQL no lo es.
 
@@ -338,19 +381,27 @@ class TestTheWiringLetsAnExpressionThrough:
 
     def test_an_update_with_an_expression_reaches_the_column(self, db):
         company = ResCompany.objects.create(
-            code='orm-conv-expr', name='ORM conversion expression',
+            code='orm-conv-expr',
+            name='ORM conversion expression',
             quotation_validity_days=30,
         )
         ResCompany.objects.filter(pk=company.pk).update(
-            quotation_validity_days=F('quotation_validity_days') + 1)
+            quotation_validity_days=F('quotation_validity_days') + 1
+        )
 
-        assert ResCompany.objects.filter(pk=company.pk).values_list(
-            'quotation_validity_days', flat=True)[0] == 31
+        assert (
+            ResCompany.objects.filter(pk=company.pk).values_list(
+                'quotation_validity_days', flat=True
+            )[0]
+            == 31
+        )
 
     def test_the_wiring_refuses_to_convert_what_carries_its_own_sql(self):
         """La guarda se mide sola, sin motor: lo que trae ``as_sql`` sale
         intacto del cableado."""
         expression = CombinedExpression(F('amount'), '+', Value(1))
         assert hasattr(expression, 'as_sql')
-        assert field_of('amount').get_db_prep_save(
-            expression, connection=None) is expression
+        assert (
+            field_of('amount').get_db_prep_save(expression, connection=None)
+            is expression
+        )

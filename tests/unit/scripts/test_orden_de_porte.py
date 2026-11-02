@@ -16,13 +16,18 @@ FORMA de la declaracion y se concluye sobre la PRESENCIA del simbolo.
 Los casos de ``TestDeclaredHere`` se escribieron ANTES del arreglo y fallaban
 con el instrumento viejo.
 """
+
 import importlib.util
 import pathlib
 import sys
 
 import pytest
 
-_PATH = pathlib.Path(__file__).resolve().parents[3] / 'scripts' / 'orden_de_porte.py'
+_PATH = (
+    pathlib.Path(__file__).resolve().parents[3]
+    / 'scripts'
+    / 'orden_de_porte.py'
+)
 _spec = importlib.util.spec_from_file_location('orden_de_porte', _PATH)
 port_order = importlib.util.module_from_spec(_spec)
 sys.modules['orden_de_porte'] = port_order
@@ -77,7 +82,9 @@ class TestDeclaredHere:
         assert {'Klass', 'function'} <= here
 
     def test_it_takes_the_plain_assignment(self, root):
-        """``Boolean = make_dispatcher(...)`` es el caso real que lo destapo."""
+        """
+        ``Boolean = make_dispatcher(...)`` es el caso real que lo destapo.
+        """
         assert 'Assigned' in port_order.declared_here(root)
 
     def test_it_takes_the_annotated_assignment(self, root):
@@ -113,11 +120,23 @@ class TestAgainstTheRealTree:
 
     def test_the_dispatcher_declared_types_are_seen(self):
         here = port_order.declared_here(
-            port_order.REPO.joinpath(*port_order.OUR_SUBPATH))
+            port_order.REPO.joinpath(*port_order.OUR_SUBPATH)
+        )
         # Los doce que el instrumento viejo daba por ausentes.
-        assert {'Boolean', 'Char', 'Date', 'Datetime', 'Field', 'Float',
-                'Integer', 'Many2oneReference', 'Model', 'Reference',
-                'Selection', 'Text'} <= here
+        assert {
+            'Boolean',
+            'Char',
+            'Date',
+            'Datetime',
+            'Field',
+            'Float',
+            'Integer',
+            'Many2oneReference',
+            'Model',
+            'Reference',
+            'Selection',
+            'Text',
+        } <= here
 
     def test_what_is_genuinely_absent_stays_absent(self):
         """Y el instrumento arreglado NO absuelve a los que faltan de verdad.
@@ -129,9 +148,11 @@ class TestAgainstTheRealTree:
         ``src/orm/`` bajo ninguna forma.
         """
         here = port_order.declared_here(
-            port_order.REPO.joinpath(*port_order.OUR_SUBPATH))
-        assert not ({'MetaModel', 'add_to_registry',
-                     'setup_model_classes'} & here)
+            port_order.REPO.joinpath(*port_order.OUR_SUBPATH)
+        )
+        assert not (
+            {'MetaModel', 'add_to_registry', 'setup_model_classes'} & here
+        )
 
     def test_the_ported_registry_is_seen(self):
         """El control en el otro sentido: lo que SI se porto, se ve.
@@ -140,7 +161,8 @@ class TestAgainstTheRealTree:
         tanto si el simbolo se porto como si nadie lo miro.
         """
         here = port_order.declared_here(
-            port_order.REPO.joinpath(*port_order.OUR_SUBPATH))
+            port_order.REPO.joinpath(*port_order.OUR_SUBPATH)
+        )
         assert 'Registry' in here
         # Y el que salio de la lista de arriba en TASK-API-0397: sin este
         # renglon, quitar un nombre de aquella lista pasaria verde tanto si el

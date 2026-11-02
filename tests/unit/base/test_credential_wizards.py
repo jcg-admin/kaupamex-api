@@ -29,11 +29,15 @@ Los tres controles que pueden fallar
 Medido: con las tres guardas anuladas a la vez, la suite pasa de **11 passed**
 a **3 failed, 8 passed**, y caen exactamente esos tres.
 """
+
 import pytest
 
 from addons.base.models import ResPartner, ResUsers
-from addons.base.models.res_users import (IdentityCheck, PasswordChangeLine,
-                                          PasswordChangeWizard)
+from addons.base.models.res_users import (
+    IdentityCheck,
+    PasswordChangeLine,
+    PasswordChangeWizard,
+)
 from exceptions import UserError
 from orm.environments import user_scope
 
@@ -64,6 +68,7 @@ def targets(db):
 # change.password.user — la linea, ≙ :1699-1712
 # --------------------------------------------------------------------------
 
+
 def test_the_line_captures_the_login_it_was_shown_with(targets):
     """≙ ``user_login`` readonly (``:1702``).
 
@@ -71,7 +76,10 @@ def test_the_line_captures_the_login_it_was_shown_with(targets):
     **contra el login que vio**, y ese login pudo cambiar desde entonces.
     """
     lines = PasswordChangeWizard.lines_for(targets, ['a', 'b'])
-    assert [l.user_login for l in lines] == ['empleado-uno', 'empleado-dos']
+    assert [
+        item.user_login for item in lines] == [
+        'empleado-uno',
+        'empleado-dos']
 
 
 def test_the_line_is_immutable(targets):
@@ -89,11 +97,14 @@ def test_the_line_is_immutable(targets):
 # change.password.wizard — el bucle, ≙ :1689-1697 y :1714-1719
 # --------------------------------------------------------------------------
 
+
 def test_it_changes_every_password(admin, targets):
     with user_scope(admin.pk):
         changed, _ = PasswordChangeWizard.apply(
-            PasswordChangeWizard.lines_for(targets, ['nueva-uno-2026',
-                                                     'nueva-dos-2026']))
+            PasswordChangeWizard.lines_for(
+                targets, ['nueva-uno-2026', 'nueva-dos-2026']
+            )
+        )
     assert changed == 2
     for user, nueva in zip(targets, ['nueva-uno-2026', 'nueva-dos-2026']):
         user.refresh_from_db()
@@ -109,10 +120,11 @@ def test_a_line_without_a_password_is_skipped(admin, targets):
     """
     with user_scope(admin.pk):
         changed, _ = PasswordChangeWizard.apply(
-            PasswordChangeWizard.lines_for(targets, ['', 'nueva-dos-2026']))
+            PasswordChangeWizard.lines_for(targets, ['', 'nueva-dos-2026'])
+        )
     assert changed == 1
     targets[0].refresh_from_db()
-    assert targets[0].check_password(PASSWORD)      # intacta
+    assert targets[0].check_password(PASSWORD)  # intacta
 
 
 def test_changing_your_own_password_says_so(admin, targets):
@@ -123,22 +135,27 @@ def test_changing_your_own_password_says_so(admin, targets):
     """
     with user_scope(admin.pk):
         _, self_changed = PasswordChangeWizard.apply(
-            PasswordChangeWizard.lines_for([admin], ['mi-nueva-clave-2026']))
+            PasswordChangeWizard.lines_for([admin], ['mi-nueva-clave-2026'])
+        )
     assert self_changed is True
 
 
 def test_changing_someone_elses_does_not(admin, targets):
     with user_scope(admin.pk):
         _, self_changed = PasswordChangeWizard.apply(
-            PasswordChangeWizard.lines_for(targets[:1], ['otra-clave-2026']))
+            PasswordChangeWizard.lines_for(targets[:1], ['otra-clave-2026'])
+        )
     assert self_changed is False
 
 
 def test_apply_returns_a_count_not_the_passwords(admin, targets):
-    """≙ *"don't keep temporary passwords longer than necessary"* (``:1718``)."""
+    """
+    ≙ *"don't keep temporary passwords longer than necessary"* (``:1718``).
+    """
     with user_scope(admin.pk):
         resultado = PasswordChangeWizard.apply(
-            PasswordChangeWizard.lines_for(targets[:1], ['clave-nueva-2026']))
+            PasswordChangeWizard.lines_for(targets[:1], ['clave-nueva-2026'])
+        )
     assert resultado == (1, False)
     assert 'clave-nueva-2026' not in repr(resultado)
 
@@ -146,6 +163,7 @@ def test_apply_returns_a_count_not_the_passwords(admin, targets):
 # --------------------------------------------------------------------------
 # res.users.identitycheck — ≙ :1615-1673
 # --------------------------------------------------------------------------
+
 
 def test_the_right_password_passes(admin):
     assert IdentityCheck._check_identity(admin, PASSWORD) is None

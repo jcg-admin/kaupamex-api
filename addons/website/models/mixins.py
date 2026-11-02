@@ -42,6 +42,7 @@ Las opciones de página, en cambio, se portan **enteras**: sus dos clases
 declaran cinco campos y ningún método, y ninguno depende de pieza ausente
 (ver el docstring de ``WebsitePageOptionsMixin``).
 """
+
 import re
 
 import fields
@@ -74,7 +75,8 @@ def order_expression_to_order_by(order):
 
 
 class WebsiteSearchableMixin:
-    """≙ ``website.searchable.mixin`` (``odoo19c: website/models/mixins.py:327``).
+    """
+    ≙ ``website.searchable.mixin`` (``odoo19c: website/models/mixins.py:327``).
 
     *"Mixin to be inherited by all models that need to searchable through
     website"* — verbatim de la fuente. Es un ``AbstractModel`` **sin campos**,
@@ -114,8 +116,10 @@ class WebsiteSearchableMixin:
         domain = Domain.AND(domain_list)
         if search:
             for search_term in search.split(' '):
-                subdomains = [Domain(field, 'ilike', escape_psql(search_term))
-                              for field in fields]
+                subdomains = [
+                    Domain(field, 'ilike', escape_psql(search_term))
+                    for field in fields
+                ]
                 if extra:
                     subdomains.append(extra(search_term))
                 domain &= Domain.OR(subdomains)
@@ -141,23 +145,30 @@ class WebsiteSearchableMixin:
         fields = search_detail['search_fields']
         base_domain = search_detail['base_domain']
         domain = cls._search_build_domain(
-            base_domain, search, fields, search_detail.get('search_extra'))
+            base_domain, search, fields, search_detail.get('search_extra')
+        )
         query = to_q(domain, cls)
         # ≙ ``model = self.sudo() if requires_sudo else self`` — el queryset
         # es perezoso, así que la evaluación ocurre DENTRO del bloque elevado.
         with sudo(bool(search_detail.get('requires_sudo')) or is_su()):
             queryset = cls.objects.filter(query)
             order_by = order_expression_to_order_by(
-                search_detail.get('order', order))
+                search_detail.get('order', order)
+            )
             if order_by:
                 queryset = queryset.order_by(*order_by)
             results = list(queryset[:limit]) if limit else list(queryset)
-            count = (queryset.count()
-                     if limit and limit == len(results) else len(results))
+            count = (
+                queryset.count()
+                if limit and limit == len(results)
+                else len(results)
+            )
         return results, count
 
     @classmethod
-    def _search_render_results(cls, results, fetch_fields, mapping, icon, limit):
+    def _search_render_results(
+        cls, results, fetch_fields, mapping, icon, limit
+    ):
         """≙ ``_search_render_results`` (``:392-407``).
 
         Prepara las filas para el autocompletado: valores de los campos
@@ -168,13 +179,15 @@ class WebsiteSearchableMixin:
         """
         results_data = []
         for record in results[:limit]:
-            data = {field: getattr(record, field, None)
-                    for field in fetch_fields}
+            data = {
+                field: getattr(record, field, None) for field in fetch_fields
+            }
             data['_fa'] = icon
             data['_mapping'] = mapping
             results_data.append(data)
-        html_fields = [config['name'] for config in mapping.values()
-                       if config.get('html')]
+        html_fields = [
+            config['name'] for config in mapping.values() if config.get('html')
+        ]
         for data in results_data:
             for html_field in html_fields:
                 if data.get(html_field):
@@ -182,13 +195,15 @@ class WebsiteSearchableMixin:
                         # Deshacer el segundo escape de los nodos de texto
                         # del editor (wysiwyg _getEscapedElement).
                         data[html_field] = re.sub(
-                            r'&amp;(?=\w+;)', '&', data[html_field])
+                            r'&amp;(?=\w+;)', '&', data[html_field]
+                        )
                     data[html_field] = text_from_html(data[html_field], True)
         return results_data
 
 
 class WebsitePublishedMixin(models.Model):
-    """≙ ``website.published.mixin`` (``odoo19c: website/models/mixins.py:201``).
+    """
+    ≙ ``website.published.mixin`` (``odoo19c: website/models/mixins.py:201``).
 
     Abstracto: no crea tabla propia. Lo heredan los modelos que se muestran
     en la tienda (hoy ``ProductTemplate``).
@@ -198,9 +213,11 @@ class WebsitePublishedMixin(models.Model):
         default=False,
         db_index=True,
         verbose_name='Publicado',
-        help_text='Visible en la tienda. Por defecto NO — igual que '
-                  '_default_is_published de la referencia: dar de alta un '
-                  'producto no es publicarlo.',
+        help_text=(
+            'Visible en la tienda. Por defecto NO — igual que '
+            '_default_is_published de la referencia: dar de alta un '
+            'producto no es publicarlo.'
+        ),
     )
 
     class Meta:
@@ -217,7 +234,8 @@ class WebsitePublishedMixin(models.Model):
         return self.is_published
 
     def website_publish_button(self):
-        """≙ ``website_publish_button`` (``:230``): alterna y devuelve el valor.
+        """
+        ≙ ``website_publish_button`` (``:230``): alterna y devuelve el valor.
 
         Se conserva el nombre de la referencia porque el verbo es el mismo —
         el botón de publicar/despublicar de la ficha.
@@ -250,7 +268,8 @@ class WebsitePublishedMixin(models.Model):
         if not model._meta.get_fields():  # pragma: no cover - defensivo
             raise RuntimeError(
                 f'{model.__name__} no está poblado todavía; apply_to debe '
-                f'llamarse desde AppConfig.ready(), no en tiempo de import.')
+                'llamarse desde AppConfig.ready(), no en tiempo de import.'
+            )
 
         existing = {f.name for f in model._meta.get_fields()}
         if 'is_published' not in existing:
@@ -288,8 +307,9 @@ class WebsitePageVisibilityOptionsMixin(models.Model):
 
     header_visible = fields.Boolean(
         default=True,
-        help_text='La página dibuja la cabecera del sitio (Odoo '
-                  'header_visible).',
+        help_text=(
+            'La página dibuja la cabecera del sitio (Odoo header_visible).'
+        ),
     )
     footer_visible = fields.Boolean(
         default=True,
@@ -343,18 +363,28 @@ class WebsitePageOptionsMixin(WebsitePageVisibilityOptionsMixin):
 
     header_overlay = fields.Boolean(
         default=False,
-        help_text='El contenido de la página pasa por debajo de la cabecera '
-                  '(Odoo header_overlay).',
+        help_text=(
+            'El contenido de la página pasa por debajo de la cabecera '
+            '(Odoo header_overlay).'
+        ),
     )
     header_color = fields.Char(
-        max_length=64, blank=True, default='',
-        help_text='Color o clase de fondo de la cabecera en esta página '
-                  '(Odoo header_color).',
+        max_length=64,
+        blank=True,
+        default='',
+        help_text=(
+            'Color o clase de fondo de la cabecera en esta página '
+            '(Odoo header_color).'
+        ),
     )
     header_text_color = fields.Char(
-        max_length=64, blank=True, default='',
-        help_text='Color o clase del texto de la cabecera en esta página '
-                  '(Odoo header_text_color).',
+        max_length=64,
+        blank=True,
+        default='',
+        help_text=(
+            'Color o clase del texto de la cabecera en esta página '
+            '(Odoo header_text_color).'
+        ),
     )
 
     class Meta:

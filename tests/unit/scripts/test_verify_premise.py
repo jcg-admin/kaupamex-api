@@ -24,16 +24,13 @@ Tres controles discriminan, y los tres apuntan a un verde que no distingue:
 import json
 import sys
 from pathlib import Path
-
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / 'scripts'))
-
-from verify_premise import (  # noqa: E402
+from verify_premise import (
     build_symbol_index,
     premise_of_manifest,
     signals_for_text,
 )
+
 
 DONE = 'completed'
 
@@ -53,7 +50,8 @@ def tree(tmp_path):
         '\n'
         '    def compute_probe_total(self):\n'
         '        return 0\n',
-        encoding='utf-8')
+        encoding='utf-8',
+    )
     return tmp_path
 
 
@@ -85,7 +83,8 @@ class TestTheIndexSeesBothDeclarationForms:
         """Sólo cuenta lo declarado al nivel de la clase, no un local."""
         (tree / 'src' / 'loose.py').write_text(
             'def run():\n    helper_value = 1\n    return helper_value\n',
-            encoding='utf-8')
+            encoding='utf-8',
+        )
         index, _ = build_symbol_index([tree / 'src'])
         assert 'helper_value' not in index
 
@@ -94,26 +93,35 @@ class TestTheSymbolSignal:
 
     def test_a_build_verb_over_a_declared_symbol_signals(self, symbols):
         found = signals_for_text(
-            'Portar compute_probe_total, que falta en el arbol', symbols)
+            'Portar compute_probe_total, que falta en el arbol', symbols
+        )
         assert [code for code, _ in found] == ['S1']
 
     def test_a_declared_field_signals_too(self, symbols):
-        found = signals_for_text('Construir barcode_number en el modelo', symbols)
+        found = signals_for_text(
+            'Construir barcode_number en el modelo', symbols
+        )
         assert [code for code, _ in found] == ['S1']
 
-    def test_naming_a_symbol_without_a_build_verb_is_not_a_signal(self, symbols):
+    def test_naming_a_symbol_without_a_build_verb_is_not_a_signal(
+        self, symbols
+    ):
         found = signals_for_text(
-            'Medir como se comporta compute_probe_total bajo carga', symbols)
+            'Medir como se comporta compute_probe_total bajo carga', symbols
+        )
         assert found == []
 
     def test_an_undeclared_symbol_is_not_a_signal(self, symbols):
-        found = signals_for_text('Portar compute_absent_thing en el modelo', symbols)
+        found = signals_for_text(
+            'Portar compute_absent_thing en el modelo', symbols
+        )
         assert found == []
 
     def test_a_symbol_declared_everywhere_is_common_vocabulary(self, tree):
         for number in range(4):
             (tree / 'src' / f'many{number}.py').write_text(
-                'def name_get(self):\n    return 1\n', encoding='utf-8')
+                'def name_get(self):\n    return 1\n', encoding='utf-8'
+            )
         index, _ = build_symbol_index([tree / 'src'])
         assert signals_for_text('Portar name_get en el modelo', index) == []
 
@@ -122,13 +130,16 @@ class TestThePathSignal:
 
     def test_a_cited_path_that_does_not_exist_signals(self, symbols, tree):
         found = signals_for_text(
-            'Portar lo que falta en src/orm/absent_module.py', symbols,
-            path_roots=[tree])
+            'Portar lo que falta en src/orm/absent_module.py',
+            symbols,
+            path_roots=[tree],
+        )
         assert [code for code, _ in found] == ['S2']
 
     def test_a_cited_path_that_exists_is_silent(self, symbols, tree):
         found = signals_for_text(
-            'Revisar src/addons/probe/models.py', symbols, path_roots=[tree])
+            'Revisar src/addons/probe/models.py', symbols, path_roots=[tree]
+        )
         assert found == []
 
 
@@ -138,59 +149,79 @@ class TestTheBlockerSignal:
         tasks = {'42': {'status': DONE, 'subject': 'ya cerrada'}}
         found = signals_for_text(
             'Esta tarea esta bloqueada por #42 y no puede avanzar',
-            symbols, tasks=tasks)
+            symbols,
+            tasks=tasks,
+        )
         assert [code for code, _ in found] == ['S3']
 
     def test_an_open_blocker_is_silent(self, symbols):
         tasks = {'42': {'status': 'pending', 'subject': 'sigue abierta'}}
         found = signals_for_text(
             'Esta tarea esta bloqueada por #42 y no puede avanzar',
-            symbols, tasks=tasks)
+            symbols,
+            tasks=tasks,
+        )
         assert found == []
 
     def test_without_a_board_the_blocker_signal_is_not_emitted(self, symbols):
         """Sin tablero no se puede decidir, y no decidir NO es «no hay»."""
         found = signals_for_text(
-            'Esta tarea esta bloqueada por #42', symbols, tasks=None)
+            'Esta tarea esta bloqueada por #42', symbols, tasks=None
+        )
         assert found == []
 
 
 class TestTheWorkbenchManifestIsASource:
-    """La pieza de banco es la segunda fuente, y por eso el motor toma texto."""
+    """
+    La pieza de banco es la segunda fuente, y por eso el motor toma texto.
+    """
 
     def test_it_reads_the_question_and_the_corrected_premise(self, tmp_path):
         pieza = tmp_path / 'algo-20260101T000000'
         pieza.mkdir()
-        (pieza / 'manifest.json').write_text(json.dumps({
-            'question': 'Portar compute_probe_total',
-            'corrected_premise': 'la cifra era otra cosa',
-            'metric': 'no se lee',
-        }), encoding='utf-8')
+        (pieza / 'manifest.json').write_text(
+            json.dumps(
+                {
+                    'question': 'Portar compute_probe_total',
+                    'corrected_premise': 'la cifra era otra cosa',
+                    'metric': 'no se lee',
+                }
+            ),
+            encoding='utf-8',
+        )
         text = premise_of_manifest(pieza / 'manifest.json')
         assert 'compute_probe_total' in text
         assert 'la cifra era otra cosa' in text
         assert 'no se lee' not in text
 
-    def test_a_manifest_premise_produces_the_same_signal(self, tmp_path, symbols):
+    def test_a_manifest_premise_produces_the_same_signal(
+        self, tmp_path, symbols
+    ):
         pieza = tmp_path / 'algo-20260101T000000'
         pieza.mkdir()
         (pieza / 'manifest.json').write_text(
             json.dumps({'question': 'Construir barcode_number desde cero'}),
-            encoding='utf-8')
-        found = signals_for_text(premise_of_manifest(pieza / 'manifest.json'),
-                                 symbols)
+            encoding='utf-8',
+        )
+        found = signals_for_text(
+            premise_of_manifest(pieza / 'manifest.json'), symbols
+        )
         assert [code for code, _ in found] == ['S1']
 
 
 class TestItRefusesInsteadOfPublishingAZero:
 
     def test_an_empty_index_refuses_without_emitting_a_count(self, tmp_path):
-        """Sin símbolos, un 0 no distingue «premisa firme» de «no pude medir»."""
+        """
+        Sin símbolos, un 0 no distingue «premisa firme» de «no pude medir».
+        """
         with pytest.raises(SystemExit) as salida:
             build_symbol_index([tmp_path / 'no-existe'], require_files=True)
         assert salida.value.code == 2
 
-    def test_without_the_guard_it_would_have_published_the_zero(self, tmp_path):
+    def test_without_the_guard_it_would_have_published_the_zero(
+        self, tmp_path
+    ):
         """El control del control: sin ``require_files`` el índice sale vacío
         y ninguna señal dispara — que es exactamente el verde falso."""
         index, files = build_symbol_index([tmp_path / 'no-existe'])

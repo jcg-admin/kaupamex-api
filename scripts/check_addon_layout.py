@@ -7,46 +7,55 @@ tienes que copiar/adaptar lo que se tiene en odoo-tools"*. Ese hallazgo dejó el
 mapa resuelto y una lista de deuda restante de 15 addons.
 
 Y aun así reincidió: al disolver ``company`` se movieron sus ocho planos a
-``platform`` **conservándolos planos** — tomando un ítem nombrado de esa lista y
+``platform`` **conservándolos planos** — tomando un ítem nombrado de esa lista
+y
 cambiándole el nombre. Después se escribió H-API-255 como si fuera hallazgo
-nuevo, reabriendo una pregunta (``views/`` vs ``controllers/``) que H-API-238 ya
-había cerrado. Por eso esto es un script: el hallazgo existía, era greppeable, y
+nuevo, reabriendo una pregunta (``views/`` vs ``controllers/``) que H-API-238
+ya
+había cerrado. Por eso esto es un script: el hallazgo existía, era greppeable,
+y
 no detuvo nada.
 
 **No es "todo en carpeta".** Medido en ``odoo19c: addons/`` (629 addons), la
 referencia sí admite planos en la raíz — ``const.py`` 31, ``utils.py`` 12,
-``tools.py`` 4, ``exceptions.py`` 2, ``controllers.py`` 2. Lo que es paquete son
+``tools.py`` 4, ``exceptions.py`` 2, ``controllers.py`` 2. Lo que es paquete
+son
 las **capas estructurales**. Este gate juzga sólo esa lista cerrada.
 
     python3 scripts/check_addon_layout.py           # reporte
     python3 scripts/check_addon_layout.py --quiet   # sólo el conteo
     python3 scripts/check_addon_layout.py --strict  # exit 1 con deuda heredada
 """
+
 import os
 import sys
+import sys as _sys
+import os as _os
+from addons_roots import addon_dirs
+
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-import sys as _sys, os as _os
-_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
-from addons_roots import addon_dirs
+
+
 BASELINE = os.path.join(REPO_ROOT, 'scripts', 'addon_layout_baseline.txt')
 
 # Mapa de H-API-238, verbatim. La capa de vista de DRF va a ``controllers/``
-# porque ése es el nombre de la referencia — no ``views/``, que en Odoo son XML.
+# porque ése es el nombre de la referencia — no ``views/``, que en Odoo
+# son XML.
 FLAT_TO_PACKAGE = {
-    'views.py':            'controllers/',
-    'serializers.py':      'controllers/',
-    'urls.py':             'controllers/',
-    'schema.py':           'controllers/',
-    'admin_views.py':      'controllers/',
+    'views.py': 'controllers/',
+    'serializers.py': 'controllers/',
+    'urls.py': 'controllers/',
+    'schema.py': 'controllers/',
+    'admin_views.py': 'controllers/',
     'admin_serializers.py': 'controllers/',
-    'admin_urls.py':       'controllers/',
-    'webhook_urls.py':     'controllers/',
-    'data.py':             'data/',
-    'authz_catalog.py':    'security/',
-    'backends.py':         'models/',
-    'signals.py':          'models/',
-    'models.py':           'models/',
+    'admin_urls.py': 'controllers/',
+    'webhook_urls.py': 'controllers/',
+    'data.py': 'data/',
+    'authz_catalog.py': 'security/',
+    'backends.py': 'models/',
+    'signals.py': 'models/',
+    'models.py': 'models/',
 }
 
 # Nombre de la capa de vista ya decidido (H-API-238). Un ``views/`` paquete es
@@ -102,30 +111,42 @@ def main(argv):
     heredados = [p for p in planos if p in baseline]
 
     if quiet:
-        print(f'nuevos={len(nuevos)} heredados={len(heredados)} '
-              f'disputados={len(disputados)}')
+        print(
+            f'nuevos={len(nuevos)} heredados={len(heredados)} '
+            f'disputados={len(disputados)}'
+        )
         return 1 if nuevos or (strict and (heredados or disputados)) else 0
 
     if nuevos:
-        print(f'FAIL — {len(nuevos)} capa(s) estructural(es) plana(s) fuera del '
-              'baseline:')
+        print(
+            f'FAIL — {len(nuevos)} capa(s) estructural(es) plana(s) fuera del '
+            'baseline:'
+        )
         for p in nuevos:
             flat = p.split('/', 1)[1]
             print(f'  - src/addons/{p}   →   {FLAT_TO_PACKAGE[flat]}')
-        print('\nEl mapa lo fijó H-API-238; no hay que re-decidirlo. Mover un '
-              'plano de un\naddon a otro NO lo saca de la deuda: lo renombra.')
+        print(
+            '\nEl mapa lo fijó H-API-238; no hay que re-decidirlo. Mover un '
+            'plano de un\naddon a otro NO lo saca de la deuda: lo renombra.'
+        )
 
     if disputados:
-        print(f'\nDrift de nombre de capa ({len(disputados)}): la capa de vista '
-              'se llama\n``controllers/`` (H-API-238). Estos son paquetes, pero '
-              'con el nombre equivocado:')
+        print(
+            f'\nDrift de nombre de capa ({len(disputados)}): la capa de vista '
+            'se llama\n``controllers/`` (H-API-238). Estos son paquetes, pero '
+            'con el nombre equivocado:'
+        )
         for d in disputados:
-            print(f'  - src/addons/{d}   →   '
-                  f'{DISPUTED_PACKAGES[d.split("/")[1]]}')
+            print(
+                f'  - src/addons/{d}   →   '
+                f'{DISPUTED_PACKAGES[d.split("/")[1]]}'
+            )
 
     if heredados:
-        print(f'\nDeuda heredada de H-API-238 ({len(heredados)}), congelada en '
-              'el baseline.')
+        print(
+            f'\nDeuda heredada de H-API-238 ({len(heredados)}), congelada en '
+            'el baseline.'
+        )
 
     if not planos and not disputados:
         print('OK — ninguna capa estructural plana.')

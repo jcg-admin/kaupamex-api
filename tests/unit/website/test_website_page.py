@@ -1,4 +1,5 @@
-"""Contrato de ``website.page`` / ``website.rewrite`` / ``website.route`` (#104).
+"""
+Contrato de ``website.page`` / ``website.rewrite`` / ``website.route`` (#104).
 
 Adaptación de ``odoo19c: addons/website/models/website_page.py`` y
 ``website_rewrite.py`` (``odoo-tools@622ddc2a``, LGPL-3). Los casos cubren:
@@ -39,8 +40,8 @@ PAGE_PORTED = [
     '_get_most_specific_pages',
     'copy_data',
     'clone_page',
-    'delete',            # ≙ unlink — divergencia CRUD declarada
-    'save',              # ≙ write — divergencia CRUD declarada
+    'delete',  # ≙ unlink — divergencia CRUD declarada
+    'save',  # ≙ write — divergencia CRUD declarada
     '_search_get_detail',
     '_search_fetch',
     '_allow_cache_insertion',
@@ -81,25 +82,34 @@ class TestCoverage:
     """La cobertura declarada del porte es la real."""
 
     def test_the_ported_page_methods_exist(self):
-        missing = [name for name in PAGE_PORTED
-                   if not callable(getattr(WebsitePage, name, None))]
+        missing = [
+            name
+            for name in PAGE_PORTED
+            if not callable(getattr(WebsitePage, name, None))
+        ]
         assert missing == []
 
     def test_the_blocked_page_methods_are_not_silently_stubbed(self):
-        present = [name for name in PAGE_BLOCKED
-                   if name in vars(WebsitePage)]
+        present = [name for name in PAGE_BLOCKED if name in vars(WebsitePage)]
         assert present == []
 
     def test_the_rewrite_and_route_methods_exist(self):
-        missing = [name for name in REWRITE_PORTED
-                   if not callable(getattr(WebsiteRewrite, name, None))]
-        missing += [name for name in ROUTE_PORTED
-                    if not callable(getattr(WebsiteRoute, name, None))]
+        missing = [
+            name
+            for name in REWRITE_PORTED
+            if not callable(getattr(WebsiteRewrite, name, None))
+        ]
+        missing += [
+            name
+            for name in ROUTE_PORTED
+            if not callable(getattr(WebsiteRoute, name, None))
+        ]
         assert missing == []
 
     def test_the_blocked_rewrite_methods_are_not_silently_stubbed(self):
-        present = [name for name in REWRITE_BLOCKED
-                   if name in vars(WebsiteRewrite)]
+        present = [
+            name for name in REWRITE_BLOCKED if name in vars(WebsiteRewrite)
+        ]
         assert present == []
 
     def test_the_class_attributes_come_from_the_source(self):
@@ -123,17 +133,24 @@ def _make_website(**overrides):
     if 'user' not in overrides:
         existing = ResUsers.objects.filter(login='p104@kaupamex.test').first()
         values['user'] = existing or ResUsers.objects.create_user(
-            login='p104@kaupamex.test')
+            login='p104@kaupamex.test'
+        )
     values.update(overrides)
     website = Website(**values)
     website.save()
     return website
 
 
-def _make_page(website, url='/pagina-104', key='website.pagina-104',
-               name='Página 104', **overrides):
+def _make_page(
+    website,
+    url='/pagina-104',
+    key='website.pagina-104',
+    name='Página 104',
+    **overrides,
+):
     view = overrides.pop('view', None) or IrUiView.objects.create(
-        name=name, type='template', key=key, arch_db='<t><div id="wrap"/></t>')
+        name=name, type='template', key=key, arch_db='<t><div id="wrap"/></t>'
+    )
     values = {'url': url, 'view': view, 'website': website}
     values.update(overrides)
     return WebsitePage.objects.create(**values)
@@ -143,8 +160,8 @@ class TestInheritsDelegation:
     def test_the_page_exposes_the_view_fields_as_its_own(self):
         website = _make_website()
         page = _make_page(website)
-        assert page.name == 'Página 104'          # delegado (view.name)
-        assert page.key == 'website.pagina-104'   # delegado (view.key)
+        assert page.name == 'Página 104'  # delegado (view.name)
+        assert page.key == 'website.pagina-104'  # delegado (view.key)
         assert page.arch == '<t><div id="wrap"/></t>'
         assert page.view_write_date == page.view.updated_at
 
@@ -161,15 +178,26 @@ class TestMostSpecificPages:
     def test_the_site_page_wins_over_the_generic_twin(self):
         website = _make_website()
         generic_view = IrUiView.objects.create(
-            name='Gemela', type='template', key='website.gemela', arch_db='<t/>')
+            name='Gemela',
+            type='template',
+            key='website.gemela',
+            arch_db='<t/>',
+        )
         specific_view = IrUiView.objects.create(
-            name='Gemela', type='template', key='website.gemela-w', arch_db='<t/>')
+            name='Gemela',
+            type='template',
+            key='website.gemela-w',
+            arch_db='<t/>',
+        )
         generic = WebsitePage.objects.create(
-            url='/gemela', view=generic_view, website=None)
+            url='/gemela', view=generic_view, website=None
+        )
         specific = WebsitePage.objects.create(
-            url='/gemela', view=specific_view, website=website)
+            url='/gemela', view=specific_view, website=website
+        )
         most = WebsitePage._get_most_specific_pages(
-            [generic, specific], website=website)
+            [generic, specific], website=website
+        )
         assert most == [specific]
 
     def test_a_lone_generic_page_survives(self):
@@ -187,10 +215,13 @@ class TestWebsitePagesApi:
         website = _make_website()
         page = _make_page(website)
         found = Website._get_website_pages(
-            domain=Domain('url', '=', '/pagina-104'))
+            domain=Domain('url', '=', '/pagina-104')
+        )
         assert [entry.pk for entry in found] == [page.pk]
-        assert Website._get_website_pages(
-            domain=Domain('url', '=', '/no-existe')) == []
+        assert (
+            Website._get_website_pages(domain=Domain('url', '=', '/no-existe'))
+            == []
+        )
 
     def test_get_website_page_ids_maps_site_to_page_ids(self):
         website = _make_website()
@@ -226,8 +257,12 @@ class TestCheckExistingPage:
     def test_a_301_rewrite_counts_as_existing(self):
         website = _make_website()
         WebsiteRewrite.objects.create(
-            name='Vieja a nueva', url_from='/vieja', url_to='/nueva',
-            redirect_type='301', website=website)
+            name='Vieja a nueva',
+            url_from='/vieja',
+            url_to='/nueva',
+            redirect_type='301',
+            website=website,
+        )
         assert website.check_existing_page('/vieja') is True
 
     def test_an_unknown_path_does_not_exist(self):
@@ -238,8 +273,11 @@ class TestCheckExistingPage:
 class TestNewPage:
     def _seed_template(self):
         return IrUiView.objects.create(
-            name='Default page', type='template', key='website.default_page',
-            arch_db='<t><div id="wrap"/></t>')
+            name='Default page',
+            type='template',
+            key='website.default_page',
+            arch_db='<t><div id="wrap"/></t>',
+        )
 
     def test_new_page_creates_view_page_and_menu(self):
         website = _make_website()
@@ -275,7 +313,8 @@ class TestNewPage:
         self._seed_template()
         result = website.new_page(
             name='Con secciones',
-            sections_arch='<section class="s_104">hola</section>')
+            sections_arch='<section class="s_104">hola</section>',
+        )
         view = IrUiView.objects.get(pk=result['view_id'])
         assert 's_104' in view.arch_db
 
@@ -292,30 +331,44 @@ class TestPageLifecycle:
         website = _make_website()
         page = _make_page(website, url='/vieja-url', key='website.vieja-url')
         WebsiteMenu.objects.create(
-            name='Menú 104', route='/vieja-url', key=f'm104-{website.pk}',
-            website=website, page=page)
+            name='Menú 104',
+            route='/vieja-url',
+            key=f'm104-{website.pk}',
+            website=website,
+            page=page,
+        )
         page.url = '/nueva-url'
         page.save()
         page.refresh_from_db()
         assert page.url == '/nueva-url'
-        assert list(page.menu_ids.values_list('route', flat=True)) \
-            == ['/nueva-url']
+        assert list(page.menu_ids.values_list('route', flat=True)) == [
+            '/nueva-url'
+        ]
 
 
 class TestPageSearch:
     def test_search_fetch_finds_by_delegated_name_and_url(self):
         website = _make_website()
         page = _make_page(
-            website, url='/sobre-nosotros', key='website.sobre-nosotros',
-            name='Sobre nosotros', is_published=True)
+            website,
+            url='/sobre-nosotros',
+            key='website.sobre-nosotros',
+            name='Sobre nosotros',
+            is_published=True,
+        )
         detail = WebsitePage._search_get_detail(website, None, {})
         results, count = WebsitePage._search_fetch(detail, 'sobre', 5, None)
         assert count == 1 and results[0].pk == page.pk
 
     def test_unpublished_pages_stay_out_of_the_public_recipe(self):
         website = _make_website()
-        _make_page(website, url='/oculta', key='website.oculta',
-                   name='Oculta', is_published=False)
+        _make_page(
+            website,
+            url='/oculta',
+            key='website.oculta',
+            name='Oculta',
+            is_published=False,
+        )
         detail = WebsitePage._search_get_detail(website, None, {})
         results, count = WebsitePage._search_fetch(detail, 'oculta', 5, None)
         assert (results, count) == ([], 0)
@@ -326,8 +379,12 @@ class TestPageInfo:
         website = _make_website()
         page = _make_page(website, url='/acerca', key='website.acerca')
         info = WebsitePage._get_page_info(rf.get('/acerca'))
-        assert info == {'id': page.pk, 'url': '/acerca',
-                        'view_id': page.view_id, 'group_ids': []}
+        assert info == {
+            'id': page.pk,
+            'url': '/acerca',
+            'view_id': page.view_id,
+            'group_ids': [],
+        }
 
     def test_get_page_info_falls_back_to_case_insensitive(self, rf):
         website = _make_website()
@@ -340,24 +397,34 @@ class TestRewriteInvariant:
     def test_a_redirect_without_target_is_rejected(self):
         with pytest.raises(ValidationError):
             WebsiteRewrite.objects.create(
-                name='Sin destino', url_from='/vieja', redirect_type='301')
+                name='Sin destino', url_from='/vieja', redirect_type='301'
+            )
 
     def test_a_308_cannot_point_to_the_homepage(self):
         with pytest.raises(ValidationError):
             WebsiteRewrite.objects.create(
-                name='A la portada', url_from='/algo', url_to='/',
-                redirect_type='308')
+                name='A la portada',
+                url_from='/algo',
+                url_to='/',
+                redirect_type='308',
+            )
 
     def test_a_308_must_carry_the_from_parameters(self):
         with pytest.raises(ValidationError):
             WebsiteRewrite.objects.create(
-                name='Parámetro perdido', url_from='/x/<id>', url_to='/y',
-                redirect_type='308')
+                name='Parámetro perdido',
+                url_from='/x/<id>',
+                url_to='/y',
+                redirect_type='308',
+            )
 
     def test_display_name_prefixes_the_redirect_type(self):
         rewrite = WebsiteRewrite.objects.create(
-            name='Vieja a nueva', url_from='/vieja', url_to='/nueva',
-            redirect_type='302')
+            name='Vieja a nueva',
+            url_from='/vieja',
+            url_to='/nueva',
+            redirect_type='302',
+        )
         assert rewrite.display_name == '302 - Vieja a nueva'
 
 

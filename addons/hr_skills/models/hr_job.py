@@ -35,6 +35,7 @@ Porte símbolo por símbolo — 3 campos + 4 métodos
      - BLOQUEADOS — protocolo de comandos x2many (ver DIVERGENCIA 3 de
        ``hr_individual_skill_mixin.py``)
 """
+
 from datetime import date
 
 import fields
@@ -66,15 +67,21 @@ def _compute_skill_ids(self):
 
 
 def apply_hr_skills_hr_job_extensions():
-    """Cuelga sobre ``hr.job`` lo que ``hr_skills`` le añade — ≙ ``_inherit``."""
+    """
+    Cuelga sobre ``hr.job`` lo que ``hr_skills`` le añade — ≙ ``_inherit``.
+    """
     extend_model(
-        'hr', 'HrJob',
+        'hr',
+        'HrJob',
         campos={
             'skill_ids': fields.Many2many(
-                'hr_skills.HrSkill', blank=True,
+                'hr_skills.HrSkill',
+                blank=True,
                 related_name='jobs_with_skill',
-                help_text='Odoo skill_ids (compute+store) — sincronizar '
-                          'con _compute_skill_ids().',
+                help_text=(
+                    'Odoo skill_ids (compute+store) — sincronizar '
+                    'con _compute_skill_ids().'
+                ),
             ),
         },
         metodos={

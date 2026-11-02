@@ -34,8 +34,9 @@ import importlib.util
 import os
 import pathlib
 import sys
-
 import pytest
+import reference_roots
+
 
 _ROOT = pathlib.Path(__file__).resolve().parents[3]
 _PATH = _ROOT / 'scripts' / 'census_class.py'
@@ -44,10 +45,10 @@ census_class = importlib.util.module_from_spec(_spec)
 sys.modules['census_class'] = census_class
 _spec.loader.exec_module(census_class)
 
-sys.path.insert(0, str(_ROOT / 'scripts'))
-import reference_roots  # noqa: E402
 
-REFERENCE_MODELS = pathlib.Path(reference_roots.tree('odoo19c')) / 'odoo/orm/models.py'
+REFERENCE_MODELS = (
+    pathlib.Path(reference_roots.tree('odoo19c')) / 'odoo/orm/models.py'
+)
 
 
 @pytest.fixture(scope='module')
@@ -67,13 +68,23 @@ class TestTheAnnotatedFormIsSeen:
         names = [a.name for a in base_model.attributes]
         assert {'__slots__', 'id', 'display_name'} <= set(names)
 
-    def test_every_orm_attribute_the_rule_governs_is_annotated(self, base_model):
+    def test_every_orm_attribute_the_rule_governs_is_annotated(
+        self, base_model
+    ):
         # Estos son los que el instrumento viejo NO veia. Si alguien revierte
         # el recorrido a solo ``Assign``, este caso cae y los otros dos no:
         # DISCRIMINA la correccion, no solo la presencia del guion.
         annotated = {a.name for a in base_model.attributes if a.annotated}
-        assert {'_name', '_description', '_order', '_table', '_inherit',
-                '_rec_name', '_check_company_auto', '_parent_store'} <= annotated
+        assert {
+            '_name',
+            '_description',
+            '_order',
+            '_table',
+            '_inherit',
+            '_rec_name',
+            '_check_company_auto',
+            '_parent_store',
+        } <= annotated
 
     def test_the_plain_ones_are_not_marked_annotated(self, base_model):
         plain = {a.name for a in base_model.attributes if not a.annotated}
@@ -89,7 +100,8 @@ class TestItAlsoSeesTheOrdinaryAddonForm(object):
         source.write_text(
             "class StockPicking:\n"
             "    _name = 'stock.picking'\n"
-            "    _description = 'Transfer'\n")
+            "    _description = 'Transfer'\n"
+        )
         got = census_class.census(source, ['StockPicking'])['StockPicking']
         assert [a.name for a in got.attributes] == ['_name', '_description']
         assert not any(a.annotated for a in got.attributes)

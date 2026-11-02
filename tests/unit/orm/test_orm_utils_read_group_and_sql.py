@@ -1,6 +1,9 @@
-"""Los cuatro símbolos de ``orm/utils.py`` que la referencia declara y aquí faltaban.
+"""
+Los cuatro símbolos de ``orm/utils.py`` que la referencia declara y aquí
+faltaban.
 
-``odoo19c: odoo/orm/utils.py`` declara diecisiete símbolos de nivel superior; el
+``odoo19c: odoo/orm/utils.py`` declara diecisiete símbolos de nivel superior;
+el
 censo de :ref:`analisis-censo-orm-referencia-trae-o-construye` medía cuatro
 ausentes: ``READ_GROUP_TIME_GRANULARITY``, ``READ_GROUP_ALL_TIME_GRANULARITY``,
 ``SQL_OPERATORS`` y ``origin_ids``.
@@ -10,6 +13,7 @@ que su CONTENIDO coincida con el de la fuente, clave por clave. Una tabla
 declarada con la mitad de sus filas pasa un ``hasattr`` y falla en la primera
 granularidad que nadie probó.
 """
+
 import datetime
 import pathlib
 
@@ -27,24 +31,32 @@ from orm.utils import (
 )
 from tools.sql import SQL
 
-
 # --- READ_GROUP_TIME_GRANULARITY -------------------------------------------
+
 
 def test_time_granularity_declares_the_six_of_the_source():
     """``odoo19c: odoo/orm/utils.py:22-30`` declara exactamente estas seis."""
     assert set(READ_GROUP_TIME_GRANULARITY) == {
-        'hour', 'day', 'week', 'month', 'quarter', 'year',
+        'hour',
+        'day',
+        'week',
+        'month',
+        'quarter',
+        'year',
     }
 
 
-@pytest.mark.parametrize(('clave', 'delta'), [
-    ('hour', dateutil.relativedelta.relativedelta(hours=1)),
-    ('day', dateutil.relativedelta.relativedelta(days=1)),
-    ('week', dateutil.relativedelta.relativedelta(days=7)),
-    ('month', dateutil.relativedelta.relativedelta(months=1)),
-    ('quarter', dateutil.relativedelta.relativedelta(months=3)),
-    ('year', dateutil.relativedelta.relativedelta(years=1)),
-])
+@pytest.mark.parametrize(
+    ('clave', 'delta'),
+    [
+        ('hour', dateutil.relativedelta.relativedelta(hours=1)),
+        ('day', dateutil.relativedelta.relativedelta(days=1)),
+        ('week', dateutil.relativedelta.relativedelta(days=7)),
+        ('month', dateutil.relativedelta.relativedelta(months=1)),
+        ('quarter', dateutil.relativedelta.relativedelta(months=3)),
+        ('year', dateutil.relativedelta.relativedelta(years=1)),
+    ],
+)
 def test_each_granularity_is_the_delta_of_the_source(clave, delta):
     assert READ_GROUP_TIME_GRANULARITY[clave] == delta
 
@@ -61,23 +73,31 @@ def test_week_is_declared_as_seven_days_in_the_source_form():
 
     La divergencia existe **sólo** en la forma escrita, así que ahí se mide.
 
-    *Métrica:* el literal ``'week': dateutil.relativedelta.relativedelta(days=7)``
+    *Métrica:* el literal ``'week':
+    dateutil.relativedelta.relativedelta(days=7)``
     en el fuente de ``orm/utils.py``.
     *Ciega a:* un reformateo que parta la línea, y a que el valor en ejecución
     sea el correcto — eso lo cubren los dos tests de arriba.
     """
     fuente = pathlib.Path(orm.utils.__file__).read_text(encoding='utf-8')
     assert "'week': dateutil.relativedelta.relativedelta(days=7)" in fuente
-    assert "'week': dateutil.relativedelta.relativedelta(weeks=1)" not in fuente
+    assert (
+        "'week': dateutil.relativedelta.relativedelta(weeks=1)" not in fuente
+    )
 
 
 def test_the_delta_actually_advances_the_date():
     base = datetime.date(2026, 1, 31)
-    assert base + READ_GROUP_TIME_GRANULARITY['month'] == datetime.date(2026, 2, 28)
-    assert base + READ_GROUP_TIME_GRANULARITY['quarter'] == datetime.date(2026, 4, 30)
+    assert base + READ_GROUP_TIME_GRANULARITY['month'] == datetime.date(
+        2026, 2, 28
+    )
+    assert base + READ_GROUP_TIME_GRANULARITY['quarter'] == datetime.date(
+        2026, 4, 30
+    )
 
 
 # --- READ_GROUP_ALL_TIME_GRANULARITY ---------------------------------------
+
 
 def test_all_granularity_is_the_union_of_both_tables():
     """``odoo19c: odoo/orm/utils.py:44`` — ``TIME | NUMBER``, en ese orden."""
@@ -100,34 +120,53 @@ def test_the_union_does_not_mutate_its_operands():
 
 # --- SQL_OPERATORS ---------------------------------------------------------
 
+
 def test_sql_operators_declares_the_sixteen_of_the_source():
     assert set(SQL_OPERATORS) == {
-        '=', '!=', 'in', 'not in', '<', '>', '<=', '>=',
-        'like', 'ilike', '=like', '=ilike',
-        'not like', 'not ilike', 'not =like', 'not =ilike',
+        '=',
+        '!=',
+        'in',
+        'not in',
+        '<',
+        '>',
+        '<=',
+        '>=',
+        'like',
+        'ilike',
+        '=like',
+        '=ilike',
+        'not like',
+        'not ilike',
+        'not =like',
+        'not =ilike',
     }
 
 
-@pytest.mark.parametrize(('operator', 'code'), [
-    ('=', ' = '),
-    ('!=', ' != '),
-    ('in', ' IN '),
-    ('not in', ' NOT IN '),
-    ('<', ' < '),
-    ('>', ' > '),
-    ('<=', ' <= '),
-    ('>=', ' >= '),
-    ('like', ' LIKE '),
-    ('ilike', ' ILIKE '),
-    ('=like', ' LIKE '),
-    ('=ilike', ' ILIKE '),
-    ('not like', ' NOT LIKE '),
-    ('not ilike', ' NOT ILIKE '),
-    ('not =like', ' NOT LIKE '),
-    ('not =ilike', ' NOT ILIKE '),
-])
+@pytest.mark.parametrize(
+    ('operator', 'code'),
+    [
+        ('=', ' = '),
+        ('!=', ' != '),
+        ('in', ' IN '),
+        ('not in', ' NOT IN '),
+        ('<', ' < '),
+        ('>', ' > '),
+        ('<=', ' <= '),
+        ('>=', ' >= '),
+        ('like', ' LIKE '),
+        ('ilike', ' ILIKE '),
+        ('=like', ' LIKE '),
+        ('=ilike', ' ILIKE '),
+        ('not like', ' NOT LIKE '),
+        ('not ilike', ' NOT ILIKE '),
+        ('not =like', ' NOT LIKE '),
+        ('not =ilike', ' NOT ILIKE '),
+    ],
+)
 def test_each_operator_carries_the_fragment_of_the_source(operator, code):
-    """Los cuatro pares ``=like``/``like`` colapsan al mismo SQL, como la fuente."""
+    """
+    Los cuatro pares ``=like``/``like`` colapsan al mismo SQL, como la fuente.
+    """
     fragment = SQL_OPERATORS[operator]
     assert isinstance(fragment, SQL)
     assert fragment.code == code
@@ -140,12 +179,15 @@ def test_every_fragment_carries_no_parameters():
 
 
 def test_the_fragments_compose_with_sql():
-    condition = SQL('%s%s%s', SQL.identifier('name'), SQL_OPERATORS['ilike'], 'abc')
+    condition = SQL(
+        '%s%s%s', SQL.identifier('name'), SQL_OPERATORS['ilike'], 'abc'
+    )
     assert ' ILIKE ' in condition.code
     assert condition.params == ['abc']
 
 
 # --- origin_ids ------------------------------------------------------------
+
 
 def test_origin_ids_is_the_class_not_a_copy():
     """``odoo19c: odoo/orm/utils.py:149`` — ``origin_ids = OriginIds``.

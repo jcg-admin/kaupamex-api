@@ -34,6 +34,7 @@ cerrada de tipos que la fuente admite
 ``Monetary`` y allá es ``Float`` company_dependent es una decisión propia —
 tarea **#135**.
 """
+
 import decimal
 
 from django.db import models
@@ -70,8 +71,12 @@ def Monetary(*args, store=_UNSET, help=None, related=None, **kwargs):
     return annotate_related(field, related, related_attrs)
 
 
-def _integer_convert_to_column(self, value, record, values=None, validate=True):
-    """``Integer.convert_to_column`` — ≙ ``odoo19c: odoo/orm/fields_numeric.py:32-33``.
+def _integer_convert_to_column(
+    self, value, record, values=None, validate=True
+):
+    """
+    ``Integer.convert_to_column`` — ≙ ``odoo19c:
+    odoo/orm/fields_numeric.py:32-33``.
 
     ``int(value or 0)``: el vocabulario de ausencia de un entero es el cero, no
     el ``NULL``. Es la sobrecarga que impide que la base lleve ``False`` a
@@ -107,7 +112,8 @@ def _float_convert_to_column(self, value, record, values=None, validate=True):
     el de la caché divergen en el último dígito y las comparaciones dejan de
     coincidir.
 
-    La fuente lee la precisión de ``self.get_digits(record.env)`` —un ajuste por
+    La fuente lee la precisión de ``self.get_digits(record.env)`` —un ajuste
+    por
     empresa— y aquí la declara el propio campo (``decimal_places``), que es
     donde este stack la pone. El registro no hace falta: por eso la firma lo
     acepta y el cuerpo no lo consulta.
@@ -120,7 +126,9 @@ def _float_convert_to_column(self, value, record, values=None, validate=True):
 models.FloatField.convert_to_column = _float_convert_to_column
 
 
-def _decimal_convert_to_column(self, value, record, values=None, validate=True):
+def _decimal_convert_to_column(
+    self, value, record, values=None, validate=True
+):
     """``Monetary.convert_to_column`` — ≙ el mismo reparto que ``Float``.
 
     ``DecimalField`` es el tipo con que este árbol declara el dinero, y su
@@ -136,8 +144,9 @@ def _decimal_convert_to_column(self, value, record, values=None, validate=True):
     scale = getattr(self, 'decimal_places', None)
     if scale is None:
         return value
-    return value.quantize(decimal.Decimal(1).scaleb(-scale),
-                          rounding=decimal.ROUND_HALF_UP)
+    return value.quantize(
+        decimal.Decimal(1).scaleb(-scale), rounding=decimal.ROUND_HALF_UP
+    )
 
 
 models.DecimalField.convert_to_column = _decimal_convert_to_column

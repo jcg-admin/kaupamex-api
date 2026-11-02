@@ -90,6 +90,7 @@ compañía de la SESIÓN, no la del registro. Aquí se resuelve con
 filtro no puede acotar nada: se devuelve ``[]`` (verdadero, no restringe),
 igual que ``_search_full_name`` cuando no hay nada que buscar.
 """
+
 import datetime
 from decimal import Decimal
 
@@ -105,14 +106,20 @@ from addons.base.models import DecimalPrecision, ResCompany
 
 class AnalyticPlanFieldsMixin(models.Model):
     """Mixin abstracto: agrega la FK a la cuenta analítica (Odoo
-    ``analytic.plan.fields.mixin``, simplificado — ver docstring del módulo)."""
+    ``analytic.plan.fields.mixin``, simplificado — ver docstring del módulo).
+    """
 
     account = fields.Many2one(
-        'analytic.AccountAnalyticAccount', on_delete=models.PROTECT,
-        null=True, blank=True, related_name='lines',
+        'analytic.AccountAnalyticAccount',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='lines',
         verbose_name='Cuenta analítica',
-        help_text='Odoo account_id (ondelete=restrict). Simplificación de '
-                   'columna única — ver docstring del módulo.',
+        help_text=(
+            'Odoo account_id (ondelete=restrict). Simplificación de '
+            'columna única — ver docstring del módulo.'
+        ),
     )
 
     class Meta:
@@ -123,7 +130,9 @@ class AnalyticPlanFieldsMixin(models.Model):
         un único campo: "debe haber una cuenta analítica establecida"."""
         super().clean()
         if not self.account_id:
-            raise ValidationError({'account': 'ANALYTIC_LINE_ACCOUNT_REQUIRED'})
+            raise ValidationError(
+                {'account': 'ANALYTIC_LINE_ACCOUNT_REQUIRED'}
+            )
 
     def _get_distribution_key(self):
         """Fiel a ``_get_distribution_key`` (odoo19c: línea 68-69)."""
@@ -141,38 +150,62 @@ class AccountAnalyticLine(AnalyticPlanFieldsMixin, models.Model):
     CATEGORIES = [('other', 'Otro')]
 
     name = fields.Char(
-        max_length=255, verbose_name='Descripción',
+        max_length=255,
+        verbose_name='Descripción',
         help_text='Odoo name (requerido).',
     )
     date = fields.Date(
-        default=datetime.date.today, db_index=True, verbose_name='Fecha',
+        default=datetime.date.today,
+        db_index=True,
+        verbose_name='Fecha',
     )
     amount = fields.Monetary(
-        max_digits=16, decimal_places=2, default=Decimal('0.00'),
-        verbose_name='Importe', help_text='Odoo amount (requerido).',
+        max_digits=16,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name='Importe',
+        help_text='Odoo amount (requerido).',
     )
     unit_amount = fields.Float(default=0.0, verbose_name='Cantidad')
     product_uom = fields.Many2one(
-        'uom.Uom', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='analytic_lines', verbose_name='Unidad',
+        'uom.Uom',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='analytic_lines',
+        verbose_name='Unidad',
     )
     partner = fields.Many2one(
-        'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='analytic_lines', verbose_name='Contacto',
+        'base.ResPartner',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='analytic_lines',
+        verbose_name='Contacto',
     )
     user = fields.Many2one(
-        'base.ResUsers', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='analytic_lines', verbose_name='Usuario',
-        help_text='Odoo user_id. Sin default a env.user (ver docstring: '
-                   'esta API no acopla el modelo al usuario ambiental).',
+        'base.ResUsers',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='analytic_lines',
+        verbose_name='Usuario',
+        help_text=(
+            'Odoo user_id. Sin default a env.user (ver docstring: '
+            'esta API no acopla el modelo al usuario ambiental).'
+        ),
     )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE,
-        related_name='analytic_lines', verbose_name='Empresa',
+        'base.ResCompany',
+        on_delete=models.CASCADE,
+        related_name='analytic_lines',
+        verbose_name='Empresa',
         help_text='Odoo company_id (requerido, readonly).',
     )
     category = fields.Selection(
-        max_length=16, choices=CATEGORIES, default='other',
+        max_length=16,
+        choices=CATEGORIES,
+        default='other',
         verbose_name='Categoría',
     )
     #: ≙ ``fiscal_year_search`` (``odoo19c: :222-226``) — atajo de filtro sin
@@ -180,8 +213,10 @@ class AccountAnalyticLine(AnalyticPlanFieldsMixin, models.Model):
     #: ventana fiscal vigente. Ver el docstring del módulo.
     fiscal_year_search = fields.NonStored(
         search='_search_fiscal_date',
-        help_text='Odoo fiscal_year_search — filtro por ejercicio fiscal '
-                  'vigente, sin valor propio que leer.',
+        help_text=(
+            'Odoo fiscal_year_search — filtro por ejercicio fiscal '
+            'vigente, sin valor propio que leer.'
+        ),
     )
 
     class Meta:
@@ -214,8 +249,9 @@ class AccountAnalyticLine(AnalyticPlanFieldsMixin, models.Model):
         if company is None:
             return []
         fiscal_range = company.compute_fiscalyear_dates(datetime.date.today())
-        return [('date', '>=',
-                fiscal_range['date_from'] - relativedelta(years=1))]
+        return [
+            ('date', '>=', fiscal_range['date_from'] - relativedelta(years=1))
+        ]
 
     @property
     def analytic_precision(self):

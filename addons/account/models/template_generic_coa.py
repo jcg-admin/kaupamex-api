@@ -11,6 +11,7 @@ líneas de reparto, 2 posiciones fiscales— viven en ``data/template/*.csv``,
 copiados verbatim de la referencia. Este módulo sólo aporta lo que **no cabe en
 una tabla**: cómo se llama el plan y qué se escribe en la empresa.
 """
+
 from addons.account.models.chart_template import ChartTemplate, template
 
 
@@ -35,7 +36,9 @@ class GenericCoaChartTemplate(ChartTemplate):
 
     @template('generic_coa', 'res.company')
     def get_generic_coa_res_company(cls, template_code):
-        """Lo que el plan escribe en la empresa — ≙ ``_get_generic_coa_res_company``.
+        """
+        Lo que el plan escribe en la empresa — ≙
+        ``_get_generic_coa_res_company``.
 
         La referencia escribe aquí 18 claves; se conservan las que este puerto
         tiene campo donde poner. ``post_load_data`` descarta el resto en
@@ -62,6 +65,10 @@ class GenericCoaChartTemplate(ChartTemplate):
             # faltaban (``odoo19c: template_generic_coa.py:44-47``).
             'default_cash_difference_income_account': 'cash_diff_income',
             'default_cash_difference_expense_account': 'cash_diff_expense',
-            'account_journal_early_pay_discount_loss_account': 'cash_discount_loss',
-            'account_journal_early_pay_discount_gain_account': 'cash_discount_gain',
+            'account_journal_early_pay_discount_loss_account': (
+                'cash_discount_loss'
+            ),
+            'account_journal_early_pay_discount_gain_account': (
+                'cash_discount_gain'
+            ),
         }

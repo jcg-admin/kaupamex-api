@@ -15,10 +15,13 @@ real.
 al método directamente. Que ``load()`` lo invoque lo mide su propia cadena, no
 un caso de este archivo.
 """
+
 import pytest
 
 from addons.account.models.chart_template import (
-    PROPERTY_ACCOUNTS_OVERRIDES, ChartTemplate, property_accounts_override,
+    PROPERTY_ACCOUNTS_OVERRIDES,
+    ChartTemplate,
+    property_accounts_override,
 )
 from addons.account.models.account_account import AccountAccount
 from addons.base.models.ir_default import IrDefault
@@ -37,8 +40,11 @@ def company():
 @pytest.fixture
 def receivable(company):
     return AccountAccount.objects.create(
-        code='11100', name='Clientes', account_type='asset_receivable',
-        company=company)
+        code='11100',
+        name='Clientes',
+        account_type='asset_receivable',
+        company=company,
+    )
 
 
 class TestTheOverrideIsRegistered:
@@ -59,7 +65,9 @@ class TestTheOverrideIsRegistered:
         before = list(PROPERTY_ACCOUNTS_OVERRIDES)
         try:
             property_accounts_override(add_downpayment_account)
-            assert PROPERTY_ACCOUNTS_OVERRIDES.count(add_downpayment_account) == 1
+            assert (
+                PROPERTY_ACCOUNTS_OVERRIDES.count(add_downpayment_account) == 1
+            )
         finally:
             PROPERTY_ACCOUNTS_OVERRIDES[:] = before
 
@@ -96,14 +104,20 @@ class TestTheMap:
             # estuviera inscrito — el control fallaría por la retirada y no
             # por su aserto, que es fallar por el motivo equivocado.
             PROPERTY_ACCOUNTS_OVERRIDES[:] = [
-                f for f in before if f is not add_downpayment_account]
-            assert 'downpayment_account' not in ChartTemplate._get_property_accounts({})
+                f for f in before if f is not add_downpayment_account
+            ]
+            assert (
+                'downpayment_account'
+                not in ChartTemplate._get_property_accounts({})
+            )
         finally:
             PROPERTY_ACCOUNTS_OVERRIDES[:] = before
 
     def test_additional_properties_come_through(self):
         """≙ el ``**additional_properties`` de la fuente (``:804``)."""
-        mapping = ChartTemplate._get_property_accounts({'property_x': 'res.partner'})
+        mapping = ChartTemplate._get_property_accounts(
+            {'property_x': 'res.partner'}
+        )
         assert mapping['property_x'] == 'res.partner'
 
     def test_the_public_name_is_gone(self):
@@ -112,19 +126,29 @@ class TestTheMap:
 
 
 class TestTheDefaultsAreSeeded:
-    """≙ el bucle de ``ir.default`` (``odoo19c: chart_template.py:766-783``)."""
+    """
+    ≙ el bucle de ``ir.default`` (``odoo19c: chart_template.py:766-783``).
+    """
 
-    def test_a_declared_property_becomes_an_ir_default(self, company, receivable):
+    def test_a_declared_property_becomes_an_ir_default(
+        self, company, receivable
+    ):
         # El identificador es POR EMPRESA — ≙ ``company_xmlid`` (``:285``):
         # ``receivable`` nombra el papel, no la cuenta.
         IrModelData.objects.create(
-            module='account', name=f'{company.pk}_receivable_test',
-            model='account.AccountAccount', res_id=receivable.pk)
+            module='account',
+            name=f'{company.pk}_receivable_test',
+            model='account.AccountAccount',
+            res_id=receivable.pk,
+        )
         ChartTemplate.set_property_account_defaults(
-            company, {'property_account_receivable_id': 'receivable_test'}, {})
+            company, {'property_account_receivable_id': 'receivable_test'}, {}
+        )
         default = IrDefault.objects.get(
-            model='res.partner', field='property_account_receivable_id',
-            company=company)
+            model='res.partner',
+            field='property_account_receivable_id',
+            company=company,
+        )
         assert default.json_value == str(receivable.pk)
 
     def test_a_key_whose_model_lacks_the_field_is_skipped(self, company):
@@ -134,19 +158,26 @@ class TestTheDefaultsAreSeeded:
         aborta la carga del plan, se salta la entrada.
         """
         ChartTemplate.set_property_account_defaults(
-            company, {'property_stock_journal': 'lo_que_sea'}, {})
-        assert not IrDefault.objects.filter(field='property_stock_journal').exists()
+            company, {'property_stock_journal': 'lo_que_sea'}, {}
+        )
+        assert not IrDefault.objects.filter(
+            field='property_stock_journal'
+        ).exists()
 
     def test_the_company_income_account_seeds_the_product_category(
-        self, company, receivable,
+        self,
+        company,
+        receivable,
     ):
         """≙ ``:772-777`` — la cuenta sale de la empresa, no del plan."""
         company.income_account_id = receivable
         company.save(update_fields=['income_account_id'])
         ChartTemplate.set_property_account_defaults(company, {}, {})
         default = IrDefault.objects.get(
-            model='product.category', field='property_account_income_categ',
-            company=company)
+            model='product.category',
+            field='property_account_income_categ',
+            company=company,
+        )
         assert default.json_value == str(receivable.pk)
 
     def test_a_company_without_the_account_seeds_nothing(self, company):

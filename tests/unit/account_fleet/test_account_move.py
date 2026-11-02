@@ -1,4 +1,6 @@
-"""``account_fleet`` — el puente que cuelga de ``account.move``/``account.move.line``.
+"""
+``account_fleet`` — el puente que cuelga de
+``account.move``/``account.move.line``.
 
 Portación de ``odoo19c: account_fleet/models/account_move.py``
 (addon ``account_fleet``, LGPL-3, ``odoo-tools@622ddc2a``).
@@ -19,6 +21,7 @@ Los guards/receptores que SÍ necesitan tocar la base (crear/borrar
 Observation deja de necesitar una fila real — la rama "éxito" completa queda
 para el nivel de integración, una vez el wiring de arriba exista.
 """
+
 import pytest
 
 from addons.account.models import AccountMove, AccountMoveLine
@@ -50,14 +53,19 @@ def vehicle():
 
 @pytest.fixture
 def move():
-    return AccountMove(state='posted', move_type='in_invoice', name='BILL/0001')
+    return AccountMove(
+        state='posted', move_type='in_invoice', name='BILL/0001'
+    )
 
 
 @pytest.fixture
 def bill_line(move, vehicle):
     return AccountMoveLine(
-        move=move, name='Cambio de aceite', vehicle=vehicle,
-        display_type='product', debit=350,
+        move=move,
+        name='Cambio de aceite',
+        vehicle=vehicle,
+        display_type='product',
+        debit=350,
     )
 
 
@@ -106,8 +114,10 @@ class TestPrepareFleetLogService:
         Python, sin depender del wiring pendiente de la semilla."""
         centinela = object()
         monkeypatch.setattr(
-            IrModelData, 'ref',
-            lambda xmlid, raise_if_not_found=True: centinela)
+            IrModelData,
+            'ref',
+            lambda xmlid, raise_if_not_found=True: centinela,
+        )
         vals = bill_line._prepare_fleet_log_service()
         assert vals == {
             'service_type': centinela,
@@ -120,20 +130,28 @@ class TestPrepareFleetLogService:
     def test_llama_a_ref_con_el_xmlid_correcto(self, monkeypatch, bill_line):
         llamadas = []
         monkeypatch.setattr(
-            IrModelData, 'ref',
+            IrModelData,
+            'ref',
             lambda xmlid, raise_if_not_found=True: llamadas.append(
-                (xmlid, raise_if_not_found)) or None)
+                (xmlid, raise_if_not_found)
+            )
+            or None,
+        )
         bill_line._prepare_fleet_log_service()
         assert llamadas == [(VENDOR_BILL_SERVICE_XMLID, False)]
 
-    def test_vendor_viene_del_asiento_no_de_la_linea(self, monkeypatch, move, vehicle):
+    def test_vendor_viene_del_asiento_no_de_la_linea(
+        self, monkeypatch, move, vehicle
+    ):
         """Divergencia 1 del docstring del módulo: ``api:
         account/models/account_move_line.py`` no declara ``partner`` propio,
         así que el vendor se resuelve del asiento."""
         monkeypatch.setattr(
-            IrModelData, 'ref', lambda xmlid, raise_if_not_found=True: None)
+            IrModelData, 'ref', lambda xmlid, raise_if_not_found=True: None
+        )
         line = AccountMoveLine(
-            move=move, name='Llantas', vehicle=vehicle, display_type='product')
+            move=move, name='Llantas', vehicle=vehicle, display_type='product'
+        )
         vals = line._prepare_fleet_log_service()
         assert vals['vendor'] is move.partner
 
@@ -148,33 +166,60 @@ class TestCreateFleetServiceBillsOnPostGuards:
     def test_sin_update_fields_no_hace_nada(self, move):
         # No debe intentar tocar la base — si lo hiciera, el fixture
         # (instancia no guardada) haría fallar la consulta antes de esto.
-        assert _create_fleet_service_bills_on_post(
-            sender=AccountMove, instance=move, update_fields=None) is None
+        assert (
+            _create_fleet_service_bills_on_post(
+                sender=AccountMove, instance=move, update_fields=None
+            )
+            is None
+        )
 
     def test_update_fields_sin_state_no_hace_nada(self, move):
-        assert _create_fleet_service_bills_on_post(
-            sender=AccountMove, instance=move,
-            update_fields=frozenset({'amount_total'})) is None
+        assert (
+            _create_fleet_service_bills_on_post(
+                sender=AccountMove,
+                instance=move,
+                update_fields=frozenset({'amount_total'}),
+            )
+            is None
+        )
 
     def test_state_no_posted_no_hace_nada(self):
         borrador = AccountMove(state='draft', move_type='in_invoice')
-        assert _create_fleet_service_bills_on_post(
-            sender=AccountMove, instance=borrador,
-            update_fields=frozenset({'state'})) is None
+        assert (
+            _create_fleet_service_bills_on_post(
+                sender=AccountMove,
+                instance=borrador,
+                update_fields=frozenset({'state'}),
+            )
+            is None
+        )
 
     def test_move_type_distinto_de_in_invoice_no_hace_nada(self):
         nota_credito = AccountMove(state='posted', move_type='in_refund')
-        assert _create_fleet_service_bills_on_post(
-            sender=AccountMove, instance=nota_credito,
-            update_fields=frozenset({'state'})) is None
+        assert (
+            _create_fleet_service_bills_on_post(
+                sender=AccountMove,
+                instance=nota_credito,
+                update_fields=frozenset({'state'}),
+            )
+            is None
+        )
 
-    def test_sin_tipo_de_servicio_semilla_no_hace_nada(self, monkeypatch, move):
+    def test_sin_tipo_de_servicio_semilla_no_hace_nada(
+        self, monkeypatch, move
+    ):
         """≙ ``if not vendor_bill_service: return super()._post(soft)``."""
         monkeypatch.setattr(
-            IrModelData, 'ref', lambda xmlid, raise_if_not_found=True: None)
-        assert _create_fleet_service_bills_on_post(
-            sender=AccountMove, instance=move,
-            update_fields=frozenset({'state'})) is None
+            IrModelData, 'ref', lambda xmlid, raise_if_not_found=True: None
+        )
+        assert (
+            _create_fleet_service_bills_on_post(
+                sender=AccountMove,
+                instance=move,
+                update_fields=frozenset({'state'}),
+            )
+            is None
+        )
 
 
 # -- _detach_vehicle_services_on_line_saved — guards (sin tocar la base) ----
@@ -182,18 +227,36 @@ class TestCreateFleetServiceBillsOnPostGuards:
 
 class TestDetachVehicleServicesOnLineSavedGuards:
     def test_creado_no_hace_nada(self, bill_line):
-        assert _detach_vehicle_services_on_line_saved(
-            sender=AccountMoveLine, instance=bill_line, created=True,
-            update_fields=None) is None
+        assert (
+            _detach_vehicle_services_on_line_saved(
+                sender=AccountMoveLine,
+                instance=bill_line,
+                created=True,
+                update_fields=None,
+            )
+            is None
+        )
 
     def test_update_fields_sin_vehicle_no_hace_nada(self, bill_line):
-        assert _detach_vehicle_services_on_line_saved(
-            sender=AccountMoveLine, instance=bill_line, created=False,
-            update_fields=frozenset({'debit'})) is None
+        assert (
+            _detach_vehicle_services_on_line_saved(
+                sender=AccountMoveLine,
+                instance=bill_line,
+                created=False,
+                update_fields=frozenset({'debit'}),
+            )
+            is None
+        )
 
     def test_vehicle_presente_no_hace_nada(self, bill_line):
         """``bill_line`` tiene vehículo — la limpieza sólo corre cuando se
         vacía."""
-        assert _detach_vehicle_services_on_line_saved(
-            sender=AccountMoveLine, instance=bill_line, created=False,
-            update_fields=None) is None
+        assert (
+            _detach_vehicle_services_on_line_saved(
+                sender=AccountMoveLine,
+                instance=bill_line,
+                created=False,
+                update_fields=None,
+            )
+            is None
+        )

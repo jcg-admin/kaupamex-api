@@ -72,6 +72,7 @@ Divergencias transversales declaradas:
   modelo local aún no declare — el dato no se recorta para no perder la
   fila cuando el campo aterrice.
 """
+
 import logging
 import time
 from datetime import date, datetime, timedelta
@@ -110,10 +111,12 @@ class AccountChartTemplate(ChartTemplate):
             **cls._get_demo_data_products(company),
             'account.move': cls._get_demo_data_move(company),
             'account.bank.statement': cls._get_demo_data_statement(company),
-            'account.bank.statement.line':
-                cls._get_demo_data_transactions(company),
-            'account.reconcile.model':
-                cls._get_demo_data_reconcile_model(company),
+            'account.bank.statement.line': cls._get_demo_data_transactions(
+                company
+            ),
+            'account.reconcile.model': cls._get_demo_data_reconcile_model(
+                company
+            ),
             'ir.attachment': cls._get_demo_data_attachment(company),
             'mail.message': cls._get_demo_data_mail_message(company),
             'mail.activity': cls._get_demo_data_mail_activity(company),
@@ -126,12 +129,12 @@ class AccountChartTemplate(ChartTemplate):
 
     @classmethod
     def _get_demo_exception_product_template_xml_ids(cls):
-        """ Return demo product template xml ids to not put taxes on"""
+        """Return demo product template xml ids to not put taxes on"""
         return []
 
     @classmethod
     def _get_demo_exception_product_variant_xml_ids(cls):
-        """ Return demo product variant xml ids to not put taxes on"""
+        """Return demo product variant xml ids to not put taxes on"""
         return ['product.office_combo']
 
     @classmethod
@@ -156,13 +159,17 @@ class AccountChartTemplate(ChartTemplate):
         if not taxes:
             return {}
         product_templates = sorted(
-            {row.complete_name for row in IrModelData.objects.filter(
-                model='product.template')}
+            {
+                row.complete_name
+                for row in IrModelData.objects.filter(model='product.template')
+            }
             - set(cls._get_demo_exception_product_template_xml_ids())
         )
         product_variants = sorted(
-            {row.complete_name for row in IrModelData.objects.filter(
-                model='product.product')}
+            {
+                row.complete_name
+                for row in IrModelData.objects.filter(model='product.product')
+            }
             - set(cls._get_demo_exception_product_variant_xml_ids())
         )
         return {
@@ -175,17 +182,29 @@ class AccountChartTemplate(ChartTemplate):
         """≙ ``_post_load_demo_data`` — publica las facturas de demo,
         tragando (con log) las que no puedan postearse."""
         xmlids = [
-            'demo_invoice_1', 'demo_invoice_2', 'demo_invoice_3',
-            'demo_invoice_followup', 'demo_invoice_5', 'demo_invoice_6',
-            'demo_invoice_7', 'demo_invoice_8',
-            'demo_invoice_equipment_purchase', 'demo_invoice_9',
-            'demo_invoice_10', 'demo_move_auto_reconcile_1',
-            'demo_move_auto_reconcile_2', 'demo_move_auto_reconcile_3',
-            'demo_move_auto_reconcile_4', 'demo_move_auto_reconcile_5',
-            'demo_move_auto_reconcile_6', 'demo_move_auto_reconcile_7',
+            'demo_invoice_1',
+            'demo_invoice_2',
+            'demo_invoice_3',
+            'demo_invoice_followup',
+            'demo_invoice_5',
+            'demo_invoice_6',
+            'demo_invoice_7',
+            'demo_invoice_8',
+            'demo_invoice_equipment_purchase',
+            'demo_invoice_9',
+            'demo_invoice_10',
+            'demo_move_auto_reconcile_1',
+            'demo_move_auto_reconcile_2',
+            'demo_move_auto_reconcile_3',
+            'demo_move_auto_reconcile_4',
+            'demo_move_auto_reconcile_5',
+            'demo_move_auto_reconcile_6',
+            'demo_move_auto_reconcile_7',
         ]
-        invoices = [cls.ref(xmlid, company, raise_if_not_found=False)
-                    for xmlid in xmlids]
+        invoices = [
+            cls.ref(xmlid, company, raise_if_not_found=False)
+            for xmlid in xmlids
+        ]
         for move in invoices:
             if move is None:
                 continue
@@ -214,8 +233,10 @@ class AccountChartTemplate(ChartTemplate):
     @classmethod
     def _get_demo_data_partner(cls):
         """≙ ``_get_demo_data_partner`` — verbatim (partners ficticios)."""
-        if IrModelData.ref('base.res_partner_2',
-                           raise_if_not_found=False) is not None:
+        if (
+            IrModelData.ref('base.res_partner_2', raise_if_not_found=False)
+            is not None
+        ):
             return {}
         return {
             'base.res_partner_2': {'name': 'Demo Partner 2'},
@@ -230,32 +251,48 @@ class AccountChartTemplate(ChartTemplate):
     @classmethod
     def _get_demo_data_user(cls):
         """≙ ``_get_demo_data_user`` — verbatim."""
-        if IrModelData.ref('base.user_demo',
-                           raise_if_not_found=False) is not None:
+        if (
+            IrModelData.ref('base.user_demo', raise_if_not_found=False)
+            is not None
+        ):
             return {}
-        return {
-            'base.user_demo': {'name': 'Marc Demo', 'login': 'demo'}
-        }
+        return {'base.user_demo': {'name': 'Marc Demo', 'login': 'demo'}}
 
     @classmethod
     def _get_demo_data_product(cls):
         """≙ ``_get_demo_data_product`` — verbatim."""
-        if IrModelData.ref('product.product_delivery_01',
-                           raise_if_not_found=False) is not None:
+        if (
+            IrModelData.ref(
+                'product.product_delivery_01', raise_if_not_found=False
+            )
+            is not None
+        ):
             return {}
         return {
             'product.product_delivery_01': {
-                'name': 'product_delivery_01', 'type': 'consu'},
+                'name': 'product_delivery_01',
+                'type': 'consu',
+            },
             'product.product_delivery_02': {
-                'name': 'product_delivery_02', 'type': 'consu'},
+                'name': 'product_delivery_02',
+                'type': 'consu',
+            },
             'product.consu_delivery_01': {
-                'name': 'consu_delivery_01', 'type': 'consu'},
+                'name': 'consu_delivery_01',
+                'type': 'consu',
+            },
             'product.consu_delivery_02': {
-                'name': 'consu_delivery_02', 'type': 'consu'},
+                'name': 'consu_delivery_02',
+                'type': 'consu',
+            },
             'product.consu_delivery_03': {
-                'name': 'consu_delivery_03', 'type': 'consu'},
+                'name': 'consu_delivery_03',
+                'type': 'consu',
+            },
             'product.product_order_01': {
-                'name': 'product_order_01', 'type': 'consu'},
+                'name': 'product_order_01',
+                'type': 'consu',
+            },
         }
 
     @classmethod
@@ -284,15 +321,20 @@ class AccountChartTemplate(ChartTemplate):
         today_date = date.today()
         one_month_ago = _months_ago(today_date, 1)
         misc_journal = AccountJournal.objects.filter(
-            company=company, type='general').first()
+            company=company, type='general'
+        ).first()
         bank_journal = AccountJournal.objects.filter(
-            company=company, type='bank').first()
+            company=company, type='bank'
+        ).first()
         default_receivable = AccountAccount.objects.filter(
-            company=company, account_type='asset_receivable').first()
+            company=company, account_type='asset_receivable'
+        ).first()
         gain_account = getattr(
-            company, 'account_journal_early_pay_discount_gain_account', None)
+            company, 'account_journal_early_pay_discount_gain_account', None
+        )
         income_qs = AccountAccount.objects.filter(
-            company=company, account_type='income')
+            company=company, account_type='income'
+        )
         if gain_account is not None:
             income_qs = income_qs.exclude(pk=gain_account.pk)
         income_account = income_qs.first()
@@ -305,8 +347,9 @@ class AccountChartTemplate(ChartTemplate):
                 'move_type': 'out_invoice',
                 'partner_id': 'base.res_partner_12',
                 'invoice_user_id': 'base.user_demo',
-                'invoice_payment_term_id':
-                    'account.account_payment_term_end_following_month',
+                'invoice_payment_term_id': (
+                    'account.account_payment_term_end_following_month'
+                ),
                 'invoice_date': time.strftime('%Y-%m-01'),
                 'delivery_date': time.strftime('%Y-%m-01'),
                 'invoice_line_ids': [
@@ -322,7 +365,10 @@ class AccountChartTemplate(ChartTemplate):
                 'delivery_date': days_ago(2),
                 'invoice_line_ids': [
                     {'product_id': 'product.consu_delivery_03', 'quantity': 5},
-                    {'product_id': 'product.consu_delivery_01', 'quantity': 20},
+                    {
+                        'product_id': 'product.consu_delivery_01',
+                        'quantity': 20,
+                    },
                 ],
             },
             cls.company_xmlid('demo_invoice_3', company): {
@@ -340,8 +386,9 @@ class AccountChartTemplate(ChartTemplate):
                 'move_type': 'out_invoice',
                 'partner_id': 'base.res_partner_2',
                 'invoice_user_id': 'base.user_demo',
-                'invoice_payment_term_id':
-                    'account.account_payment_term_immediate',
+                'invoice_payment_term_id': (
+                    'account.account_payment_term_immediate'
+                ),
                 'invoice_date': days_ago(15),
                 'delivery_date': days_ago(15),
                 'invoice_line_ids': [
@@ -353,53 +400,72 @@ class AccountChartTemplate(ChartTemplate):
                 'move_type': 'out_invoice',
                 'partner_id': 'base.res_partner_5',
                 'invoice_user_id': 'base.user_demo',
-                'invoice_payment_term_id':
-                    'account.account_payment_term_end_following_month',
+                'invoice_payment_term_id': (
+                    'account.account_payment_term_end_following_month'
+                ),
                 'invoice_date': days_ago(40),
                 'delivery_date': days_ago(40),
                 'invoice_line_ids': [
-                    {'product_id': 'product.product_order_01',
-                     'price_unit': 200, 'quantity': 10},
+                    {
+                        'product_id': 'product.product_order_01',
+                        'price_unit': 200,
+                        'quantity': 10,
+                    },
                 ],
             },
             cls.company_xmlid('demo_invoice_6', company): {
                 'move_type': 'out_invoice',
                 'partner_id': 'base.res_partner_5',
                 'invoice_user_id': 'base.user_demo',
-                'invoice_payment_term_id':
-                    'account.account_payment_term_end_following_month',
+                'invoice_payment_term_id': (
+                    'account.account_payment_term_end_following_month'
+                ),
                 'invoice_date': days_ago(35),
                 'delivery_date': days_ago(35),
                 'invoice_line_ids': [
-                    {'product_id': 'product.product_order_01',
-                     'price_unit': 100.0, 'quantity': 10},
+                    {
+                        'product_id': 'product.product_order_01',
+                        'price_unit': 100.0,
+                        'quantity': 10,
+                    },
                 ],
             },
             cls.company_xmlid('demo_invoice_7', company): {
                 'move_type': 'out_invoice',
                 'partner_id': 'base.res_partner_5',
                 'invoice_user_id': 'base.user_demo',
-                'invoice_payment_term_id':
-                    'account.account_payment_term_end_following_month',
+                'invoice_payment_term_id': (
+                    'account.account_payment_term_end_following_month'
+                ),
                 'invoice_date': one_month_ago.strftime('%Y-%m-%d'),
                 'delivery_date': one_month_ago.strftime('%Y-%m-%d'),
                 'invoice_line_ids': [
-                    {'product_id': 'product.product_order_01',
-                     'price_unit': 275, 'quantity': 1},
+                    {
+                        'product_id': 'product.product_order_01',
+                        'price_unit': 275,
+                        'quantity': 1,
+                    },
                 ],
             },
             cls.company_xmlid('demo_invoice_8', company): {
                 'move_type': 'in_invoice',
                 'partner_id': 'base.res_partner_4',
-                'invoice_payment_term_id':
-                    'account.account_payment_term_end_following_month',
+                'invoice_payment_term_id': (
+                    'account.account_payment_term_end_following_month'
+                ),
                 'invoice_date': time.strftime('%Y-%m-01'),
                 'delivery_date': time.strftime('%Y-%m-01'),
                 'invoice_line_ids': [
-                    {'product_id': 'product.product_order_01',
-                     'price_unit': 10.0, 'quantity': 1},
-                    {'product_id': 'product.product_delivery_01',
-                     'price_unit': 4, 'quantity': 5},
+                    {
+                        'product_id': 'product.product_order_01',
+                        'price_unit': 10.0,
+                        'quantity': 1,
+                    },
+                    {
+                        'product_id': 'product.product_delivery_01',
+                        'price_unit': 4,
+                        'quantity': 5,
+                    },
                 ],
                 'message_main_attachment_id': 'ir_attachment_in_invoice_1',
             },
@@ -411,8 +477,11 @@ class AccountChartTemplate(ChartTemplate):
                 'invoice_date': days_ago(20),
                 'delivery_date': days_ago(20),
                 'invoice_line_ids': [
-                    {'name': 'Redeem Reference Number: PO02529',
-                     'quantity': 1, 'price_unit': 622.27},
+                    {
+                        'name': 'Redeem Reference Number: PO02529',
+                        'quantity': 1,
+                        'price_unit': 622.27,
+                    },
                 ],
                 'message_main_attachment_id': 'ir_attachment_in_invoice_2',
             },
@@ -423,8 +492,11 @@ class AccountChartTemplate(ChartTemplate):
                 'invoice_date': today,
                 'delivery_date': today,
                 'invoice_line_ids': [
-                    {'product_id': 'product.product_delivery_02',
-                     'price_unit': 50.00, 'quantity': 15},
+                    {
+                        'product_id': 'product.product_delivery_02',
+                        'price_unit': 50.00,
+                        'quantity': 15,
+                    },
                 ],
             },
             cls.company_xmlid('demo_invoice_10', company): {
@@ -434,8 +506,11 @@ class AccountChartTemplate(ChartTemplate):
                 'invoice_date': days_ago(5),
                 'delivery_date': days_ago(5),
                 'invoice_line_ids': [
-                    {'product_id': 'product.consu_delivery_03',
-                     'price_unit': 1799, 'quantity': 1},
+                    {
+                        'product_id': 'product.consu_delivery_03',
+                        'price_unit': 1799,
+                        'quantity': 1,
+                    },
                 ],
             },
             cls.company_xmlid('demo_move_auto_reconcile_1', company): {
@@ -462,10 +537,16 @@ class AccountChartTemplate(ChartTemplate):
                 'invoice_date': time.strftime('%Y-%m-01'),
                 'delivery_date': time.strftime('%Y-%m-01'),
                 'invoice_line_ids': [
-                    {'product_id': 'product.product_delivery_01',
-                     'price_unit': 10.0, 'quantity': 1},
-                    {'product_id': 'product.product_order_01',
-                     'price_unit': 4.0, 'quantity': 5},
+                    {
+                        'product_id': 'product.product_delivery_01',
+                        'price_unit': 10.0,
+                        'quantity': 1,
+                    },
+                    {
+                        'product_id': 'product.product_order_01',
+                        'price_unit': 4.0,
+                        'quantity': 5,
+                    },
                 ],
                 'message_main_attachment_id': 'ir_attachment_in_invoice_1',
             },
@@ -495,12 +576,24 @@ class AccountChartTemplate(ChartTemplate):
                 'date': days_ago(20),
                 'journal_id': misc_journal.pk if misc_journal else None,
                 'line_ids': [
-                    {'debit': 0.0, 'credit': 2500.0,
-                     'account_id': default_receivable.pk
-                     if default_receivable else None},
-                    {'debit': 2500.0, 'credit': 0.0,
-                     'account_id': bank_journal.default_account_id
-                     if bank_journal else None},
+                    {
+                        'debit': 0.0,
+                        'credit': 2500.0,
+                        'account_id': (
+                            default_receivable.pk
+                            if default_receivable
+                            else None
+                        ),
+                    },
+                    {
+                        'debit': 2500.0,
+                        'credit': 0.0,
+                        'account_id': (
+                            bank_journal.default_account_id
+                            if bank_journal
+                            else None
+                        ),
+                    },
                 ],
             },
             cls.company_xmlid('demo_move_auto_reconcile_7', company): {
@@ -509,12 +602,22 @@ class AccountChartTemplate(ChartTemplate):
                 'date': days_ago(20),
                 'journal_id': misc_journal.pk if misc_journal else None,
                 'line_ids': [
-                    {'debit': 2500.0, 'credit': 0.0,
-                     'account_id': default_receivable.pk
-                     if default_receivable else None},
-                    {'debit': 0.0, 'credit': 2500.0,
-                     'account_id': income_account.pk
-                     if income_account else None},
+                    {
+                        'debit': 2500.0,
+                        'credit': 0.0,
+                        'account_id': (
+                            default_receivable.pk
+                            if default_receivable
+                            else None
+                        ),
+                    },
+                    {
+                        'debit': 0.0,
+                        'credit': 2500.0,
+                        'account_id': (
+                            income_account.pk if income_account else None
+                        ),
+                    },
                 ],
             },
         }
@@ -524,7 +627,8 @@ class AccountChartTemplate(ChartTemplate):
         """≙ ``_get_demo_data_statement`` — los dos extractos de demo."""
         today_date = date.today()
         bnk_journal = AccountJournal.objects.filter(
-            company=company, type='bank').first()
+            company=company, type='bank'
+        ).first()
         bnk_journal_name = bnk_journal.name if bnk_journal else 'Bank'
         two_months_ago = _months_ago(today_date, 2)
         one_month_ago = _months_ago(today_date, 1)
@@ -544,8 +648,10 @@ class AccountChartTemplate(ChartTemplate):
                 ],
             },
             'demo_bank_statement_2': {
-                'name': f'{bnk_journal_name} - '
-                        f'{one_month_ago.strftime("%Y-%m-%d")}',
+                'name': (
+                    f'{bnk_journal_name} - '
+                    f'{one_month_ago.strftime("%Y-%m-%d")}'
+                ),
                 'balance_end_real': 6678.0,
                 'balance_start': 4253.0,
                 'attachment_ids': ['ir_attachment_bank_statement_2'],
@@ -559,7 +665,8 @@ class AccountChartTemplate(ChartTemplate):
                     {
                         'journal_id': bnk_journal.pk if bnk_journal else None,
                         'payment_ref': time.strftime(
-                            'INV/%Y/00006 and INV/%Y/00007'),
+                            'INV/%Y/00006 and INV/%Y/00007'
+                        ),
                         'amount': 1275.0,
                         'date': one_month_ago.strftime('%Y-%m-%d'),
                         'partner_name': 'Open Wood Inc.',
@@ -568,8 +675,11 @@ class AccountChartTemplate(ChartTemplate):
                         'journal_id': bnk_journal.pk if bnk_journal else None,
                         'payment_ref': 'Payment of your invoice #5',
                         'amount': 2000.0,
-                        'date': (today_date + timedelta(days=-40))
-                                .strftime('%Y-%m-%d'),
+                        'date': (
+                            (today_date + timedelta(days=-40)).strftime(
+                                '%Y-%m-%d'
+                            )
+                        ),
                         'partner_name': 'Open Wood Inc.',
                     },
                 ],
@@ -581,7 +691,8 @@ class AccountChartTemplate(ChartTemplate):
         """≙ ``_get_demo_data_transactions`` — las líneas de extracto
         sueltas (``formatLang`` → f-string, divergencia del módulo)."""
         bnk_journal = AccountJournal.objects.filter(
-            company=company, type='bank').first()
+            company=company, type='bank'
+        ).first()
         journal_pk = bnk_journal.pk if bnk_journal else None
         return {
             'demo_bank_statement_line_0': {
@@ -614,8 +725,10 @@ class AccountChartTemplate(ChartTemplate):
             },
             'demo_bank_statement_line_5': {
                 'journal_id': journal_pk,
-                'payment_ref': f'R:9772938  10/07 AX 9415116318 T:5 BRT: '
-                               f'{100.0:.2f} C/ croip',
+                'payment_ref': (
+                    'R:9772938  10/07 AX 9415116318 T:5 BRT: '
+                    f'{100.0:.2f} C/ croip'
+                ),
                 'amount': 96.67,
             },
         }
@@ -632,15 +745,21 @@ class AccountChartTemplate(ChartTemplate):
                 'line_ids': [
                     {
                         'label': 'Due amount',
-                        'account_id': cls._get_demo_account(
-                            'income', 'income', company).pk,
+                        'account_id': (
+                            cls._get_demo_account(
+                                'income', 'income', company
+                            ).pk
+                        ),
                         'amount_type': 'regex',
                         'amount_string': r'BRT: ([\d,.]+)',
                     },
                     {
                         'label': 'Bank Fees',
-                        'account_id': cls._get_demo_account(
-                            'expense_finance', 'expense', company).pk,
+                        'account_id': (
+                            cls._get_demo_account(
+                                'expense_finance', 'expense', company
+                            ).pk
+                        ),
                         'amount_type': 'percentage',
                         'amount_string': '100',
                     },
@@ -651,9 +770,13 @@ class AccountChartTemplate(ChartTemplate):
                 'line_ids': [
                     {
                         'label': "Owner's Current Account",
-                        'account_id': cls._get_demo_account(
-                            'owner_current_account', 'asset_receivable',
-                            company).pk,
+                        'account_id': (
+                            cls._get_demo_account(
+                                'owner_current_account',
+                                'asset_receivable',
+                                company,
+                            ).pk
+                        ),
                         'amount_type': 'percentage',
                         'amount_string': '100',
                     },
@@ -803,6 +926,7 @@ class AccountChartTemplate(ChartTemplate):
                 return account
         return (
             AccountAccount.objects.filter(
-                company=company, account_type=account_type).first()
+                company=company, account_type=account_type
+            ).first()
             or AccountAccount.objects.filter(company=company).first()
         )

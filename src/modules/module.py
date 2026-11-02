@@ -1,4 +1,6 @@
-"""Descubrimiento de addons y lectura de manifiestos — fiel a ``odoo/modules/module.py``.
+"""
+Descubrimiento de addons y lectura de manifiestos — fiel a
+``odoo/modules/module.py``.
 
 Conserva la superficie pública de la referencia (``MANIFEST_NAMES``,
 ``_DEFAULT_MANIFEST``, ``Manifest``, ``get_module_path``, ``load_manifest``,
@@ -28,6 +30,7 @@ fuente.
 - ``version`` se normaliza contra ``release.series`` de Kaupamex, no contra la
   serie de Odoo — ``adapt_version`` es fiel en forma, no en el valor.
 """
+
 from __future__ import annotations
 
 import ast
@@ -75,9 +78,11 @@ def initialize_sys_path(path_list: list[str]) -> None:
         if os.access(entry, os.R_OK) and entry not in path_list:
             path_list.append(entry)
 
+
 # Defaults del manifest. Calca ``_DEFAULT_MANIFEST`` de la referencia, podado a
 # las claves que este árbol puede honrar: se omiten las de temas de website
-# (``configurator_snippets``, ``images_preview_theme``, …), las de assets QWeb y
+# (``configurator_snippets``, ``images_preview_theme``, …), las de
+# assets QWeb y
 # los hooks del instalador dinámico, porque no hay quién las consuma. Declarar
 # claves que nadie lee es peor que no declararlas: aparentan contrato.
 _DEFAULT_MANIFEST = {
@@ -101,12 +106,15 @@ _MANDATORY = ('name', 'license')
 class MissingDependency(Exception):
     """Dependencia externa declarada que no está instalada.
 
-    Fiel a la de la referencia. La levanta ``check_python_external_dependency``.
+    Fiel a la de la referencia. La levanta
+    ``check_python_external_dependency``.
     """
 
 
 class Manifest(Mapping):
-    """Manifest de un addon, con defaults aplicados — ≙ ``Manifest`` de la referencia.
+    """
+    Manifest de un addon, con defaults aplicados — ≙ ``Manifest`` de la
+    referencia.
 
     Es un ``Mapping`` inmutable: ``manifest['depends']`` y ``manifest.depends``
     son equivalentes, como en la referencia.
@@ -153,7 +161,9 @@ def get_module_path(module: str, display_warning: bool = True) -> str | None:
 
 
 def _load_manifest(module: str, manifest_content: dict) -> dict:
-    """Aplica defaults y deriva campos. ≙ ``_load_manifest`` de la referencia."""
+    """
+    Aplica defaults y deriva campos. ≙ ``_load_manifest`` de la referencia.
+    """
     manifest = dict(_DEFAULT_MANIFEST)
     manifest.update(manifest_content)
     # ``author`` es obligatorio en la referencia; aquí se deriva del release
@@ -188,20 +198,31 @@ def load_manifest(module: str, mod_path: str | None = None) -> dict:
     try:
         content = ast.literal_eval(manifest_path.read_text(encoding='utf-8'))
     except (ValueError, SyntaxError) as exc:
-        raise ValueError(f'{module}: manifest ilegible ({manifest_path}): {exc}') from exc
+        raise ValueError(
+            f'{module}: manifest ilegible ({manifest_path}): {exc}'
+        ) from exc
 
     if not isinstance(content, dict):
-        raise ValueError(f'{module}: el manifest debe ser un dict, no {type(content).__name__}')
+        raise ValueError(
+            f'{module}: el manifest debe ser un dict, no'
+            f' {type(content).__name__}'
+        )
 
     missing = [k for k in _MANDATORY if k not in content]
     if missing:
-        raise ValueError(f'{module}: faltan claves obligatorias en el manifest: {missing}')
+        raise ValueError(
+            f'{module}: faltan claves obligatorias en el manifest: {missing}'
+        )
 
     return _load_manifest(module, content)
 
 
-def get_manifest(module: str, mod_path: str | None = None) -> Mapping[str, typing.Any]:
-    """``Manifest`` del addon, o un mapping vacío si no lo tiene. ≙ referencia."""
+def get_manifest(
+    module: str, mod_path: str | None = None
+) -> Mapping[str, typing.Any]:
+    """
+    ``Manifest`` del addon, o un mapping vacío si no lo tiene. ≙ referencia.
+    """
     data = load_manifest(module, mod_path)
     if not data:
         return {}
@@ -221,7 +242,8 @@ def get_modules() -> list[str]:
     """
     nombres = {
         p.name
-        for root in ADDONS_PATHS if root.is_dir()
+        for root in ADDONS_PATHS
+        if root.is_dir()
         for p in root.iterdir()
         if p.is_dir() and (p / '__init__.py').is_file()
     }
@@ -251,18 +273,23 @@ def adapt_version(version: str) -> str:
 
 
 def check_version(version: str, should_raise: bool = True) -> bool:
-    """¿La versión del addon pertenece a la serie de la plataforma? ≙ referencia."""
+    """
+    ¿La versión del addon pertenece a la serie de la plataforma? ≙ referencia.
+    """
     if version.startswith(f'{release.series}.'):
         return True
     if should_raise:
         raise ValueError(
-            f'La versión {version!r} no pertenece a la serie {release.series!r}'
+            f'La versión {version!r} no pertenece a la serie'
+            f' {release.series!r}'
         )
     return False
 
 
 def check_python_external_dependency(pydep: str) -> None:
-    """Verifica que una dependencia externa declarada esté instalada. ≙ referencia.
+    """
+    Verifica que una dependencia externa declarada esté instalada. ≙
+    referencia.
 
     Levanta ``MissingDependency`` si falta. Se usa con
     ``manifest['external_dependencies']['python']`` — p. ej. ``authz_ldap``
@@ -272,7 +299,9 @@ def check_python_external_dependency(pydep: str) -> None:
     """
     # El nombre de distribución puede diferir del importable (``python-ldap`` →
     # ``ldap``); la referencia hace el mismo mapeo por casos conocidos.
-    module_name = {'python-ldap': 'ldap', 'python-magic': 'magic'}.get(pydep, pydep)
+    module_name = {'python-ldap': 'ldap', 'python-magic': 'magic'}.get(
+        pydep, pydep
+    )
     module_name = module_name.replace('-', '_')
     try:
         spec = importlib.util.find_spec(module_name)

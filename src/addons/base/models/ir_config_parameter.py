@@ -1,8 +1,10 @@
-"""SystemParameter (L2) — config runtime global key/value (app ``addons.base``).
+"""
+SystemParameter (L2) — config runtime global key/value (app ``addons.base``).
 
 Portación **fiel** de Odoo ``ir.config_parameter``
 (``scratchpad/odoo19x/odoo/addons/base/models/ir_config_parameter.py`` y
-``scratchpad/odoo18/extracted/odoo/addons/base/models/ir_config_parameter.py`` —
+``scratchpad/odoo18/extracted/odoo/addons/base/models/ir_config_parameter.py``
+—
 arquitectura idéntica en v19 y v18). Diseño: capa L2 de
 ``analisis-estrategia-configuracion-capas``. Hallazgos de la portación:
 ``hallazgos-implementar-systemparameter-l2``.
@@ -11,7 +13,8 @@ Correspondencia Odoo -> Django (adaptación sin azúcar sintáctica):
 
 - ``_name='ir.config_parameter'`` / ``_description='System Parameter'`` ->
   modelo ``SystemParameter`` (``verbose_name='System Parameter'``).
-- ``key = Char(required=True)`` + ``unique (key)`` -> ``CharField(unique=True)``.
+- ``key = Char(required=True)`` + ``unique (key)`` ->
+  ``CharField(unique=True)``.
   Odoo ``Char`` no fija longitud; en MariaDB un índice único requiere longitud,
   así que se fija ``max_length=255`` (adaptación de motor, H-CFG-IMPL-05).
 - ``value = Text(required=True)`` -> ``TextField``.
@@ -30,7 +33,8 @@ Correspondencia Odoo -> Django (adaptación sin azúcar sintáctica):
   dejó de ser cierta: ``tools/cache.py``, ``tools/lru.py`` y los contenedores
   de ``orm/registry.py`` existen, así que se adopta el mecanismo y la
   invalidación deja de ser global para ser la de la familia ``stable``.
-- ``write`` rechaza renombrar una clave protegida; ``unlink_default_parameters``
+- ``write`` rechaza renombrar una clave protegida;
+  ``unlink_default_parameters``
   (``@api.ondelete``) rechaza borrar una clave protegida. Los dos se portan con
   su nombre, y los enganches de Django (``save``/``delete``) delegan en ellos:
   así la guarda protege también a quien escriba por la vía del ORM de Django.
@@ -42,6 +46,7 @@ registry es el módulo (divergencia de enlace declarada en ``tools/cache.py``),
 así que el alias entra en la clave: ``@ormcache('key', 'using', ...)``. Sin él
 dos bases compartirían entrada, que es un defecto que la fuente no tiene.
 """
+
 import api
 import uuid
 
@@ -51,7 +56,8 @@ from django.db import DEFAULT_DB_ALIAS, models
 from orm import registry
 from tools.cache import ormcache
 
-# Parámetros sembrados al inicializar la instancia (Odoo ``_default_parameters``,
+# Parámetros sembrados al inicializar la instancia (Odoo
+# ``_default_parameters``,
 # líneas 18-25 de ir_config_parameter.py, v19/v18 idénticas). Pertenecer a este
 # dict == estar protegido contra borrado y renombrado. El valor es un callable
 # perezoso (se evalúa al sembrar), fiel a Odoo.
@@ -70,6 +76,7 @@ _DEFAULT_PARAMETERS = {
     'authz.reauth_ttl': lambda: '900',
     'backup.alert_email': lambda: 'admin@kaupamex.com',
 }
+
 
 class SystemParameter(models.Model):
     """Almacén per-instancia de pares clave/valor de configuración (L2 global).
@@ -148,19 +155,23 @@ class SystemParameter(models.Model):
     def _get_param(cls, key, using=DEFAULT_DB_ALIAS):
         """Lee el valor crudo, memorizado en la familia ``stable``.
 
-        ≙ ``odoo19c: ir_config_parameter.py:68-77``. Odoo bypassa el ORM con SQL
+        ≙ ``odoo19c: ir_config_parameter.py:68-77``. Odoo bypassa el ORM con
+        SQL
         directo porque ``get_param`` se usa en ``@api.depends`` con el ORM a
         medio inicializar; Django no tiene esa restricción, así que se usa el
-        ORM normal (H-CFG-IMPL-04). Cachea también la ausencia (``None``), igual
+        ORM normal (H-CFG-IMPL-04). Cachea también la ausencia (``None``),
+        igual
         que la fuente cachea el resultado del SELECT incluyendo el vacío.
 
         El decorador nombra ``using`` además de ``key`` — ver la divergencia de
         clave declarada en la cabecera del módulo.
         """
-        return (cls.objects.using(using)
-                .filter(key=key)
-                .values_list('value', flat=True)
-                .first())
+        return (
+            cls.objects.using(using)
+            .filter(key=key)
+            .values_list('value', flat=True)
+            .first()
+        )
 
     # -- Escritura (Odoo set_param) -----------------------------------------
 
@@ -194,7 +205,9 @@ class SystemParameter(models.Model):
     @api.model_create_multi
     @classmethod
     def create(cls, vals_list, using=DEFAULT_DB_ALIAS):
-        """≙ ``odoo19c: ir_config_parameter.py:101-104`` (``@api.model_create_multi``).
+        """
+        ≙ ``odoo19c: ir_config_parameter.py:101-104``
+        (``@api.model_create_multi``).
 
         Vacía la familia ``stable`` y delega. Un dict suelto lo envuelve el
         decorador, como en la fuente; devuelve la lista de instancias.
@@ -214,7 +227,9 @@ class SystemParameter(models.Model):
             if illegal:
                 raise ValidationError(
                     'No se pueden renombrar los parámetros de configuración '
-                    'con claves %s.' % ', '.join(sorted(illegal)))
+                    'con claves %s.'
+                    % ', '.join(sorted(illegal))
+                )
         for field, value in vals.items():
             setattr(self, field, value)
         # ``save`` es quien vacía la familia; no se duplica aquí ni se bypassa
@@ -237,13 +252,16 @@ class SystemParameter(models.Model):
         """
         if self.key in _DEFAULT_PARAMETERS:
             raise ValidationError(
-                'No se puede eliminar el registro %s.' % self.key)
+                'No se puede eliminar el registro %s.' % self.key
+            )
 
     # -- Sembrado (Odoo init) -----------------------------------------------
 
     @classmethod
     def init(cls, force=False, using=DEFAULT_DB_ALIAS):
-        """Siembra ``_DEFAULT_PARAMETERS`` ≙ ``odoo19c: ir_config_parameter.py:43-56``.
+        """
+        Siembra ``_DEFAULT_PARAMETERS`` ≙ ``odoo19c:
+        ir_config_parameter.py:43-56``.
 
         Idempotente: sólo crea las claves ausentes; ``force=True`` sobreescribe
         las existentes.
@@ -255,8 +273,10 @@ class SystemParameter(models.Model):
 
     #: Alias histórico de :meth:`init`. El nombre de la referencia es ``init``;
     #: ``seed`` es como se llamó al portarlo y lo consumen la sembradora de
-    #: ``conftest`` y las migraciones de datos. Se conserva como alias en vez de
-    #: renombrar sus llamadores en este pase — no es un símbolo omitido: ``init``
+    #: ``conftest`` y las migraciones de datos. Se conserva como alias
+    #: en vez de
+    #: renombrar sus llamadores en este pase — no es un símbolo omitido:
+    #: ``init``
     #: existe con el nombre de la fuente y es quien lleva el cuerpo.
     seed = init
 
@@ -268,15 +288,22 @@ class SystemParameter(models.Model):
         Django quede igual de protegido que por :meth:`write`."""
         if self.pk is not None:
             using = kwargs.get('using') or self._state.db or DEFAULT_DB_ALIAS
-            previous_key = (type(self).objects.using(using)
-                            .filter(pk=self.pk)
-                            .values_list('key', flat=True)
-                            .first())
-            if (previous_key is not None and previous_key != self.key
-                    and previous_key in _DEFAULT_PARAMETERS):
+            previous_key = (
+                type(self)
+                .objects.using(using)
+                .filter(pk=self.pk)
+                .values_list('key', flat=True)
+                .first()
+            )
+            if (
+                previous_key is not None
+                and previous_key != self.key
+                and previous_key in _DEFAULT_PARAMETERS
+            ):
                 raise ValidationError(
                     'No se pueden renombrar los parámetros de configuración '
-                    'con claves %s.' % previous_key)
+                    'con claves %s.' % previous_key
+                )
         registry.clear_cache('stable')
         return super().save(*args, **kwargs)
 

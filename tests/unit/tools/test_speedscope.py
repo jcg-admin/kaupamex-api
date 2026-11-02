@@ -21,6 +21,7 @@ Cuatro controles pueden fallar y son los que dan valor a la suite:
   150 caracteres del acortador. Con una consulta corta, ``shorten`` devuelve
   el texto entero y el caso pasaría aunque el acortador no existiera.
 """
+
 import pytest
 
 from tools.speedscope import Speedscope, shorten
@@ -45,11 +46,14 @@ def crude(*methods):
 
     Lo que pasa por :meth:`Speedscope.add` llega sin convertir — es
     ``convert_stack`` quien lo reescribe a la forma de tres campos. Lo que se
-    entrega directo a ``process`` o ``stack_to_ids`` va ya convertido, y por eso
+    entrega directo a ``process`` o ``stack_to_ids`` va ya convertido, y por
+    eso
     esos casos escriben la tupla de tres a mano.
     """
-    return [raw_frame(f'/{m}.py', i * 10, m, f'  {m}()')
-            for i, m in enumerate(methods, start=1)]
+    return [
+        raw_frame(f'/{m}.py', i * 10, m, f'  {m}()')
+        for i, m in enumerate(methods, start=1)
+    ]
 
 
 def entry(stack, start, time=None, **extra):
@@ -127,8 +131,9 @@ class TestStackToIds:
     def test_a_context_below_the_offset_is_consumed_without_landing(self):
         scope = Speedscope()
         stack = [('a', '', '')]
-        ids = scope.stack_to_ids(stack, [(1, {'ignored': 1}), (6, {'kept': 2})],
-                                 stack_offset=5)
+        ids = scope.stack_to_ids(
+            stack, [(1, {'ignored': 1}), (6, {'kept': 2})], stack_offset=5
+        )
 
         names = [frame[0] for frame in scope.frames_indexes]
         assert [names[i] for i in ids] == ['kept=2', 'a']
@@ -138,17 +143,27 @@ class TestStackToIds:
         # llamador—, no el número de línea, que sobrevive. Los dos marcos de
         # abajo difieren SÓLO en ese campo.
         scope = Speedscope()
-        first = scope.stack_to_ids([('sql(x)', 'called at /a.py (run())', 10)],
-                                   None, aggregate_sql=True)
-        second = scope.stack_to_ids([('sql(x)', 'called at /b.py (run())', 10)],
-                                    None, aggregate_sql=True)
+        first = scope.stack_to_ids(
+            [('sql(x)', 'called at /a.py (run())', 10)],
+            None,
+            aggregate_sql=True,
+        )
+        second = scope.stack_to_ids(
+            [('sql(x)', 'called at /b.py (run())', 10)],
+            None,
+            aggregate_sql=True,
+        )
 
         assert first == second
 
     def test_without_aggregate_sql_the_caller_separates_them(self):
         scope = Speedscope()
-        first = scope.stack_to_ids([('sql(x)', 'called at /a.py (run())', 10)], None)
-        second = scope.stack_to_ids([('sql(x)', 'called at /b.py (run())', 10)], None)
+        first = scope.stack_to_ids(
+            [('sql(x)', 'called at /a.py (run())', 10)], None
+        )
+        second = scope.stack_to_ids(
+            [('sql(x)', 'called at /b.py (run())', 10)], None
+        )
 
         assert first != second
 
@@ -166,10 +181,12 @@ class TestProcess:
         # ``root`` aparecería dos veces con type 'O' y el caso lo vería.
         scope = Speedscope()
         root = ('root', '', '')
-        events = scope.process([
-            entry([root, ('a', '', '')], start=0, time=1),
-            entry([root, ('b', '', '')], start=1, time=1),
-        ])
+        events = scope.process(
+            [
+                entry([root, ('a', '', '')], start=0, time=1),
+                entry([root, ('b', '', '')], start=1, time=1),
+            ]
+        )
 
         names = [frame[0] for frame in scope.frames_indexes]
         opened = [names[e['frame']] for e in events if e['type'] == 'O']
@@ -183,10 +200,13 @@ class TestProcess:
         # casos juntos prueban que el parámetro tiene efecto.
         scope = Speedscope()
         root = ('root', '', '')
-        events = scope.process([
-            entry([root, ('a', '', '')], start=0, time=1),
-            entry([root, ('b', '', '')], start=1, time=1),
-        ], continuous=False)
+        events = scope.process(
+            [
+                entry([root, ('a', '', '')], start=0, time=1),
+                entry([root, ('b', '', '')], start=1, time=1),
+            ],
+            continuous=False,
+        )
 
         names = [frame[0] for frame in scope.frames_indexes]
         opened = [names[e['frame']] for e in events if e['type'] == 'O']
@@ -211,37 +231,47 @@ class TestProcess:
         scope = Speedscope()
         stack_a = [('a', '', '')]
         stack_b = [('b', '', '')]
-        with_gap = scope.process([
-            entry(stack_a, start=0, time=1),
-            entry(stack_b, start=10, time=1),
-        ])
+        with_gap = scope.process(
+            [
+                entry(stack_a, start=0, time=1),
+                entry(stack_b, start=10, time=1),
+            ]
+        )
         assert [e['at'] for e in with_gap if e['type'] == 'O'] == [0, 10]
 
         scope = Speedscope()
-        without_gap = scope.process([
-            entry([('a', '', '')], start=0, time=1),
-            entry([('b', '', '')], start=10, time=1),
-        ], hide_gaps=True)
+        without_gap = scope.process(
+            [
+                entry([('a', '', '')], start=0, time=1),
+                entry([('b', '', '')], start=10, time=1),
+            ],
+            hide_gaps=True,
+        )
         assert [e['at'] for e in without_gap if e['type'] == 'O'] == [0, 1]
 
     def test_an_entry_that_starts_before_the_previous_end_is_skipped(self):
         # La guarda ``previous_end > entry_start``: la segunda entrada arranca
         # dentro de la primera, así que no produce eventos propios.
         scope = Speedscope()
-        events = scope.process([
-            entry([('a', '', '')], start=0, time=10),
-            entry([('b', '', '')], start=2, time=1),
-        ])
+        events = scope.process(
+            [
+                entry([('a', '', '')], start=0, time=10),
+                entry([('b', '', '')], start=2, time=1),
+            ]
+        )
 
         names = [frame[0] for frame in scope.frames_indexes]
         assert 'b' not in [names[e['frame']] for e in events]
 
     def test_constant_time_uses_the_index_instead_of_the_clock(self):
         scope = Speedscope()
-        events = scope.process([
-            entry([('a', '', '')], start=1000, time=7),
-            entry([('b', '', '')], start=9999, time=3),
-        ], constant_time=True)
+        events = scope.process(
+            [
+                entry([('a', '', '')], start=1000, time=7),
+                entry([('b', '', '')], start=9999, time=3),
+            ],
+            constant_time=True,
+        )
 
         # Los instantes son 0, 1, 2… — el índice de la entrada, no su reloj.
         assert {e['at'] for e in events} <= {0, 1, 2}
@@ -258,8 +288,14 @@ class TestAdd:
         assert len(long_query) > 150
 
         scope = Speedscope()
-        profile = [entry([raw_frame('/a.py', 1, 'run', 'x')], start=0,
-                         query=long_query, full_query=long_query)]
+        profile = [
+            entry(
+                [raw_frame('/a.py', 1, 'run', 'x')],
+                start=0,
+                query=long_query,
+                full_query=long_query,
+            )
+        ]
         scope.add('sql', profile)
 
         sql_frame = profile[0]['stack'][-1]
@@ -314,7 +350,9 @@ class TestAddOutput:
         scope.add_output(['frames'], complete=True)
         with_wrapper = len(scope.profiles[0]['events'])
 
-        scope = Speedscope(init_stack_trace=[raw_frame('/main.py', 1, 'main', 'run()')])
+        scope = Speedscope(
+            init_stack_trace=[raw_frame('/main.py', 1, 'main', 'run()')]
+        )
         scope.add('frames', [entry(crude('a'), start=0, time=1)])
         scope.add_output(['frames'], complete=False)
         without_wrapper = len(scope.profiles[0]['events'])
@@ -326,11 +364,17 @@ class TestAddOutput:
         scope = Speedscope()
         scope.add('one', [entry(crude('one_a'), start=0, time=1)])
         scope.add('two', [entry(crude('two_b'), start=5, time=1)])
-        scope.add_output(['one', 'two'], complete=False, display_name='Combined')
+        scope.add_output(
+            ['one', 'two'], complete=False, display_name='Combined'
+        )
 
         assert scope.profiles[0]['name'] == 'Combined'
         names = [frame[0] for frame in scope.frames_indexes]
-        opened = {names[e['frame']] for e in scope.profiles[0]['events'] if e['type'] == 'O'}
+        opened = {
+            names[e['frame']]
+            for e in scope.profiles[0]['events']
+            if e['type'] == 'O'
+        }
         assert {'one_a', 'two_b'} <= opened
 
 
@@ -342,12 +386,15 @@ class TestAddMemoryOutput:
         # muestra. Si se contara el valor absoluto, el total sería 300 en vez
         # de 200 y habría tres muestras en vez de dos.
         scope = Speedscope()
-        scope.add('mem', [
-            entry(crude('a'), start=0, memory=1000),
-            entry(crude('b'), start=1, memory=1150),
-            entry(crude('c'), start=2, memory=1100),
-            entry(crude('d'), start=3, memory=1150),
-        ])
+        scope.add(
+            'mem',
+            [
+                entry(crude('a'), start=0, memory=1000),
+                entry(crude('b'), start=1, memory=1150),
+                entry(crude('c'), start=2, memory=1100),
+                entry(crude('d'), start=3, memory=1150),
+            ],
+        )
         scope.add_memory_output(['mem'])
 
         profile = scope.profiles[0]
@@ -359,31 +406,40 @@ class TestAddMemoryOutput:
 
     def test_an_entry_without_memory_is_skipped(self):
         scope = Speedscope()
-        scope.add('mem', [
-            entry(crude('a'), start=0, memory=1000),
-            entry(crude('b'), start=1),
-            entry(crude('c'), start=2, memory=2000),
-        ])
+        scope.add(
+            'mem',
+            [
+                entry(crude('a'), start=0, memory=1000),
+                entry(crude('b'), start=1),
+                entry(crude('c'), start=2, memory=2000),
+            ],
+        )
         scope.add_memory_output(['mem'])
 
         assert scope.profiles == []
 
     def test_a_monotonically_decreasing_series_adds_no_output(self):
         scope = Speedscope()
-        scope.add('mem', [
-            entry(crude('a'), start=0, memory=2000),
-            entry(crude('b'), start=1, memory=1000),
-        ])
+        scope.add(
+            'mem',
+            [
+                entry(crude('a'), start=0, memory=2000),
+                entry(crude('b'), start=1, memory=1000),
+            ],
+        )
         scope.add_memory_output(['mem'])
 
         assert scope.profiles == []
 
     def test_the_default_display_name_names_the_keys(self):
         scope = Speedscope()
-        scope.add('mem', [
-            entry(crude('a'), start=0, memory=1),
-            entry(crude('b'), start=1, memory=2),
-        ])
+        scope.add(
+            'mem',
+            [
+                entry(crude('a'), start=0, memory=1),
+                entry(crude('b'), start=1, memory=2),
+            ],
+        )
         scope.add_memory_output(['mem'])
 
         assert scope.profiles[0]['name'] == 'Memory mem'
@@ -408,13 +464,30 @@ class TestAddDefault:
 
     def test_a_sql_profile_gets_its_two_views(self):
         scope = Speedscope()
-        scope.add('sql', [entry([raw_frame('/a.py', 1, 'run', 'x')], start=0,
-                                time=1, query='SELECT 1', full_query='SELECT 1')])
-        scope.add_default(**{**DEFAULT_PARAMS,
-                             'sql_no_gap_profile': True,
-                             'sql_density_profile': True})
+        scope.add(
+            'sql',
+            [
+                entry(
+                    [raw_frame('/a.py', 1, 'run', 'x')],
+                    start=0,
+                    time=1,
+                    query='SELECT 1',
+                    full_query='SELECT 1',
+                )
+            ],
+        )
+        scope.add_default(
+            **{
+                **DEFAULT_PARAMS,
+                'sql_no_gap_profile': True,
+                'sql_density_profile': True,
+            }
+        )
 
-        assert [p['name'] for p in scope.profiles] == ['sql (no gap)', 'sql (density)']
+        assert [p['name'] for p in scope.profiles] == [
+            'sql (no gap)',
+            'sql (density)',
+        ]
 
     def test_the_combined_output_needs_more_than_one_profile(self):
         scope = Speedscope()
@@ -441,12 +514,21 @@ class TestMake:
 
         assert document['name'] == 'request'
         assert document['activeProfileIndex'] == 0
-        assert document['$schema'] == 'https://www.speedscope.app/file-format-schema.json'
+        assert (
+            document['$schema']
+            == 'https://www.speedscope.app/file-format-schema.json'
+        )
         # El marco de cabeza no tiene llamador dentro de la pila; el segundo
-        # cita dónde estaba el primero, que es lo que ``convert_stack`` produce.
-        assert {'name': 'outer', 'file': '', 'line': ''} in document['shared']['frames']
-        assert {'name': 'inner', 'file': 'called at /outer.py (outer())',
-                'line': 10} in document['shared']['frames']
+        # cita dónde estaba el primero, que es lo que ``convert_stack``
+        # produce.
+        assert {'name': 'outer', 'file': '', 'line': ''} in document['shared'][
+            'frames'
+        ]
+        assert {
+            'name': 'inner',
+            'file': 'called at /outer.py (outer())',
+            'line': 10,
+        } in document['shared']['frames']
         assert document['profiles'] == scope.profiles
 
     def test_make_does_not_re_add_the_defaults(self):
@@ -457,10 +539,13 @@ class TestMake:
 
         assert len(scope.profiles) == 1
 
-    @pytest.mark.parametrize('key, expected', [
-        ('name', 'Speedscope'),
-        ('activeProfileIndex', 0),
-    ])
+    @pytest.mark.parametrize(
+        'key, expected',
+        [
+            ('name', 'Speedscope'),
+            ('activeProfileIndex', 0),
+        ],
+    )
     def test_the_default_header(self, key, expected):
         document = Speedscope().make(**DEFAULT_PARAMS)
         assert document[key] == expected

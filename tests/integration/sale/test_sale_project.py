@@ -1,4 +1,7 @@
-"""Tests — addons ``project`` + ``sale_project`` (línea de servicio → tarea)."""
+"""
+Tests — addons ``project`` + ``sale_project`` (línea de servicio → tarea).
+"""
+
 from decimal import Decimal
 
 import pytest
@@ -32,7 +35,9 @@ def test_generate_task_from_service_line(db):
     product = make_product(name='Servicio de armado', price=Decimal('500.00'))
     order = SaleOrder.objects.create()
     line = SaleOrderLine.objects.create(
-        order=order, product=product, price_unit=Decimal('500.00'),
+        order=order,
+        product=product,
+        price_unit=Decimal('500.00'),
         name='Armado a domicilio',
     )
     project = Project.objects.create(name='Proyecto cliente')
@@ -47,7 +52,10 @@ def test_generate_task_idempotent(db):
     product = make_product(name='Servicio', price=Decimal('100.00'))
     order = SaleOrder.objects.create()
     line = SaleOrderLine.objects.create(
-        order=order, product=product, price_unit=Decimal('100.00'), name='Tarea',
+        order=order,
+        product=product,
+        price_unit=Decimal('100.00'),
+        name='Tarea',
     )
     p1 = Project.objects.create(name='P1')
     p2 = Project.objects.create(name='P2')

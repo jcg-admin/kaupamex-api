@@ -57,6 +57,7 @@ addon: ``DecimalPrecision.precision_get`` es un **único** classmethod que
 referencia— es lo único que preserva esos 6 call-sites sin tocarlos: siguen
 llamando al mismo símbolo, que ahora consulta la pila antes de delegar.
 """
+
 import threading
 
 from addons.base.models.decimal_precision import DecimalPrecision
@@ -85,7 +86,9 @@ class ignore_discount_precision:
 
 
 def ignore_discount_precision_active():
-    """¿El hilo actual está dentro de un tramo ``ignore_discount_precision``?"""
+    """
+    ¿El hilo actual está dentro de un tramo ``ignore_discount_precision``?
+    """
     return getattr(_local, 'depth', 0) > 0
 
 
@@ -95,7 +98,9 @@ _original_precision_get = DecimalPrecision.precision_get.__func__
 
 
 def precision_get(cls, application):
-    """≙ ``precision_get`` de ``account`` (``odoo19c: decimal_precision.py:8-15``).
+    """
+    ≙ ``precision_get`` de ``account`` (``odoo19c:
+    decimal_precision.py:8-15``).
 
     Dentro de :class:`ignore_discount_precision`, fija 13 dígitos para
     ``'Discount'`` y 10 para ``'Product Unit'``. Fuera del tramo, o para

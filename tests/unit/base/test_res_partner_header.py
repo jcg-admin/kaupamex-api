@@ -9,6 +9,7 @@ registrados como pendientes (``odoo19c: res_partner.py:185-195,326``):
 
 BD: kaupamex_core_qa
 """
+
 import pytest
 from django.db import IntegrityError, transaction
 
@@ -27,7 +28,9 @@ class TestCompleteNameDisplayedTypes:
 
     def test_the_constant_is_declared(self):
         assert ResPartner._complete_name_displayed_types == (
-            'invoice', 'delivery', 'other',
+            'invoice',
+            'delivery',
+            'other',
         )
 
     def test_the_constant_matches_the_non_contact_types(self):
@@ -35,10 +38,13 @@ class TestCompleteNameDisplayedTypes:
         son ``TYPE_CONTACT`` — la fuente no incluye ``contact`` porque un
         contacto normal no necesita anexar su tipo al nombre completo."""
         non_contact_types = {
-            value for value, _label in ResPartner.TYPES
+            value
+            for value, _label in ResPartner.TYPES
             if value != ResPartner.TYPE_CONTACT
         }
-        assert set(ResPartner._complete_name_displayed_types) == non_contact_types
+        assert (
+            set(ResPartner._complete_name_displayed_types) == non_contact_types
+        )
 
 
 class TestCheckNameConstraint:
@@ -67,14 +73,16 @@ class TestCheckNameConstraint:
 
     def test_a_contact_with_name_is_accepted(self, db):
         partner = ResPartner.objects.create(
-            name='Nestor', type=ResPartner.TYPE_CONTACT,
+            name='Nestor',
+            type=ResPartner.TYPE_CONTACT,
         )
         assert partner.pk is not None
 
     def test_a_delivery_address_without_name_is_also_rejected_here(self, db):
         """DIVERGENCIA declarada: la fuente lo acepta, nuestra columna no.
 
-        ``odoo19c: res_partner.py:213`` declara ``name = fields.Char(index=True,
+        ``odoo19c: res_partner.py:213`` declara ``name =
+        fields.Char(index=True,
         …)`` **sin** ``required=True``: allá la columna es nullable y una
         dirección sin nombre es válida. Aquí ``name`` es
         ``fields.Char(max_length=200, db_index=True)`` — ``NOT NULL`` por el
@@ -87,11 +95,14 @@ class TestCheckNameConstraint:
         comportamiento. El cierre es la tarea **#507**.
         """
         holder = ResPartner.objects.create(
-            name='Empresa', type=ResPartner.TYPE_CONTACT,
+            name='Empresa',
+            type=ResPartner.TYPE_CONTACT,
         )
         with pytest.raises(IntegrityError), transaction.atomic():
             ResPartner.objects.create(
-                name=None, type=ResPartner.TYPE_DELIVERY, parent=holder,
+                name=None,
+                type=ResPartner.TYPE_DELIVERY,
+                parent=holder,
             )
 
     def test_the_constraint_is_inert_because_our_column_is_not_null(self):
@@ -121,7 +132,8 @@ class TestCheckCompanyDomain:
        (``orm.models.CheckCompanyMixin``), así que la condición se cumplió y
        la afirmación pasó a ser falsa.
 
-       Lo que **sigue abierto** no es el mecanismo sino el campo: ``res.partner``
+       Lo que **sigue abierto** no es el mecanismo sino el campo:
+       ``res.partner``
        no declara empresa en este árbol, así que su predicado no tiene con qué
        discriminar y devuelve ``None``. Eso es la tarea **#110**, y este caso
        lo fija para que se note el día que el campo aterrice.

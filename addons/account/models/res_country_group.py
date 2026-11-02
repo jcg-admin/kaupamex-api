@@ -1,4 +1,6 @@
-r"""``res.country.group`` extendido por ``account`` — excepciones fiscales por estado.
+r"""
+``res.country.group`` extendido por ``account`` — excepciones fiscales por
+estado.
 
 Adaptación de ``addons/account/models/res_country_group.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3, 12 líneas) — atribución y
@@ -23,6 +25,7 @@ grupo a efectos fiscales, aunque su país sí pertenezca a él — el caso de us
 de la referencia es un grupo continental que excluye territorios con régimen
 fiscal propio (islas, zonas francas).
 """
+
 import fields
 
 from addons.base.models.res_country_group import ResCountryGroup
@@ -35,11 +38,17 @@ def apply_account_extensions():
     import el registro de modelos aún no está poblado.
     """
     if not hasattr(ResCountryGroup, 'exclude_state_ids'):
-        ResCountryGroup.add_to_class('exclude_state_ids', fields.Many2many(
-            'base.ResCountryState', blank=True,
-            related_name='excluded_from_groups',
-            db_table='res_country_group_exclude_state_rel',
-            help_text='Estados/provincias excluidos de este grupo a efectos '
-                      'fiscales, aunque su país sí pertenezca (Odoo '
-                      'exclude_state_ids).',
-        ))
+        ResCountryGroup.add_to_class(
+            'exclude_state_ids',
+            fields.Many2many(
+                'base.ResCountryState',
+                blank=True,
+                related_name='excluded_from_groups',
+                db_table='res_country_group_exclude_state_rel',
+                help_text=(
+                    'Estados/provincias excluidos de este grupo a efectos '
+                    'fiscales, aunque su país sí pertenezca (Odoo '
+                    'exclude_state_ids).'
+                ),
+            ),
+        )

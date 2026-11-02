@@ -1,4 +1,7 @@
-"""Ejecuta controles mantenidos de migración en PostgreSQL propio sin QA global."""
+"""
+Ejecuta controles mantenidos de migración en PostgreSQL propio sin QA global.
+"""
+
 from pathlib import Path
 import runpy
 
@@ -10,7 +13,9 @@ from django.conf import settings
 
 assert settings.DATABASES['default']['NAME'].startswith('orm_bootstrap_')
 root = Path(__file__).resolve().parents[4]
-controls = runpy.run_path(str(root / 'tests/unit/modules/test_module_category_migration.py'))
+controls = runpy.run_path(
+    str(root / 'tests/unit/modules/test_module_category_migration.py')
+)
 for name in (
     'test_category_migration_preserves_paths_identity_state_and_version',
     'test_category_migration_refuses_ambiguous_identity_without_data_loss',

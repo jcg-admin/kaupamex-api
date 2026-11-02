@@ -15,7 +15,8 @@ Aquí eso se expresa con ``combine=keep_previous``: el eslabón interno gana, qu
 es la precedencia de la fuente. Un usuario con la app configurada **y** la
 política de correo activa obtiene ``'totp'``, no ``'totp_mail'``. Sin ese
 ``combine`` la cadena daría el valor contrario y ningún gate lo vería — los dos
-son valores válidos del mismo vocabulario. Ver ``orm.method_chain.keep_previous``.
+son valores válidos del mismo vocabulario. Ver
+``orm.method_chain.keep_previous``.
 
 Porte símbolo por símbolo — los 24 de la fuente y dónde vive cada uno
 =====================================================================
@@ -55,7 +56,8 @@ sucesor nombrado. Ninguno se omite en silencio
    * - ``_rpc_api_keys_only`` (``:66``)
      - **aquí** (#85), encadenado con ``first_truthy`` — ver abajo
    * - ``_get_session_token_fields`` (``:71``)
-     - **NO portado** — el token de sesión de este árbol no se compone por campos
+     - **NO portado** — el token de sesión de este árbol no se compone por
+       campos
    * - ``_check_credentials`` (``:74``)
      - **aquí**, encadenado con el relevo por defecto; delega en
        ``services.verify_code``, que lleva la guarda del contador — ver abajo
@@ -106,7 +108,8 @@ Los dos métodos y su tabla se portaron en el mismo pase de **#85**
 los intentos no está portada"*, y era cierto: el obstáculo real era que el
 ``TransientModel`` de este árbol declara ``managed = False`` y no crea tabla,
 así que el porte directo habría dado una guarda que cuenta siempre cero. Se
-resolvió construyendo el modelo real con su propio barrido ``@api.autovacuum`` —
+resolvió construyendo el modelo real con su propio barrido ``@api.autovacuum``
+—
 ``porte-completo-no-parcial.md``: si el stack no trae el mecanismo, se
 construye.
 
@@ -140,6 +143,7 @@ El nombre pierde el prefijo ``totp_`` por la misma razón que ``totp_secret`` es
 ``secret``: allá los dos cuelgan de ``res.users`` y el prefijo desambigua; aquí
 los dos viven en ``TotpSecret``.
 """
+
 from datetime import timedelta
 
 from django.utils import timezone
@@ -150,7 +154,8 @@ from orm.model_classes import extend_model, extend_property
 
 from addons.authz_totp import services
 from addons.authz_totp.models.auth_totp_rate_limit_log import (
-    GC_MAX_AGE_SECONDS, AuthTotpRateLimitLog,
+    GC_MAX_AGE_SECONDS,
+    AuthTotpRateLimitLog,
 )
 
 # ≙ la ruta del segundo paso. En la referencia es del backoffice
@@ -170,10 +175,14 @@ TOTP_RATE_LIMITS = {
 
 #: ≙ los dos mensajes de ``_totp_rate_limit`` (``:131-135``), verbatim.
 RATE_LIMIT_DESCRIPTIONS = {
-    'send_email': ('You reached the limit of authentication mails sent for '
-                   'your account, please try again later.'),
-    'code_check': ('You reached the limit of code verifications for your '
-                   'account, please try again later.'),
+    'send_email': (
+        'You reached the limit of authentication mails sent for '
+        'your account, please try again later.'
+    ),
+    'code_check': (
+        'You reached the limit of code verifications for your '
+        'account, please try again later.'
+    ),
 }
 
 # El barrido de ``auth_totp_rate_limit_log`` no puede cortar por debajo del
@@ -184,7 +193,9 @@ RATE_LIMIT_DESCRIPTIONS = {
 # coincidiendo. Este módulo es el único que conoce los dos, y lo verifica al
 # importar: si alguien sube un intervalo sin subir el barrido, el arranque
 # falla en vez de degradar el límite en silencio.
-_INTERVALO_MAS_LARGO = max(interval for _limit, interval in TOTP_RATE_LIMITS.values())
+_INTERVALO_MAS_LARGO = max(
+    interval for _limit, interval in TOTP_RATE_LIMITS.values()
+)
 assert GC_MAX_AGE_SECONDS >= _INTERVALO_MAS_LARGO, (
     'el barrido de auth_totp_rate_limit_log (%ds) corta por debajo del '
     'intervalo más largo de TOTP_RATE_LIMITS (%ds)'
@@ -216,7 +227,9 @@ def _mfa_type(self):
 
 
 def _mfa_url(self):
-    """≙ ``_mfa_url`` (``:54-59``) — la ruta del segundo paso para ``'totp'``."""
+    """
+    ≙ ``_mfa_url`` (``:54-59``) — la ruta del segundo paso para ``'totp'``.
+    """
     if self._mfa_type() == 'totp':
         return TOTP_SECOND_STEP_URL
 
@@ -253,13 +266,16 @@ def _check_credentials(self, credential, env):
     self._totp_rate_limit('code_check')
     if not services.verify_code(self, credential.get('token') or ''):
         raise AccessDenied(
-            'Verification failed, please double-check the 6-digit code')
+            'Verification failed, please double-check the 6-digit code'
+        )
     self._totp_rate_limit_purge('code_check')
     return {'uid': self.pk, 'auth_method': 'totp', 'mfa': 'default'}
 
 
 def _totp_rate_limit(self, limit_type, ip=''):
-    """≙ ``_totp_rate_limit`` (``odoo19c: auth_totp/models/res_users.py:120-143``).
+    """
+    ≙ ``_totp_rate_limit`` (``odoo19c:
+    auth_totp/models/res_users.py:120-143``).
 
     Cuenta los intentos de ``limit_type`` del usuario dentro del intervalo y
     levanta ``AccessDenied`` al alcanzar el tope; si no, **asienta el intento**
@@ -287,23 +303,28 @@ def _totp_rate_limit(self, limit_type, ip=''):
     limit, interval = TOTP_RATE_LIMITS[limit_type]
     desde = timezone.now() - timedelta(seconds=interval)
     count = AuthTotpRateLimitLog.objects.filter(
-        user_id_id=self.pk, limit_type=limit_type, created_at__gte=desde,
+        user_id_id=self.pk,
+        limit_type=limit_type,
+        created_at__gte=desde,
     ).count()
     if count >= limit:
         raise AccessDenied(RATE_LIMIT_DESCRIPTIONS[limit_type])
     AuthTotpRateLimitLog.objects.create(
-        user_id_id=self.pk, ip=ip or '', limit_type=limit_type)
+        user_id_id=self.pk, ip=ip or '', limit_type=limit_type
+    )
 
 
 def _totp_rate_limit_purge(self, limit_type):
-    """≙ ``_totp_rate_limit_purge`` (``:145-152``) — borra los intentos del tipo.
+    """
+    ≙ ``_totp_rate_limit_purge`` (``:145-152``) — borra los intentos del tipo.
 
     Lo llama el acierto: quien demuestra tener el factor recupera su cuota
     entera, así que un usuario legítimo que se equivoca cuatro veces y acierta
     a la quinta no arrastra el castigo al login siguiente.
     """
     AuthTotpRateLimitLog.objects.filter(
-        user_id_id=self.pk, limit_type=limit_type).delete()
+        user_id_id=self.pk, limit_type=limit_type
+    ).delete()
 
 
 def _rpc_api_keys_only(self):
@@ -359,27 +380,37 @@ def _chain_mfa(model):
     # ≙ ``<lo propio> or super()``: cada eslabón aporta su razón para exigir
     # clave de API, y basta una. Con el relevo por defecto, un ``False`` aquí
     # cortaría la cadena antes de llegar al eslabón de ``base``.
-    chain_method(model, '_rpc_api_keys_only', _rpc_api_keys_only,
-                 combine=first_truthy)
+    chain_method(
+        model, '_rpc_api_keys_only', _rpc_api_keys_only, combine=first_truthy
+    )
     extend_property(model, 'SELF_READABLE_FIELDS', SELF_READABLE_FIELDS)
 
 
 def apply_authz_totp_res_users_extensions():
-    """Cuelga sobre ``res.users`` lo que el 2FA por app le añade — ≙ ``_inherit``.
+    """
+    Cuelga sobre ``res.users`` lo que el 2FA por app le añade — ≙ ``_inherit``.
 
     ``keep_previous`` da la precedencia al eslabón anterior, que es la de la
     fuente: ``base`` calla y este addon responde, pero cuando
     ``authz_totp_mail`` se instale encima —depende de éste, así que va
     después— el suyo cederá ante este ``'totp'``.
     """
-    extend_model('base', 'ResUsers', propiedades={
-        'totp_enabled': totp_enabled,
-    })
+    extend_model(
+        'base',
+        'ResUsers',
+        propiedades={
+            'totp_enabled': totp_enabled,
+        },
+    )
     # Los dos del limitador van por ``metodos=``: no eligen entre valores, así
     # que el relevo por defecto de ``chain_method`` es el correcto — y como
     # ``base.ResUsers`` no declara ninguno de los dos, se instalan tal cual.
-    extend_model('base', 'ResUsers', metodos={
-        '_totp_rate_limit': _totp_rate_limit,
-        '_totp_rate_limit_purge': _totp_rate_limit_purge,
-    })
+    extend_model(
+        'base',
+        'ResUsers',
+        metodos={
+            '_totp_rate_limit': _totp_rate_limit,
+            '_totp_rate_limit_purge': _totp_rate_limit_purge,
+        },
+    )
     extend_model('base', 'ResUsers', luego=_chain_mfa)

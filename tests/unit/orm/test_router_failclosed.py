@@ -1,12 +1,15 @@
-"""Fail-closed duro del router bajo N>1 (SOL-091, T-091-05 — el guard del wiring).
+"""
+Fail-closed duro del router bajo N>1 (SOL-091, T-091-05 — el guard del wiring).
 
 El router (``test_multidb_router``) devuelve ``None`` para dominio sin empresa
 activa → Django cae a ``default``. Correcto para **N=1** (el dominio vive en
 ``default``). Pero bajo **N>1** (hay bases ``company_<N>_db`` configuradas) esa
-caída **filtraría** dominio de una empresa a ``default``: el guard convierte ese
+caída **filtraría** dominio de una empresa a ``default``: el guard convierte
+ese
 ``None`` en un rechazo duro (``CompanyContextRequired``). La activación es
 automática — se basa en si ``settings.DATABASES`` tiene aliases ``company_*``.
 """
+
 from django.test import override_settings
 
 from orm.environments import company_scope, set_current_company
@@ -42,12 +45,19 @@ router = CompanyDatabaseRouter()
 #: —una consulta real, un ``django_db``—. Ahí el peligro que Django nombra sí
 #: aplica y el filtro estaría escondiendo un fallo, no un ruido.
 pytestmark = pytest.mark.filterwarnings(
-    'ignore:Overriding setting DATABASES:UserWarning')
+    'ignore:Overriding setting DATABASES:UserWarning'
+)
 
 
 _N_GT_1 = {
-    'default': {'ENGINE': 'django.db.backends.postgresql', 'NAME': 'kaupamex_core'},
-    'company_5_db': {'ENGINE': 'django.db.backends.postgresql', 'NAME': 'company_5_db'},
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'kaupamex_core',
+    },
+    'company_5_db': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'company_5_db',
+    },
 }
 
 

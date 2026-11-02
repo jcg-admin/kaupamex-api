@@ -26,6 +26,7 @@ nadie lee es un mecanismo muerto. Hoy el handler emite el error por el canal de
 logging y ``DatabaseLogHandler`` lo persiste en ``ir.logging`` — ver
 ``addons/base/exception_handling.py``.
 """
+
 import contextvars
 import uuid
 
@@ -35,7 +36,9 @@ _correlation_id_var = contextvars.ContextVar("correlation_id", default=None)
 
 
 def new_correlation_id():
-    """Genera un correlation_id (UUID4 en hex, 32 chars) y lo fija en el contexto."""
+    """
+    Genera un correlation_id (UUID4 en hex, 32 chars) y lo fija en el contexto.
+    """
     cid = uuid.uuid4().hex
     _correlation_id_var.set(cid)
     return cid
@@ -47,7 +50,9 @@ def set_correlation_id(cid):
 
 
 def get_correlation_id():
-    """Devuelve el correlation_id del contexto actual, o None si no hay request."""
+    """
+    Devuelve el correlation_id del contexto actual, o None si no hay request.
+    """
     return _correlation_id_var.get()
 
 

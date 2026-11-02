@@ -23,6 +23,7 @@ No se porta ``_get_avatar_128_access_token``: depende de
 mecanismo de Odoo para servir binarios saltándose derechos de acceso. Aquí los
 binarios los sirve Django con el storage y el gate de capacidad de la vista.
 """
+
 from base64 import b64encode
 from hashlib import sha512
 from html import escape as html_escape
@@ -51,7 +52,8 @@ def get_hsl_from_seed(seed):
 
 
 class AvatarMixin(ImageMixin):
-    """Avatar: la imagen del registro, o un retrato generado (``avatar.mixin``).
+    """
+    Avatar: la imagen del registro, o un retrato generado (``avatar.mixin``).
 
     Los cinco ``avatar_*`` son derivados, no columnas — igual que el
     ``compute`` sin ``store`` de la referencia.
@@ -75,27 +77,37 @@ class AvatarMixin(ImageMixin):
 
     @property
     def avatar_1920(self):
-        """≙ ``_compute_avatar_1920`` (``odoo19c: base/models/avatar_mixin.py``)."""
+        """
+        ≙ ``_compute_avatar_1920`` (``odoo19c: base/models/avatar_mixin.py``).
+        """
         return self._compute_avatar('image_1920')
 
     @property
     def avatar_1024(self):
-        """≙ ``_compute_avatar_1024`` (``odoo19c: base/models/avatar_mixin.py``)."""
+        """
+        ≙ ``_compute_avatar_1024`` (``odoo19c: base/models/avatar_mixin.py``).
+        """
         return self._compute_avatar('image_1024')
 
     @property
     def avatar_512(self):
-        """≙ ``_compute_avatar_512`` (``odoo19c: base/models/avatar_mixin.py``)."""
+        """
+        ≙ ``_compute_avatar_512`` (``odoo19c: base/models/avatar_mixin.py``).
+        """
         return self._compute_avatar('image_512')
 
     @property
     def avatar_256(self):
-        """≙ ``_compute_avatar_256`` (``odoo19c: base/models/avatar_mixin.py``)."""
+        """
+        ≙ ``_compute_avatar_256`` (``odoo19c: base/models/avatar_mixin.py``).
+        """
         return self._compute_avatar('image_256')
 
     @property
     def avatar_128(self):
-        """≙ ``_compute_avatar_128`` (``odoo19c: base/models/avatar_mixin.py``)."""
+        """
+        ≙ ``_compute_avatar_128`` (``odoo19c: base/models/avatar_mixin.py``).
+        """
         return self._compute_avatar('image_128')
 
     def _avatar_generate_svg(self):
@@ -108,16 +120,19 @@ class AvatarMixin(ImageMixin):
         name = getattr(self, self._avatar_name_field) or ''
         initial = html_escape(name[0].upper())
         created = getattr(self, 'created_at', None)
-        bgcolor = get_hsl_from_seed(name + str(created.timestamp() if created else ''))
-        return b64encode((
-            "<?xml version='1.0' encoding='UTF-8' ?>"
-            "<svg height='180' width='180' xmlns='http://www.w3.org/2000/svg' "
-            "xmlns:xlink='http://www.w3.org/1999/xlink'>"
-            f"<rect fill='{bgcolor}' height='180' width='180'/>"
-            f"<text fill='#ffffff' font-size='96' text-anchor='middle' x='90' "
-            f"y='125' font-family='sans-serif'>{initial}</text>"
-            "</svg>"
-        ).encode())
+        bgcolor = get_hsl_from_seed(
+            name + str(created.timestamp() if created else '')
+        )
+        return b64encode(
+            (
+                "<?xml version='1.0' encoding='UTF-8' ?><svg height='180'"
+                " width='180' xmlns='http://www.w3.org/2000/svg'"
+                " xmlns:xlink='http://www.w3.org/1999/xlink'><rect"
+                f" fill='{bgcolor}' height='180' width='180'/><text"
+                " fill='#ffffff' font-size='96' text-anchor='middle' x='90'"
+                f" y='125' font-family='sans-serif'>{initial}</text></svg>"
+            ).encode()
+        )
 
     def _avatar_get_placeholder_path(self):
         return _PLACEHOLDER_PATH

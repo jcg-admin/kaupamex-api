@@ -81,6 +81,7 @@ Dos símbolos, los dos bloqueados por una pieza ausente y nombrada:
   decisión de la API REST, no de este modelo. Sucesor: tarea **#279**
   (``stock`` no declara ningún ``ReportSpec``/vista propia todavía).
 """
+
 from decimal import Decimal
 
 from django.utils import timezone
@@ -153,8 +154,10 @@ def expired_qty(cls, product, location):
     """
     ahora = timezone.now()
     vencidos = cls.objects.filter(
-        product=product, location=location,
-        lot__removal_date__isnull=False, lot__removal_date__lte=ahora,
+        product=product,
+        location=location,
+        lot__removal_date__isnull=False,
+        lot__removal_date__lte=ahora,
     )
     return sum(
         (quant.quantity - quant.reserved_quantity for quant in vencidos),
@@ -171,7 +174,10 @@ def _subtract_expired(caducado, disponible):
 
 
 def apply_product_expiry_extensions():
-    """Cuelga las tres properties y encadena los dos métodos sobre ``stock.quant``."""
+    """
+    Cuelga las tres properties y encadena los dos métodos sobre
+    ``stock.quant``.
+    """
     for nombre, funcion in (
         ('expiration_date', expiration_date),
         ('removal_date', removal_date),
@@ -180,10 +186,17 @@ def apply_product_expiry_extensions():
         if not hasattr(StockQuant, nombre):
             setattr(StockQuant, nombre, property(funcion))
 
-    chain_method(StockQuant, '_get_removal_strategy_order',
-                 classmethod(_get_removal_strategy_order))
-    chain_method(StockQuant, 'available_qty', classmethod(expired_qty),
-                 combine=_subtract_expired)
+    chain_method(
+        StockQuant,
+        '_get_removal_strategy_order',
+        classmethod(_get_removal_strategy_order),
+    )
+    chain_method(
+        StockQuant,
+        'available_qty',
+        classmethod(expired_qty),
+        combine=_subtract_expired,
+    )
 
 
 __all__ = [

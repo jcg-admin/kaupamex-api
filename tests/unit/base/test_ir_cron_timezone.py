@@ -45,6 +45,7 @@ memoria en vez del UTC que devuelve la base. Con eso la aritmetica de reloj de
 pared conservaba la hora **con la conversion y sin ella**: 7 passed en los dos
 sentidos. El runner lee el job de la base; el caso tiene que leerlo igual.
 """
+
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 from zoneinfo import ZoneInfo
@@ -64,25 +65,35 @@ NEW_YORK = 'America/New_York'
 @pytest.fixture
 def action():
     return IrActionsServer.objects.create(
-        name='Tarea con zona', state='code',
-        model_name='base.SystemParameter', method_name='noop_test')
+        name='Tarea con zona',
+        state='code',
+        model_name='base.SystemParameter',
+        method_name='noop_test',
+    )
 
 
 def _user_with_tz(tz):
     partner = ResPartner.objects.create(name='Operador', tz=tz)
     return ResUsers.objects.create(
-        login=f'op-{tz or "sin"}-{partner.pk}', partner=partner)
+        login=f'op-{tz or "sin"}-{partner.pk}', partner=partner
+    )
 
 
 def _daily_cron(action, user, nextcall):
     return IrCron.objects.create(
-        ir_actions_server=action, user=user, interval_number=1,
-        interval_type='days', nextcall=nextcall, active=True)
+        ir_actions_server=action,
+        user=user,
+        interval_number=1,
+        interval_type='days',
+        nextcall=nextcall,
+        active=True,
+    )
 
 
 # --------------------------------------------------------------------------
 # _resolve_tz — ≙ Environment.tz, con su mismo orden de precedencia
 # --------------------------------------------------------------------------
+
 
 def test_the_user_timezone_wins_when_the_context_is_silent(db):
     user = _user_with_tz(NEW_YORK)
@@ -110,8 +121,10 @@ def test_an_invalid_timezone_degrades_instead_of_aborting(db):
 # El cambio de horario — lo unico que la conversion existe para preservar
 # --------------------------------------------------------------------------
 
+
 def test_the_hour_survives_the_spring_transition(action, db):
-    """Un cron diario a las 09:00 sigue a las 09:00 al pasar a horario de verano.
+    """
+    Un cron diario a las 09:00 sigue a las 09:00 al pasar a horario de verano.
 
     2026-03-08 es el segundo domingo de marzo: America/New_York pasa de
     UTC-5 a UTC-4 a las 02:00 locales. Las 09:00 del dia 7 son las 14:00 UTC;
@@ -120,7 +133,7 @@ def test_the_hour_survives_the_spring_transition(action, db):
     user = _user_with_tz(NEW_YORK)
     before = datetime(2026, 3, 7, 9, 0, tzinfo=ZoneInfo(NEW_YORK))
     cron = _daily_cron(action, user, before)
-    cron.refresh_from_db()       # como lo lee el runner: UTC, no la tz del fixture
+    cron.refresh_from_db()  # como lo lee el runner: UTC, no la tz del fixture
     cron._reschedule_later()
 
     local = cron.nextcall.astimezone(ZoneInfo(NEW_YORK))
@@ -149,7 +162,7 @@ def test_the_hour_survives_the_autumn_transition():
     assert in_zone.astimezone(zone).hour == 9
 
     in_utc = _add_interval(before.astimezone(dt_timezone.utc), 1, 'days')
-    assert in_utc.astimezone(zone).hour == 8      # el defecto, medido
+    assert in_utc.astimezone(zone).hour == 8  # el defecto, medido
 
 
 def test_an_interval_in_hours_is_a_fixed_amount(action, db):
@@ -162,8 +175,13 @@ def test_an_interval_in_hours_is_a_fixed_amount(action, db):
     user = _user_with_tz(NEW_YORK)
     before = timezone.now() - timedelta(hours=3)
     cron = IrCron.objects.create(
-        ir_actions_server=action, user=user, interval_number=2,
-        interval_type='hours', nextcall=before, active=True)
+        ir_actions_server=action,
+        user=user,
+        interval_number=2,
+        interval_type='hours',
+        nextcall=before,
+        active=True,
+    )
     cron._reschedule_later()
     delta = cron.nextcall - before
     assert delta.total_seconds() % 7200 == 0

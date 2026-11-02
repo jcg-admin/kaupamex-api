@@ -3,17 +3,20 @@
 Tras V5d la columna ``SaleOrder.status`` no existe, pero el **vocabulario** de
 estados seguía declarado en ``orders.Order`` (``STATUS_*`` + ``STATUSES``). Eso
 dejaba al espejo como propietario del idioma que consume la proyección
-canónica: 39 referencias de producción importaban ``SaleOrder`` sólo para leer dos
+canónica: 39 referencias de producción importaban ``SaleOrder`` sólo para leer
+dos
 constantes, y ``status_projection`` —el módulo que *produce* el estado— tenía
 que importar el modelo espejo para nombrar su propia salida.
 
-Es un acoplamiento invertido y bloquea E5: no se puede dar de baja ``SaleOrder``
+Es un acoplamiento invertido y bloquea E5: no se puede dar de baja
+``SaleOrder``
 mientras sea el hogar del idioma. E2a lo mueve a ``status_projection``, que es
 quien deriva el estado de los ejes.
 
 El valor de cada constante **no cambia** — es contrato de API pública
 (``?status=``, DEC del contrato canónico de la Rebanada 6).
 """
+
 import pytest
 
 from addons.sale import status_projection as sp
@@ -77,8 +80,11 @@ class TestLaProyeccionNoDependeDelEspejo:
         assert sp.derive_order_status(venta) == sp.STATUS_PENDING
 
         Payment.objects.create(
-            sale_order=venta, amount=100,
-            gateway=Payment.GATEWAY_MANUAL, status=Payment.STATUS_APPROVED)
+            sale_order=venta,
+            amount=100,
+            gateway=Payment.GATEWAY_MANUAL,
+            status=Payment.STATUS_APPROVED,
+        )
         assert sp.derive_order_status(venta) == sp.STATUS_PAID
 
     def test_un_draft_proyecta_draft_y_un_cancel_cancelado(self):

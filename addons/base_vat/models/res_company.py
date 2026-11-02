@@ -47,17 +47,27 @@ La migración aditiva se genera en ``src/addons/base/migrations/`` — es donde
 Django escribe el ``AddField`` de una columna colgada sobre un modelo de
 ``base``, igual que las nueve de ``hr`` (``0036_alter_rescompany_…``).
 """
+
 import fields
 
 from orm.model_classes import extend_model
 
 
 def apply_base_vat_res_company_extensions():
-    """Cuelga sobre ``res.company`` lo que ``base_vat`` le añade — ≙ ``_inherit``."""
-    extend_model('base', 'ResCompany', campos={
-        'vat_check_vies': fields.Boolean(
-            default=False, verbose_name='Verify VAT Numbers',
-            help_text='Odoo vat_check_vies — comprobar los identificadores '
-                      'fiscales intracomunitarios contra la base VIES.',
-        ),
-    })
+    """
+    Cuelga sobre ``res.company`` lo que ``base_vat`` le añade — ≙ ``_inherit``.
+    """
+    extend_model(
+        'base',
+        'ResCompany',
+        campos={
+            'vat_check_vies': fields.Boolean(
+                default=False,
+                verbose_name='Verify VAT Numbers',
+                help_text=(
+                    'Odoo vat_check_vies — comprobar los identificadores '
+                    'fiscales intracomunitarios contra la base VIES.'
+                ),
+            ),
+        },
+    )

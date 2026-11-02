@@ -11,6 +11,7 @@ DEC-SCHEMA-03: nuevas clases usan pytest.mark.schema.
 DEC-SCHEMA-05: hallazgos de paths ausentes documentados en
                analisis-cobertura-openapi-schema.rst.
 """
+
 import pytest
 
 pytestmark = pytest.mark.api
@@ -19,6 +20,7 @@ pytestmark = pytest.mark.api
 # =============================================================================
 # Sprint 1 — tests originales
 # =============================================================================
+
 
 class TestSchemaEndpoint:
     """El endpoint /api/schema/ genera OpenAPI 3.0 válido."""
@@ -109,6 +111,7 @@ class TestRedocUI:
 # Sprint 4 — T-001..T-008 (pytest.mark.schema)
 # =============================================================================
 
+
 class TestSchemaSelfAccount:
     """
     Superficie de cuenta propia — ≙ ``/my/*`` de ``odoo19c: portal``.
@@ -119,6 +122,7 @@ class TestSchemaSelfAccount:
     (``src/config/urls.py:132``). Triage en
     :ref:`analisis-triage-rutas-schema-v2`.
     """
+
     pytestmark = pytest.mark.schema
 
     def _paths(self, api_client, db):
@@ -136,12 +140,15 @@ class TestSchemaSelfAccount:
         # ``portal/controllers/urls.py:18`` — el verbo es **archivar**, no
         # borrar: la referencia desactiva con ``ResPartner.active``
         # (H-API-252). Por eso la ruta lleva el sufijo ``/archive/``.
-        assert ('/api/v2/portal/addresses/{id}/archive/'
-                in self._paths(api_client, db))
+        assert '/api/v2/portal/addresses/{id}/archive/' in self._paths(
+            api_client, db
+        )
 
     def test_change_password_in_schema(self, api_client, db):
         # ``portal/controllers/urls.py:21`` — ≙ /my/security
-        assert '/api/v2/portal/security/password/' in self._paths(api_client, db)
+        assert '/api/v2/portal/security/password/' in self._paths(
+            api_client, db
+        )
 
     def test_request_reset_in_schema(self, api_client, db):
         # ``authz_signup/controllers/urls.py:11``
@@ -160,6 +167,7 @@ class TestSchemaSession:
     El contrato de comportamiento se prueba en ``tests/integration/web/``;
     aquí sólo se verifica que estén **publicadas** en el OpenAPI.
     """
+
     pytestmark = pytest.mark.schema
 
     def _paths(self, api_client, db):
@@ -183,6 +191,7 @@ class TestSchemaEmailVerification:
     referencia no verifica el correo porque su alta llega por invitación
     (H-API-281); el **mecanismo** sí se hereda entero.
     """
+
     pytestmark = pytest.mark.schema
 
     def _paths(self, api_client, db):
@@ -208,6 +217,7 @@ class TestSchemaCartWishlist:
           CartSaveView, CartMergeView, CartVoucherView.
     Wishlist: WishlistView, WishlistItemDetailView, WishlistMoveToCartView.
     """
+
     pytestmark = pytest.mark.schema
 
     def _paths(self, api_client, db):
@@ -232,7 +242,9 @@ class TestSchemaCartWishlist:
         assert '/api/v2/wishlist/{id}/' in self._paths(api_client, db)
 
     def test_wishlist_move_to_cart_in_schema(self, api_client, db):
-        assert '/api/v2/wishlist/{id}/cart-transfers/' in self._paths(api_client, db)
+        assert '/api/v2/wishlist/{id}/cart-transfers/' in self._paths(
+            api_client, db
+        )
 
 
 class TestSchemaOrdersPayments:
@@ -247,6 +259,7 @@ class TestSchemaOrdersPayments:
     Orders usan <str:order_number> — schema genera {order_number}.
     Payments usan <str:order_number> — schema genera {order_number}.
     """
+
     pytestmark = pytest.mark.schema
 
     def _paths(self, api_client, db):
@@ -263,7 +276,9 @@ class TestSchemaOrdersPayments:
         assert '/api/v2/orders/{order_number}/' in self._paths(api_client, db)
 
     def test_orders_cancel_in_schema(self, api_client, db):
-        assert '/api/v2/orders/{order_number}/cancellations/' in self._paths(api_client, db)
+        assert '/api/v2/orders/{order_number}/cancellations/' in self._paths(
+            api_client, db
+        )
 
     def test_checkout_express_in_schema(self, api_client, db):
         # H-SCHEMA-02: checkout express en /api/v2/checkout/ (checkout_urls)
@@ -273,10 +288,14 @@ class TestSchemaOrdersPayments:
         assert '/api/v2/payments/initiate/' in self._paths(api_client, db)
 
     def test_payments_status_in_schema(self, api_client, db):
-        assert '/api/v2/payments/{order_number}/status/' in self._paths(api_client, db)
+        assert '/api/v2/payments/{order_number}/status/' in self._paths(
+            api_client, db
+        )
 
     def test_payments_history_in_schema(self, api_client, db):
-        assert '/api/v2/payments/{order_number}/history/' in self._paths(api_client, db)
+        assert '/api/v2/payments/{order_number}/history/' in self._paths(
+            api_client, db
+        )
 
 
 class TestSchemaCatalogue:
@@ -293,6 +312,7 @@ class TestSchemaCatalogue:
     catalogue/urls_v2.py provee /api/v2/products/ (list/search/autocomplete
     via query params — no hay ruta separada /products/search/).
     """
+
     pytestmark = pytest.mark.schema
 
     def _paths(self, api_client, db):
@@ -313,7 +333,9 @@ class TestSchemaCatalogue:
         assert '/api/v2/categories/' in self._paths(api_client, db)
 
     def test_product_related_in_schema(self, api_client, db):
-        assert '/api/v2/products/{slug}/related/' in self._paths(api_client, db)
+        assert '/api/v2/products/{slug}/related/' in self._paths(
+            api_client, db
+        )
 
 
 class TestSchemaReviewsQuestions:
@@ -323,16 +345,22 @@ class TestSchemaReviewsQuestions:
     Todos montados bajo /api/v2/products/ con product_id int.
     Search history montado bajo /api/v2/search/.
     """
+
     pytestmark = pytest.mark.schema
 
     def _paths(self, api_client, db):
         return api_client.get('/api/schema/?format=json').json()['paths']
 
     def test_product_reviews_en_schema(self, api_client, db):
-        assert '/api/v2/products/{product_id}/reviews/' in self._paths(api_client, db)
+        assert '/api/v2/products/{product_id}/reviews/' in self._paths(
+            api_client, db
+        )
 
     def test_product_review_helpful_en_schema(self, api_client, db):
-        assert '/api/v2/products/{product_id}/reviews/{id}/helpful-votes/' in self._paths(api_client, db)
+        assert (
+            '/api/v2/products/{product_id}/reviews/{id}/helpful-votes/'
+            in self._paths(api_client, db)
+        )
 
     # Q&A de producto — RETIRADA: 0 addons con ``question`` en el nombre y 0
     # ``@route`` con ``question`` en el path en todo ``odoo19c:``
@@ -352,8 +380,10 @@ class TestSchemaInventoryLogisticsVoucher:
 
     Inventory montado en /api/v2/admin/inventory/ (addons.inventory.urls).
     Logistics montado en /api/v2/logistics/ (addons.delivery.controllers.urls).
-    Voucher router montado en /api/v2/admin/vouchers/ (addons.loyalty.controllers.admin_urls).
+    Voucher router montado en /api/v2/admin/vouchers/
+    (addons.loyalty.controllers.admin_urls).
     """
+
     pytestmark = pytest.mark.schema
 
     def _paths(self, api_client, db):
@@ -372,7 +402,10 @@ class TestSchemaInventoryLogisticsVoucher:
         assert '/api/v2/logistics/guides/' in self._paths(api_client, db)
 
     def test_logistics_confirm_delivery_en_schema(self, api_client, db):
-        assert '/api/v2/logistics/guides/{id}/confirm-delivery/' in self._paths(api_client, db)
+        assert (
+            '/api/v2/logistics/guides/{id}/confirm-delivery/'
+            in self._paths(api_client, db)
+        )
 
     def test_vouchers_list_en_schema(self, api_client, db):
         assert '/api/v2/admin/vouchers/' in self._paths(api_client, db)
@@ -392,6 +425,7 @@ class TestSchemaSupportReturnsNewsletter:
     H-SCHEMA-05: Newsletter confirm token en path variable:
     /api/v2/newsletter/subscriptions/confirmations/{token}/ (str param).
     """
+
     pytestmark = pytest.mark.schema
 
     def _paths(self, api_client, db):
@@ -401,7 +435,9 @@ class TestSchemaSupportReturnsNewsletter:
         assert '/api/v2/support/tickets/' in self._paths(api_client, db)
 
     def test_support_ticket_close_in_schema(self, api_client, db):
-        assert '/api/v2/support/tickets/{ticket_id}/status/' in self._paths(api_client, db)
+        assert '/api/v2/support/tickets/{ticket_id}/status/' in self._paths(
+            api_client, db
+        )
 
     # Devoluciones — RETIRADA: la única ``@route`` con ``return`` en el path de
     # ``odoo19c:`` sirve el PDF de la etiqueta
@@ -414,11 +450,16 @@ class TestSchemaSupportReturnsNewsletter:
         assert '/api/v2/contact/messages/' in self._paths(api_client, db)
 
     def test_newsletter_subscribe_in_schema(self, api_client, db):
-        assert '/api/v2/newsletter/subscriptions/' in self._paths(api_client, db)
+        assert '/api/v2/newsletter/subscriptions/' in self._paths(
+            api_client, db
+        )
 
     def test_newsletter_confirm_in_schema(self, api_client, db):
         # H-SCHEMA-05: token va en el body del POST, no en la URL
-        assert '/api/v2/newsletter/subscriptions/confirmations/' in self._paths(api_client, db)
+        assert (
+            '/api/v2/newsletter/subscriptions/confirmations/'
+            in self._paths(api_client, db)
+        )
 
     def test_notifications_in_schema(self, api_client, db):
         assert '/api/v2/notifications/' in self._paths(api_client, db)
@@ -442,6 +483,7 @@ class TestSchemaAdminEndpoints:
 
     Orders admin usa <str:order_number> — schema genera {order_number}.
     """
+
     pytestmark = pytest.mark.schema
 
     def _paths(self, api_client, db):
@@ -451,14 +493,18 @@ class TestSchemaAdminEndpoints:
         assert '/api/v2/admin/orders/' in self._paths(api_client, db)
 
     def test_admin_order_detail_in_schema(self, api_client, db):
-        assert '/api/v2/admin/orders/{order_number}/' in self._paths(api_client, db)
+        assert '/api/v2/admin/orders/{order_number}/' in self._paths(
+            api_client, db
+        )
 
     def test_admin_reviews_en_schema(self, api_client, db):
         assert '/api/v2/admin/reviews/' in self._paths(api_client, db)
 
     def test_admin_review_approve_in_schema(self, api_client, db):
         # v2: approve/reject → PATCH /status/ (admin_urls_v2.py)
-        assert '/api/v2/admin/reviews/{id}/status/' in self._paths(api_client, db)
+        assert '/api/v2/admin/reviews/{id}/status/' in self._paths(
+            api_client, db
+        )
 
     def test_admin_settings_in_schema(self, api_client, db):
         # settings mounted at /api/v2/config/ (settings_app/urls.py)

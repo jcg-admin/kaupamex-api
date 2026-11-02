@@ -13,7 +13,8 @@ Dos divergencias de FORMA, las dos heredadas del árbol
 ======================================================
 
 1. **``_compute_display_name`` DEVUELVE la etiqueta**, no la asigna a
-   ``self.display_name``. Es la divergencia 1 que ``orm.models.DisplayNameMixin``
+   ``self.display_name``. Es la divergencia 1 que
+   ``orm.models.DisplayNameMixin``
    declara para todo el árbol, y la ejercen ya cinco modelos de ``base``. Por
    eso el enganche usa ``chain_method`` con ``combine=``: la semántica de
    relevo por ``None`` delegaría en el eslabón previo **en vez** de sumarse a
@@ -25,6 +26,7 @@ Dos divergencias de FORMA, las dos heredadas del árbol
    leerlo y no hay caché que invalidar, así que el decorador no tiene receptor.
    Las dos claves se leen igual, de ``orm.environments.get_context()``.
 """
+
 from orm.method_chain import chain_method
 from tools.translate import _
 
@@ -57,7 +59,8 @@ def _compute_display_name(self):
 def _add_team_leader_marker(marker, label):
     """≙ el ``user.display_name += " --%s--"`` de la fuente (``:17``).
 
-    ``combine`` de :func:`orm.method_chain.chain_method`: recibe lo que devuelve
+    ``combine`` de :func:`orm.method_chain.chain_method`: recibe lo que
+    devuelve
     el eslabón nuevo y lo que devolvió el previo, en ese orden.
     """
     return f'{label} --{marker}--' if marker else label
@@ -65,5 +68,9 @@ def _add_team_leader_marker(marker, label):
 
 def apply_crm_extensions():
     """Cuelga el marcador de ``res.users``. La llama ``CrmConfig.ready()``."""
-    chain_method(ResUsers, '_compute_display_name', _compute_display_name,
-                 combine=_add_team_leader_marker)
+    chain_method(
+        ResUsers,
+        '_compute_display_name',
+        _compute_display_name,
+        combine=_add_team_leader_marker,
+    )

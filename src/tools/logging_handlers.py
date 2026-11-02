@@ -42,11 +42,13 @@ Garantias:
   ``LogRecord`` (``pathname``/``funcName``/``lineno``) cuando estan
   disponibles — el modelo previo (``AppLog``) no los capturaba.
 
-El modelo ``IrLogging`` se resuelve con ``apps.get_model`` (una *llamada*, no un
+El modelo ``IrLogging`` se resuelve con ``apps.get_model`` (una *llamada*, no
+un
 ``import`` de modulo) para no romper ``django.setup()``: este modulo se importa
 al configurar ``LOGGING``, antes de que el registro de apps este poblado
 (``no-lazy-imports`` excepcion analoga a la de ``AppConfig.ready``).
 """
+
 import logging
 import threading
 

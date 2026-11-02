@@ -31,7 +31,8 @@ class Command:
         Era el único de los siete que faltaba. Lo pidió el porte de
         ``stock_move._set_quantity_done_prepare_vals``
         (``odoo19c: addons/stock/models/stock_move.py:2490``), que reparte la
-        cantidad entre las líneas existentes actualizando unas y borrando otras.
+        cantidad entre las líneas existentes actualizando unas y borrando
+        otras.
 
         Como el resto de esta clase, es **ejecutivo**: escribe al llamarlo, en
         vez de devolver una tupla que el ORM aplique después. Esa divergencia
@@ -40,8 +41,13 @@ class Command:
         """
         for campo, valor in values.items():
             setattr(obj, campo, valor)
-        obj.save(update_fields=[*values, 'updated_at'] if hasattr(obj, 'updated_at')
-                 else list(values))
+        obj.save(
+            update_fields=(
+                [*values, 'updated_at']
+                if hasattr(obj, 'updated_at')
+                else list(values)
+            )
+        )
         return obj
 
     @staticmethod
@@ -79,6 +85,7 @@ class Command:
 # aplica ``orm.models.RecordLoaderMixin`` cuando el registro ya existe, que es
 # el momento en que Django admite tocar una relación de muchos.
 
+
 class ManyToManySet(list):
     """El conjunto queda **exactamente** en estos ids — ≙ ``Command.set``."""
 
@@ -102,8 +109,10 @@ class One2manyChild:
         self.values = values
 
     def __eq__(self, other):
-        return (isinstance(other, One2manyChild)
-                and (self.id, self.values) == (other.id, other.values))
+        return isinstance(other, One2manyChild) and (self.id, self.values) == (
+            other.id,
+            other.values,
+        )
 
     def __repr__(self):
         return 'One2manyChild(%r, %r)' % (self.id, self.values)

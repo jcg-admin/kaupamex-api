@@ -11,6 +11,7 @@ acciona con ``mark_sms_sent`` / ``mark_sms_error``.
 Direccion de acoplamiento: ``sms`` importa ``mail`` (el backbone nunca importa
 ``sms`` — usa string FK ``'sms.SmsSms'``).
 """
+
 from addons.mail.models import MailMessage, MailNotification
 
 from .models import SmsSms
@@ -20,14 +21,18 @@ def send_thread_sms(record, partner, *, body='', number=None, author=None):
     """Registra el envio de un SMS sobre el hilo de ``record`` a ``partner``.
 
     Publica un ``mail.message`` de tipo notification en el hilo (sin repartir a
-    seguidores), crea la intencion ``sms.sms`` (estado ``pending``) y la fila de
-    entrega ``mail.notification`` de canal ``sms`` cruzada con ella. Devuelve la
+    seguidores), crea la intencion ``sms.sms`` (estado ``pending``) y la fila
+    de
+    entrega ``mail.notification`` de canal ``sms`` cruzada con ella. Devuelve
+    la
     ``MailNotification`` creada (estado ``process`` hasta que el transporte la
     resuelva). El numero sale de ``number`` o del ``phone`` del destinatario.
     """
     message = record.message_post(
-        body=body, message_type=MailMessage.TYPE_NOTIFICATION,
-        author=author, notify=False,
+        body=body,
+        message_type=MailMessage.TYPE_NOTIFICATION,
+        author=author,
+        notify=False,
     )
     sms = SmsSms.objects.create(
         number=number or getattr(partner, 'phone', '') or '',
@@ -35,7 +40,8 @@ def send_thread_sms(record, partner, *, body='', number=None, author=None):
         state=SmsSms.STATE_PENDING,
     )
     return MailNotification.objects.create(
-        message=message, partner=partner,
+        message=message,
+        partner=partner,
         notification_type=MailNotification.TYPE_SMS,
         notification_status=MailNotification.STATUS_PROCESS,
         sms=sms,
@@ -43,7 +49,9 @@ def send_thread_sms(record, partner, *, body='', number=None, author=None):
 
 
 def mark_sms_sent(notification):
-    """El transporte confirma la entrega: ``sms.sms`` → sent, entrega → sent."""
+    """
+    El transporte confirma la entrega: ``sms.sms`` → sent, entrega → sent.
+    """
     if notification.sms_id:
         notification.sms.mark_sent()
     notification.notification_status = MailNotification.STATUS_SENT
@@ -51,12 +59,21 @@ def mark_sms_sent(notification):
 
 
 def mark_sms_error(notification, reason, failure_type=None):
-    """El transporte reporta un fallo: ``sms.sms`` → error, entrega → exception."""
+    """
+    El transporte reporta un fallo: ``sms.sms`` → error, entrega → exception.
+    """
     if notification.sms_id:
         notification.sms.mark_error(str(reason)[:64])
     notification.notification_status = MailNotification.STATUS_EXCEPTION
-    notification.failure_type = failure_type or MailNotification.FAILURE_UNKNOWN
+    notification.failure_type = (
+        failure_type or MailNotification.FAILURE_UNKNOWN
+    )
     notification.failure_reason = str(reason)[:500]
-    notification.save(update_fields=[
-        'notification_status', 'failure_type', 'failure_reason', 'updated_at',
-    ])
+    notification.save(
+        update_fields=[
+            'notification_status',
+            'failure_type',
+            'failure_reason',
+            'updated_at',
+        ]
+    )

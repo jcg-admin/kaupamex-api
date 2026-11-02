@@ -18,11 +18,11 @@ Qué haría fallar a estos casos: que un constructor devuelva algo con columna
 —o levante ``TypeError``, que es lo que hacía— ante la declaración que la
 fuente escribe.
 """
+
 import pytest
 
 import fields
 from orm.fields_nonstored import NonStored
-
 
 #: Los que enrutan por ``projection_or_none`` y admiten construirse sin más
 #: argumentos que la declaración. ``Many2many`` va aparte: su constructor de
@@ -32,7 +32,9 @@ TYPES_WITHOUT_ARGUMENTS = ('Html', 'Binary', 'Image', 'PropertiesDefinition')
 
 
 class TestTheRouterReadsTheResolvedStore:
-    """El enrutador decide por ``store``, no por la presencia de ``related``."""
+    """
+    El enrutador decide por ``store``, no por la presencia de ``related``.
+    """
 
     @pytest.mark.parametrize('name', TYPES_WITHOUT_ARGUMENTS)
     def test_a_bare_store_false_has_no_column(self, name):
@@ -47,8 +49,9 @@ class TestTheRouterReadsTheResolvedStore:
         assert isinstance(field, NonStored), type(field).__name__
 
     def test_the_properties_field_has_no_column_either(self):
-        field = fields.Properties('Properties', store=False,
-                                  definition='company_id.employee_props')
+        field = fields.Properties(
+            'Properties', store=False, definition='company_id.employee_props'
+        )
         assert isinstance(field, NonStored), type(field).__name__
 
 
@@ -91,8 +94,9 @@ class TestTheExclusionSurvivesTheRouter:
 
     def test_the_many_to_one_still_refuses_the_contradiction(self):
         with pytest.raises(ValueError, match='excluyentes'):
-            fields.Many2one('base.ResPartner', store=False,
-                            company_dependent=True)
+            fields.Many2one(
+                'base.ResPartner', store=False, company_dependent=True
+            )
 
     def test_the_html_field_refuses_it_too(self):
         with pytest.raises(ValueError, match='excluyentes'):

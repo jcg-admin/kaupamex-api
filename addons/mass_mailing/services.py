@@ -14,6 +14,7 @@ token** siguen siendo los del addon ``newsletter`` (``newsletter-unsub`` /
 ``newsletter-confirm``) para que los enlaces ya enviados y los datos migrados
 (paso 2b, ``0003_migrate_newsletter_data``) sigan funcionando sin cambios.
 """
+
 import secrets
 
 from django.core import signing
@@ -39,7 +40,8 @@ STATUS_UNSUBSCRIBED = 'UNSUBSCRIBED'
 def newsletter_list():
     """Lista canónica ``"Newsletter"`` (creada perezosamente, idempotente)."""
     lst, _ = MailingList.objects.get_or_create(
-        name=NEWSLETTER_LIST_NAME, defaults={'is_public': True},
+        name=NEWSLETTER_LIST_NAME,
+        defaults={'is_public': True},
     )
     return lst
 
@@ -76,8 +78,9 @@ def serialize_item(sub) -> dict:
 def find_by_email(email):
     """Suscripción a la lista Newsletter por email del contacto, o ``None``."""
     return (
-        MailingSubscription.objects
-        .filter(mailing_list=newsletter_list(), contact_id__email=email)
+        MailingSubscription.objects.filter(
+            mailing_list=newsletter_list(), contact_id__email=email
+        )
         .select_related('contact_id')
         .first()
     )
@@ -90,14 +93,16 @@ def create_pending(email, confirmation_token):
     enlaces ya enviados), no con el default de ``MailingSubscription``.
     """
     contact, _ = MailingContact.objects.get_or_create(
-        email=email, defaults={'name': ''},
+        email=email,
+        defaults={'name': ''},
     )
     return MailingSubscription.objects.create(
         contact_id=contact,
         mailing_list=newsletter_list(),
         confirmation_token=confirmation_token,
         unsubscribe_token=signing.dumps(
-            secrets.token_urlsafe(16), salt=UNSUBSCRIBE_SALT,
+            secrets.token_urlsafe(16),
+            salt=UNSUBSCRIBE_SALT,
         ),
     )
 
@@ -108,10 +113,15 @@ def reopt_in(sub, confirmation_token):
     sub.opt_out_datetime = None
     sub.confirmed_at = None
     sub.confirmation_token = confirmation_token
-    sub.save(update_fields=[
-        'opt_out', 'opt_out_datetime', 'confirmed_at',
-        'confirmation_token', 'updated_at',
-    ])
+    sub.save(
+        update_fields=[
+            'opt_out',
+            'opt_out_datetime',
+            'confirmed_at',
+            'confirmation_token',
+            'updated_at',
+        ]
+    )
     return sub
 
 
@@ -124,8 +134,7 @@ def confirm(sub):
 def find_by_confirmation_token(email, token):
     """Suscripción PENDING por (email, confirmation_token), o ``None``."""
     return (
-        MailingSubscription.objects
-        .filter(
+        MailingSubscription.objects.filter(
             mailing_list=newsletter_list(),
             contact_id__email=email,
             confirmation_token=token,
@@ -138,8 +147,7 @@ def find_by_confirmation_token(email, token):
 def find_by_unsubscribe_token(token):
     """Suscripción por su token de baja único, o ``None``."""
     return (
-        MailingSubscription.objects
-        .filter(unsubscribe_token=token)
+        MailingSubscription.objects.filter(unsubscribe_token=token)
         .select_related('contact_id')
         .first()
     )
@@ -152,7 +160,9 @@ def unsubscribe(sub):
 
 
 def _status_filter(qs, status):
-    """Traduce el estado de negocio a condiciones sobre la máquina por-lista."""
+    """
+    Traduce el estado de negocio a condiciones sobre la máquina por-lista.
+    """
     if status == STATUS_UNSUBSCRIBED:
         return qs.filter(opt_out=True)
     if status == STATUS_CONFIRMED:
@@ -165,8 +175,7 @@ def _status_filter(qs, status):
 def list_subscriptions(status=None):
     """Suscripciones de la lista Newsletter (opcionalmente filtradas)."""
     qs = (
-        MailingSubscription.objects
-        .filter(mailing_list=newsletter_list())
+        MailingSubscription.objects.filter(mailing_list=newsletter_list())
         .select_related('contact_id')
         .order_by('-created_at', '-id')
     )
@@ -176,12 +185,14 @@ def list_subscriptions(status=None):
 
 
 def recipients_for(status):
-    """Emails de los suscriptores en el estado dado (destinatarios de campaña)."""
+    """
+    Emails de los suscriptores en el estado dado (destinatarios de campaña).
+    """
     return list(
         _status_filter(
-            MailingSubscription.objects
-            .filter(mailing_list=newsletter_list())
-            .select_related('contact_id'),
+            MailingSubscription.objects.filter(
+                mailing_list=newsletter_list()
+            ).select_related('contact_id'),
             status,
         ).values_list('contact_id__email', flat=True)
     )
@@ -190,19 +201,25 @@ def recipients_for(status):
 def find_recent_mailing(subject, body_html, cutoff):
     """Envío idéntico reciente (guarda de idempotencia), con lock de fila."""
     return (
-        MailingMailing.objects
-        .select_for_update()
+        MailingMailing.objects.select_for_update()
         .filter(subject=subject, body_html=body_html, created_at__gte=cutoff)
         .first()
     )
 
 
 def create_mailing(*, subject, body_html, user, recipients_count):
-    """Crea el ``MailingMailing`` de la campaña (hogar del ``NewsletterCampaign``)."""
+    """
+    Crea el ``MailingMailing`` de la campaña (hogar del
+    ``NewsletterCampaign``).
+    """
     return MailingMailing.objects.create(
         subject=subject,
         body_html=body_html,
         user=user,
-        state=MailingMailing.STATE_DONE if recipients_count else MailingMailing.STATE_DRAFT,
+        state=(
+            MailingMailing.STATE_DONE
+            if recipients_count
+            else MailingMailing.STATE_DRAFT
+        ),
         sent_date=timezone.now() if recipients_count else None,
     )

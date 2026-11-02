@@ -108,6 +108,7 @@ enlace declarada en ``tools/cache.py``—, así que el alias entra en la clave:
 ``@ormcache('model_name', 'field_name', 'using', ...)``. Sin él dos bases
 compartirían entrada, que es un defecto que la fuente no tiene.
 """
+
 import logging
 
 import fields
@@ -127,22 +128,32 @@ PROPERTIES_TTYPE = 'properties'
 
 
 class PropertiesBaseDefinition(TimeStampedModel):
-    """``properties.base.definition`` — la definición de un campo ``Properties``."""
+    """
+    ``properties.base.definition`` — la definición de un campo ``Properties``.
+    """
 
     _name = 'properties.base.definition'
     _description = 'Properties Base Definition'
 
     properties_field = fields.Many2one(
-        IrModelFields, on_delete=models.CASCADE, unique=True,
+        IrModelFields,
+        on_delete=models.CASCADE,
+        unique=True,
         related_name='properties_definition_ids',
         verbose_name='Campo de propiedades',
-        help_text='FK real: ir.model.fields está portado. Único — un campo, '
-                  'una definición.',
+        help_text=(
+            'FK real: ir.model.fields está portado. Único — un campo, '
+            'una definición.'
+        ),
     )
     properties_definition = fields.Json(
-        default=list, blank=True, verbose_name='Definición de las propiedades',
-        help_text='El esquema: qué propiedades existen, de qué tipo y con qué '
-                  'valores posibles.',
+        default=list,
+        blank=True,
+        verbose_name='Definición de las propiedades',
+        help_text=(
+            'El esquema: qué propiedades existen, de qué tipo y con qué '
+            'valores posibles.'
+        ),
     )
 
     class Meta:
@@ -153,13 +164,15 @@ class PropertiesBaseDefinition(TimeStampedModel):
             # ``_unique_properties_field_id``.
             models.UniqueConstraint(
                 fields=['properties_field'],
-                name='properties_base_definition_unique_field'),
+                name='properties_base_definition_unique_field',
+            ),
         ]
 
     # -- Presentación --------------------------------------------------------
 
     def _compute_display_name(self):
-        """``_compute_display_name`` — ``"<Descripción del modelo> Properties"``.
+        """
+        ``_compute_display_name`` — ``"<Descripción del modelo> Properties"``.
 
         ≙ ``odoo19c: properties_base_definition.py:25-34``. La fuente lee el
         ``_description`` del modelo apuntado; aquí se lee el ``_description``
@@ -183,14 +196,15 @@ class PropertiesBaseDefinition(TimeStampedModel):
     # -- Validación ----------------------------------------------------------
 
     def _check_properties_field_id(self):
-        """``_check_properties_field_id`` — el campo apuntado es ``properties``.
+        """
+        ``_check_properties_field_id`` — el campo apuntado es ``properties``.
 
         ≙ ``odoo19c: properties_base_definition.py:36-41``.
         """
         field = self.properties_field
         if field is not None and field.ttype != PROPERTIES_TTYPE:
             raise ValidationError(
-                f'La definición debe apuntar a un campo de propiedades; '
+                'La definición debe apuntar a un campo de propiedades; '
                 f'{field.name!r} es de tipo {field.ttype!r}.'
             )
 
@@ -213,7 +227,8 @@ class PropertiesBaseDefinition(TimeStampedModel):
         using = using or self._state.db or DEFAULT_DB_ALIAS
         if 'properties_field' in vals or 'properties_field_id' in vals:
             raise PermissionDenied(
-                'No se puede cambiar el campo de una definición base.')
+                'No se puede cambiar el campo de una definición base.'
+            )
         for field_name, value in vals.items():
             setattr(self, field_name, value)
         # ``save`` es quien vacía la familia; no se duplica aquí ni se bypassa
@@ -221,13 +236,20 @@ class PropertiesBaseDefinition(TimeStampedModel):
         return self.save(using=using)
 
     def save(self, *args, **kwargs):
-        """Enganche de Django — corre la guarda de ``write`` y vacía la familia."""
+        """
+        Enganche de Django — corre la guarda de ``write`` y vacía la familia.
+        """
         if self.pk is not None:
-            stored = type(self).objects.filter(pk=self.pk).values_list(
-                'properties_field_id', flat=True).first()
+            stored = (
+                type(self)
+                .objects.filter(pk=self.pk)
+                .values_list('properties_field_id', flat=True)
+                .first()
+            )
             if stored is not None and stored != self.properties_field_id:
                 raise PermissionDenied(
-                    'No se puede cambiar el campo de una definición base.')
+                    'No se puede cambiar el campo de una definición base.'
+                )
         super().save(*args, **kwargs)
         registry.clear_cache('stable')
 
@@ -240,20 +262,24 @@ class PropertiesBaseDefinition(TimeStampedModel):
     # -- Lectura memorizada --------------------------------------------------
 
     @classmethod
-    def _get_definition_for_property_field(cls, model_name, field_name,
-                                           using=DEFAULT_DB_ALIAS):
+    def _get_definition_for_property_field(
+        cls, model_name, field_name, using=DEFAULT_DB_ALIAS
+    ):
         """``_get_definition_for_property_field`` — la fila, no el id.
 
         ≙ ``odoo19c: properties_base_definition.py:48-49``.
         """
         return cls.objects.using(using).get(
             pk=cls._get_definition_id_for_property_field(
-                model_name, field_name, using=using))
+                model_name, field_name, using=using
+            )
+        )
 
     @classmethod
     @ormcache('model_name', 'field_name', 'using', cache='stable')
-    def _get_definition_id_for_property_field(cls, model_name, field_name,
-                                              using=DEFAULT_DB_ALIAS):
+    def _get_definition_id_for_property_field(
+        cls, model_name, field_name, using=DEFAULT_DB_ALIAS
+    ):
         """``_get_definition_id_for_property_field`` — id de la definición.
 
         ≙ ``odoo19c: properties_base_definition.py:51-67``. La crea si no
@@ -264,18 +290,25 @@ class PropertiesBaseDefinition(TimeStampedModel):
         El decorador nombra ``using`` además de los dos de la fuente — ver la
         divergencia de clave declarada en la cabecera del módulo.
         """
-        row = cls.objects.using(using).filter(
-            properties_field__model=model_name,
-            properties_field__name=field_name,
-        ).first()
+        row = (
+            cls.objects.using(using)
+            .filter(
+                properties_field__model=model_name,
+                properties_field__name=field_name,
+            )
+            .first()
+        )
         if row is None:
-            field = IrModelFields.objects.using(using).filter(
-                model=model_name, name=field_name).first()
+            field = (
+                IrModelFields.objects.using(using)
+                .filter(model=model_name, name=field_name)
+                .first()
+            )
             if field is None:
                 raise ValidationError(
                     f'No hay un campo {field_name!r} reflejado en '
                     f'{model_name!r}; refleje el modelo antes de pedir su '
-                    f'definición de propiedades.'
+                    'definición de propiedades.'
                 )
             row = cls.objects.using(using).create(properties_field=field)
         return row.pk

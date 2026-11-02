@@ -1,4 +1,5 @@
-"""``base`` extendido por ``html_editor`` — dos atributos de campo para la vista.
+"""
+``base`` extendido por ``html_editor`` — dos atributos de campo para la vista.
 
 Adaptación de ``odoo19c: addons/html_editor/models/models.py``
 (14 líneas, LGPL-3 — copia + adaptación con atribución, DEC-KX-03).
@@ -52,6 +53,7 @@ más detalle, y comparten sucesor: dotar a ``fields.Html`` de
 todos modos — el contrato de la vista es la lista de nombres, no su valor, y
 quien los consulte hoy obtiene la ausencia del atributo, que es un dato cierto.
 """
+
 from addons.base.models.ir_model import Base
 from orm.method_chain import chain_method, extend_list
 
@@ -68,5 +70,9 @@ def _get_view_field_attributes(self):
 
 def apply_html_editor_extensions():
     """Cuelga el método sobre ``base.Base`` — ≙ ``_inherit = 'base'``."""
-    chain_method(Base, '_get_view_field_attributes',
-                 _get_view_field_attributes, combine=extend_list)
+    chain_method(
+        Base,
+        '_get_view_field_attributes',
+        _get_view_field_attributes,
+        combine=extend_list,
+    )

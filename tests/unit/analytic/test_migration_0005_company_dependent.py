@@ -32,6 +32,7 @@ con ``'optional'``, y la sonda cayó con
 archivo distingue: sin él, un verde aquí no diría si el SQL a mano hacía
 falta.
 """
+
 import importlib
 import json
 
@@ -42,7 +43,8 @@ from addons.base.models import ResCompany
 
 MIGRATION = importlib.import_module(
     'addons.analytic.migrations'
-    '.0005_alter_accountanalyticplan_default_applicability')
+    '.0005_alter_accountanalyticplan_default_applicability'
+)
 
 
 def _column_type():
@@ -50,7 +52,8 @@ def _column_type():
         cursor.execute(
             "select data_type from information_schema.columns "
             "where table_name = 'account_analytic_plan' "
-            "and column_name = 'default_applicability'")
+            "and column_name = 'default_applicability'"
+        )
         return cursor.fetchone()[0]
 
 
@@ -70,21 +73,26 @@ def _run(sql):
 
 
 def _seed_plan(cursor, applicability):
-    """Inserta un plan por SQL — el modelo ya declara el campo como ``jsonb``."""
+    """
+    Inserta un plan por SQL — el modelo ya declara el campo como ``jsonb``.
+    """
     cursor.execute(
         "insert into account_analytic_plan "
         "  (name, description, parent_path, default_applicability, "
         "   sequence, color) "
         "values (%s, '', '', %s, 10, 0) returning id",
-        ['Plan de control', applicability])
+        ['Plan de control', applicability],
+    )
     return cursor.fetchone()[0]
 
 
 def _read_plan(cursor, plan_id):
     """El valor crudo — el cursor no decodifica el ``jsonb`` como el campo."""
     cursor.execute(
-        "select default_applicability from account_analytic_plan where id = %s",
-        [plan_id])
+        "select default_applicability from account_analytic_plan where id"
+        " = %s",
+        [plan_id],
+    )
     return cursor.fetchone()[0]
 
 
@@ -94,7 +102,9 @@ def _read_map(cursor, plan_id):
 
 @pytest.mark.django_db(transaction=False)
 class TestRoundTrip:
-    """PostgreSQL tiene DDL transaccional: la transacción del test lo revierte."""
+    """
+    PostgreSQL tiene DDL transaccional: la transacción del test lo revierte.
+    """
 
     def test_the_column_starts_out_as_jsonb(self):
         assert _column_type() == 'jsonb'
@@ -125,8 +135,8 @@ class TestRoundTrip:
         with connection.cursor() as cursor:
             plan_id = _seed_plan(cursor, '{"%d": "mandatory"}' % una.id)
 
-        _run(MIGRATION.A_VARCHAR)          # deja el escalar 'mandatory'
-        _run(MIGRATION.A_JSONB)            # y lo reparte entre las dos
+        _run(MIGRATION.A_VARCHAR)  # deja el escalar 'mandatory'
+        _run(MIGRATION.A_JSONB)  # y lo reparte entre las dos
 
         assert _column_type() == 'jsonb'
         with connection.cursor() as cursor:
@@ -160,5 +170,6 @@ class TestRoundTrip:
             cursor.execute(
                 "select column_default from information_schema.columns "
                 "where table_name = 'account_analytic_plan' "
-                "and column_name = 'default_applicability'")
+                "and column_name = 'default_applicability'"
+            )
             assert cursor.fetchone()[0] == "'{}'::jsonb"

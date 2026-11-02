@@ -13,16 +13,19 @@ Los dos ejes, y su ancla en la sesión:
   CHECK_IDENTITY_REQUIRED** (basta confirmar identidad).
 
 Auth por sesión de servidor (``force_login``, ADR-018): el candado vive en la
-sesión, así que ``force_authenticate`` —que deja ``session_key=''``— no serviría
+sesión, así que ``force_authenticate`` —que deja ``session_key=''``— no
+serviría
 para medirlo.
 
-**El caso de control (``test_the_exemption_is_what_lets_it_through``) es el que exige
+**El caso de control (``test_the_exemption_is_what_lets_it_through``) es el que
+exige
 el sub-patrón D de ``metrica-decide-la-conclusion.md``.** El caso anterior
 afirma que una vista exenta pasa con el candado vencido; su verde no distingue
 «la exención funciona» de «el candado nunca se activó en esa petición». El
 control pone ``check_identity = True`` sobre esa misma vista y comprueba que
 **cae**.
 """
+
 import time
 
 import pytest
@@ -69,10 +72,12 @@ def user(db):
     """
     call_command('seed_authz')
     user = User.objects.create_user(
-        login='candado-http@kaupamex.mx', password=PASSWORD,
-        name='Candado HTTP')
+        login='candado-http@kaupamex.mx',
+        password=PASSWORD,
+        name='Candado HTTP',
+    )
     role = Role.objects.create(code='candado-tiempo', name='Candado Tiempo')
-    call_command('seed_authz')      # siembra account.* en el rol recién creado
+    call_command('seed_authz')  # siembra account.* en el rol recién creado
     RoleAssignment.objects.create(user=user, role=role)
     invalidate_capabilities(user.id)
     return user
@@ -100,11 +105,13 @@ def _session(client, **keys):
 
 # === 1. Sin umbral configurado: el candado no interviene ================
 
+
 def test_no_threshold_lets_request_through(client):
     assert client.get(PROTECTED_URL).status_code == 200
 
 
 # === 2. Inactividad vencida → 403 CHECK_IDENTITY_REQUIRED ==============
+
 
 def test_expired_inactivity_demands_identity_check(client, user):
     """≙ ``:288-293`` de la fuente."""
@@ -122,6 +129,7 @@ def test_expired_inactivity_demands_identity_check(client, user):
 
 # === 3. Confirmar la identidad reabre el paso ==========================
 
+
 def test_confirming_with_password_reopens_access(client, user):
     """≙ ``:295-299`` — tras confirmar, la misma petición pasa."""
     _with_threshold(user, lock_timeout_inactivity=15)
@@ -129,8 +137,10 @@ def test_confirming_with_password_reopens_access(client, user):
     assert client.get(PROTECTED_URL).status_code == 403
 
     confirmation = client.post(
-        CONFIRM_URL, {'type': 'password', 'password': PASSWORD},
-        content_type='application/json')
+        CONFIRM_URL,
+        {'type': 'password', 'password': PASSWORD},
+        content_type='application/json',
+    )
 
     assert confirmation.status_code == 200
     assert client.get(PROTECTED_URL).status_code == 200
@@ -143,8 +153,10 @@ def test_wrong_password_does_not_confirm(client, user):
     _session(client, **{'identity-check-next': time.time()})
 
     response = client.post(
-        CONFIRM_URL, {'type': 'password', 'password': 'no-es-la-buena'},
-        content_type='application/json')
+        CONFIRM_URL,
+        {'type': 'password', 'password': 'no-es-la-buena'},
+        content_type='application/json',
+    )
 
     assert response.status_code == 401
     assert response.json()['codigo_error'] == 'CHECK_IDENTITY_FAILED'
@@ -152,6 +164,7 @@ def test_wrong_password_does_not_confirm(client, user):
 
 
 # === 4. Umbral absoluto vencido → 401 SESSION_LOCK_EXPIRED =============
+
 
 def test_expired_absolute_threshold_closes_the_session(client, user):
     """≙ ``:301-305`` — 25 horas sobre un umbral de 24 exigen entrar de nuevo,
@@ -167,14 +180,15 @@ def test_expired_absolute_threshold_closes_the_session(client, user):
 
 # === 5. La exención declarada por la vista =============================
 
+
 def test_exempt_view_passes_with_the_lock_expired(client, user):
     """≙ ``auth_timeout/controllers/web_home.py`` — el menú es lo que el
     cliente necesita para dibujar la pantalla donde se confirma."""
     _with_threshold(user, lock_timeout_inactivity=15)
     _session(client, **{'identity-check-next': time.time()})
 
-    assert client.get(PROTECTED_URL).status_code == 403      # no exenta
-    assert client.get(EXEMPT_URL).status_code == 200          # exenta
+    assert client.get(PROTECTED_URL).status_code == 403  # no exenta
+    assert client.get(EXEMPT_URL).status_code == 200  # exenta
 
 
 def test_the_exemption_is_what_lets_it_through(client, user, monkeypatch):
@@ -192,6 +206,7 @@ def test_the_exemption_is_what_lets_it_through(client, user, monkeypatch):
 
 
 # === 6. El estado que el diálogo consume ===============================
+
 
 def test_state_declares_methods_and_pending_second_factor(client, user):
     """≙ el ``t-att-props`` que la fuente pasa a su componente OWL."""

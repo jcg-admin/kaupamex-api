@@ -7,7 +7,8 @@ LGPL-3) — atribución y aviso de licencia preservados (DEC-KX-03).
 
 Qué hace en la fuente: el informe de previsión de existencias muestra lo que
 entra y lo que sale. Este archivo le añade **lo que está pedido pero todavía no
-confirmado** —las solicitudes de cotización en borrador—, para que el pronóstico
+confirmado** —las solicitudes de cotización en borrador—, para que el
+pronóstico
 no ignore mercancía que ya se pidió.
 
 Los 2 símbolos, con su bloqueo medido
@@ -33,7 +34,8 @@ El tercer bloqueo, sobre la línea de compra
 
 Aunque el informe existiera, el dominio que la fuente construye lee tres campos
 que ``purchase.order.line`` **no tiene** en este árbol: ``state``
-(``:12`` — filtra ``draft``/``sent``/``to approve``), ``company_id`` (``:20``) y
+(``:12`` — filtra ``draft``/``sent``/``to approve``), ``company_id`` (``:20``)
+y
 ``product_uom_qty`` (``:22``). Los tres pertenecen al addon ``purchase``, fuera
 del write-set de este pase; están enumerados con los demás en
 ``models/purchase_order_line.py`` de este addon.

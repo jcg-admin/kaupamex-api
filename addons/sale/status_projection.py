@@ -22,6 +22,7 @@ colapsa ``CANCELLED`` y ``CANCELLED_TIMEOUT`` — la razón de cancelación
 (timeout) es un sub-eje aún no anclado; la proyección devuelve
 ``CANCELLED`` para ambos.
 """
+
 from django.db.models import Q, Exists, OuterRef
 
 from addons.delivery.models import ShipmentGuide
@@ -39,32 +40,32 @@ from addons.sale.models import SaleOrder
 # mientras sea el hogar del idioma). Los valores NO cambian: son contrato de
 # API pública (``?status=``, Rebanada 6).
 # ------------------------------------------------------------------
-STATUS_DRAFT                = 'DRAFT'
-STATUS_PENDING              = 'PENDING'
-STATUS_PROCESSING           = 'PROCESSING'
-STATUS_IN_PREPARATION       = 'IN_PREPARATION'
-STATUS_SHIPPED              = 'SHIPPED'
-STATUS_DELIVERED            = 'DELIVERED'
-STATUS_CANCELLED            = 'CANCELLED'
+STATUS_DRAFT = 'DRAFT'
+STATUS_PENDING = 'PENDING'
+STATUS_PROCESSING = 'PROCESSING'
+STATUS_IN_PREPARATION = 'IN_PREPARATION'
+STATUS_SHIPPED = 'SHIPPED'
+STATUS_DELIVERED = 'DELIVERED'
+STATUS_CANCELLED = 'CANCELLED'
 STATUS_CANCELLED_BY_TIMEOUT = 'CANCELLED_TIMEOUT'
-STATUS_REFUNDED             = 'REFUNDED'
-STATUS_PAID                 = 'PAID'
+STATUS_REFUNDED = 'REFUNDED'
+STATUS_PAID = 'PAID'
 
 # Etiquetas para presentación. ``PROCESSING``/``IN_PREPARATION``/``REFUNDED``/
 # ``CANCELLED_TIMEOUT`` no los emite la proyección (ver
 # ``CANONICAL_ORDER_STATUSES``); se conservan como vocabulario histórico
 # alcanzable por datos previos. Su retiro es decisión aparte.
 STATUSES = [
-    (STATUS_DRAFT,                'Carrito / cotización'),
-    (STATUS_PENDING,              'Pendiente de pago'),
-    (STATUS_PROCESSING,           'Procesando pago'),
-    (STATUS_PAID,                 'Pagado'),
-    (STATUS_IN_PREPARATION,       'En preparación'),
-    (STATUS_SHIPPED,              'Enviado'),
-    (STATUS_DELIVERED,            'Entregado'),
-    (STATUS_CANCELLED,            'Cancelado'),
+    (STATUS_DRAFT, 'Carrito / cotización'),
+    (STATUS_PENDING, 'Pendiente de pago'),
+    (STATUS_PROCESSING, 'Procesando pago'),
+    (STATUS_PAID, 'Pagado'),
+    (STATUS_IN_PREPARATION, 'En preparación'),
+    (STATUS_SHIPPED, 'Enviado'),
+    (STATUS_DELIVERED, 'Entregado'),
+    (STATUS_CANCELLED, 'Cancelado'),
     (STATUS_CANCELLED_BY_TIMEOUT, 'Cancelado por timeout'),
-    (STATUS_REFUNDED,             'Reembolsado'),
+    (STATUS_REFUNDED, 'Reembolsado'),
 ]
 
 
@@ -89,7 +90,8 @@ def derive_order_status(sale_order):
 
     # Sin guía viva → eje de pago decide PENDING vs PAID.
     approved = sale_order.payments.filter(
-        status=Payment.STATUS_APPROVED).exists()
+        status=Payment.STATUS_APPROVED
+    ).exists()
     return STATUS_PAID if approved else STATUS_PENDING
 
 
@@ -139,7 +141,8 @@ CANONICAL_ORDER_STATUSES = (
 def _is_canonical(queryset) -> bool:
     """``True`` si las filas del queryset son ``SaleOrder``, no el espejo.
 
-    E5/R2 (H-API-98): ``Payment`` y ``ShipmentGuide`` tienen **dos** FK — una al
+    E5/R2 (H-API-98): ``Payment`` y ``ShipmentGuide`` tienen **dos** FK — una
+    al
     espejo (``order``) y otra a la canónica (``sale_order``). El trío de
     queryset de este módulo joineaba siempre por la del espejo, así que mudarlo
     a ``sale/`` sin más lo habría dejado devolviendo vacío en cuanto el espejo
@@ -163,14 +166,21 @@ def annotate_status_axes(queryset):
     return queryset.annotate(
         _has_approved=Exists(
             Payment.objects.filter(
-                **{anchor: OuterRef('pk')}, status=Payment.STATUS_APPROVED)),
+                **{anchor: OuterRef('pk')}, status=Payment.STATUS_APPROVED
+            )
+        ),
         _has_active_guide=Exists(
             ShipmentGuide.objects.filter(
-                **{anchor: OuterRef('pk')}, is_deleted=False)),
+                **{anchor: OuterRef('pk')}, is_deleted=False
+            )
+        ),
         _has_delivered_guide=Exists(
             ShipmentGuide.objects.filter(
-                **{anchor: OuterRef('pk')}, is_deleted=False,
-                status=ShipmentGuide.STATUS_DELIVERED)),
+                **{anchor: OuterRef('pk')},
+                is_deleted=False,
+                status=ShipmentGuide.STATUS_DELIVERED,
+            )
+        ),
     )
 
 
@@ -196,7 +206,9 @@ def _canonical_status_q(status, canonical=False):
     if status == STATUS_PAID:
         return is_sale & Q(_has_approved=True) & Q(_has_active_guide=False)
     if status == STATUS_SHIPPED:
-        return is_sale & Q(_has_active_guide=True) & Q(_has_delivered_guide=False)
+        return (
+            is_sale & Q(_has_active_guide=True) & Q(_has_delivered_guide=False)
+        )
     if status == STATUS_DELIVERED:
         return is_sale & Q(_has_delivered_guide=True)
     if status == STATUS_CANCELLED:
@@ -217,14 +229,16 @@ def filter_orders_by_status(queryset, status):
         raise ValueError(status)
     canonical = _is_canonical(queryset)
     return annotate_status_axes(queryset).filter(
-        _canonical_status_q(status, canonical=canonical))
+        _canonical_status_q(status, canonical=canonical)
+    )
 
 
 def active_sale_orders():
     """Ventas confirmadas aún no entregadas — ``PENDING ∪ PAID ∪ SHIPPED``.
 
     E5/R5: reemplaza al proxy ``orders.proxy_models.ActiveOrder``, que era un
-    ``proxy=True`` sobre ``orders_order`` y por tanto no sobrevive a la baja del
+    ``proxy=True`` sobre ``orders_order`` y por tanto no sobrevive a la baja
+    del
     espejo. La pertenencia no cambia: *venta confirmada sin guía entregada*,
     exactamente el predicado que el proxy ya derivaba de los ejes canónicos.
 
@@ -233,8 +247,10 @@ def active_sale_orders():
     ``?status=`` no debe crecer con un valor que la proyección nunca emite.
 
     Su consumidor real (``settings_app``) filtra además por método de envío,
-    que en la canónica se llama ``carrier`` (en el espejo, ``shipping_method``);
+    que en la canónica se llama ``carrier`` (en el espejo,
+    ``shipping_method``);
     ambos apuntan a ``delivery.ShippingMethod``.
     """
     return annotate_status_axes(SaleOrder.objects.all()).filter(
-        Q(state=SaleOrder.STATE_SALE) & Q(_has_delivered_guide=False))
+        Q(state=SaleOrder.STATE_SALE) & Q(_has_delivered_guide=False)
+    )

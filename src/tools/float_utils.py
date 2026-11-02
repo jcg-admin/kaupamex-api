@@ -10,6 +10,7 @@ no se porta): ``float_round``, ``float_compare``, ``float_is_zero`` y el
 auxiliar ``float_invert``. Quedan fuera ``float_repr``, ``float_split`` y
 ``float_split_str``, que son de presentación y hoy no tienen consumidor.
 """
+
 import builtins
 import math
 from typing import Literal
@@ -33,12 +34,36 @@ def _round_half_away(f: float) -> float:
 
 
 _INVERTDICT = {
-    1e-1: 1e+1, 1e-2: 1e+2, 1e-3: 1e+3, 1e-4: 1e+4, 1e-5: 1e+5,
-    1e-6: 1e+6, 1e-7: 1e+7, 1e-8: 1e+8, 1e-9: 1e+9, 1e-10: 1e+10,
-    2e-1: 5e+0, 2e-2: 5e+1, 2e-3: 5e+2, 2e-4: 5e+3, 2e-5: 5e+4,
-    2e-6: 5e+5, 2e-7: 5e+6, 2e-8: 5e+7, 2e-9: 5e+8, 2e-10: 5e+9,
-    5e-1: 2e+0, 5e-2: 2e+1, 5e-3: 2e+2, 5e-4: 2e+3, 5e-5: 2e+4,
-    5e-6: 2e+5, 5e-7: 2e+6, 5e-8: 2e+7, 5e-9: 2e+8, 5e-10: 2e+9,
+    1e-1: 1e1,
+    1e-2: 1e2,
+    1e-3: 1e3,
+    1e-4: 1e4,
+    1e-5: 1e5,
+    1e-6: 1e6,
+    1e-7: 1e7,
+    1e-8: 1e8,
+    1e-9: 1e9,
+    1e-10: 1e10,
+    2e-1: 5e0,
+    2e-2: 5e1,
+    2e-3: 5e2,
+    2e-4: 5e3,
+    2e-5: 5e4,
+    2e-6: 5e5,
+    2e-7: 5e6,
+    2e-8: 5e7,
+    2e-9: 5e8,
+    2e-10: 5e9,
+    5e-1: 2e0,
+    5e-2: 2e1,
+    5e-3: 2e2,
+    5e-4: 2e3,
+    5e-5: 2e4,
+    5e-6: 2e5,
+    5e-7: 2e6,
+    5e-8: 2e7,
+    5e-9: 2e8,
+    5e-10: 2e9,
 }
 
 
@@ -47,8 +72,11 @@ def float_invert(value: float) -> float:
     result = _INVERTDICT.get(value)
     if result is None:
         coefficient, exponent = f'{value:.15e}'.split('e')
-        # invierte el exponente cambiando el signo, y el coeficiente por su cuadrado
-        result = float(f'{coefficient}e{-int(exponent)}') / float(coefficient) ** 2
+        # invierte el exponente cambiando el signo, y el coeficiente por
+        # su cuadrado
+        result = (
+            float(f'{coefficient}e{-int(exponent)}') / float(coefficient) ** 2
+        )
     return result
 
 
@@ -58,17 +86,21 @@ def _float_check_precision(
 ) -> float:
     if precision_rounding is not None and precision_digits is None:
         assert precision_rounding > 0, (
-            f'precision_rounding debe ser positivo, se recibió {precision_rounding}'
+            'precision_rounding debe ser positivo, se recibió'
+            f' {precision_rounding}'
         )
     elif precision_digits is not None and precision_rounding is None:
-        assert float(precision_digits).is_integer() and precision_digits >= 0, (
-            f'precision_digits debe ser un entero no negativo, '
+        assert (
+            float(precision_digits).is_integer() and precision_digits >= 0
+        ), (
+            'precision_digits debe ser un entero no negativo, '
             f'se recibió {precision_digits}'
         )
-        precision_rounding = 10 ** -precision_digits
+        precision_rounding = 10**-precision_digits
     else:
         raise AssertionError(
-            'se debe indicar exactamente uno de precision_digits o precision_rounding'
+            'se debe indicar exactamente uno de precision_digits o'
+            ' precision_rounding'
         )
     return precision_rounding
 
@@ -89,13 +121,15 @@ def float_round(
     (siempre se aleja de cero) y ``DOWN`` (siempre hacia cero).
     """
     rounding_factor = _float_check_precision(
-        precision_digits=precision_digits, precision_rounding=precision_rounding,
+        precision_digits=precision_digits,
+        precision_rounding=precision_rounding,
     )
     if rounding_factor == 0 or value == 0:
         return 0.0
 
     # NORMALIZA - REDONDEA - DESNORMALIZA. Normalizar antes de redondear como
-    # entero permite redondear a "pasos" arbitrarios (p. ej. valores de moneda):
+    # entero permite redondear a "pasos" arbitrarios (p. ej. valores de
+    # moneda):
     # float_round(1.3, precision_rounding=.5) == 1.5
     def normalize(val):
         return val / rounding_factor
@@ -120,32 +154,35 @@ def float_round(
     epsilon = 2 ** (epsilon_magnitude - 50)
 
     match rounding_method:
-        case 'HALF-UP':      # el empate se aleja de cero
+        case 'HALF-UP':  # el empate se aleja de cero
             result = _round_half_away(
                 normalized_value + math.copysign(epsilon, normalized_value)
             )
-        case 'HALF-EVEN':    # el empate va al par más cercano
+        case 'HALF-EVEN':  # el empate va al par más cercano
             integral = math.floor(normalized_value)
             remainder = abs(normalized_value - integral)
             is_half = abs(0.5 - remainder) < epsilon
             result = (
-                integral + (integral & 1) if is_half
+                integral + (integral & 1)
+                if is_half
                 else _round_half_away(normalized_value)
             )
-        case 'HALF-DOWN':    # el empate va hacia cero
+        case 'HALF-DOWN':  # el empate va hacia cero
             result = _round_half_away(
                 normalized_value - math.copysign(epsilon, normalized_value)
             )
-        case 'UP':           # siempre al más lejano de cero
+        case 'UP':  # siempre al más lejano de cero
             result = math.trunc(
                 normalized_value + math.copysign(1 - epsilon, normalized_value)
             )
-        case 'DOWN':         # siempre al más cercano a cero
+        case 'DOWN':  # siempre al más cercano a cero
             result = math.trunc(
                 normalized_value + math.copysign(epsilon, normalized_value)
             )
         case _:
-            raise ValueError(f'método de redondeo desconocido: {rounding_method}')
+            raise ValueError(
+                f'método de redondeo desconocido: {rounding_method}'
+            )
 
     return denormalize(result)
 
@@ -165,9 +202,13 @@ def float_is_zero(
     segundo antes, lo que difiere para 0.006 y 0.002 a dos decimales.
     """
     epsilon = _float_check_precision(
-        precision_digits=precision_digits, precision_rounding=precision_rounding,
+        precision_digits=precision_digits,
+        precision_rounding=precision_rounding,
     )
-    return value == 0.0 or abs(float_round(value, precision_rounding=epsilon)) < epsilon
+    return (
+        value == 0.0
+        or abs(float_round(value, precision_rounding=epsilon)) < epsilon
+    )
 
 
 def float_compare(
@@ -176,7 +217,8 @@ def float_compare(
     precision_digits: int | None = None,
     precision_rounding: float | None = None,
 ) -> Literal[-1, 0, 1]:
-    """Compara ``value1`` y ``value2`` **tras** redondearlos a la precisión dada.
+    """
+    Compara ``value1`` y ``value2`` **tras** redondearlos a la precisión dada.
 
     Dos valores son distintos si su valor redondeado difiere, lo que no es lo
     mismo que tener una diferencia no nula: 1.432 y 1.431 son iguales a dos
@@ -186,9 +228,11 @@ def float_compare(
     :return: -1, 0 o 1 si ``value1`` es menor, igual o mayor que ``value2``.
     """
     rounding_factor = _float_check_precision(
-        precision_digits=precision_digits, precision_rounding=precision_rounding,
+        precision_digits=precision_digits,
+        precision_rounding=precision_rounding,
     )
-    # los números iguales redondean igual; se corta antes, ya validados los parámetros
+    # los números iguales redondean igual; se corta antes, ya validados
+    # los parámetros
     if value1 == value2:
         return 0
     value1 = float_round(value1, precision_rounding=rounding_factor)

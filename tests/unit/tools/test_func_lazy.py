@@ -1,4 +1,6 @@
-"""``tools.func.lazy`` — el proxy al resultado memoizado de una evaluación diferida.
+"""
+``tools.func.lazy`` — el proxy al resultado memoizado de una evaluación
+diferida.
 
 Fiel a ``odoo19c: odoo/tools/func.py:135-262`` (LGPL-3).
 
@@ -7,6 +9,7 @@ resolverse con ``functools.cached_property`` o con un ``lambda``: ninguno de
 los dos es un *proxy* —el valor no se puede usar como si fuera el objeto
 envuelto— y es justo eso lo que ``json_default`` y sus consumidores explotan.
 """
+
 import pytest
 
 from tools.func import lazy
@@ -15,6 +18,7 @@ pytestmark = pytest.mark.unit
 
 
 # -- Evaluación diferida (``func.py:136-143``) -------------------------------
+
 
 def test_does_not_call_the_function_when_built():
     """«func(arg) is not called yet» — el docstring de la fuente, verbatim."""
@@ -52,7 +56,9 @@ def test_calls_the_function_only_once():
 
 
 def test_forwards_the_positional_and_keyword_arguments():
-    """``lazy(func, *args, **kwargs)`` — la firma de ``__init__`` (``:145``)."""
+    """
+    ``lazy(func, *args, **kwargs)`` — la firma de ``__init__`` (``:145``).
+    """
     proxy = lazy(lambda a, b, c=0: (a, b, c), 1, 2, c=3)
     assert proxy._value == (1, 2, 3)
 
@@ -71,6 +77,7 @@ def test_releases_the_function_and_its_arguments_after_evaluating():
 
 
 # -- Proxy de atributos (``func.py:161-163``) --------------------------------
+
 
 class _Holder:
     """Objeto con estado propio: el destino del proxy de atributos."""
@@ -111,6 +118,7 @@ def test_has_no_instance_dictionary():
 
 # -- Los protocolos que la fuente delega -------------------------------------
 
+
 def test_string_conversions_use_the_value():
     """``__str__``, ``__bytes__`` y ``__format__`` (``:168-170``)."""
     proxy = lazy(lambda: 'text')
@@ -120,7 +128,8 @@ def test_string_conversions_use_the_value():
 
 
 def test_repr_hides_the_value_until_it_is_evaluated():
-    """``__repr__`` — ``object.__repr__`` mientras no se haya evaluado (``:165``).
+    """
+    ``__repr__`` — ``object.__repr__`` mientras no se haya evaluado (``:165``).
 
     Es la conducta que impide que un ``repr`` de depuración dispare el cálculo
     diferido, que sería exactamente lo contrario de lo que el proxy existe para
@@ -151,7 +160,10 @@ def test_hash_and_truthiness_use_the_value():
 
 
 def test_the_container_protocol_uses_the_value():
-    """``__len__``, ``__getitem__``, ``__iter__``, ``__contains__`` (``:184-192``)."""
+    """
+    ``__len__``, ``__getitem__``, ``__iter__``, ``__contains__``
+    (``:184-192``).
+    """
     proxy = lazy(lambda: [1, 2, 3])
     assert len(proxy) == 3
     assert proxy[0] == 1
@@ -183,7 +195,9 @@ def test_calling_the_proxy_calls_the_value():
 
 
 def test_the_numeric_conversions_use_the_value():
-    """``__int__``, ``__float__``, ``__index__``, ``__abs__`` (``:241-251``)."""
+    """
+    ``__int__``, ``__float__``, ``__index__``, ``__abs__`` (``:241-251``).
+    """
     proxy = lazy(lambda: -3)
     assert int(proxy) == -3
     assert float(proxy) == -3.0
@@ -193,6 +207,7 @@ def test_the_numeric_conversions_use_the_value():
 
 def test_the_context_manager_protocol_uses_the_value():
     """``__enter__`` / ``__exit__`` (``:255-257``)."""
+
     class _Ctx:
         def __init__(self):
             self.entered = False

@@ -7,7 +7,8 @@ Usage:
 
 Arguments:
     csv_file   Path to CSV file with measurement data
-    column     Column name containing measurements (default: first numeric column)
+    column     Column name containing measurements (default: first numeric
+    column)
     --lsl      Lower Specification Limit
     --usl      Upper Specification Limit
 
@@ -45,10 +46,16 @@ def read_csv_column(filepath: str, column: str | None) -> list[float]:
             except (ValueError, TypeError):
                 continue
         if column is None:
-            sys.exit("ERROR: No numeric column found. Specify column name explicitly.")
+            sys.exit(
+                "ERROR: No numeric column found. Specify column name"
+                " explicitly."
+            )
 
     if column not in fieldnames:
-        sys.exit(f"ERROR: Column '{column}' not found. Available: {', '.join(fieldnames)}")
+        sys.exit(
+            f"ERROR: Column '{column}' not found. Available:"
+            f" {', '.join(fieldnames)}"
+        )
 
     values = []
     for i, row in enumerate(rows, start=2):
@@ -58,10 +65,15 @@ def read_csv_column(filepath: str, column: str | None) -> list[float]:
         try:
             values.append(float(raw))
         except ValueError:
-            print(f"WARNING: Row {i} — skipping non-numeric value '{raw}'", file=sys.stderr)
+            print(
+                f"WARNING: Row {i} — skipping non-numeric value '{raw}'",
+                file=sys.stderr,
+            )
 
     if len(values) < 2:
-        sys.exit("ERROR: Need at least 2 numeric values to compute capability.")
+        sys.exit(
+            "ERROR: Need at least 2 numeric values to compute capability."
+        )
 
     return values
 
@@ -97,15 +109,18 @@ def compute_capability(
     mu = mean(data)
     sigma = stdev_sample(data, mu)
 
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 50}")
     print(f"  Process Capability Analysis")
-    print(f"{'='*50}")
+    print(f"{'=' * 50}")
     print(f"  n        = {n}")
     print(f"  Mean (μ) = {mu:.6f}")
     print(f"  StdDev   = {sigma:.6f}")
 
     if lsl is None and usl is None:
-        print("\nWARNING: No specification limits provided. Cp/Cpk cannot be computed.")
+        print(
+            "\nWARNING: No specification limits provided. Cp/Cpk cannot be"
+            " computed."
+        )
         print("  Use --lsl and/or --usl to specify limits.")
         return
 
@@ -131,18 +146,34 @@ def compute_capability(
         cpk = None
 
     if cpk is not None:
-        print(f"  Cpu      = {cpu:.4f}" if cpu is not None else "  Cpu      = N/A")
-        print(f"  Cpl      = {cpl:.4f}" if cpl is not None else "  Cpl      = N/A")
-        print(f"  Cpk      = {cpk:.4f}  (actual capability — process centering)")
+        print(
+            f"  Cpu      = {cpu:.4f}"
+            if cpu is not None
+            else "  Cpu      = N/A"
+        )
+        print(
+            f"  Cpl      = {cpl:.4f}"
+            if cpl is not None
+            else "  Cpl      = N/A"
+        )
+        print(
+            f"  Cpk      = {cpk:.4f}  (actual capability — process centering)"
+        )
         print(f"\n  Interpretation: {interpret_cpk(cpk)}")
 
-    # Performance indices (using overall sigma — equivalent for normal distribution)
+    # Performance indices (using overall sigma — equivalent for normal
+    # distribution)
     if cp is not None:
         pp = cp
         ppk = cpk if cpk is not None else None
-        print(f"\n  Pp       = {pp:.4f}  (overall performance — equals Cp for this calc)")
+        print(
+            f"\n  Pp       = {pp:.4f}  (overall performance — equals Cp for"
+            " this calc)"
+        )
         if ppk is not None:
-            print(f"  Ppk      = {ppk:.4f}  (overall performance with centering)")
+            print(
+                f"  Ppk      = {ppk:.4f}  (overall performance with centering)"
+            )
 
     # Percentage outside specification
     out_of_spec = 0
@@ -157,7 +188,7 @@ def compute_capability(
     print(f"    Cpk >= 1.67 → Six Sigma capable (target)")
     print(f"    Cpk >= 1.33 → Capable (minimum acceptable)")
     print(f"    Cpk  < 1.33 → Improvement required")
-    print(f"{'='*50}\n")
+    print(f"{'=' * 50}\n")
 
 
 def main() -> None:
@@ -166,10 +197,21 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    parser.add_argument("csv_file", help="Path to CSV file with measurement data")
-    parser.add_argument("column", nargs="?", default=None, help="Column name (default: first numeric)")
-    parser.add_argument("--lsl", type=float, default=None, help="Lower Specification Limit")
-    parser.add_argument("--usl", type=float, default=None, help="Upper Specification Limit")
+    parser.add_argument(
+        "csv_file", help="Path to CSV file with measurement data"
+    )
+    parser.add_argument(
+        "column",
+        nargs="?",
+        default=None,
+        help="Column name (default: first numeric)",
+    )
+    parser.add_argument(
+        "--lsl", type=float, default=None, help="Lower Specification Limit"
+    )
+    parser.add_argument(
+        "--usl", type=float, default=None, help="Upper Specification Limit"
+    )
     args = parser.parse_args()
 
     data = read_csv_column(args.csv_file, args.column)

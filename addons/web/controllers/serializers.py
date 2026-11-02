@@ -1,10 +1,12 @@
 """Serializers — addons.web.
 
 ``CredentialSerializer`` es la forma del ``credential`` de la referencia
-(``odoo19c: odoo/http.py:1246`` — ``{'login', 'password', 'type': 'password'}``).
+(``odoo19c: odoo/http.py:1246`` — ``{'login', 'password', 'type':
+'password'}``).
 El ``type`` no se acepta desde el cliente: aquí sólo existe el tipo
 ``password``, y admitirlo como entrada sugeriría que hay otros.
 """
+
 from rest_framework import serializers
 
 
@@ -12,8 +14,9 @@ class CredentialSerializer(serializers.Serializer):
     """Credencial de apertura de sesión."""
 
     login = serializers.CharField(max_length=254)
-    password = serializers.CharField(max_length=128, write_only=True,
-                                     style={'input_type': 'password'})
+    password = serializers.CharField(
+        max_length=128, write_only=True, style={'input_type': 'password'}
+    )
 
 
 class SessionInfoSerializer(serializers.Serializer):
@@ -52,9 +55,11 @@ class GetFieldsRequestSerializer(serializers.Serializer):
     parent_name = serializers.CharField(default='', allow_blank=True)
     import_compat = serializers.BooleanField(default=True)
     parent_field_type = serializers.CharField(
-        required=False, allow_null=True, allow_blank=True)
+        required=False, allow_null=True, allow_blank=True
+    )
     exclude = serializers.ListField(
-        child=serializers.CharField(), required=False, allow_null=True)
+        child=serializers.CharField(), required=False, allow_null=True
+    )
 
 
 class ExportFieldTreeNodeSerializer(serializers.Serializer):

@@ -8,7 +8,8 @@ Dos piezas con papeles distintos:
   a nivel JSON (``<`` → ``\\u003c``), que el parser deshace sin diferencia en
   el resultado. Se porta con su razonamiento, que es el contrato.
 - **``stringify_keys``** — normaliza las claves de un mapa a cadena antes de
-  serializar. Su consumidor es ``IrActionsServer._compute_webhook_sample_payload``,
+  serializar. Su consumidor es
+  ``IrActionsServer._compute_webhook_sample_payload``,
   cuya carga puede traer mapas con claves que no son cadena.
 
 Cobertura medida
@@ -57,6 +58,7 @@ opción: ``orm/fields.py`` deliberadamente **no** lo re-exporta —a diferencia
 de la fuente, que sí (``odoo/orm/fields.py:24``)— porque aquí la dirección de
 dependencia entre campo y dominio está invertida (``orm/fields.py:1975-1976``).
 """
+
 import json as json_
 import re
 from collections.abc import Mapping
@@ -88,11 +90,13 @@ class _ScriptSafe(str):
     """≙ ``_ScriptSafe`` (``json.py:18-27``) — la cadena que sabe escaparse."""
 
     def __html__(self):
-        return markupsafe.Markup(re.sub(
-            r'[<>&\u2028\u2029]',
-            lambda m: JSON_SCRIPTSAFE_MAPPER[m[0]],
-            self,
-        ))
+        return markupsafe.Markup(
+            re.sub(
+                r'[<>&\u2028\u2029]',
+                lambda m: JSON_SCRIPTSAFE_MAPPER[m[0]],
+                self,
+            )
+        )
 
 
 class JSON:
@@ -102,7 +106,8 @@ class JSON:
         return json_.loads(*args, **kwargs)
 
     def dumps(self, *args, **kwargs):
-        """Serializa dejando la cadena lista para incrustarse en un ``<script>``.
+        """
+        Serializa dejando la cadena lista para incrustarse en un ``<script>``.
 
         Un ``<script>`` es un contexto especial: sólo espera ``</script>`` y no
         interpreta nada más, así que el escapado HTML estándar no sirve —rompe

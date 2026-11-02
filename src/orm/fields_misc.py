@@ -14,6 +14,7 @@ consumidores en la referencia — ``account/models/partner.py:573-574``
 fuente (``odoo19c: odoo/orm/fields.py:42-44``), y además un campo por empresa
 YA es un ``jsonb`` — anidarlo no tendría dónde poner el mapa de empresas.
 """
+
 from copy import deepcopy
 from functools import partial
 
@@ -29,6 +30,8 @@ from orm.fields_nonstored import (
 __all__ = ['Boolean', 'Json']
 
 Boolean = make_dispatcher('Boolean', 'boolean', models.BooleanField)
+
+
 def Json(*args, store=_UNSET, related=None, **kwargs):
     """``fields.Json`` — el ``JSONField`` de Django, con y sin columna.
 
@@ -65,8 +68,12 @@ def Json(*args, store=_UNSET, related=None, **kwargs):
     return annotate_related(field, related, related_attrs)
 
 
-def _boolean_convert_to_column(self, value, record, values=None, validate=True):
-    """``Boolean.convert_to_column`` — ≙ ``odoo19c: odoo/orm/fields_misc.py:28-29``.
+def _boolean_convert_to_column(
+    self, value, record, values=None, validate=True
+):
+    """
+    ``Boolean.convert_to_column`` — ≙ ``odoo19c:
+    odoo/orm/fields_misc.py:28-29``.
 
     ``bool(value)`` y no la rama de la base: es el ÚNICO tipo para el que
     ``False`` es un valor y no la ausencia de valor. Sin esta sobrecarga, la

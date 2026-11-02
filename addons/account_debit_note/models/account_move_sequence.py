@@ -58,8 +58,11 @@ entre "es nota de débito" / "no lo es" — sin este filtro, ambas series
 comparten el mismo ``MAX`` y una nota de débito heredaría el consecutivo de
 las facturas normales del mismo diario/año.
 """
+
 from addons.account.models import AccountMove
-from addons.account_debit_note.models.account_journal import JournalDebitSequence
+from addons.account_debit_note.models.account_journal import (
+    JournalDebitSequence,
+)
 from addons.account_debit_note.models.account_move import AccountMoveDebitNote
 
 #: Tipos de asiento a los que la referencia aplica el prefijo "D" — ≙
@@ -74,7 +77,9 @@ _base_get_last_sequence_domain = AccountMove.get_last_sequence_domain
 
 
 def get_starting_sequence(self):
-    """Nombre base con prefijo ``D`` si aplica — ≙ ``_get_starting_sequence``."""
+    """
+    Nombre base con prefijo ``D`` si aplica — ≙ ``_get_starting_sequence``.
+    """
     base = _base_get_starting_sequence(self)
     if self.move_type not in _DEBIT_PREFIX_MOVE_TYPES:
         return base

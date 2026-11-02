@@ -1,10 +1,12 @@
-"""``account.partial.reconcile`` — emparejamiento debe/haber (Odoo ``account``).
+"""
+``account.partial.reconcile`` — emparejamiento debe/haber (Odoo ``account``).
 
 Adaptación de Odoo ``addons/account/models/account_partial_reconcile.py``
 (odoo-tools@622ddc2a, odoo19c:, LGPL-3) — atribución y aviso de licencia
 preservados (DEC-KX-03).
 
-Se porta el núcleo del algoritmo de conciliación: cada ``AccountPartialReconcile``
+Se porta el núcleo del algoritmo de conciliación: cada
+``AccountPartialReconcile``
 empareja un apunte deudor con uno acreedor por un ``amount`` (siempre positivo,
 en moneda de la empresa) y, tras cada alta/baja, ``_update_matching_number``
 recalcula el ``matching_number`` de TODOS los apuntes tocados — el algoritmo de
@@ -38,10 +40,12 @@ porta):
 5. **``_update_matching_number`` usa SQL ORM en vez de
    ``cr.execute_values``** — la referencia hace un ``UPDATE ... FROM (VALUES
    %s)`` crudo por rendimiento. Aquí se porta el MISMO algoritmo de
-   agrupamiento (grafo de aristas → número mínimo) con ``QuerySet.filter(id__in=...)
+   agrupamiento (grafo de aristas → número mínimo) con
+   ``QuerySet.filter(id__in=...)
    .update(...)`` por grupo — equivalente funcional, sin la optimización de
    bulk insert (no es comportamiento observable, es implementación).
 """
+
 from collections import defaultdict
 from decimal import Decimal
 
@@ -52,33 +56,49 @@ from addons.account.models.account_move_line import AccountMoveLine
 
 
 class AccountPartialReconcile(models.Model):
-    """``account.partial.reconcile`` — arista de conciliación entre dos apuntes."""
+    """
+    ``account.partial.reconcile`` — arista de conciliación entre dos apuntes.
+    """
 
-    debit_move  = fields.Many2one(
-        'account.AccountMoveLine', on_delete=models.CASCADE,
+    debit_move = fields.Many2one(
+        'account.AccountMoveLine',
+        on_delete=models.CASCADE,
         related_name='matched_debit_ids',
         help_text='Apunte del lado debe (Odoo debit_move_id, requerido).',
     )
     credit_move = fields.Many2one(
-        'account.AccountMoveLine', on_delete=models.CASCADE,
+        'account.AccountMoveLine',
+        on_delete=models.CASCADE,
         related_name='matched_credit_ids',
         help_text='Apunte del lado haber (Odoo credit_move_id, requerido).',
     )
     full_reconcile = fields.Many2one(
-        'account.AccountFullReconcile', on_delete=models.SET_NULL, null=True,
-        blank=True, related_name='partial_reconcile_ids',
-        help_text='Conciliación total que agrupa este partial, si la hay '
-                   '(Odoo full_reconcile_id).',
+        'account.AccountFullReconcile',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='partial_reconcile_ids',
+        help_text=(
+            'Conciliación total que agrupa este partial, si la hay '
+            '(Odoo full_reconcile_id).'
+        ),
     )
     amount = fields.Monetary(
-        max_digits=16, decimal_places=2, default=Decimal('0.00'),
-        help_text='Importe siempre positivo emparejado por este partial, en '
-                   'moneda de la empresa (Odoo amount).',
+        max_digits=16,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text=(
+            'Importe siempre positivo emparejado por este partial, en '
+            'moneda de la empresa (Odoo amount).'
+        ),
     )
     max_date = fields.Date(
-        null=True, blank=True,
-        help_text='Fecha máxima entre debit_move_id y credit_move_id (Odoo '
-                   'max_date, computado). Se usa para reportes de antigüedad.',
+        null=True,
+        blank=True,
+        help_text=(
+            'Fecha máxima entre debit_move_id y credit_move_id (Odoo '
+            'max_date, computado). Se usa para reportes de antigüedad.'
+        ),
     )
 
     class Meta:
@@ -92,7 +112,9 @@ class AccountPartialReconcile(models.Model):
 
     # -- computo ------------------------------------------------------------
     def _compute_max_date(self):
-        """Odoo ``_compute_max_date``: máximo entre las fechas de los asientos."""
+        """
+        Odoo ``_compute_max_date``: máximo entre las fechas de los asientos.
+        """
         debit_date = self.debit_move.move.date
         credit_date = self.credit_move.move.date
         self.max_date = max(debit_date, credit_date)
@@ -103,7 +125,9 @@ class AccountPartialReconcile(models.Model):
 
     # -- bajo nivel -----------------------------------------------------------
     @classmethod
-    def create_partial(cls, debit_move, credit_move, amount, full_reconcile=None):
+    def create_partial(
+        cls, debit_move, credit_move, amount, full_reconcile=None
+    ):
         """Crea un partial y recalcula ``matching_number`` (Odoo ``create``).
 
         Envuelve ``objects.create`` + ``_update_matching_number`` porque en
@@ -112,16 +136,21 @@ class AccountPartialReconcile(models.Model):
         que el llamador no olvide el recálculo (Odoo lo hace siempre).
         """
         partial = cls.objects.create(
-            debit_move=debit_move, credit_move=credit_move,
-            amount=amount, full_reconcile=full_reconcile,
+            debit_move=debit_move,
+            credit_move=credit_move,
+            amount=amount,
+            full_reconcile=full_reconcile,
         )
         cls._update_matching_number(
-            AccountMoveLine.objects.filter(pk__in=[debit_move.pk, credit_move.pk])
+            AccountMoveLine.objects.filter(
+                pk__in=[debit_move.pk, credit_move.pk]
+            )
         )
         return partial
 
     def delete_and_update_matching(self, *args, **kwargs):
-        """Odoo ``unlink()`` simplificado (ver divergencia #4: sin reabrir pagos).
+        """
+        Odoo ``unlink()`` simplificado (ver divergencia #4: sin reabrir pagos).
 
         Recalcula ``matching_number`` de los dos apuntes que este partial unía,
         y si su ``full_reconcile`` queda sin partials, lo elimina (mismo
@@ -139,7 +168,9 @@ class AccountPartialReconcile(models.Model):
 
     @staticmethod
     def _update_matching_number(amls):
-        """Odoo ``_update_matching_number``: numeración de grupos por unión de grafos.
+        """
+        Odoo ``_update_matching_number``: numeración de grupos por unión de
+        grafos.
 
         Cada ``AccountPartialReconcile`` es una arista entre dos apuntes. Los
         apuntes conectados (directa o transitivamente) forman un grafo y
@@ -166,7 +197,9 @@ class AccountPartialReconcile(models.Model):
                     max_min_id = max(debit_min_id, credit_min_id)
                     for line_id in number2lines[max_min_id]:
                         line2number[line_id] = min_min_id
-                    number2lines[min_min_id].extend(number2lines.pop(max_min_id))
+                    number2lines[min_min_id].extend(
+                        number2lines.pop(max_min_id)
+                    )
             elif debit_min_id:
                 number2lines[debit_min_id].append(credit_id)
                 line2number[credit_id] = debit_min_id
@@ -182,16 +215,23 @@ class AccountPartialReconcile(models.Model):
         for group_number, line_ids in number2lines.items():
             group_lines = AccountMoveLine.objects.filter(pk__in=line_ids)
             full_ids = set(
-                group_lines.exclude(full_reconcile__isnull=True)
-                .values_list('full_reconcile_id', flat=True)
+                group_lines.exclude(full_reconcile__isnull=True).values_list(
+                    'full_reconcile_id', flat=True
+                )
             )
-            value = str(next(iter(full_ids))) if full_ids else f'P{group_number}'
+            value = (
+                str(next(iter(full_ids))) if full_ids else f'P{group_number}'
+            )
             group_lines.update(matching_number=value)
             processed_ids.update(line_ids)
 
-        untouched_ids = [line.pk for line in amls if line.pk not in processed_ids]
+        untouched_ids = [
+            line.pk for line in amls if line.pk not in processed_ids
+        ]
         if untouched_ids:
-            AccountMoveLine.objects.filter(pk__in=untouched_ids).update(matching_number='')
+            AccountMoveLine.objects.filter(pk__in=untouched_ids).update(
+                matching_number=''
+            )
 
     @staticmethod
     def _all_reconciled_lines(amls):

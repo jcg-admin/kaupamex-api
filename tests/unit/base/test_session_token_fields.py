@@ -34,6 +34,7 @@ el conjunto reducido. La red del ``id`` es
 ``test_the_id_separates_two_otherwise_identical_users``, escrito despues de
 medir, y por eso la cifra final es 6 de 13.
 """
+
 import pytest
 
 from addons.base.models import ResPartner, ResUsers
@@ -60,10 +61,15 @@ def user(db):
 # El conjunto — ≙ :829-830
 # --------------------------------------------------------------------------
 
+
 def test_the_field_set_is_the_reference_one(db):
     """≙ ``_get_session_token_fields`` (``:829-830``) verbatim."""
     assert ResUsers._get_session_token_fields() == {
-        'id', 'login', 'password', 'active'}
+        'id',
+        'login',
+        'password',
+        'active',
+    }
 
 
 def test_the_values_come_out_sorted_by_name(user):
@@ -86,6 +92,7 @@ def test_the_id_reads_the_primary_key(user):
 # --------------------------------------------------------------------------
 # Que invalida una sesion — el punto entero del bloque
 # --------------------------------------------------------------------------
+
 
 def test_changing_the_password_invalidates_the_session(user):
     """Lo unico que el default de Django ya cubria."""
@@ -156,6 +163,7 @@ def test_an_unrelated_field_does_not_invalidate_the_session(user):
 # El calculo — ≙ :871-884
 # --------------------------------------------------------------------------
 
+
 def test_a_none_value_is_dropped_from_the_key(user):
     """≙ ``:876-878`` — *"To avoid invalidating sessions when installing a new
     feature modifying the session token computation while not still being
@@ -163,20 +171,24 @@ def test_a_none_value_is_dropped_from_the_key(user):
     """
     base = user._session_token_get_values()
     with_new_field = base + (('campo_nuevo', None),)
-    assert (ResUsers._session_token_hash_compute(base)
-            == ResUsers._session_token_hash_compute(with_new_field))
+    assert ResUsers._session_token_hash_compute(
+        base
+    ) == ResUsers._session_token_hash_compute(with_new_field)
 
 
 def test_a_present_value_does_change_the_key(user):
     """La contraparte: en cuanto el campo nuevo tiene valor, si cuenta."""
     base = user._session_token_get_values()
     with_a_value = base + (('campo_nuevo', 'x'),)
-    assert (ResUsers._session_token_hash_compute(base)
-            != ResUsers._session_token_hash_compute(with_a_value))
+    assert ResUsers._session_token_hash_compute(
+        base
+    ) != ResUsers._session_token_hash_compute(with_a_value)
 
 
 def test_the_computation_is_deterministic(user):
-    """Dos llamadas seguidas dan el mismo hash — si no, nadie mantiene sesion."""
+    """
+    Dos llamadas seguidas dan el mismo hash — si no, nadie mantiene sesion.
+    """
     assert user.get_session_auth_hash() == user.get_session_auth_hash()
 
 
@@ -186,6 +198,9 @@ def test_a_different_secret_gives_a_different_hash(user):
     Es lo que ``get_session_auth_fallback_hash`` recorre durante una rotacion
     de ``SECRET_KEY``.
     """
-    assert (ResUsers._session_token_hash_compute(
-                user._session_token_get_values(), secret='otro-secreto')
-            != user.get_session_auth_hash())
+    assert (
+        ResUsers._session_token_hash_compute(
+            user._session_token_get_values(), secret='otro-secreto'
+        )
+        != user.get_session_auth_hash()
+    )

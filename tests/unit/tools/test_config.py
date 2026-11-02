@@ -1,7 +1,10 @@
-"""Contract for tools.config (SOL-091) — accesores MULTIDB_* (== odoo.tools.config).
+"""
+Contract for tools.config (SOL-091) — accesores MULTIDB_* (==
+odoo.tools.config).
 
 Sin DB: sólo lee settings con defaults.
 """
+
 from django.test import override_settings
 
 from tools import config

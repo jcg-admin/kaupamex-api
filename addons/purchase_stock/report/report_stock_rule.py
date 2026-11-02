@@ -23,7 +23,8 @@ contadas por AST sobre la fuente. Son **2** con ``_inherit``; **1** sin él:
     grep -rn "def _get_rule_loc"  addons/ src/ --include=*.py   → 0
 
 El modelo abstracto que este archivo extiende no existe, y su método tampoco.
-El cuerpo portado sería ``res = super()._get_rule_loc(...)`` más una asignación:
+El cuerpo portado sería ``res = super()._get_rule_loc(...)`` más una
+asignación:
 **sin el ``super()`` no queda nada**. Es un encadenamiento puro, y el eslabón
 base es el que falta (``H-API-733``).
 
@@ -31,7 +32,8 @@ El segundo bloqueo, que persistiría igual
 ==========================================
 
 La línea que aporta valor es
-``res['source'] = self.env.ref('stock.stock_location_suppliers')`` — resuelve un
+``res['source'] = self.env.ref('stock.stock_location_suppliers')`` — resuelve
+un
 **XML ID que este árbol no siembra**. Es la misma ausencia que
 ``addons/stock/models/stock_replenish_mixin.py`` declara para
 ``stock.stock_location_inter_company`` y que ``models/stock_move.py`` de este

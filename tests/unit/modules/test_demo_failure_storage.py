@@ -1,4 +1,7 @@
-"""Actual PG schema controls for complete demo errors; not signal acceptance."""
+"""
+Actual PG schema controls for complete demo errors; not signal acceptance.
+"""
+
 from contextlib import contextmanager
 import importlib
 
@@ -7,7 +10,10 @@ from django.db.migrations.exceptions import IrreversibleError
 from django.db.migrations.state import ModelState, ProjectState
 import pytest
 
-from addons.base.models.ir_demo_failure import IrDemoFailure, IrDemoFailureWizard
+from addons.base.models.ir_demo_failure import (
+    IrDemoFailure,
+    IrDemoFailureWizard,
+)
 from addons.base.models.ir_module import IrModule, IrModuleCategory
 
 pytestmark = pytest.mark.django_db(transaction=True)
@@ -18,7 +24,12 @@ LONG_ERROR = 'Traceback original\n' + 'detalle completo Ω\n' * 300
 def storage_models(legacy=False):
     assert connection.vendor == 'postgresql'
     state = ProjectState()
-    for model in (IrModuleCategory, IrModule, IrDemoFailureWizard, IrDemoFailure):
+    for model in (
+        IrModuleCategory,
+        IrModule,
+        IrDemoFailureWizard,
+        IrDemoFailure,
+    ):
         item = ModelState.from_model(model)
         item.options['db_table'] = 'contract_demo_' + model._meta.model_name
         item.options['indexes'] = []
@@ -26,8 +37,15 @@ def storage_models(legacy=False):
         if model is IrDemoFailure and legacy:
             item.fields['error'].max_length = 255
         state.add_model(item)
-    classes = [state.apps.get_model('base', model.__name__) for model in
-               (IrModuleCategory, IrModule, IrDemoFailureWizard, IrDemoFailure)]
+    classes = [
+        state.apps.get_model('base', model.__name__)
+        for model in (
+            IrModuleCategory,
+            IrModule,
+            IrDemoFailureWizard,
+            IrDemoFailure,
+        )
+    ]
     with connection.schema_editor() as editor:
         for model in classes:
             editor.create_model(model)
@@ -52,7 +70,9 @@ def test_error_migration_preserves_history_and_refuses_lossy_reverse():
     ).Migration('0089_demo_failure_error_length', 'base')
     with storage_models(legacy=True) as (state, (module, wizard, failure)):
         row = module.objects.create(name='historical_error')
-        old = failure.objects.create(module_id=row.pk, error='original short error')
+        old = failure.objects.create(
+            module_id=row.pk, error='original short error'
+        )
         with connection.schema_editor() as editor:
             after = migration.apply(state.clone(), editor)
         current = after.apps.get_model('base', 'IrDemoFailure')

@@ -15,6 +15,7 @@ converter ausente. Cada caso de abajo **afirma el id concreto** del registro
 que la referencia debía encontrar, o el tipo de error que la fuente promete
 cuando no existe.
 """
+
 import pytest
 
 from addons.base.models.ir_fields import IrFieldsConverter, ImportWarning
@@ -40,10 +41,15 @@ def country(db):
 
 @pytest.mark.django_db
 class TestTheReferencingSubfield:
-    """≙ ``_referencing_subfield`` — cuál de las tres formas de referencia trae."""
+    """
+    ≙ ``_referencing_subfield`` — cuál de las tres formas de referencia trae.
+    """
 
     def test_it_returns_the_only_referencing_key(self):
-        assert IrFieldsConverter._referencing_subfield({'id': 'base.zy'}) == ('id', [])
+        assert IrFieldsConverter._referencing_subfield({'id': 'base.zy'}) == (
+            'id',
+            [],
+        )
 
     def test_a_non_referencing_key_is_refused(self):
         with pytest.raises(ValueError):
@@ -51,7 +57,9 @@ class TestTheReferencingSubfield:
 
     def test_two_referencing_keys_are_ambiguous(self):
         with pytest.raises(ValueError):
-            IrFieldsConverter._referencing_subfield({'id': 'base.zy', '.id': '1'})
+            IrFieldsConverter._referencing_subfield(
+                {'id': 'base.zy', '.id': '1'}
+            )
 
 
 @pytest.mark.django_db
@@ -62,7 +70,8 @@ class TestTheDatabaseIdSubfield:
         field = ResPartner._meta.get_field('country')
 
         resolved, warnings = IrFieldsConverter.db_id_for(
-            ResPartner, field, '.id', str(country.pk), savepoint)
+            ResPartner, field, '.id', str(country.pk), savepoint
+        )
 
         assert resolved == country.pk
         assert warnings == []
@@ -71,15 +80,17 @@ class TestTheDatabaseIdSubfield:
         field = ResPartner._meta.get_field('country')
 
         with pytest.raises(ValueError):
-            IrFieldsConverter.db_id_for(ResPartner, field, '.id', '99999999',
-                                        savepoint)
+            IrFieldsConverter.db_id_for(
+                ResPartner, field, '.id', '99999999', savepoint
+            )
 
     def test_a_non_numeric_database_id_is_refused(self, savepoint):
         field = ResPartner._meta.get_field('country')
 
         with pytest.raises(ValueError):
-            IrFieldsConverter.db_id_for(ResPartner, field, '.id', 'no-soy-un-id',
-                                        savepoint)
+            IrFieldsConverter.db_id_for(
+                ResPartner, field, '.id', 'no-soy-un-id', savepoint
+            )
 
 
 @pytest.mark.django_db
@@ -87,43 +98,63 @@ class TestTheExternalIdSubfield:
     """``id`` — el identificador externo, contra ``ir.model.data``."""
 
     def test_a_declared_external_id_resolves(self, country, savepoint):
-        IrModelData.objects.create(module='base', name='country_zy',
-                                   model='res.country', res_id=country.pk)
+        IrModelData.objects.create(
+            module='base',
+            name='country_zy',
+            model='res.country',
+            res_id=country.pk,
+        )
         field = ResPartner._meta.get_field('country')
 
         resolved, _warnings = IrFieldsConverter.db_id_for(
-            ResPartner, field, 'id', 'base.country_zy', savepoint)
+            ResPartner, field, 'id', 'base.country_zy', savepoint
+        )
 
         assert resolved == country.pk
 
-    def test_the_current_module_completes_a_bare_name(self, country, savepoint):
+    def test_the_current_module_completes_a_bare_name(
+        self, country, savepoint
+    ):
         """Sin punto, el módulo lo pone ``_import_current_module``."""
-        IrModelData.objects.create(module='base', name='country_zy',
-                                   model='res.country', res_id=country.pk)
+        IrModelData.objects.create(
+            module='base',
+            name='country_zy',
+            model='res.country',
+            res_id=country.pk,
+        )
         field = ResPartner._meta.get_field('country')
 
         with context_scope(_import_current_module='base'):
             resolved, _warnings = IrFieldsConverter.db_id_for(
-                ResPartner, field, 'id', 'country_zy', savepoint)
+                ResPartner, field, 'id', 'country_zy', savepoint
+            )
 
         assert resolved == country.pk
 
-    def test_an_external_id_of_another_model_is_refused(self, country, savepoint):
+    def test_an_external_id_of_another_model_is_refused(
+        self, country, savepoint
+    ):
         """La guarda del modelo: un xmlid reusado no apunta a otra tabla."""
-        IrModelData.objects.create(module='base', name='impostor',
-                                   model='res.partner', res_id=country.pk)
+        IrModelData.objects.create(
+            module='base',
+            name='impostor',
+            model='res.partner',
+            res_id=country.pk,
+        )
         field = ResPartner._meta.get_field('country')
 
         with pytest.raises(ValueError):
-            IrFieldsConverter.db_id_for(ResPartner, field, 'id',
-                                        'base.impostor', savepoint)
+            IrFieldsConverter.db_id_for(
+                ResPartner, field, 'id', 'base.impostor', savepoint
+            )
 
     def test_an_unknown_external_id_is_refused(self, savepoint):
         field = ResPartner._meta.get_field('country')
 
         with pytest.raises(ValueError):
-            IrFieldsConverter.db_id_for(ResPartner, field, 'id',
-                                        'base.no_existe', savepoint)
+            IrFieldsConverter.db_id_for(
+                ResPartner, field, 'id', 'base.no_existe', savepoint
+            )
 
 
 @pytest.mark.django_db
@@ -134,7 +165,8 @@ class TestTheNameSubfield:
         field = ResPartner._meta.get_field('country')
 
         resolved, _warnings = IrFieldsConverter.db_id_for(
-            ResPartner, field, None, 'Sinelandia', savepoint)
+            ResPartner, field, None, 'Sinelandia', savepoint
+        )
 
         assert resolved == country.pk
 
@@ -143,7 +175,8 @@ class TestTheNameSubfield:
         field = ResPartner._meta.get_field('country')
 
         _resolved, warnings = IrFieldsConverter.db_id_for(
-            ResPartner, field, None, 'Sinelandia', savepoint)
+            ResPartner, field, None, 'Sinelandia', savepoint
+        )
 
         assert any(isinstance(w, ImportWarning) for w in warnings)
 
@@ -151,7 +184,8 @@ class TestTheNameSubfield:
         field = ResPartner._meta.get_field('country')
 
         assert IrFieldsConverter.db_id_for(
-            ResPartner, field, None, '', savepoint) == (False, [])
+            ResPartner, field, None, '', savepoint
+        ) == (False, [])
 
 
 @pytest.mark.django_db
@@ -162,7 +196,8 @@ class TestTheManyToOneConverter:
         field = ResPartner._meta.get_field('country')
 
         resolved, _warnings = IrFieldsConverter._str_to_many2one(
-            ResPartner, field, [{None: 'Sinelandia'}], savepoint)
+            ResPartner, field, [{None: 'Sinelandia'}], savepoint
+        )
 
         assert resolved == country.pk
 
@@ -175,8 +210,10 @@ class TestForModel:
         convert = IrFieldsConverter.for_model(ResPartner, savepoint=savepoint)
         errors = []
 
-        converted = convert({'name': 'Ada', 'is_company': '1'},
-                            lambda field, exc: errors.append((field, exc)))
+        converted = convert(
+            {'name': 'Ada', 'is_company': '1'},
+            lambda field, exc: errors.append((field, exc)),
+        )
 
         assert errors == []
         assert converted['name'] == 'Ada'
@@ -193,8 +230,9 @@ class TestForModel:
         """``id``/``.id``/``None`` los consume el cargador, no el converter."""
         convert = IrFieldsConverter.for_model(ResPartner, savepoint=savepoint)
 
-        converted = convert({'id': 'base.ada', 'name': 'Ada'},
-                            lambda field, exc: None)
+        converted = convert(
+            {'id': 'base.ada', 'name': 'Ada'}, lambda field, exc: None
+        )
 
         assert 'id' not in converted
 
@@ -202,7 +240,9 @@ class TestForModel:
         convert = IrFieldsConverter.for_model(ResPartner, savepoint=savepoint)
         errors = []
 
-        convert({'active': 'quizas'},
-                lambda field, exc: errors.append((field, exc)))
+        convert(
+            {'active': 'quizas'},
+            lambda field, exc: errors.append((field, exc)),
+        )
 
         assert [field for field, _exc in errors] == ['active']

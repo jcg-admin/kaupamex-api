@@ -20,15 +20,25 @@ referencia, este caso falle y la fila se reescriba. Un test que sólo afirmara
 que el registro funciona sería verde con la tabla vieja y con la nueva: no
 distinguiría nada (sub-patrón D de ``metrica-decide-la-conclusion``).
 """
+
 import pytest
 from django.apps import apps
 from django.db import connection, connections, transaction
 
 from orm import registry
-from orm.environments import (Transaction, _connection_transaction,
-                              context_scope, env, get_context,
-                              get_current_uid, get_transaction, is_su, sudo,
-                              transaction_scope, user_scope)
+from orm.environments import (
+    Transaction,
+    _connection_transaction,
+    context_scope,
+    env,
+    get_context,
+    get_current_uid,
+    get_transaction,
+    is_su,
+    sudo,
+    transaction_scope,
+    user_scope,
+)
 
 
 class TestTheModelIndex:
@@ -121,8 +131,16 @@ class TestTheTransaction:
         en el docstring de la clase.
         """
         assert Transaction.__slots__ == (
-            'cache', 'default_env', 'envs', 'field_cache_memo', 'field_data',
-            'field_data_patches', 'field_dirty', 'protected', 'tocompute')
+            'cache',
+            'default_env',
+            'envs',
+            'field_cache_memo',
+            'field_data',
+            'field_data_patches',
+            'field_dirty',
+            'protected',
+            'tocompute',
+        )
 
     def test_a_slot_outside_the_declared_set_is_refused(self):
         """El control de que ``__slots__`` está de verdad cerrado.
@@ -135,20 +153,26 @@ class TestTheTransaction:
             Transaction().registry = object()
 
     def test_the_field_cache_defaults_to_a_mapping(self):
-        """``field_data[campo]`` nace como el mapa ``{id: valor}`` de la fuente."""
+        """
+        ``field_data[campo]`` nace como el mapa ``{id: valor}`` de la fuente.
+        """
         tx = Transaction()
         tx.field_data['un.campo'][7] = 'valor'
         assert tx.field_data['un.campo'] == {7: 'valor'}
 
     def test_the_pending_computations_keep_insertion_order(self):
-        """``tocompute`` es un ``OrderedSet``: el orden de llegada se conserva."""
+        """
+        ``tocompute`` es un ``OrderedSet``: el orden de llegada se conserva.
+        """
         tx = Transaction()
         for record_id in (9, 3, 9, 5):
             tx.tocompute['un.campo'].add(record_id)
         assert list(tx.tocompute['un.campo']) == [9, 3, 5]
 
     def test_the_protected_fields_stack_by_scope(self):
-        """``protected`` es un ``StackMap``: el tope tapa sin borrar lo de abajo."""
+        """
+        ``protected`` es un ``StackMap``: el tope tapa sin borrar lo de abajo.
+        """
         tx = Transaction()
         tx.protected.pushmap({'a': 1})
         tx.protected.pushmap({'b': 2})
@@ -267,7 +291,9 @@ class TestTheEnvironmentSugar:
         assert env()['res.partner'].__name__ == 'ResPartner'
 
     def test_it_falls_back_to_a_django_label(self):
-        """Un modelo propio del L0 sin ``_name`` sólo se alcanza por etiqueta."""
+        """
+        Un modelo propio del L0 sin ``_name`` sólo se alcanza por etiqueta.
+        """
         assert env()['base.ResPartner'].__name__ == 'ResPartner'
 
     def test_an_unknown_name_raises_key_error(self):

@@ -68,6 +68,7 @@ tiene ``super()`` (``orm/method_chain.py``). Cada uno se instala con
 ``@classmethod``; ``_create_domain`` es ``@staticmethod`` en la base — los
 tres los preserva ``chain_method`` (ver la tabla de su docstring).
 """
+
 import re
 
 import fields
@@ -114,7 +115,8 @@ def _compute_prefix_placeholder(instance):
 
 
 def _add_if_absent(model, name, field):
-    """Idempotente — mismo helper que ``account/models/product.py`` (``ready()``
+    """
+    Idempotente — mismo helper que ``account/models/product.py`` (``ready()``
     puede correr más de una vez en tests que recargan el registro)."""
     if not any(f.name == name for f in model._meta.get_fields()):
         model.add_to_class(name, field)
@@ -153,7 +155,9 @@ def _account_prefix_from_vals(cls, vals):
 
 
 def _matches_account_prefix(model, target_prefix):
-    """≙ el predicado del ``.filtered(lambda model: ...)`` (odoo19c: :96-99)."""
+    """
+    ≙ el predicado del ``.filtered(lambda model: ...)`` (odoo19c: :96-99).
+    """
     if not model.account_prefix:
         return True
     prefixes = _ACCOUNT_PREFIX_DELIMITER.split(model.account_prefix)
@@ -165,7 +169,9 @@ def _filter_applicable_models_by_prefix(target_prefix, base_queryset):
     base (odoo19c: :94-99). Devuelve un queryset nuevo, no una lista: el
     llamador (``_get_distribution``, en la base) itera sobre el resultado."""
     matching_pks = [
-        m.pk for m in base_queryset if _matches_account_prefix(m, target_prefix)
+        m.pk
+        for m in base_queryset
+        if _matches_account_prefix(m, target_prefix)
     ]
     return base_queryset.model.objects.filter(pk__in=matching_pks)
 
@@ -175,12 +181,15 @@ def apply_account_extensions():
     ``account.analytic.distribution.model``. Ver docstring del módulo.
 
     Cableada en ``AccountConfig.ready()`` vía ``_EXTENSIONES``. Invocable a
-    mano; ver ``tests/unit/account/test_account_analytic_distribution_model.py``.
+    mano; ver
+    ``tests/unit/account/test_account_analytic_distribution_model.py``.
     """
     _add_if_absent(
-        AccountAnalyticDistributionModel, 'prefix_placeholder',
+        AccountAnalyticDistributionModel,
+        'prefix_placeholder',
         fields.Char(
-            store=False, compute=_compute_prefix_placeholder,
+            store=False,
+            compute=_compute_prefix_placeholder,
             help_text=(
                 'Odoo prefix_placeholder (compute, store=False). '
                 'Ejemplo de prefijo de cuenta según la cuenta de '
@@ -189,45 +198,64 @@ def apply_account_extensions():
         ),
     )
     _add_if_absent(
-        AccountAnalyticDistributionModel, 'account_prefix',
+        AccountAnalyticDistributionModel,
+        'account_prefix',
         fields.Char(
-            blank=True, default='',
-            help_text='Odoo account_prefix. Esta distribución analítica '
-                       'aplica a todas las cuentas contables que compartan '
-                       'el prefijo especificado.',
+            blank=True,
+            default='',
+            help_text=(
+                'Odoo account_prefix. Esta distribución analítica '
+                'aplica a todas las cuentas contables que compartan '
+                'el prefijo especificado.'
+            ),
         ),
     )
     _add_if_absent(
-        AccountAnalyticDistributionModel, 'product',
+        AccountAnalyticDistributionModel,
+        'product',
         fields.Many2one(
-            'product.ProductProduct', on_delete=models.CASCADE,
-            null=True, blank=True, related_name='analytic_distribution_models',
-            help_text='Odoo product_id (ondelete=cascade). Producto para el '
-                       'que se usa esta distribución.',
+            'product.ProductProduct',
+            on_delete=models.CASCADE,
+            null=True,
+            blank=True,
+            related_name='analytic_distribution_models',
+            help_text=(
+                'Odoo product_id (ondelete=cascade). Producto para el '
+                'que se usa esta distribución.'
+            ),
         ),
     )
     _add_if_absent(
-        AccountAnalyticDistributionModel, 'product_categ',
+        AccountAnalyticDistributionModel,
+        'product_categ',
         fields.Many2one(
-            'product.ProductCategory', on_delete=models.CASCADE,
-            null=True, blank=True, related_name='analytic_distribution_models',
-            help_text='Odoo product_categ_id (ondelete=cascade). Categoría '
-                       'de producto que usa la cuenta analítica en el '
-                       'default analítico.',
+            'product.ProductCategory',
+            on_delete=models.CASCADE,
+            null=True,
+            blank=True,
+            related_name='analytic_distribution_models',
+            help_text=(
+                'Odoo product_categ_id (ondelete=cascade). Categoría '
+                'de producto que usa la cuenta analítica en el '
+                'default analítico.'
+            ),
         ),
     )
 
     chain_method(
-        AccountAnalyticDistributionModel, '_get_default_search_domain_vals',
+        AccountAnalyticDistributionModel,
+        '_get_default_search_domain_vals',
         _default_search_domain_vals_extra,
         combine=_merge_default_search_domain_vals,
     )
     chain_method(
-        AccountAnalyticDistributionModel, '_create_domain',
+        AccountAnalyticDistributionModel,
+        '_create_domain',
         _create_domain_account_prefix,
     )
     chain_method(
-        AccountAnalyticDistributionModel, '_get_applicable_models',
+        AccountAnalyticDistributionModel,
+        '_get_applicable_models',
         _account_prefix_from_vals,
         combine=_filter_applicable_models_by_prefix,
     )

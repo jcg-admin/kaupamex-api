@@ -10,6 +10,7 @@ Es **lo único que se persiste** del flujo: el token en sí es firmado y
 stateless (``../token.py``). Que exista una fila con ``signup_type`` = hay un
 signup/reset pendiente para ese partner.
 """
+
 import fields
 import models
 
@@ -17,7 +18,9 @@ from addons.base.models import TimeStampedModel
 
 
 class SignupRequest(TimeStampedModel):
-    """El signup/reset pendiente de un partner. ≙ ``res.partner.signup_type``."""
+    """
+    El signup/reset pendiente de un partner. ≙ ``res.partner.signup_type``.
+    """
 
     TYPE_SIGNUP = 'signup'
     TYPE_RESET = 'reset'
@@ -39,15 +42,20 @@ class SignupRequest(TimeStampedModel):
     ]
 
     partner = models.OneToOneField(
-        'base.ResPartner', on_delete=models.CASCADE,
-        related_name='signup_request', verbose_name='Partner',
+        'base.ResPartner',
+        on_delete=models.CASCADE,
+        related_name='signup_request',
+        verbose_name='Partner',
     )
     signup_type = fields.Char(
-        max_length=16, choices=TYPE_CHOICES,
+        max_length=16,
+        choices=TYPE_CHOICES,
         verbose_name='Tipo de signup',
-        help_text='Odoo signup_type: "signup" (alta invitada) o "reset" '
-                  '(restablecer contraseña). "verify" (verificación de '
-                  'correo) es forma propia: no existe en la referencia.',
+        help_text=(
+            'Odoo signup_type: "signup" (alta invitada) o "reset" '
+            '(restablecer contraseña). "verify" (verificación de '
+            'correo) es forma propia: no existe en la referencia.'
+        ),
     )
 
     class Meta:

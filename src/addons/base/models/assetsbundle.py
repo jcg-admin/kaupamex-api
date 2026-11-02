@@ -25,7 +25,8 @@ Lo que sí falta en este árbol y este archivo aporta
 ==================================================
 
 El **versionado del bundle**. Webpack pone un hash en el nombre del archivo,
-pero el contrato de URL de la referencia —``<nombre>[.rtl][.autoprefixed].<ext>``
+pero el contrato de URL de la referencia
+—``<nombre>[.rtl][.autoprefixed].<ext>``
 más un segmento ``unique`` de 7 caracteres— es de este lado: es lo que decide
 cuándo un navegador puede cachear un bundle para siempre y cuándo debe pedirlo
 de nuevo.
@@ -74,6 +75,7 @@ Qué NO se porta, con su medición
   compilador no tienen entrada; se declara su ausencia en vez de dejar tres
   regex sin llamador.
 """
+
 import hashlib
 import logging
 

@@ -1,4 +1,6 @@
-"""``res.currency`` — lo que ``account_check_printing`` le cuelga (≙ ``_inherit``).
+"""
+``res.currency`` — lo que ``account_check_printing`` le cuelga (≙
+``_inherit``).
 
 Adaptación de ``odoo19c: addons/account_check_printing/models/
 account_payment.py`` (``odoo-tools@622ddc2a``, LGPL-3 — atribución y aviso de
@@ -52,6 +54,7 @@ numeral en dígitos en vez de fallar en silencio. No aplica la apócope
 gramatical de "veintiuno"→"veintiún" ante sustantivo — simplificación
 declarada, sin consumidor que la exija hoy.
 """
+
 from decimal import ROUND_HALF_UP, Decimal
 
 from orm.method_chain import chain_method
@@ -59,22 +62,65 @@ from addons.base.models import ResCurrency
 
 #: ≙ las unidades 0-9, con la forma apocopada "un" (no "uno") — es la que
 #: usa un talonario ("un peso", no "uno peso").
-_UNITS = ('', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve')
+_UNITS = (
+    '',
+    'un',
+    'dos',
+    'tres',
+    'cuatro',
+    'cinco',
+    'seis',
+    'siete',
+    'ocho',
+    'nueve',
+)
 _TEENS = (
-    'diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciséis',
-    'diecisiete', 'dieciocho', 'diecinueve',
+    'diez',
+    'once',
+    'doce',
+    'trece',
+    'catorce',
+    'quince',
+    'dieciséis',
+    'diecisiete',
+    'dieciocho',
+    'diecinueve',
 )
 _TWENTIES = (
-    'veinte', 'veintiuno', 'veintidós', 'veintitrés', 'veinticuatro',
-    'veinticinco', 'veintiséis', 'veintisiete', 'veintiocho', 'veintinueve',
+    'veinte',
+    'veintiuno',
+    'veintidós',
+    'veintitrés',
+    'veinticuatro',
+    'veinticinco',
+    'veintiséis',
+    'veintisiete',
+    'veintiocho',
+    'veintinueve',
 )
 _TENS = (
-    '', '', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta',
-    'setenta', 'ochenta', 'noventa',
+    '',
+    '',
+    'veinte',
+    'treinta',
+    'cuarenta',
+    'cincuenta',
+    'sesenta',
+    'setenta',
+    'ochenta',
+    'noventa',
 )
 _HUNDREDS = (
-    '', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos',
-    'quinientos', 'seiscientos', 'setecientos', 'ochocientos', 'novecientos',
+    '',
+    'ciento',
+    'doscientos',
+    'trescientos',
+    'cuatrocientos',
+    'quinientos',
+    'seiscientos',
+    'setecientos',
+    'ochocientos',
+    'novecientos',
 )
 
 #: Techo del conversor — ver la divergencia declarada arriba.
@@ -123,9 +169,15 @@ def integer_to_words(n):
 
     partes = []
     if millions:
-        partes.append('un millón' if millions == 1 else f'{_under_1000(millions)} millones')
+        partes.append(
+            'un millón'
+            if millions == 1
+            else f'{_under_1000(millions)} millones'
+        )
     if thousands:
-        partes.append('mil' if thousands == 1 else f'{_under_1000(thousands)} mil')
+        partes.append(
+            'mil' if thousands == 1 else f'{_under_1000(thousands)} mil'
+        )
     if units:
         partes.append(_under_1000(units))
     return ' '.join(p for p in partes if p)

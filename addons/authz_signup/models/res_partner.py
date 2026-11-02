@@ -8,7 +8,8 @@ que ``authz_ldap.res_users``). El ``signup_type`` persiste en
 
 Métodos de la referencia → aquí:
 
-- ``signup_prepare`` / ``signup_cancel`` → ``signup_prepare`` / ``signup_cancel``.
+- ``signup_prepare`` / ``signup_cancel`` → ``signup_prepare`` /
+  ``signup_cancel``.
 - ``_generate_signup_token`` → ``_generate_signup_token``: firma
   ``[partner.id, user_ids, login_date, signup_type]`` (``../token.py``). El
   ``login_date`` en el payload invalida el token al iniciar sesión.
@@ -45,6 +46,7 @@ Métodos de la referencia → aquí:
   dominio. Aquí la validez se mide en **segundos de edad de la firma**
   (``_validity_seconds``), así que no hay a qué sumarle un delta.
 """
+
 from datetime import datetime
 
 from django.apps import apps as django_apps
@@ -60,7 +62,8 @@ from addons.authz_signup.models.token import (
 )
 from addons.base.models import SystemParameter
 
-#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no
+#: es clase).
 _inherit = 'res.partner'
 
 # ≙ ir.config_parameter de validez (res_partner.py:186-188), renombrados al
@@ -77,14 +80,23 @@ _DEFAULT_VERIFY_HOURS = 24
 
 def _validity_seconds(signup_type):
     if signup_type == SignupRequest.TYPE_RESET:
-        hours = int(SystemParameter.get_param(
-            PARAM_RESET_VALIDITY_HOURS, str(_DEFAULT_RESET_HOURS)))
+        hours = int(
+            SystemParameter.get_param(
+                PARAM_RESET_VALIDITY_HOURS, str(_DEFAULT_RESET_HOURS)
+            )
+        )
     elif signup_type == SignupRequest.TYPE_VERIFY:
-        hours = int(SystemParameter.get_param(
-            PARAM_VERIFY_VALIDITY_HOURS, str(_DEFAULT_VERIFY_HOURS)))
+        hours = int(
+            SystemParameter.get_param(
+                PARAM_VERIFY_VALIDITY_HOURS, str(_DEFAULT_VERIFY_HOURS)
+            )
+        )
     else:
-        hours = int(SystemParameter.get_param(
-            PARAM_SIGNUP_VALIDITY_HOURS, str(_DEFAULT_SIGNUP_HOURS)))
+        hours = int(
+            SystemParameter.get_param(
+                PARAM_SIGNUP_VALIDITY_HOURS, str(_DEFAULT_SIGNUP_HOURS)
+            )
+        )
     return hours * 3600
 
 
@@ -107,7 +119,8 @@ def _get_login_date(partner):
 def signup_prepare(partner, signup_type=SignupRequest.TYPE_SIGNUP):
     """≙ ``signup_prepare`` (res_partner.py:113-116)."""
     SignupRequest.objects.update_or_create(
-        partner=partner, defaults={'signup_type': signup_type})
+        partner=partner, defaults={'signup_type': signup_type}
+    )
     return True
 
 
@@ -148,9 +161,11 @@ def _get_partner_from_token(token):
     if partner is None:
         return None
     current_uids = sorted(partner.users.values_list('id', flat=True))
-    if (login_date == _get_login_date(partner)
-            and user_ids == current_uids
-            and tok_type == (_signup_type(partner) or None)):
+    if (
+        login_date == _get_login_date(partner)
+        and user_ids == current_uids
+        and tok_type == (_signup_type(partner) or None)
+    ):
         return partner
     return None
 

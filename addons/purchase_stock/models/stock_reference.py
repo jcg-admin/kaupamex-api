@@ -11,7 +11,8 @@ Porte símbolo por símbolo — 1 de 1
 *Métrica:* entradas del cuerpo de ``class StockReference`` contadas por AST
 sobre la fuente. Son **2** con ``_inherit``; **1** sin él — el campo
 ``purchase_ids``. Cero métodos.
-*Ciega a:* lo que otros addons cuelgan sobre ``stock.reference`` (``sale_stock``
+*Ciega a:* lo que otros addons cuelgan sobre ``stock.reference``
+(``sale_stock``
 le cuelga ``sale_ids`` en la referencia) — este conteo mira un solo archivo.
 
 =================================================  ===========================
@@ -49,6 +50,7 @@ La firma de la referencia es::
   como motor genérico. Sucesor: el porte de ``copy_data`` genérico; sin él la
   bandera no tiene consumidor.
 """
+
 from orm.model_classes import extend_model
 
 import fields
@@ -64,15 +66,19 @@ def apply_purchase_stock_stock_reference_extensions():
     ``order.reference_ids`` — el mismo nombre que ``stock.move`` ya usa.
     """
     extend_model(
-        'stock', 'StockReference',
+        'stock',
+        'StockReference',
         campos={
             'purchase_ids': fields.Many2many(
-                'purchase.PurchaseOrder', blank=True,
+                'purchase.PurchaseOrder',
+                blank=True,
                 related_name='reference_ids',
                 db_table='stock_reference_purchase_rel',
-                help_text='Órdenes de compra que comparten esta referencia '
-                          '(Odoo purchase_ids). El inverso es '
-                          '``order.reference_ids``.',
+                help_text=(
+                    'Órdenes de compra que comparten esta referencia '
+                    '(Odoo purchase_ids). El inverso es '
+                    '``order.reference_ids``.'
+                ),
             ),
         },
     )

@@ -1,4 +1,5 @@
-r"""``res.config.settings`` — el formulario de ajustes de ``account``: NO PORTADO.
+r"""
+``res.config.settings`` — el formulario de ajustes de ``account``: NO PORTADO.
 
 Adaptación de Odoo ``account/models/res_config_settings.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3, 311 líneas) — atribución y

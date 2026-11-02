@@ -1,12 +1,14 @@
 """Backfill idempotente del rol 'comprador' (DEC-AUTHZ-BUYER).
 
-Asigna el rol ``comprador`` a todo usuario que aún no lo tenga, para que su menú
+Asigna el rol ``comprador`` a todo usuario que aún no lo tenga, para que su
+menú
 de cuenta dinámico (``audience='account'``) aparezca. Se corre una vez tras
 introducir el rol; es re-ejecutable sin duplicar (``get_or_create``). Requiere
 ``seed_authz`` antes (el rol debe existir).
 
 Uso: ``python manage.py backfill_buyer_role``.
 """
+
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
@@ -28,10 +30,13 @@ class Command(BaseCommand):
             return
 
         already = set(
-            RoleAssignment.objects.filter(role=role)
-            .values_list('user_id', flat=True)
+            RoleAssignment.objects.filter(role=role).values_list(
+                'user_id', flat=True
+            )
         )
-        pending = User.objects.exclude(pk__in=already).values_list('pk', flat=True)
+        pending = User.objects.exclude(pk__in=already).values_list(
+            'pk', flat=True
+        )
 
         n = 0
         for user_id in pending:
@@ -39,6 +44,9 @@ class Command(BaseCommand):
             invalidate_capabilities(user_id)
             n += 1
 
-        self.stdout.write(self.style.SUCCESS(
-            f"backfill_buyer_role OK: {n} usuarios asignados al rol 'comprador'."
-        ))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"backfill_buyer_role OK: {n} usuarios asignados al rol"
+                " 'comprador'."
+            )
+        )

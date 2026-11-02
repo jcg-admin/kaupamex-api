@@ -47,6 +47,7 @@ implementacion que antepusiera ``IS NOT NULL`` siempre pasaria los demas casos
 y **cambiaria el conjunto de filas** justo cuando el respaldo satisface la
 condicion, que es cuando las filas sin valor propio SI deben entrar.
 """
+
 import pytest
 from django.db import models
 
@@ -82,15 +83,21 @@ def _indexed(monkeypatch, field):
 def _fallback(monkeypatch, verdict):
     """Fija lo que ``ir.default`` responde sobre el respaldo del campo."""
     monkeypatch.setattr(
-        MODELS_BY_NAME['ir.default'], '_evaluate_condition_with_fallback',
-        classmethod(lambda cls, *args, **kwargs: verdict), raising=False)
+        MODELS_BY_NAME['ir.default'],
+        '_evaluate_condition_with_fallback',
+        classmethod(lambda cls, *args, **kwargs: verdict),
+        raising=False,
+    )
 
 
 class TestConditionToQCompany:
 
     def test_a_fallback_that_fails_prepends_the_not_null(
-            self, field, model, monkeypatch):
-        """El respaldo no satisface: las filas sin valor propio no pueden entrar."""
+        self, field, model, monkeypatch
+    ):
+        """
+        El respaldo no satisface: las filas sin valor propio no pueden entrar.
+        """
         _indexed(monkeypatch, field)
         _fallback(monkeypatch, False)
 
@@ -99,7 +106,8 @@ class TestConditionToQCompany:
         assert NOT_NULL in q.children
 
     def test_a_fallback_that_satisfies_leaves_the_condition_alone(
-            self, field, model, monkeypatch):
+        self, field, model, monkeypatch
+    ):
         """El control: con el respaldo satisfecho la fila sin valor propio SI
         entra, y anteponer ``IS NOT NULL`` la excluiria."""
         _indexed(monkeypatch, field)
@@ -110,8 +118,11 @@ class TestConditionToQCompany:
         assert NOT_NULL not in q.children
 
     def test_an_undecidable_fallback_leaves_the_condition_alone(
-            self, field, model, monkeypatch):
-        """``None`` es «no se puede decidir», y la fuente exige ``is False``."""
+        self, field, model, monkeypatch
+    ):
+        """
+        ``None`` es «no se puede decidir», y la fuente exige ``is False``.
+        """
         _indexed(monkeypatch, field)
         _fallback(monkeypatch, None)
 
@@ -120,8 +131,11 @@ class TestConditionToQCompany:
         assert NOT_NULL not in q.children
 
     def test_a_field_without_the_partial_index_is_left_alone(
-            self, field, model, monkeypatch):
-        """Sin ``index='btree_not_null'`` no hay indice parcial que aprovechar."""
+        self, field, model, monkeypatch
+    ):
+        """
+        Sin ``index='btree_not_null'`` no hay indice parcial que aprovechar.
+        """
         monkeypatch.setattr(field, 'index', None, raising=False)
         _fallback(monkeypatch, False)
 
@@ -130,8 +144,12 @@ class TestConditionToQCompany:
         assert NOT_NULL not in q.children
 
     def test_without_a_model_the_optimization_is_not_decided(
-            self, field, monkeypatch):
-        """Sin modelo no hay a quien preguntarle el respaldo, y el cuerpo pasa tal cual."""
+        self, field, monkeypatch
+    ):
+        """
+        Sin modelo no hay a quien preguntarle el respaldo, y el cuerpo pasa tal
+        cual.
+        """
         _indexed(monkeypatch, field)
         _fallback(monkeypatch, False)
 
@@ -143,8 +161,11 @@ class TestConditionToQCompany:
 class TestConditionToQPlainField:
 
     def test_a_field_that_is_not_company_dependent_never_gets_it(
-            self, model, monkeypatch):
-        """``name`` no depende de empresa: la fachada no consulta el respaldo."""
+        self, model, monkeypatch
+    ):
+        """
+        ``name`` no depende de empresa: la fachada no consulta el respaldo.
+        """
         plain = model_field_registry(model)['name']
         monkeypatch.setattr(plain, 'index', 'btree_not_null', raising=False)
         _fallback(monkeypatch, False)
@@ -157,8 +178,9 @@ class TestConditionToQPlainField:
         """La fachada no reescribe el cuerpo: sobre un campo llano coincide."""
         plain = model_field_registry(model)['name']
 
-        assert (plain.condition_to_q('name', 'in', ['Titular'], model)
-                == condition_to_q('name', 'in', ['Titular'], plain))
+        assert plain.condition_to_q(
+            'name', 'in', ['Titular'], model
+        ) == condition_to_q('name', 'in', ['Titular'], plain)
 
 
 class TestDomainRoutesThroughTheFacade:
@@ -170,7 +192,8 @@ class TestDomainRoutesThroughTheFacade:
     """
 
     def test_a_domain_on_a_company_field_gets_the_optimization(
-            self, field, model, monkeypatch):
+        self, field, model, monkeypatch
+    ):
         _indexed(monkeypatch, field)
         _fallback(monkeypatch, False)
 
@@ -179,7 +202,9 @@ class TestDomainRoutesThroughTheFacade:
         assert NOT_NULL in q.children
 
     def test_a_domain_on_a_plain_field_is_left_alone(self, model, monkeypatch):
-        """El control del cableado: sin campo dependiente de empresa, nada cambia."""
+        """
+        El control del cableado: sin campo dependiente de empresa, nada cambia.
+        """
         _fallback(monkeypatch, False)
 
         q = Domain('name', 'in', ['Titular'])._to_q(model)
@@ -194,7 +219,8 @@ class TestTheFacadeRouteIsBoundedToRealFields:
     objeto que Django fabrica del **otro lado** de una FK. No hereda de
     ``models.Field``, asi que no lleva ninguno de los metodos que
     ``orm/fields.py`` le cuelga, y llamarle la fachada da
-    ``AttributeError: 'ManyToOneRel' object has no attribute 'condition_to_q'``.
+    ``AttributeError: 'ManyToOneRel' object has no attribute
+    'condition_to_q'``.
 
     En la fuente esa asimetria no existe: el lado inverso **tambien** es un
     ``Field`` (un ``One2many`` con su ``inverse_name``), asi que responde al

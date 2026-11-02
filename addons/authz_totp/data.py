@@ -5,15 +5,17 @@ autenticadora y cuántos códigos de recuperación se generan. Ambos nacen con e
 comportamiento previo cableado y quedan editables en caliente.
 
 Spec único que consumen las data-migrations ``0001_initial`` /
-``0002_totprecoverycode`` (arranque) y ``seed()`` (re-aplicación sobre el modelo
+``0002_totprecoverycode`` (arranque) y ``seed()`` (re-aplicación sobre el
+modelo
 vivo, H-API-22).
 """
+
 from django.db import DEFAULT_DB_ALIAS
 
 from addons.base.models import SystemParameter
 
 TOTP_PARAMETERS = {
-    'authz.totp_issuer': 'Kaupamex',        # operador L0 de la plataforma
+    'authz.totp_issuer': 'Kaupamex',  # operador L0 de la plataforma
     'authz.totp_recovery_codes': '10',
 }
 

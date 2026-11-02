@@ -1,4 +1,6 @@
-r"""Los dos serializadores del descriptor — lo que la firma de cada formato promete.
+r"""
+Los dos serializadores del descriptor — lo que la firma de cada formato
+promete.
 
 Tarea **#196**, con el criterio de las dos categorías: *el stack lo trae hecho*
 frente a *el stack tiene con qué construirlo*. Éste es el segundo caso — la
@@ -12,6 +14,7 @@ que los consumen, no el texto de sus cuerpos.
 es una decisión de presentación, no del serializador— y a lo que el motor de
 papel haga después con el descriptor, que no pasa por aquí.
 """
+
 import io
 from decimal import Decimal
 
@@ -20,7 +23,6 @@ from django.utils.safestring import mark_safe
 from PIL import Image
 
 from addons.base import report_template as rt
-
 
 DESCRIPTOR = {
     'title': 'Factura',
@@ -62,36 +64,50 @@ class TestTheHtmlSerializerEscapesRawTextAndNotConverterMarkup:
         # ``_render_text`` renderiza con ``autoescape=False``, así que lo que
         # llega de un ``<field>`` sin ``widget`` es ``str`` crudo: si no se
         # escapa aquí, no lo escapa nadie.
-        html = rt.descriptor_to_html({'note': '<script>alert(1)</script>'}).decode()
+        html = rt.descriptor_to_html(
+            {'note': '<script>alert(1)</script>'}
+        ).decode()
         assert '<script>' not in html
         assert '&lt;script&gt;' in html
 
     def test_but_what_a_converter_already_marked_safe_is_left_alone(self):
         # El conversor ``ir.qweb.field.*`` devuelve ``SafeString`` vía
         # ``mark_safe``. Re-escaparlo publicaría ``&lt;img …&gt;`` en el papel.
-        html = rt.descriptor_to_html({'logo': mark_safe('<img src="a.png"/>')}).decode()
+        html = rt.descriptor_to_html(
+            {'logo': mark_safe('<img src="a.png"/>')}
+        ).decode()
         assert '<img src="a.png"/>' in html
         assert '&lt;img' not in html
 
-    def test_and_the_name_is_escaped_too_because_it_lands_in_an_attribute(self):
+    def test_and_the_name_is_escaped_too_because_it_lands_in_an_attribute(
+        self,
+    ):
         html = rt.descriptor_to_html({'a"b': 'x'}).decode()
         assert 'data-name="a&quot;b"' in html
 
 
 class TestTheHtmlSerializerWritesThePairThatSplitsByRecord:
-    """``data-oe-model``/``data-oe-id`` — el contrato que ``_prepare_html`` lee."""
+    """
+    ``data-oe-model``/``data-oe-id`` — el contrato que ``_prepare_html`` lee.
+    """
 
     def test_with_model_and_ids_each_article_carries_both(self):
         html = rt.descriptor_to_html(
             {'bodies': [{'a': '1'}, {'a': '2'}], 'html_ids': [7, 8]},
-            model='res.partner').decode()
-        assert '<div class="article" data-oe-model="res.partner" data-oe-id="7">' in html
+            model='res.partner',
+        ).decode()
+        assert (
+            '<div class="article" data-oe-model="res.partner" data-oe-id="7">'
+            in html
+        )
         assert 'data-oe-id="8"' in html
 
     def test_without_ids_the_article_opens_anyway(self):
         # Un reporte sin registros —una portada, un listado agregado— no tiene
         # id que escribir, y eso no puede impedir que el documento salga.
-        html = rt.descriptor_to_html({'bodies': [{'a': '1'}], 'html_ids': [None]}).decode()
+        html = rt.descriptor_to_html(
+            {'bodies': [{'a': '1'}], 'html_ids': [None]}
+        ).decode()
         assert '<div class="article">' in html
         assert 'data-oe-id' not in html
 
@@ -113,7 +129,8 @@ class TestTheTextSerializerFlattensWithoutLosingTheStructure:
 
     def test_the_record_rule_carries_the_id_when_there_is_one(self):
         text = rt.descriptor_to_text(
-            {'bodies': [{'a': '1'}, {'a': '2'}], 'html_ids': [7, 8]}).decode()
+            {'bodies': [{'a': '1'}, {'a': '2'}], 'html_ids': [7, 8]}
+        ).decode()
         assert text.splitlines()[0] == '--- 7 ---'
         assert '--- 8 ---' in text
 
@@ -126,14 +143,20 @@ class TestBothAcceptTheIntermediateAndABareDescriptor:
 
     def test_the_intermediate_and_the_bare_descriptor_agree(self):
         bare = rt.descriptor_to_html({'a': '1'})
-        wrapped = rt.descriptor_to_html({'bodies': [{'a': '1'}], 'html_ids': [None]})
+        wrapped = rt.descriptor_to_html(
+            {'bodies': [{'a': '1'}], 'html_ids': [None]}
+        )
         assert bare == wrapped
 
     def test_a_decimal_value_survives_both_serializers(self):
         # El camino del API entrega decimal crudo (pieza 4); el serializador no
         # es quien lo formatea, así que tiene que dejarlo pasar tal cual.
-        assert b'1234.50' in rt.descriptor_to_text({'total': Decimal('1234.50')})
-        assert b'1234.50' in rt.descriptor_to_html({'total': Decimal('1234.50')})
+        assert b'1234.50' in rt.descriptor_to_text(
+            {'total': Decimal('1234.50')}
+        )
+        assert b'1234.50' in rt.descriptor_to_html(
+            {'total': Decimal('1234.50')}
+        )
 
 
 class TestTheRasterSerializerDrawsWhatTheDescriptorSays:
@@ -147,7 +170,9 @@ class TestTheRasterSerializerDrawsWhatTheDescriptorSays:
     """
 
     def _colours(self, raw):
-        return len(Image.open(io.BytesIO(raw)).convert('RGB').getcolors(1 << 16))
+        return len(
+            Image.open(io.BytesIO(raw)).convert('RGB').getcolors(1 << 16)
+        )
 
     def test_the_image_has_the_size_that_was_asked_for(self):
         raw = rt.descriptor_to_image(DESCRIPTOR, 320, 240)
@@ -169,23 +194,37 @@ class TestTheRasterSerializerDrawsWhatTheDescriptorSays:
     def test_the_canvas_is_not_blank_because_the_content_is_drawn(self):
         # El control que discrimina: un lienzo en blanco del tamaño pedido
         # pasaría los dos casos anteriores sin dibujar nada.
-        assert self._colours(rt.descriptor_to_image(DESCRIPTOR, 320, 240,
-                                                    image_format='png')) > 1
+        assert (
+            self._colours(
+                rt.descriptor_to_image(
+                    DESCRIPTOR, 320, 240, image_format='png'
+                )
+            )
+            > 1
+        )
 
     def test_two_different_descriptors_do_not_draw_the_same_pixels(self):
-        one = rt.descriptor_to_image({'title': 'Factura'}, 320, 240,
-                                     image_format='png')
-        another = rt.descriptor_to_image({'title': 'Nota de credito'}, 320, 240,
-                                         image_format='png')
+        one = rt.descriptor_to_image(
+            {'title': 'Factura'}, 320, 240, image_format='png'
+        )
+        another = rt.descriptor_to_image(
+            {'title': 'Nota de credito'}, 320, 240, image_format='png'
+        )
         assert one != another
 
     def test_the_record_rule_reaches_the_drawing_like_it_does_the_text(self):
         with_id = rt.descriptor_to_image(
-            {'bodies': [{'title': 'F'}], 'html_ids': ['7']}, 320, 240,
-            image_format='png')
+            {'bodies': [{'title': 'F'}], 'html_ids': ['7']},
+            320,
+            240,
+            image_format='png',
+        )
         without_id = rt.descriptor_to_image(
-            {'bodies': [{'title': 'F'}], 'html_ids': [None]}, 320, 240,
-            image_format='png')
+            {'bodies': [{'title': 'F'}], 'html_ids': [None]},
+            320,
+            240,
+            image_format='png',
+        )
         assert with_id != without_id
 
     def test_a_descriptor_taller_than_the_canvas_still_draws_what_fits(self):

@@ -32,14 +32,16 @@ que haya que construirles, es la ausencia de rama.
 
 Los tres tipos textuales están en ``COMPANY_DEPENDENT_FIELDS``, así que los
 tres despachan: ``Char`` con su rama propia (tiene además ``store`` y
-``translate``), ``Text`` con :func:`~orm.fields_company_dependent.make_dispatcher`
+``translate``), ``Text`` con
+:func:`~orm.fields_company_dependent.make_dispatcher`
 y ``Html`` con un ``__new__`` — no puede ser una función porque
 ``tools/convert.py`` la usa en un ``isinstance`` (H-API-700).
 
 ``Html`` — identidad de clase sin cambiar la columna (H-API-700)
 =================================================================
 
-Hasta la tarea #554 ``Html`` era un alias pelado de ``TextField``: en runtime un
+Hasta la tarea #554 ``Html`` era un alias pelado de ``TextField``: en runtime
+un
 campo HTML era indistinguible de un ``Text``, y ``Website._get_html_fields``
 tenía que rodearlo parseando el fuente por AST. La referencia distingue el tipo
 por catálogo — ``ttype = 'html'`` en ``ir.model.fields``
@@ -57,6 +59,7 @@ Dos invariantes deliberados:
 El **saneo NO va en el campo** — sigue en la capa UI (``dompurify``), igual que
 antes; la clase sólo aporta el tipo.
 """
+
 import collections.abc
 
 from django.db import models
@@ -102,15 +105,24 @@ class Html(models.TextField):
         cuando ``__new__`` devuelve algo que no es de ``cls``.
         """
         if company_dependent:
-            attrs = apply_source_defaults(related, kwargs,
-                                          company_dependent=True)
+            attrs = apply_source_defaults(
+                related, kwargs, company_dependent=True
+            )
             return annotate_related(
                 CompanyDependent(*args, base_type='html', **kwargs),
-                related, attrs)
+                related,
+                attrs,
+            )
         return super().__new__(cls)
 
-    def __init__(self, *args, company_dependent=False, related=None,
-                 store=_UNSET, **kwargs):
+    def __init__(
+        self,
+        *args,
+        company_dependent=False,
+        related=None,
+        store=_UNSET,
+        **kwargs,
+    ):
         """Deriva el vocabulario de la fuente y lo reenvía al constructor.
 
         **Reenvía en vez de tragar.** La versión anterior nombraba ``store`` y
@@ -139,8 +151,17 @@ class Html(models.TextField):
         return name, 'django.db.models.TextField', args, kwargs
 
 
-def Char(*args, store=_UNSET, required=None, translate=None, help=None,
-         size=None, company_dependent=False, related=None, **kwargs):
+def Char(
+    *args,
+    store=_UNSET,
+    required=None,
+    translate=None,
+    help=None,
+    size=None,
+    company_dependent=False,
+    related=None,
+    **kwargs,
+):
     r"""``fields.Char`` — ≙ el de la referencia, con y sin columna.
 
     ``store=True`` (el defecto, y el de los 432 usos del árbol) devuelve un
@@ -229,8 +250,9 @@ def Char(*args, store=_UNSET, required=None, translate=None, help=None,
         kwargs['max_length'] = size
     if store is not _UNSET:
         kwargs['store'] = store
-    related_attrs = apply_source_defaults(related, kwargs,
-                                         company_dependent=company_dependent)
+    related_attrs = apply_source_defaults(
+        related, kwargs, company_dependent=company_dependent
+    )
     store = related_attrs['store']
 
     if company_dependent:
@@ -304,8 +326,9 @@ class LangProxyDict(collections.abc.MutableMapping):
     def _falls_back(self, key):
         """¿Cae a ``en_US`` este id? — la condición que la fuente repite tres
         veces: el valor no se calcula y no está en base."""
-        return not (self._field.compute
-                    or (self._field.store and (key or key.origin)))
+        return not (
+            self._field.compute or (self._field.store and (key or key.origin))
+        )
 
     def get(self, key, default=None):
         # sólo por rendimiento, como la fuente
@@ -360,12 +383,18 @@ class LangProxyDict(collections.abc.MutableMapping):
                 vals.pop(self._lang, None)
 
     def __repr__(self):
-        return (f"<LangProxyDict lang={self._lang!r} "
-                f"size={len(self._cache)} at {hex(id(self))}>")
+        return (
+            f"<LangProxyDict lang={self._lang!r} "
+            f"size={len(self._cache)} at {hex(id(self))}>"
+        )
 
 
-def _textual_convert_to_column(self, value, record, values=None, validate=True):
-    """``Char.convert_to_column`` — ≙ ``odoo19c: odoo/orm/fields_textual.py:84-85``.
+def _textual_convert_to_column(
+    self, value, record, values=None, validate=True
+):
+    """
+    ``Char.convert_to_column`` — ≙ ``odoo19c:
+    odoo/orm/fields_textual.py:84-85``.
 
     Delega en ``convert_to_cache``, que es donde la fuente pone el recorte a
     ``size`` y el descarte del valor vacío. Cubre también ``Selection``: la
@@ -378,7 +407,9 @@ def _textual_convert_to_column(self, value, record, values=None, validate=True):
 
 
 def _textual_convert_to_cache(self, value, record, validate=True):
-    """``Char.convert_to_cache`` — ≙ ``odoo19c: odoo/orm/fields_textual.py:102-113``.
+    """
+    ``Char.convert_to_cache`` — ≙ ``odoo19c:
+    odoo/orm/fields_textual.py:102-113``.
 
     Cuatro pasos, en el orden de la fuente: ``None`` y ``False`` se descartan
     **por identidad** —la cadena vacía sobrevive, y es un valor distinto de la

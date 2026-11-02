@@ -9,6 +9,7 @@ par ``Field.to_sql``/``Field.property_to_sql`` de ``orm/fields.py`` y
 El sujeto es ``PropertiesBaseDefinition``, primer adoptante del mixin: tiene
 las dos formas que el mecanismo resuelve, una FK real y un campo JSON.
 """
+
 import pytest
 from django.db import models as django_models
 
@@ -16,7 +17,8 @@ from addons.base.models import PropertiesBaseDefinition
 from addons.fleet.models.fleet_vehicle import FleetVehicle
 from addons.fleet.models.fleet_vehicle_model import FleetVehicleModel
 from addons.fleet.models.fleet_vehicle_model_brand import (
-    FleetVehicleModelBrand)
+    FleetVehicleModelBrand,
+)
 from addons.base.models.ir_model import IrModel, IrModelFields
 from exceptions import AccessError
 from orm.fields_properties import Properties
@@ -36,19 +38,30 @@ def vehicle():
 
 @pytest.fixture
 def definition():
-    """Una instancia sin guardar basta: ``_field_to_sql`` compone SQL, no lo corre."""
+    """
+    Una instancia sin guardar basta: ``_field_to_sql`` compone SQL, no lo
+    corre.
+    """
     return PropertiesBaseDefinition()
 
 
 class TestPortedSurface:
     """Los símbolos, con el nombre y el sitio de la fuente."""
 
-    @pytest.mark.parametrize('name', [
-        '_field_to_sql', '_traverse_related_sql',
-        '_check_field_access', '_has_field_access', '_fields',
-    ])
+    @pytest.mark.parametrize(
+        'name',
+        [
+            '_field_to_sql',
+            '_traverse_related_sql',
+            '_check_field_access',
+            '_has_field_access',
+            '_fields',
+        ],
+    )
     def test_the_reference_method_is_declared_on_the_mixin(self, name):
-        """La declaracion se mide en el ``__dict__`` de la MRO, no con ``hasattr``.
+        """
+        La declaracion se mide en el ``__dict__`` de la MRO, no con
+        ``hasattr``.
 
         ``hasattr`` **evalua**: para un metodo da lo mismo, pero para un
         descriptor invoca su ``__get__`` y devuelve ``False`` si ese cuerpo
@@ -75,10 +88,14 @@ class TestPortedSurface:
         ``PropertiesDefinition`` respondían también. Con ``Properties`` ya
         convertida en clase, el despacho vuelve a ser el de la fuente.
         """
-        assert (Properties.property_to_sql
-                is not django_models.Field.property_to_sql)
-        assert (django_models.JSONField.property_to_sql
-                is django_models.Field.property_to_sql)
+        assert (
+            Properties.property_to_sql
+            is not django_models.Field.property_to_sql
+        )
+        assert (
+            django_models.JSONField.property_to_sql
+            is django_models.Field.property_to_sql
+        )
 
     def test_the_foreign_key_carries_join(self):
         # odoo19c: fields_relational.py:466 — el salto de un camino relacional.
@@ -98,39 +115,55 @@ class TestFieldsRegistry:
         caso enumeraba sólo las cinco columnas.
         """
         assert set(definition._fields) == {
-            'id', 'created_at', 'updated_at',
-            'properties_field', 'properties_definition',
+            'id',
+            'created_at',
+            'updated_at',
+            'properties_field',
+            'properties_definition',
             'display_name',
         }
 
     def test_the_values_are_the_django_fields(self, definition):
-        assert isinstance(definition._fields['properties_field'],
-                          django_models.ForeignKey)
+        assert isinstance(
+            definition._fields['properties_field'], django_models.ForeignKey
+        )
 
 
 class TestFieldToSql:
     """La conversión, contra la forma de la fuente."""
 
     def test_a_plain_column_is_quoted_with_its_alias(self, definition):
-        assert definition._field_to_sql(TABLE, 'properties_definition').code == \
-            '"properties_base_definition"."properties_definition"'
+        assert (
+            definition._field_to_sql(TABLE, 'properties_definition').code
+            == '"properties_base_definition"."properties_definition"'
+        )
 
-    def test_a_foreign_key_uses_its_COLUMN_not_its_field_name(self, definition):
+    def test_a_foreign_key_uses_its_COLUMN_not_its_field_name(
+        self, definition
+    ):
         # La fuente entrecomilla `self.name` porque allá el nombre del campo ES
         # el de la columna. Aquí una FK las separa: el campo es
         # `properties_field` y la columna `properties_field_id`. Lo que va en
         # SQL es la columna — si esto dijera `properties_field`, PostgreSQL
         # rechazaría la sentencia.
-        assert definition._field_to_sql(TABLE, 'properties_field').code == \
-            '"properties_base_definition"."properties_field_id"'
+        assert (
+            definition._field_to_sql(TABLE, 'properties_field').code
+            == '"properties_base_definition"."properties_field_id"'
+        )
 
-    def test_an_unknown_field_is_refused_with_the_reference_message(self, definition):
+    def test_an_unknown_field_is_refused_with_the_reference_message(
+        self, definition
+    ):
         with pytest.raises(ValueError, match="Invalid field 'no_existe'"):
             definition._field_to_sql(TABLE, 'no_existe')
 
     def test_the_alias_is_honoured_not_the_table(self, definition):
-        assert definition._field_to_sql('otro_alias', 'properties_definition').code == \
-            '"otro_alias"."properties_definition"'
+        assert (
+            definition._field_to_sql(
+                'otro_alias', 'properties_definition'
+            ).code
+            == '"otro_alias"."properties_definition"'
+        )
 
 
 class TestPropertyExpression:
@@ -148,26 +181,35 @@ class TestPropertyExpression:
         sql = vehicle._field_to_sql(VEHICLE_TABLE, 'vehicle_properties.color')
         assert sql.code == '("fleet_vehicle"."vehicle_properties" -> %s)'
 
-    def test_the_property_name_travels_as_a_parameter_not_interpolated(self, vehicle):
+    def test_the_property_name_travels_as_a_parameter_not_interpolated(
+        self, vehicle
+    ):
         # Es lo que impide que el nombre entre en el SQL como texto. Si se
         # interpolara, `check_property_field_value_name` sería la única
         # defensa; así hay dos.
         sql = vehicle._field_to_sql(VEHICLE_TABLE, 'vehicle_properties.color')
         assert sql.params == ['color']
 
-    @pytest.mark.parametrize('bad', ['MAL', 'con-guion', 'con espacio',
-                                     'punto.punto', 'x' * 513])
+    @pytest.mark.parametrize(
+        'bad', ['MAL', 'con-guion', 'con espacio', 'punto.punto', 'x' * 513]
+    )
     def test_a_malformed_property_name_is_refused(self, vehicle, bad):
-        with pytest.raises(ValueError, match='Wrong property field value name'):
+        with pytest.raises(
+            ValueError, match='Wrong property field value name'
+        ):
             vehicle._field_to_sql(VEHICLE_TABLE, f'vehicle_properties.{bad}')
 
-    def test_an_empty_property_name_is_not_a_property_expression(self, vehicle):
+    def test_an_empty_property_name_is_not_a_property_expression(
+        self, vehicle
+    ):
         # `parse_field_expr('campo.')` devuelve ('campo', ''), y `if
         # property_name:` descarta la cadena vacía — así que no llega a
         # `property_to_sql` y no hay nada que validar. Es la conducta de la
         # fuente, no una laxitud de este puerto.
-        assert vehicle._field_to_sql(VEHICLE_TABLE, 'vehicle_properties.').code == \
-            '"fleet_vehicle"."vehicle_properties"'
+        assert (
+            vehicle._field_to_sql(VEHICLE_TABLE, 'vehicle_properties.').code
+            == '"fleet_vehicle"."vehicle_properties"'
+        )
 
     def test_a_date_field_extracts_the_granularity(self, definition):
         """Un campo de fecha SÍ resuelve la granularidad — ≙ ``BaseDate``.
@@ -187,7 +229,8 @@ class TestPropertyExpression:
         assert sql.params == ['month']
 
     def test_a_date_field_refuses_an_unknown_granularity(self, definition):
-        """La granularidad que no está en el catálogo se rechaza — ≙ ``:89-92``.
+        """
+        La granularidad que no está en el catálogo se rechaza — ≙ ``:89-92``.
 
         Con su propio mensaje, no con el del caso base: quien rechaza aquí es
         ``BaseDate``, que sí sabe de granularidades y no reconoce ésta.
@@ -219,7 +262,8 @@ class TestPropertyExpression:
 
 @pytest.mark.django_db
 class TestFieldAccess:
-    """``_has_field_access`` / ``_check_field_access`` — ≙ ``:3370`` y ``:3384``.
+    """
+    ``_has_field_access`` / ``_check_field_access`` — ≙ ``:3370`` y ``:3384``.
 
     Marcados ``django_db`` desde que :meth:`_check_field_access` compone el
     mensaje entero de la fuente: la descripción del modelo sale de
@@ -230,8 +274,12 @@ class TestFieldAccess:
     """
 
     def test_a_field_without_groups_is_accessible(self, definition):
-        assert definition._has_field_access(
-            definition._fields['properties_definition'], 'read') is True
+        assert (
+            definition._has_field_access(
+                definition._fields['properties_definition'], 'read'
+            )
+            is True
+        )
 
     def test_no_access_forbids_the_field(self, definition):
         field = definition._fields['properties_definition']
@@ -296,9 +344,13 @@ class TestToSqlRefusesWhatHasNoColumn:
 
 
 class TestJoin:
-    """``Many2one.join`` — el LEFT JOIN que ``_traverse_related_sql`` encadena."""
+    """
+    ``Many2one.join`` — el LEFT JOIN que ``_traverse_related_sql`` encadena.
+    """
 
-    def test_it_adds_the_left_join_and_returns_comodel_and_alias(self, definition):
+    def test_it_adds_the_left_join_and_returns_comodel_and_alias(
+        self, definition
+    ):
         query = Query(None, TABLE)
         field = definition._fields['properties_field']
         comodel, coalias = field.join(definition, TABLE, query)
@@ -313,8 +365,10 @@ class TestJoin:
         # cualquier otra columna — con su comprobación de acceso incluida.
         query = Query(None, TABLE)
         definition._fields['properties_field'].join(definition, TABLE, query)
-        assert '"properties_base_definition"."properties_field_id" = ' \
+        assert (
+            '"properties_base_definition"."properties_field_id" = '
             in query.from_clause.code
+        )
 
 
 class TestTraverseRelatedRefusesWhatIsStored:
@@ -325,8 +379,10 @@ class TestTraverseRelatedRefusesWhatIsStored:
         # recorrido es para campos derivados, no para columnas.
         with pytest.raises(AssertionError):
             definition._traverse_related_sql(
-                TABLE, definition._fields['properties_definition'],
-                Query(None, TABLE))
+                TABLE,
+                definition._fields['properties_definition'],
+                Query(None, TABLE),
+            )
 
 
 @pytest.mark.django_db
@@ -341,25 +397,37 @@ class TestAgainstTheRealSchema:
     @pytest.fixture
     def field_row(self):
         model = IrModel.objects.get_or_create(
-            model='base.Sujeto', defaults={'name': 'Sujeto'})[0]
+            model='base.Sujeto', defaults={'name': 'Sujeto'}
+        )[0]
         return IrModelFields.objects.create(
-            model_id=model, model='base.Sujeto', name='props',
-            ttype='properties', state='base')
+            model_id=model,
+            model='base.Sujeto',
+            name='props',
+            ttype='properties',
+            state='base',
+        )
 
     def test_a_composed_select_runs(self, field_row):
         row = PropertiesBaseDefinition.objects.create(
-            properties_field=field_row, properties_definition=[{'name': 'color'}])
+            properties_field=field_row,
+            properties_definition=[{'name': 'color'}],
+        )
         query = Query(None, TABLE)
         query.add_where(SQL("%s = %s", SQL.identifier(TABLE, 'id'), row.pk))
         assert query.get_result_ids() == (row.pk,)
 
     def test_the_join_it_builds_is_accepted_by_postgres(self, field_row):
-        row = PropertiesBaseDefinition.objects.create(properties_field=field_row)
+        row = PropertiesBaseDefinition.objects.create(
+            properties_field=field_row
+        )
         definition = PropertiesBaseDefinition()
         query = Query(None, TABLE)
         comodel, coalias = definition._fields['properties_field'].join(
-            definition, TABLE, query)
-        query.add_where(SQL("%s = %s", SQL.identifier(coalias, 'id'), field_row.pk))
+            definition, TABLE, query
+        )
+        query.add_where(
+            SQL("%s = %s", SQL.identifier(coalias, 'id'), field_row.pk)
+        )
         assert query.get_result_ids() == (row.pk,)
 
     def test_the_json_arrow_returns_the_property(self):
@@ -376,17 +444,27 @@ class TestAgainstTheRealSchema:
         # vacía el valor al guardar, que es la conducta de la fuente —una
         # propiedad sin definición en el contenedor no significa nada.
         model = FleetVehicleModel.objects.create(
-            name='Modelo', brand=brand,
+            name='Modelo',
+            brand=brand,
             vehicle_properties_definition=[
-                {'name': 'color', 'type': 'char', 'string': 'Color'}])
+                {'name': 'color', 'type': 'char', 'string': 'Color'}
+            ],
+        )
         row = FleetVehicle.objects.create(
-            model=model, vehicle_properties={'color': 'azul'})
+            model=model, vehicle_properties={'color': 'azul'}
+        )
         vehicle = FleetVehicle()
         query = Query(None, VEHICLE_TABLE)
-        query.add_where(SQL("%s = %s",
-                            SQL.identifier(VEHICLE_TABLE, 'id'), row.pk))
-        rows = query._execute_query(query.select(
-            vehicle._field_to_sql(VEHICLE_TABLE, 'vehicle_properties.color')))
+        query.add_where(
+            SQL("%s = %s", SQL.identifier(VEHICLE_TABLE, 'id'), row.pk)
+        )
+        rows = query._execute_query(
+            query.select(
+                vehicle._field_to_sql(
+                    VEHICLE_TABLE, 'vehicle_properties.color'
+                )
+            )
+        )
         # `->` devuelve **jsonb**, así que una cadena vuelve con sus
         # comillas. Es lo que la fuente emite —usa `->`, no `->>`— y por
         # eso la aserción las lleva: quitarlas sería portar otro operador.

@@ -1,4 +1,5 @@
-"""Renombra el octavo tipo de vista: ``qweb`` → ``template`` (DEC-FW-05, pieza 5).
+"""
+Renombra el octavo tipo de vista: ``qweb`` → ``template`` (DEC-FW-05, pieza 5).
 
 El valor nombraba al **intérprete**, no a la cosa; los otros siete nombran qué
 es la vista. Es el mismo par que ``report_type`` ya resolvió al retirar el
@@ -12,6 +13,7 @@ en su condición: si el dato se renombrara con la restricción puesta, PostgreSQ
 la evaluaría contra filas que ya no la satisfacen por el nombre. Se retira, se
 renombra el dato, y se vuelve a poner con la condición nueva.
 """
+
 from django.db import migrations, models
 
 
@@ -45,7 +47,9 @@ class Migration(migrations.Migration):
             model_name='iruiview',
             name='type',
             field=models.CharField(
-                blank=True, default='', max_length=16,
+                blank=True,
+                default='',
+                max_length=16,
                 verbose_name='Tipo de vista',
                 choices=[
                     ('list', 'Lista'),

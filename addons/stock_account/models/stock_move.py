@@ -59,11 +59,13 @@ hace que esa escritura tenga receptor.
 El sitio del archivo se leyó contra la referencia
 --------------------------------------------------
 
-``atributos-de-clase-de-modelo.md``, segunda cláusula: antes de crear un archivo
+``atributos-de-clase-de-modelo.md``, segunda cláusula: antes de crear un
+archivo
 en una raíz espejada se lista la raíz de la referencia.
 ``odoo19c: addons/stock_account/models/`` declara ``stock_move.py``; este árbol
 tenía sólo ``product_costing.py`` y ``stock_valuation_layer.py``. El campo va
-aquí y no en ``addons/stock``, porque es la referencia quien decide de qué addon
+aquí y no en ``addons/stock``, porque es la referencia quien decide de qué
+addon
 cuelga cada extensión — ``stock`` no conoce el reembolso.
 
 Divergencia declarada
@@ -76,6 +78,7 @@ Colgar un campo sobre ``stock.StockMove`` en tiempo de import falla con
 número 4** de ``no-lazy-imports.md`` — una llamada de función, no un statement
 ``import``.
 """
+
 import fields
 from orm.model_classes import extend_model
 
@@ -84,13 +87,18 @@ def apply_stock_account_stock_move_extensions():
     """Cuelga sobre ``stock.StockMove`` lo que ``stock_account`` le añade —
     ≙ ``_inherit``."""
     extend_model(
-        'stock', 'StockMove',
+        'stock',
+        'StockMove',
         campos={
             'to_refund': fields.Boolean(
-                'Update quantities on SO/PO', default=True, copy=True,
-                help_text='Dispara la disminución de la cantidad '
-                          'entregada/recibida en la orden de venta o compra '
-                          'asociada (Odoo to_refund).',
+                'Update quantities on SO/PO',
+                default=True,
+                copy=True,
+                help_text=(
+                    'Dispara la disminución de la cantidad '
+                    'entregada/recibida en la orden de venta o compra '
+                    'asociada (Odoo to_refund).'
+                ),
             ),
         },
     )

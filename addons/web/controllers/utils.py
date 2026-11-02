@@ -89,7 +89,8 @@ Por qué 7 de 8 son ausentes — con la re-verificación de hoy
   dicts al vuelo en la referencia —``ir.actions.server.run()``— sigue NO
   implementado por razón de seguridad (``ir_actions.py``: "montar un
   evaluador sobre entrada almacenada es superficie de ejecución de código").
-- **``clean_action``.** Depende de ``env[action['type']]._get_readable_fields()``,
+- **``clean_action``.** Depende de
+  ``env[action['type']]._get_readable_fields()``,
   la allowlist de campos por tipo de acción que un endpoint genérico de
   acciones filtraría antes de responder. Sin endpoint (medición 2 arriba) y
   sin el primitivo que filtra —``_get_readable_fields`` sigue cubierto por
@@ -152,6 +153,7 @@ Referencia                               Aquí
 ``_local_web_translations``              AUSENTE — sin ``babel`` ni ``.po``
 ======================================  ======================================
 """
+
 from addons.base.models import ResUsers
 
 

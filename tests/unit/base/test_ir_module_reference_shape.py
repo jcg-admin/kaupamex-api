@@ -1,6 +1,7 @@
 """Tests unitarios — la FORMA de ``ir.module.*`` contra su fuente (H-API-756).
 
-Estos casos no prueban comportamiento: prueban que el **puerto sigue teniendo la
+Estos casos no prueban comportamiento: prueban que el **puerto sigue teniendo
+la
 forma que la referencia declara**. Es el control que faltaba cuando
 :ref:`h-api-750` truncó un ``summary`` real contra una columna de 255 que la
 fuente no impone.
@@ -9,7 +10,8 @@ Las tres afirmaciones vienen de una medición sobre
 ``odoo19c: odoo/addons/base/models/ir_module.py`` (``odoo-tools@622ddc2a``), no
 de memoria:
 
-- sus **16** ``fields.Char`` se declaran **sin** ``size=`` → columna ``varchar``
+- sus **16** ``fields.Char`` se declaran **sin** ``size=`` → columna
+  ``varchar``
   sin límite;
 - sus tres clases declaran atributos de clase (4 · 7 · 4) que aquí se portan
   verbatim;
@@ -20,6 +22,7 @@ El tercero es el más general de los tres: un ``_order`` que nombre un campo
 inexistente describe un orden que el modelo no puede ejecutar, y ningún gate de
 conteo de símbolos lo ve.
 """
+
 import pytest
 from django.db import connection
 
@@ -74,7 +77,7 @@ def test_the_ported_char_columns_carry_no_length_limit():
         }
 
     assert set(measured) == set(UNBOUNDED_CHAR_COLUMNS), (
-        f'columnas no encontradas en el schema: '
+        'columnas no encontradas en el schema: '
         f'{set(UNBOUNDED_CHAR_COLUMNS) - set(measured)}'
     )
     capped = {k: v for k, v in measured.items() if v is not None}
@@ -106,12 +109,16 @@ def test_the_class_attributes_match_the_reference():
 
 
 @pytest.mark.parametrize(
-    'model', [IrModule, IrModuleCategory], ids=['ir.module.module', 'ir.module.category'])
+    'model',
+    [IrModule, IrModuleCategory],
+    ids=['ir.module.module', 'ir.module.category'],
+)
 def test_every_field_named_by_order_exists_on_the_model(model):
     """``_order`` no puede nombrar un campo que el modelo no declara.
 
     Es la aserción que destapó el hueco: ``IrModule._order`` nombra
-    ``sequence`` y el puerto no lo tenía, así que el atributo describía un orden
+    ``sequence`` y el puerto no lo tenía, así que el atributo describía un
+    orden
     inejecutable. El campo se portó (``odoo19c: …/ir_module.py:294``) en el
     mismo pase.
     """
@@ -121,7 +128,8 @@ def test_every_field_named_by_order_exists_on_the_model(model):
         if field_name == 'id':
             continue
         assert field_name in declared, (
-            f'{model.__name__}._order nombra "{field_name}", que el modelo no declara'
+            f'{model.__name__}._order nombra "{field_name}", que el modelo no'
+            ' declara'
         )
 
 

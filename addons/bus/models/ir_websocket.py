@@ -43,6 +43,7 @@ Sin ese acotado, un cliente que pide desde un id futuro —tras restaurar una
 base, o por un id de otra instancia— no recibiría **nunca** nada, sin error y
 sin señal. Volver a 0 hace que relea la ventana reciente.
 """
+
 from addons.bus.models.bus import BusMessage
 
 #: Canal global al que se suscribe toda sesión.
@@ -75,9 +76,11 @@ def build_bus_channel_list(channels, user=None, groups=(), authenticated=True):
     return ordered
 
 
-def prepare_subscribe_data(channels, last, user=None, groups=(),
-                           authenticated=True):
-    """``_prepare_subscribe_data`` — valida y normaliza lo que manda el cliente.
+def prepare_subscribe_data(
+    channels, last, user=None, groups=(), authenticated=True
+):
+    """
+    ``_prepare_subscribe_data`` — valida y normaliza lo que manda el cliente.
 
     Devuelve ``{'channels': [...], 'last': N}``. Ver el docstring del módulo
     sobre por qué acotar ``last`` no es una comprobación de cortesía.
@@ -88,7 +91,10 @@ def prepare_subscribe_data(channels, last, user=None, groups=(),
         last = 0
     return {
         'channels': build_bus_channel_list(
-            list(channels), user=user, groups=groups,
-            authenticated=authenticated),
+            list(channels),
+            user=user,
+            groups=groups,
+            authenticated=authenticated,
+        ),
         'last': last,
     }

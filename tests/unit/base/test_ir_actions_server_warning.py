@@ -16,6 +16,7 @@ caso que sólo mirase el aviso propio pasaría con la recursión ausente, así q
 hay un caso de dos niveles que la exige. Y el rechazo de ``_check_children`` se
 mide **guardando**, no llamando al método: es su consumidor real.
 """
+
 import pytest
 from django.core.exceptions import ValidationError
 
@@ -59,7 +60,9 @@ class TestTheModelBranch:
         assert 'base.ResPartner' in parent.warning
 
     def test_a_parent_without_model_does_not_warn(self):
-        """La guarda ``if self.model_id`` de la fuente: sin modelo no compara."""
+        """
+        La guarda ``if self.model_id`` de la fuente: sin modelo no compara.
+        """
         parent = _action()
         _action(name='Hija', model_name='base.ResCountry', parent=parent)
 
@@ -73,8 +76,9 @@ class TestTheRecursiveBranch:
     def test_a_grandchild_warning_reaches_the_grandparent(self):
         """El caso que exige la recursión: sin ella el abuelo no se entera."""
         grandparent = _action(name='Abuela')
-        parent = _action(name='Madre', model_name='base.ResPartner',
-                         parent=grandparent)
+        parent = _action(
+            name='Madre', model_name='base.ResPartner', parent=grandparent
+        )
         _action(name='Nieta', model_name='base.ResCountry', parent=parent)
 
         assert 'Madre' in grandparent.warning
@@ -96,12 +100,12 @@ class TestCheckChildrenRefusesTheSave:
         parent = _action(name='Madre', model_name='base.ResPartner')
         _action(name='Hija', model_name='base.ResCountry', parent=parent)
         nieta_parent = IrActionsServer.objects.get(pk=parent.pk)
-        _action(name='Nieta', model_name='base.ResCountry',
-                parent=nieta_parent)
+        _action(
+            name='Nieta', model_name='base.ResCountry', parent=nieta_parent
+        )
 
         grandparent = _action(name='Abuela')
-        IrActionsServer.objects.filter(pk=parent.pk).update(
-            parent=grandparent)
+        IrActionsServer.objects.filter(pk=parent.pk).update(parent=grandparent)
         grandparent.name = 'Abuela editada'
 
         with pytest.raises(ValidationError, match='avisos'):
@@ -114,7 +118,9 @@ class TestCheckChildrenRefusesTheSave:
         parent.name = 'Madre editada'
         parent.save()
 
-        assert IrActionsServer.objects.get(pk=parent.pk).name == 'Madre editada'
+        assert (
+            IrActionsServer.objects.get(pk=parent.pk).name == 'Madre editada'
+        )
 
     def test_the_cycle_half_still_refuses(self):
         """La mitad que ya existía no se pierde al añadir la segunda."""

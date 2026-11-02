@@ -1,4 +1,5 @@
-"""``purchase.requisition.alternative.warning`` — qué hacer con las cotizaciones
+"""
+``purchase.requisition.alternative.warning`` — qué hacer con las cotizaciones
 alternativas al confirmar (Odoo ``purchase_requisition``).
 
 Adaptación de Odoo
@@ -14,7 +15,8 @@ mantenerlas o cancelarlas—, y las dos terminan confirmando la orden.
 Porte símbolo por símbolo — 5 de 5
 ====================================
 
-*Métrica:* entradas del cuerpo de ``class PurchaseRequisitionAlternativeWarning``
+*Métrica:* entradas del cuerpo de ``class
+PurchaseRequisitionAlternativeWarning``
 contadas por AST sobre la fuente, descontando ``_name`` y ``_description``. Son
 **5**: 2 campos y 3 métodos.
 *Ciega a:* si el asistente se comporta igual en ejecución.
@@ -22,7 +24,8 @@ contadas por AST sobre la fuente, descontando ``_name`` y ``_description``. Son
 ======================================  =====================================
 Símbolo de la referencia (línea)        Dónde queda en este puerto
 ======================================  =====================================
-``po_ids`` (``:12``)                    parámetro ``po_ids`` de los tres métodos
+``po_ids`` (``:12``)                    parámetro ``po_ids`` de los tres
+métodos
 ``alternative_po_ids`` (``:13``)        parámetro ``alternative_po_ids``
 ``action_keep_alternatives`` (``:15``)  ``@classmethod`` homónimo
 ``action_cancel_alternatives`` (``:18``) ``@classmethod`` homónimo
@@ -55,6 +58,7 @@ any po_ids in it, but it's possible by accident/forcing it, so avoid cancelling
 them to be safe»*. Por eso se excluyen las órdenes que están en las dos listas
 antes de cancelar.
 """
+
 from orm.environments import context_scope
 from orm.models_transient import TransientModel
 
@@ -66,8 +70,9 @@ class PurchaseRequisitionAlternativeWarning(TransientModel):
     # Atributos de clase de modelo — los DOS que la fuente declara
     # (``odoo19c: :9-10``), verbatim.
     _name = 'purchase.requisition.alternative.warning'
-    _description = ('Wizard in case PO still has open alternative requests '
-                    'for quotation')
+    _description = (
+        'Wizard in case PO still has open alternative requests for quotation'
+    )
 
     class Meta:
         abstract = True

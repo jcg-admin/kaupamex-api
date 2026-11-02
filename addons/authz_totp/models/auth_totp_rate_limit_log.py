@@ -46,6 +46,7 @@ Los otros dos renombres son de stack, no de contenido: ``user_id`` es ``user``
 —la FK de Django, igual que en ``totp_secret.py`` y ``auth_totp.py``— y
 ``create_date`` es el ``created_at`` de ``TimeStampedModel``.
 """
+
 import logging
 from datetime import timedelta
 
@@ -82,14 +83,19 @@ GC_MAX_AGE_SECONDS = 3600
 
 
 class AuthTotpRateLimitLog(TimeStampedModel):
-    """``auth.totp.rate.limit.log`` — ≙ ``AuthTotpRateLimitLog`` (``:4-15``)."""
+    """
+    ``auth.totp.rate.limit.log`` — ≙ ``AuthTotpRateLimitLog`` (``:4-15``).
+    """
 
     _name = 'auth.totp.rate.limit.log'
     _description = 'TOTP rate limit logs'
 
     user_id = fields.Many2one(
-        'base.ResUsers', on_delete=models.CASCADE, db_index=True,
-        related_name='totp_rate_limit_logs', verbose_name='Usuario',
+        'base.ResUsers',
+        on_delete=models.CASCADE,
+        db_index=True,
+        related_name='totp_rate_limit_logs',
+        verbose_name='Usuario',
         help_text=(
             'Odoo user_id (required, readonly) — de quién es el intento que '
             'se cuenta. El readonly de la fuente es de su capa de vista y no '
@@ -98,7 +104,10 @@ class AuthTotpRateLimitLog(TimeStampedModel):
         db_column='user_id',
     )
     ip = fields.Char(
-        max_length=45, blank=True, default='', verbose_name='IP',
+        max_length=45,
+        blank=True,
+        default='',
+        verbose_name='IP',
         help_text=(
             'Odoo ip — forense. La fuente lo lee de su petición global '
             '(request.httprequest.environ["REMOTE_ADDR"]); aquí llega como '
@@ -108,7 +117,9 @@ class AuthTotpRateLimitLog(TimeStampedModel):
         ),
     )
     limit_type = fields.Selection(
-        max_length=16, choices=LIMIT_TYPES, verbose_name='Tipo de límite',
+        max_length=16,
+        choices=LIMIT_TYPES,
+        verbose_name='Tipo de límite',
         help_text='Odoo limit_type — qué acción se está contando.',
     )
 
@@ -121,8 +132,10 @@ class AuthTotpRateLimitLog(TimeStampedModel):
             # ≙ ``_user_id_limit_type_create_date_idx`` (``:8``). Mismas tres
             # columnas y mismo orden; el nombre se acorta por el límite de
             # Django (ver la cabecera del módulo).
-            models.Index(fields=['user_id', 'limit_type', 'created_at'],
-                         name='authz_totp_rate_limit_idx'),
+            models.Index(
+                fields=['user_id', 'limit_type', 'created_at'],
+                name='authz_totp_rate_limit_idx',
+            ),
         ]
 
     def __str__(self):
@@ -145,6 +158,7 @@ class AuthTotpRateLimitLog(TimeStampedModel):
         ``res_users.py`` al importar, que es quien conoce los dos.
         """
         corte = timezone.now() - timedelta(
-            seconds=max(GC_MAX_AGE_SECONDS, GC_FLOOR_SECONDS))
+            seconds=max(GC_MAX_AGE_SECONDS, GC_FLOOR_SECONDS)
+        )
         borradas, _resto = cls.objects.filter(created_at__lt=corte).delete()
         _logger.info('GC TOTP rate limit log delete %d entries', borradas)

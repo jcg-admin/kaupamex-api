@@ -20,13 +20,16 @@ configuracion. `codigo_error` es el caso vivo — 270 ocurrencias en `addons/`,
 y su propia normativa MANDA escribirlo asi. Por eso `--keys` se pide, no se
 asume: el default sigue midiendo solo lo que no puede romper un contrato.
 """
+
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 
-SCRIPT = Path(__file__).resolve().parents[3] / 'scripts' / 'rename_identifiers.py'
+SCRIPT = (
+    Path(__file__).resolve().parents[3] / 'scripts' / 'rename_identifiers.py'
+)
 
 #: La forma real de `audit_ucs.py`: claves a patrones, leidas por `.items()`.
 #: La f-string es deliberada — es donde 3.11 se queda ciego (H-API-607), asi
@@ -63,12 +66,23 @@ def mapping(tmp_path):
 
 def run(target, mapping, *extra):
     return subprocess.run(
-        [sys.executable, str(SCRIPT), '--map', str(mapping), *extra, str(target)],
-        capture_output=True, text=True)
+        [
+            sys.executable,
+            str(SCRIPT),
+            '--map',
+            str(mapping),
+            *extra,
+            str(target),
+        ],
+        capture_output=True,
+        text=True,
+    )
 
 
 def test_the_default_renames_the_symbol_and_leaves_the_key(target, mapping):
-    """Sin `--keys` el default no toca contratos: el simbolo si, la clave no."""
+    """
+    Sin `--keys` el default no toca contratos: el simbolo si, la clave no.
+    """
     assert run(target, mapping).returncode == 0
     output = target.read_text(encoding='utf-8')
     assert 'def report(part_1):' in output
@@ -103,7 +117,9 @@ def test_keys_leaves_prose_alone(target, mapping):
 
 
 def test_keys_counts_the_key_it_renamed(target, mapping):
-    """El conteo publicado incluye la clave; sin eso el barrido no se audita."""
+    """
+    El conteo publicado incluye la clave; sin eso el barrido no se audita.
+    """
     default = run(target, mapping).stdout
     target.write_text(SOURCE, encoding='utf-8')
     with_keys = run(target, mapping, '--keys').stdout

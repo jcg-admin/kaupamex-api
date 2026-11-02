@@ -1,6 +1,8 @@
-"""Configuración de Gunicorn — servidor de aplicación del producto L0 (ADR-027).
+"""
+Configuración de Gunicorn — servidor de aplicación del producto L0 (ADR-027).
 
-Adaptación de ``odoo19c: setup/odoo-wsgi.example.py`` (``odoo-tools@622ddc2a``),
+Adaptación de ``odoo19c: setup/odoo-wsgi.example.py``
+(``odoo-tools@622ddc2a``),
 que documenta servirse bajo Gunicorn y publica su configuración::
 
     #   $ gunicorn odoo.http:root --pythonpath . -c odoo-wsgi.py
@@ -21,15 +23,19 @@ banderas — la misma forma que usa ``odoo19c: debian/odoo.service``.
 Divergencias respecto de la referencia, declaradas
 -----------------------------------------------------
 
-1. **El puerto es 8000, no 8069.** 8069 es el puerto estándar *de Odoo*: copiarlo
-   importaría la identidad de otro producto. 8000 es el que este proyecto ya usa
+1. **El puerto es 8000, no 8069.** 8069 es el puerto estándar *de Odoo*:
+   copiarlo
+   importaría la identidad de otro producto. 8000 es el que este proyecto ya
+   usa
    — ``ui: webpack.config.js:280`` resuelve el backend a
    ``API_PROXY_TARGET || 'http://localhost:8000'``. Lo que sí se adopta de la
    referencia es la **forma**: enlazar sólo a loopback, de modo que el único
    proceso expuesto sea el front.
-2. **Los valores se leen del entorno con los de la referencia como default.** El
+2. **Los valores se leen del entorno con los de la referencia como default.**
+   El
    ejemplo de la referencia es una plantilla que el operador edita a mano; aquí
-   la configuración del proyecto viaja por variables de entorno (``python-decouple``
+   la configuración del proyecto viaja por variables de entorno
+   (``python-decouple``
    en ``config/settings``), y una unidad systemd las inyecta con
    ``EnvironmentFile``. Se usa ``os.environ`` directo, no ``decouple``, porque
    este archivo se ejecuta antes de que Django se cargue y no debe depender de
@@ -47,15 +53,18 @@ import sys
 # Se inserta aquí, en el cuerpo del archivo de configuración, y NO con la
 # setting `pythonpath` de Gunicorn. Motivo medido (gunicorn 26.0.0,
 # `app/base.py:205-233`): `--check-config` carga la aplicación en el bloque de
-# arriba y `pythonpath` se aplica ~25 líneas más abajo, así que con la setting el
+# arriba y `pythonpath` se aplica ~25 líneas más abajo, así que con la
+# setting el
 # gate falla con ModuleNotFoundError aunque el arranque real funcione. El
 # archivo de configuración sí se ejecuta antes de ambos.
 #
 # Es además la forma de la referencia: su `odoo-wsgi.example.py` resuelve el
 # import de la aplicación dentro del propio archivo de configuración
 # (`from odoo.http import root as application`).
-_SRC = os.path.abspath(os.environ.get('KAUPAMEX_SRC') or
-                       os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'src'))
+_SRC = os.path.abspath(
+    os.environ.get('KAUPAMEX_SRC')
+    or os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'src')
+)
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
 
@@ -82,7 +91,8 @@ wsgi_app = 'config.wsgi:application'
 
 # ── Modelo de concurrencia ───────────────────────────────────────────────────
 # Prefork síncrono — el mismo que mod_wsgi en modo demonio ya usaba. NO cambiar
-# a un worker asíncrono sin un ADR: la aplicación es WSGI síncrona (0 `async def`
+# a un worker asíncrono sin un ADR: la aplicación es WSGI síncrona (0
+# `async def`
 # medidos, ADR-027) y el driver de base tampoco es cooperativo: psycopg 3 en
 # modo síncrono bloquea el hilo mientras espera a PostgreSQL (ADR-028).
 #
@@ -112,10 +122,13 @@ proc_name = 'kaupamex-api'
 # forwarded_allow_ips acota QUIÉN puede fijar esas cabeceras: el default de
 # Gunicorn ('127.0.0.1') es correcto cuando el proxy corre en el mismo host.
 # Ampliarlo a '*' aceptaría cabeceras falsificadas desde cualquier origen.
-forwarded_allow_ips = os.environ.get('GUNICORN_FORWARDED_ALLOW_IPS', '127.0.0.1')
+forwarded_allow_ips = os.environ.get(
+    'GUNICORN_FORWARDED_ALLOW_IPS', '127.0.0.1'
+)
 
 # ── Bitácora ─────────────────────────────────────────────────────────────────
-# '-' = stdout/stderr, para que el supervisor (systemd/journald) sea el dueño de
+# '-' = stdout/stderr, para que el supervisor (systemd/journald) sea el
+# dueño de
 # la bitácora. Es el mismo criterio que ADR-008 aplica al arranque: quién
 # supervisa se declara por entorno, no se asume.
 accesslog = os.environ.get('GUNICORN_ACCESSLOG', '-')

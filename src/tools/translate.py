@@ -8,7 +8,8 @@ como su fuente Odoo (``from odoo.tools.translate import _``).
 **La firma lleva argumentos de formato, y eso no es cosmético.** La referencia
 declara ``__call__(self, source: str, *args, **kwargs)``
 (``odoo19c: odoo/tools/translate.py:676``) y sustituye con ``translation %
-args`` **después** de traducir (``:447``), para que el traductor pueda reordenar
+args`` **después** de traducir (``:447``), para que el traductor pueda
+reordenar
 los marcadores en su idioma. Django no trae esa forma: ``gettext_lazy`` sólo
 acepta el mensaje, así que ``_('Delay on %s', rule.name)`` levantaba
 ``TypeError: gettext() takes 1 positional argument but 2 were given`` — un
@@ -36,6 +37,7 @@ Lo que **no** se porta de la referencia, y por qué:
   ninguno presente. El ``assert not (args and kwargs)`` de la fuente (``:610``)
   sí se conserva: es lo que impide mezclar las dos formas de sustitución.
 """
+
 import re
 
 from django.utils.functional import lazy
@@ -46,7 +48,8 @@ __all__ = ['FORMAT_REGEX', '_']
 #: Expresión de sustitución de una cadena de formato, en sus dos estilos:
 #: ``#{expr}`` (ruby) y ``{{expr}}`` (jinja) — verbatim de la fuente
 #: (``odoo19c: odoo/tools/translate.py:127``). La consume
-#: ``IrTemplateExpressions._compile_format``, que es quien la nombra al importarla.
+#: ``IrTemplateExpressions._compile_format``, que es quien la nombra al
+#: importarla.
 FORMAT_REGEX = re.compile(r'(?:#\{(.+?)\})|(?:\{\{(.+?)\}\})')
 
 
@@ -64,7 +67,8 @@ _lazy_translate = lazy(_translate_and_format, str)
 
 
 def _(source, *args, **kwargs):
-    """≙ ``get_text_alias.__call__`` (``odoo19c: odoo/tools/translate.py:676``).
+    """
+    ≙ ``get_text_alias.__call__`` (``odoo19c: odoo/tools/translate.py:676``).
 
     :param source: el mensaje con sus marcadores, tal cual va al catálogo.
     :param args: argumentos posicionales de ``%``; excluyentes con ``kwargs``.

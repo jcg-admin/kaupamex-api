@@ -29,13 +29,20 @@ Que haria fallar a cada control
     CONTROL: sin el, un ``determine`` que devolviera ``None`` ante lo
     inesperado pasaria los dos casos felices.
 """
+
 import operator
 
 import pytest
 from django.db import models
 
-from orm.fields import (IR_MODELS, PYTHON_INEQUALITY_OPERATOR, T, determine,
-                        global_seq, resolve_mro)
+from orm.fields import (
+    IR_MODELS,
+    PYTHON_INEQUALITY_OPERATOR,
+    T,
+    determine,
+    global_seq,
+    resolve_mro,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -69,9 +76,13 @@ class TestIrModels:
 
     def test_the_seven_are_the_ones_the_reference_names(self):
         assert IR_MODELS == (
-            'ir.model', 'ir.model.data', 'ir.model.fields',
-            'ir.model.fields.selection', 'ir.model.relation',
-            'ir.model.constraint', 'ir.module.module',
+            'ir.model',
+            'ir.model.data',
+            'ir.model.fields',
+            'ir.model.fields.selection',
+            'ir.model.relation',
+            'ir.model.constraint',
+            'ir.module.module',
         )
 
     def test_it_is_a_tuple_so_nobody_extends_it_by_accident(self):
@@ -80,12 +91,16 @@ class TestIrModels:
 
 
 class TestPythonInequalityOperator:
-    """≙ ``PYTHON_INEQUALITY_OPERATOR`` (``:45``) — la comparacion en memoria."""
+    """
+    ≙ ``PYTHON_INEQUALITY_OPERATOR`` (``:45``) — la comparacion en memoria.
+    """
 
     def test_the_four_map_to_the_standard_library(self):
         assert PYTHON_INEQUALITY_OPERATOR == {
-            '<': operator.lt, '>': operator.gt,
-            '<=': operator.le, '>=': operator.ge,
+            '<': operator.lt,
+            '>': operator.gt,
+            '<=': operator.le,
+            '>=': operator.ge,
         }
 
     def test_an_operator_outside_the_four_is_not_there(self):
@@ -118,7 +133,10 @@ class TestResolveMro:
 
     def test_it_returns_the_overrides_most_derived_first(self):
         assert resolve_mro(_Leaf, 'tag', lambda v: True) == [
-            'leaf', 'middle', 'base']
+            'leaf',
+            'middle',
+            'base',
+        ]
 
     def test_it_stops_at_the_first_value_that_fails_the_predicate(self):
         """La fuente CORTA, no filtra: la cadena tiene que ser contigua.
@@ -126,12 +144,16 @@ class TestResolveMro:
         ``_Middle.number`` no es un entero, asi que ``_Base.number`` —que si lo
         es— queda fuera. Con un ``continue`` en vez del ``break`` saldrian dos.
         """
-        assert resolve_mro(_Leaf, 'number', lambda v: isinstance(v, int)) == [3]
+        assert resolve_mro(_Leaf, 'number', lambda v: isinstance(v, int)) == [
+            3
+        ]
 
     def test_a_class_that_declares_none_is_not_confused_with_absence(self):
         """CONTROL del centinela — ``None`` declarado SI cuenta."""
         assert resolve_mro(_Leaf, 'nothing', lambda v: v is None) == [
-            None, None]
+            None,
+            None,
+        ]
 
     def test_an_attribute_nobody_declares_gives_an_empty_list(self):
         assert resolve_mro(_Leaf, 'no_existe', lambda v: True) == []
@@ -139,7 +161,10 @@ class TestResolveMro:
     def test_an_instance_is_read_by_its_class(self):
         """La fuente recibe un recordset; aqui vale la instancia o la clase."""
         assert resolve_mro(_Leaf(), 'tag', lambda v: True) == [
-            'leaf', 'middle', 'base']
+            'leaf',
+            'middle',
+            'base',
+        ]
 
     def test_object_is_not_walked(self):
         """≙ *"Model registry classes are ignored"*: lo que no escribio nadie

@@ -67,7 +67,8 @@ Métodos — todos BLOQUEADOS
 ``_compute_encode_uom_in_days`` (sesión), ``_compute_allow_timesheets``/
 ``_search_allow_timesheets`` (reemplazados por la property portada),
 ``_compute_effective_hours`` (ídem), ``_compute_progress_hours``,
-``_compute_remaining_hours_percentage``, ``_search_remaining_hours_percentage``,
+``_compute_remaining_hours_percentage``,
+``_search_remaining_hours_percentage``,
 ``_compute_remaining_hours``, ``_compute_total_hours_spent``,
 ``_compute_subtask_effective_hours`` (todos dependen de ``allocated_hours``/
 ``child_ids``, ausentes), ``_get_group_pattern``/``_prepare_pattern_groups``/
@@ -79,6 +80,7 @@ sin análogo), ``action_view_subtask_timesheet`` (acción de UI),
 (``RedirectWarning``, UI), ``_convert_hours_to_days`` (UOM + sesión),
 ``_get_portal_total_hours_dict`` (portal).
 """
+
 import models
 
 from addons.project.models import ProjectTask

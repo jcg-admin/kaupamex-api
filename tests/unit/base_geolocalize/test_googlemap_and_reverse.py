@@ -7,16 +7,23 @@
 que ahora cuelgan de ``base.ResPartner`` (``…/res_partner.py:23-65``) y el
 ``write`` con el nombre de la fuente.
 """
+
 from unittest.mock import patch
 
 import pytest
 
 from addons.base.models import ResCountry, ResPartner, SystemParameter
 from addons.base_geolocalize.models import (
-    BaseGeocoder, GeoProvider, GeoProviderNotImplemented, PartnerGeolocation,
-    get_google_map_api_key)
+    BaseGeocoder,
+    GeoProvider,
+    GeoProviderNotImplemented,
+    PartnerGeolocation,
+    get_google_map_api_key,
+)
 from addons.base_geolocalize.models.base_geocoder import (
-    GEO_PROVIDER_PARAM, GOOGLE_MAP_API_KEY_PARAM)
+    GEO_PROVIDER_PARAM,
+    GOOGLE_MAP_API_KEY_PARAM,
+)
 from orm.registry import clear_cache
 
 pytestmark = pytest.mark.django_db
@@ -26,7 +33,9 @@ _RUTA_HTTP = 'addons.base_geolocalize.models.base_geocoder._http_get_json'
 
 @pytest.fixture(autouse=True)
 def _clear_param_cache():
-    """La caché de ``SystemParameter`` es de módulo: no sobrevive al rollback."""
+    """
+    La caché de ``SystemParameter`` es de módulo: no sobrevive al rollback.
+    """
     clear_cache('stable')
     yield
     clear_cache('stable')
@@ -36,7 +45,8 @@ def _clear_param_cache():
 def googlemap_active():
     """Deja ``googlemap`` como proveedor activo y le pone clave."""
     provider = GeoProvider.objects.get_or_create(
-        tech_name='googlemap', defaults={'name': 'Google Place Map'})[0]
+        tech_name='googlemap', defaults={'name': 'Google Place Map'}
+    )[0]
     SystemParameter.set_param(GEO_PROVIDER_PARAM, str(provider.pk))
     SystemParameter.set_param(GOOGLE_MAP_API_KEY_PARAM, 'clave-de-prueba')
     clear_cache('stable')
@@ -60,7 +70,8 @@ class TestGeoQueryAddressGooglemap:
 
     def test_a_country_ending_in_of_the_is_reordered(self):
         salida = BaseGeocoder._geo_query_address_googlemap(
-            city='Kinshasa', country='Congo, Democratic Republic of the')
+            city='Kinshasa', country='Congo, Democratic Republic of the'
+        )
         assert salida.endswith('Democratic Republic of the Congo')
 
     def test_a_country_ending_in_of_is_reordered(self):
@@ -72,18 +83,23 @@ class TestGeoQueryAddressGooglemap:
         cadena que se le manda al servicio.
         """
         salida = BaseGeocoder._geo_query_address_googlemap(
-            country='Korea, Republic of')
+            country='Korea, Republic of'
+        )
         assert salida == ' Republic of Korea'
 
     def test_a_plain_country_is_left_alone(self):
         salida = BaseGeocoder._geo_query_address_googlemap(
-            city='CDMX', country='México')
+            city='CDMX', country='México'
+        )
         assert salida == 'CDMX, México'
 
-    def test_the_dispatch_of_geo_query_address_reaches_it(self, googlemap_active):
+    def test_the_dispatch_of_geo_query_address_reaches_it(
+        self, googlemap_active
+    ):
         """``geo_query_address`` despacha por ``tech_name`` — ≙ ``:41-58``."""
         salida = BaseGeocoder.geo_query_address(
-            country='Congo, Democratic Republic of the')
+            country='Congo, Democratic Republic of the'
+        )
         assert salida == ' Democratic Republic of the Congo'
 
 
@@ -103,26 +119,41 @@ class TestCallGooglemap:
         """
         SystemParameter.set_param(GOOGLE_MAP_API_KEY_PARAM, '')
         clear_cache('stable')
-        with patch(_RUTA_HTTP, side_effect=AssertionError(
-                'no debe salir a la red sin clave')):
+        with patch(
+            _RUTA_HTTP,
+            side_effect=AssertionError('no debe salir a la red sin clave'),
+        ):
             with pytest.raises(GeoProviderNotImplemented, match='API key'):
                 BaseGeocoder._call_googlemap('Zocalo, CDMX')
 
     def test_ok_returns_the_coordinates(self, googlemap_active):
-        respuesta = {'status': 'OK', 'results': [
-            {'geometry': {'location': {'lat': 19.43, 'lng': -99.13}}}]}
+        respuesta = {
+            'status': 'OK',
+            'results': [
+                {'geometry': {'location': {'lat': 19.43, 'lng': -99.13}}}
+            ],
+        }
         with patch(_RUTA_HTTP, return_value=respuesta):
-            assert BaseGeocoder._call_googlemap('Zocalo, CDMX') == (19.43, -99.13)
+            assert BaseGeocoder._call_googlemap('Zocalo, CDMX') == (
+                19.43,
+                -99.13,
+            )
 
     def test_zero_results_returns_none(self, googlemap_active):
         with patch(_RUTA_HTTP, return_value={'status': 'ZERO_RESULTS'}):
             assert BaseGeocoder._call_googlemap('nada de nada') is None
 
-    def test_another_status_raises_with_the_billing_message(self, googlemap_active):
-        respuesta = {'status': 'REQUEST_DENIED',
-                     'error_message': 'billing not enabled'}
+    def test_another_status_raises_with_the_billing_message(
+        self, googlemap_active
+    ):
+        respuesta = {
+            'status': 'REQUEST_DENIED',
+            'error_message': 'billing not enabled',
+        }
         with patch(_RUTA_HTTP, return_value=respuesta):
-            with pytest.raises(GeoProviderNotImplemented, match='paid feature'):
+            with pytest.raises(
+                GeoProviderNotImplemented, match='paid feature'
+            ):
                 BaseGeocoder._call_googlemap('Zocalo, CDMX')
 
     def test_an_answer_without_geometry_returns_none(self, googlemap_active):
@@ -132,28 +163,34 @@ class TestCallGooglemap:
         ``results`` vacío —que da ``IndexError``— NO se traga: propaga. Este
         caso ejerce la rama que sí se traga, la clave ausente.
         """
-        with patch(_RUTA_HTTP,
-                   return_value={'status': 'OK', 'results': [{}]}):
+        with patch(_RUTA_HTTP, return_value={'status': 'OK', 'results': [{}]}):
             assert BaseGeocoder._call_googlemap('Zocalo, CDMX') is None
 
     def test_force_country_travels_as_components(self, googlemap_active):
         """≙ ``params['components'] = 'country:%s'`` (``:154``)."""
-        respuesta = {'status': 'OK', 'results': [
-            {'geometry': {'location': {'lat': 1.0, 'lng': 2.0}}}]}
+        respuesta = {
+            'status': 'OK',
+            'results': [{'geometry': {'location': {'lat': 1.0, 'lng': 2.0}}}],
+        }
         with patch(_RUTA_HTTP, return_value=respuesta) as llamada:
             BaseGeocoder._call_googlemap('Zocalo', force_country='MX')
         assert 'components=country%3AMX' in llamada.call_args[0][0]
 
     def test_a_network_failure_raises_the_query_error(self, googlemap_active):
         with patch(_RUTA_HTTP, side_effect=OSError('sin red')):
-            with pytest.raises(GeoProviderNotImplemented,
-                               match='geolocation server'):
+            with pytest.raises(
+                GeoProviderNotImplemented, match='geolocation server'
+            ):
                 BaseGeocoder._call_googlemap('Zocalo, CDMX')
 
     def test_geo_find_dispatches_to_it(self, googlemap_active):
         """El despacho por ``_call_<tech_name>`` lo alcanza — ≙ ``:60-80``."""
-        respuesta = {'status': 'OK', 'results': [
-            {'geometry': {'location': {'lat': 19.43, 'lng': -99.13}}}]}
+        respuesta = {
+            'status': 'OK',
+            'results': [
+                {'geometry': {'location': {'lat': 19.43, 'lng': -99.13}}}
+            ],
+        }
         with patch(_RUTA_HTTP, return_value=respuesta):
             assert BaseGeocoder.geo_find('Zocalo, CDMX') == (19.43, -99.13)
 
@@ -164,7 +201,10 @@ class TestCallOpenstreetmapReverse:
     def test_it_returns_the_whole_body(self):
         cuerpo = {'address': {'city': 'CDMX', 'country_code': 'mx'}}
         with patch(_RUTA_HTTP, return_value=cuerpo):
-            assert BaseGeocoder._call_openstreetmap_reverse(19.43, -99.13) == cuerpo
+            assert (
+                BaseGeocoder._call_openstreetmap_reverse(19.43, -99.13)
+                == cuerpo
+            )
 
     def test_without_coordinates_it_does_not_call(self):
         with patch(_RUTA_HTTP) as llamada:
@@ -179,8 +219,9 @@ class TestCallOpenstreetmapReverse:
 
     def test_a_network_failure_raises_the_query_error(self):
         with patch(_RUTA_HTTP, side_effect=OSError('sin red')):
-            with pytest.raises(GeoProviderNotImplemented,
-                               match='geolocation server'):
+            with pytest.raises(
+                GeoProviderNotImplemented, match='geolocation server'
+            ):
                 BaseGeocoder._call_openstreetmap_reverse(19.43, -99.13)
 
 
@@ -198,11 +239,17 @@ class TestGetLocalisation:
     @pytest.fixture
     def mexico(self):
         return ResCountry.objects.get_or_create(
-            code='MX', defaults={'name': 'México'})[0]
+            code='MX', defaults={'name': 'México'}
+        )[0]
 
     def test_without_geoip_it_falls_back_to_the_reverse_lookup(self, mexico):
-        cuerpo = {'address': {'city': 'Ciudad de México',
-                              'country_code': 'mx', 'postcode': '06000'}}
+        cuerpo = {
+            'address': {
+                'city': 'Ciudad de México',
+                'country_code': 'mx',
+                'postcode': '06000',
+            }
+        }
         with patch(_RUTA_HTTP, return_value=cuerpo):
             salida = BaseGeocoder._get_localisation(19.43, -99.13)
         assert salida == '06000 Ciudad de México, %s' % mexico.name
@@ -222,7 +269,9 @@ class TestGetLocalisation:
             country_code = 'mx'
 
         with patch(_RUTA_HTTP) as llamada:
-            salida = BaseGeocoder._get_localisation(25.68, -100.31, geoip=_GeoIp())
+            salida = BaseGeocoder._get_localisation(
+                25.68, -100.31, geoip=_GeoIp()
+            )
         assert llamada.call_count == 0
         assert salida == 'Monterrey, %s' % mexico.name
 
@@ -237,11 +286,16 @@ class TestPartnerReceivesTheSourceSymbols:
     @pytest.fixture
     def partner(self):
         return ResPartner.objects.create(
-            name='Nestor', street='Av. Insurgentes Sur 1234', city='CDMX',
-            zip='03100')
+            name='Nestor',
+            street='Av. Insurgentes Sur 1234',
+            city='CDMX',
+            zip='03100',
+        )
 
     def test_geo_localize_is_callable_on_a_partner(self, partner):
-        with patch(_RUTA_HTTP, return_value=[{'lat': '19.43', 'lon': '-99.13'}]):
+        with patch(
+            _RUTA_HTTP, return_value=[{'lat': '19.43', 'lon': '-99.13'}]
+        ):
             assert partner.geo_localize() is True
         fila = PartnerGeolocation.objects.get(partner=partner)
         assert (fila.latitude, fila.longitude) == (19.43, -99.13)
@@ -253,22 +307,30 @@ class TestPartnerReceivesTheSourceSymbols:
         assert PartnerGeolocation.objects.filter(partner=partner).exists()
 
     def test_geo_localize_class_method_is_callable_on_the_partner(self):
-        with patch(_RUTA_HTTP, return_value=[{'lat': '19.43', 'lon': '-99.13'}]):
+        with patch(
+            _RUTA_HTTP, return_value=[{'lat': '19.43', 'lon': '-99.13'}]
+        ):
             assert ResPartner._geo_localize(city='CDMX') == (19.43, -99.13)
 
     def test_write_keeps_the_name_of_the_source(self, partner):
         fila = PartnerGeolocation.objects.create(
-            partner=partner, latitude=19.43, longitude=-99.13)
+            partner=partner, latitude=19.43, longitude=-99.13
+        )
         assert fila.write(latitude=1.5) is fila
         assert PartnerGeolocation.objects.get(pk=fila.pk).latitude == 1.5
 
-    def test_write_resets_the_coordinates_when_the_address_moves(self, partner):
+    def test_write_resets_the_coordinates_when_the_address_moves(
+        self, partner
+    ):
         fila = PartnerGeolocation.objects.create(
-            partner=partner, latitude=19.43, longitude=-99.13)
+            partner=partner, latitude=19.43, longitude=-99.13
+        )
         fila.write(city='Monterrey')
         assert (fila.latitude, fila.longitude) == (0.0, 0.0)
 
-    def test_write_does_not_reset_when_the_coordinates_travel_too(self, partner):
+    def test_write_does_not_reset_when_the_coordinates_travel_too(
+        self, partner
+    ):
         fila = PartnerGeolocation.objects.create(partner=partner)
         fila.write(city='Monterrey', latitude=25.68, longitude=-100.31)
         assert (fila.latitude, fila.longitude) == (25.68, -100.31)

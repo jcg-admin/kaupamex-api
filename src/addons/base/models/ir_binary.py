@@ -67,6 +67,7 @@ Lo que NO se porta, con su medición
   condicional de Django los resuelven; reimplementarlos duplicaría el
   mecanismo del framework.
 """
+
 import logging
 import mimetypes
 
@@ -114,7 +115,9 @@ def image_guess_size_from_field_name(field_name):
 
 
 class RecordNotFound(LookupError):
-    """No hay registro para el par modelo+id — ``MissingError`` de la referencia."""
+    """
+    No hay registro para el par modelo+id — ``MissingError`` de la referencia.
+    """
 
 
 class IrBinary:
@@ -141,11 +144,13 @@ class IrBinary:
             model = apps.get_model(res_model)
         except (LookupError, ValueError) as exc:
             raise RecordNotFound(
-                f'Modelo desconocido res_model={res_model}') from exc
+                f'Modelo desconocido res_model={res_model}'
+            ) from exc
         record = model.objects.filter(pk=res_id).first()
         if record is None:
             raise RecordNotFound(
-                f'Sin registro para res_model={res_model}, id={res_id}')
+                f'Sin registro para res_model={res_model}, id={res_id}'
+            )
         return record
 
     @staticmethod
@@ -162,9 +167,15 @@ class IrBinary:
         return mimetype or default
 
     @classmethod
-    def get_response_from(cls, record, field_name='raw', filename=None,
-                          filename_field='name', mimetype=None,
-                          default_mimetype='application/octet-stream'):
+    def get_response_from(
+        cls,
+        record,
+        field_name='raw',
+        filename=None,
+        filename_field='name',
+        mimetype=None,
+        default_mimetype='application/octet-stream',
+    ):
         """Respuesta HTTP desde el campo binario de un registro.
 
         Equivale a ``_get_stream_from``: el nombre de descarga sale de
@@ -179,15 +190,19 @@ class IrBinary:
         if not filename:
             extension = (
                 mimetypes.guess_extension(mimetype or '')
-                or f'.{file.name.rsplit(".", 1)[-1]}' if '.' in file.name else ''
+                or f'.{file.name.rsplit(".", 1)[-1]}'
+                if '.' in file.name
+                else ''
             )
             filename = (
                 f'{record._meta.db_table}-{record.pk}-{field_name}{extension}'
             )
         response = FileResponse(
-            file.open('rb'), as_attachment=False, filename=filename)
-        response['Content-Type'] = (
-            mimetype or cls._guess_mimetype(file.name, default_mimetype))
+            file.open('rb'), as_attachment=False, filename=filename
+        )
+        response['Content-Type'] = mimetype or cls._guess_mimetype(
+            file.name, default_mimetype
+        )
         return response
 
     @classmethod
@@ -205,7 +220,9 @@ class IrBinary:
         """
         path = cls.get_placeholder_path(path)
         if not path.endswith(PLACEHOLDER_EXTENSIONS):
-            _logger.warning('Marcador de posición con extensión no admitida: %s', path)
+            _logger.warning(
+                'Marcador de posición con extensión no admitida: %s', path
+            )
             return b''
         try:
             with default_storage.open(path, 'rb') as file:
@@ -214,10 +231,18 @@ class IrBinary:
             return b''
 
     @classmethod
-    def get_image_response_from(cls, record, field_name='raw', filename=None,
-                                filename_field='name', mimetype=None,
-                                default_mimetype=DEFAULT_IMAGE_MIMETYPE,
-                                placeholder=None, width=0, height=0):
+    def get_image_response_from(
+        cls,
+        record,
+        field_name='raw',
+        filename=None,
+        filename_field='name',
+        mimetype=None,
+        default_mimetype=DEFAULT_IMAGE_MIMETYPE,
+        placeholder=None,
+        width=0,
+        height=0,
+    ):
         """Respuesta HTTP de imagen, con respaldo y redimensionado.
 
         Conserva el orden de la referencia (``_get_image_stream_from``):
@@ -244,8 +269,10 @@ class IrBinary:
                     placeholder = obtener(field_name)
             data = cls.placeholder(placeholder)
             response = FileResponse(
-                iter([data]), as_attachment=False,
-                filename=filename or 'placeholder.png')
+                iter([data]),
+                as_attachment=False,
+                filename=filename or 'placeholder.png',
+            )
             response['Content-Type'] = DEFAULT_IMAGE_MIMETYPE
             return response
 
@@ -259,11 +286,18 @@ class IrBinary:
         if width or height:
             content = _resize(file, max(width, height))
             response = FileResponse(
-                content, as_attachment=False,
-                filename=filename or file.name.rsplit('/', 1)[-1])
+                content,
+                as_attachment=False,
+                filename=filename or file.name.rsplit('/', 1)[-1],
+            )
         else:
             response = cls.get_response_from(
-                record, field_name, filename, filename_field,
-                resolved, default_mimetype)
+                record,
+                field_name,
+                filename,
+                filename_field,
+                resolved,
+                default_mimetype,
+            )
         response['Content-Type'] = resolved
         return response

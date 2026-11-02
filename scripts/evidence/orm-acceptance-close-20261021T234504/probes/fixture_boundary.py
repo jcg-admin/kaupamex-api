@@ -1,4 +1,7 @@
-"""Control del ciclo de conexión en DDL de fixture con un entorno sin actor vivo."""
+"""
+Control del ciclo de conexión en DDL de fixture con un entorno sin actor vivo.
+"""
+
 import json
 import sys
 import django
@@ -16,7 +19,14 @@ if '--close-boundary' in sys.argv:
 try:
     with connection.schema_editor() as editor:
         editor.execute('CREATE TEMP TABLE fixture_boundary_probe (id integer)')
-    print(json.dumps({'result': 'PASS', 'connection_boundary': '--close-boundary' in sys.argv,
-                      'no_public_actor_or_permissions_changed': True}))
+    print(
+        json.dumps(
+            {
+                'result': 'PASS',
+                'connection_boundary': '--close-boundary' in sys.argv,
+                'no_public_actor_or_permissions_changed': True,
+            }
+        )
+    )
 finally:
     connection.close()

@@ -1,4 +1,5 @@
-"""``tools.misc.ReadonlyDict`` — el mapa que ni ``dict.update`` puede modificar.
+"""
+``tools.misc.ReadonlyDict`` — el mapa que ni ``dict.update`` puede modificar.
 
 Fiel a ``odoo19c: odoo/tools/misc.py:1671-1706`` (LGPL-3).
 
@@ -8,6 +9,7 @@ espalda; ``ReadonlyDict`` hereda de ``collections.abc.Mapping`` y por eso no
 tiene por dónde. El precio de esa garantía es que ``json.dumps`` deja de
 conocerlo — que es exactamente la rama que ``json_default`` cubre.
 """
+
 import json
 
 import pytest
@@ -18,6 +20,7 @@ pytestmark = pytest.mark.unit
 
 
 # -- Lectura: es un ``Mapping`` completo (``misc.py:1696-1706``) -------------
+
 
 def test_reads_a_key():
     """``__getitem__`` (``:1698-1699``)."""
@@ -39,7 +42,9 @@ def test_answers_membership():
 
 
 def test_derives_the_mapping_helpers_from_the_abc():
-    """``keys``/``values``/``items``/``get`` los deriva ``Mapping``, no el porte."""
+    """
+    ``keys``/``values``/``items``/``get`` los deriva ``Mapping``, no el porte.
+    """
     data = ReadonlyDict({'foo': 'bar'})
     assert list(data.keys()) == ['foo']
     assert list(data.values()) == ['bar']
@@ -60,6 +65,7 @@ def test_copies_the_source_mapping_instead_of_aliasing_it():
 
 
 # -- Escritura: las tres formas que el docstring de la fuente enumera --------
+
 
 def test_rejects_item_assignment():
     """``data['baz'] = 'xyz'`` — «raises exception» (``:1687``)."""
@@ -83,7 +89,9 @@ def test_rejects_the_update_method():
 
 
 def test_rejects_update_called_through_the_dict_class():
-    """``dict.update(data, ...)`` — la puerta trasera del ``frozendict`` (``:1689``).
+    """
+    ``dict.update(data, ...)`` — la puerta trasera del ``frozendict``
+    (``:1689``).
 
     Es la diferencia que justifica el porte: sobre un ``frozendict`` esta
     llamada **funciona**, porque hereda de ``dict``.
@@ -95,14 +103,19 @@ def test_rejects_update_called_through_the_dict_class():
 
 
 def test_has_no_instance_dictionary():
-    """``__slots__ = ('_data__',)`` (``:1691``) — sin atributos improvisados."""
+    """
+    ``__slots__ = ('_data__',)`` (``:1691``) — sin atributos improvisados.
+    """
     data = ReadonlyDict({'foo': 'bar'})
     assert not hasattr(data, '__dict__')
 
 
 # -- El precio de la garantía, que es la razón de la rama de ``json_default`` -
 
+
 def test_json_dumps_does_not_know_it():
-    """«`json.dumps` works for a `frozendict` … but not for a `ReadonlyDict`»."""
+    """
+    «`json.dumps` works for a `frozendict` … but not for a `ReadonlyDict`».
+    """
     with pytest.raises(TypeError):
         json.dumps(ReadonlyDict({'foo': 'bar'}))

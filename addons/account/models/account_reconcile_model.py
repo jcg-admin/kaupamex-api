@@ -14,7 +14,8 @@ bancaria) pero **19 no lo tiene** (medido: 0 hits de esa clase en
 
 Divergencias declaradas (DEC-KX-03):
 
-1. **Sin ``mail.thread``** — la referencia hereda ``_inherit = ['mail.thread']``
+1. **Sin ``mail.thread``** — la referencia hereda ``_inherit =
+   ['mail.thread']``
    en ``AccountReconcileModel`` (``tracking=True`` en varios campos). Ningún
    addon de mensajería está portado en este árbol. Se porta el modelo sin
    herencia de mensajería; los ``tracking=True`` de la referencia se leen como
@@ -48,11 +49,13 @@ Divergencias declaradas (DEC-KX-03):
    — la referencia los declara ``fields.Float``. Se elevan a ``Monetary``
    porque son umbrales de comparación contra un **importe monetario** del
    extracto bancario (invariante del cluster: la conciliación es aritmética
-   de dinero, ``Decimal``, nunca ``float``). ``AccountReconcileModelLine.amount``
+   de dinero, ``Decimal``, nunca ``float``).
+   ``AccountReconcileModelLine.amount``
    SÍ se preserva como ``Float`` — no es dinero por sí mismo, es un
    multiplicador/porcentaje o un número extraído por regex, fiel a la
    referencia.
 """
+
 import re
 
 from django.conf import settings
@@ -81,64 +84,100 @@ class AccountReconcileModel(models.Model):
         ('match_regex', 'Coincide con regex'),
     ]
 
-    active            = fields.Boolean(
-        default=True, help_text='Regla activa (Odoo active).',
+    active = fields.Boolean(
+        default=True,
+        help_text='Regla activa (Odoo active).',
     )
-    name              = fields.Char(
-        max_length=255, help_text='Nombre de la regla (Odoo name, requerido).',
+    name = fields.Char(
+        max_length=255,
+        help_text='Nombre de la regla (Odoo name, requerido).',
     )
-    sequence          = fields.Integer(
-        default=10, help_text='Orden de aplicación (Odoo sequence).',
+    sequence = fields.Integer(
+        default=10,
+        help_text='Orden de aplicación (Odoo sequence).',
     )
-    company           = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE,
+    company = fields.Many2one(
+        'base.ResCompany',
+        on_delete=models.CASCADE,
         related_name='reconcile_models',
         help_text='Empresa (Odoo company_id, requerido).',
     )
-    trigger           = fields.Selection(
-        max_length=16, choices=TRIGGERS, default='manual',
-        help_text='Aplicación manual o automática al validar el extracto '
-                   '(Odoo trigger, requerido).',
+    trigger = fields.Selection(
+        max_length=16,
+        choices=TRIGGERS,
+        default='manual',
+        help_text=(
+            'Aplicación manual o automática al validar el extracto '
+            '(Odoo trigger, requerido).'
+        ),
     )
-    can_be_proposed   = fields.Boolean(
+    can_be_proposed = fields.Boolean(
         default=False,
-        help_text='Odoo can_be_proposed (computado, ver '
-                   'compute_can_be_proposed — no automático en save()).',
+        help_text=(
+            'Odoo can_be_proposed (computado, ver '
+            'compute_can_be_proposed — no automático en save()).'
+        ),
     )
-    mapped_partner    = fields.Many2one(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
-        blank=True, related_name='+',
-        help_text='Odoo mapped_partner_id (computado, ver '
-                   'compute_mapped_partner_id).',
+    mapped_partner = fields.Many2one(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+',
+        help_text=(
+            'Odoo mapped_partner_id (computado, ver '
+            'compute_mapped_partner_id).'
+        ),
     )
     match_journal_ids = fields.Many2many(
-        'account.AccountJournal', blank=True, related_name='reconcile_models',
+        'account.AccountJournal',
+        blank=True,
+        related_name='reconcile_models',
         help_text='Diarios donde aplica la regla (Odoo match_journal_ids).',
     )
-    match_amount      = fields.Selection(
-        max_length=8, choices=MATCH_AMOUNTS, blank=True, default='',
+    match_amount = fields.Selection(
+        max_length=8,
+        choices=MATCH_AMOUNTS,
+        blank=True,
+        default='',
         help_text='Condición sobre el monto del extracto (Odoo match_amount).',
     )
-    match_amount_min  = fields.Monetary(
-        max_digits=16, decimal_places=2, null=True, blank=True,
+    match_amount_min = fields.Monetary(
+        max_digits=16,
+        decimal_places=2,
+        null=True,
+        blank=True,
         help_text='Odoo match_amount_min.',
     )
-    match_amount_max  = fields.Monetary(
-        max_digits=16, decimal_places=2, null=True, blank=True,
+    match_amount_max = fields.Monetary(
+        max_digits=16,
+        decimal_places=2,
+        null=True,
+        blank=True,
         help_text='Odoo match_amount_max.',
     )
-    match_label       = fields.Selection(
-        max_length=16, choices=MATCH_LABELS, blank=True, default='',
-        help_text='Condición sobre la etiqueta del extracto (Odoo match_label).',
+    match_label = fields.Selection(
+        max_length=16,
+        choices=MATCH_LABELS,
+        blank=True,
+        default='',
+        help_text=(
+            'Condición sobre la etiqueta del extracto (Odoo match_label).'
+        ),
     )
     match_label_param = fields.Char(
-        max_length=255, blank=True, default='',
+        max_length=255,
+        blank=True,
+        default='',
         help_text='Parámetro de match_label (Odoo match_label_param).',
     )
     match_partner_ids = fields.Many2many(
-        settings.AUTH_USER_MODEL, blank=True, related_name='+',
-        help_text='Restringe la regla a estos contactos (Odoo '
-                   'match_partner_ids).',
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name='+',
+        help_text=(
+            'Restringe la regla a estos contactos (Odoo match_partner_ids).'
+        ),
     )
 
     class Meta:
@@ -163,15 +202,18 @@ class AccountReconcileModel(models.Model):
         self._check_match_label_param()
         return super().save(*args, **kwargs)
 
-    # -- computo explícito (divergencia #4) ------------------------------------
+    # -- computo explícito (divergencia #4) --------
     def compute_can_be_proposed(self):
         """Odoo ``_compute_can_be_proposed``: sin destino de partner mapeado
         Y (hay condición de etiqueta, monto, partners o dispara automático)."""
         self.can_be_proposed = bool(
             not self.mapped_partner_id
-            and (self.match_label or self.match_amount
-                 or self.match_partner_ids.exists()
-                 or self.trigger == 'auto_reconcile')
+            and (
+                self.match_label
+                or self.match_amount
+                or self.match_partner_ids.exists()
+                or self.trigger == 'auto_reconcile'
+            )
         )
         self.save(update_fields=['can_be_proposed'])
         return self.can_be_proposed
@@ -182,8 +224,10 @@ class AccountReconcileModel(models.Model):
         define el partner que se propone."""
         lines = list(self.line_ids.all())
         is_partner_mapping = bool(
-            self.match_label and len(lines) == 1
-            and lines[0].partner_id and not lines[0].account_id
+            self.match_label
+            and len(lines) == 1
+            and lines[0].partner_id
+            and not lines[0].account_id
         )
         self.mapped_partner = lines[0].partner if is_partner_mapping else None
         self.save(update_fields=['mapped_partner'])
@@ -201,7 +245,9 @@ class AccountReconcileModel(models.Model):
 
 
 class AccountReconcileModelLine(models.Model):
-    """``account.reconcile.model.line`` — línea que la regla genera al aplicarse."""
+    """
+    ``account.reconcile.model.line`` — línea que la regla genera al aplicarse.
+    """
 
     AMOUNT_TYPES = [
         ('fixed', 'Fijo'),
@@ -210,48 +256,72 @@ class AccountReconcileModelLine(models.Model):
         ('regex', 'Extraído de la etiqueta'),
     ]
 
-    model         = fields.Many2one(
-        'account.AccountReconcileModel', on_delete=models.CASCADE,
+    model = fields.Many2one(
+        'account.AccountReconcileModel',
+        on_delete=models.CASCADE,
         related_name='line_ids',
         help_text='Regla a la que pertenece (Odoo model_id).',
     )
-    company       = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, null=True, blank=True,
+    company = fields.Many2one(
+        'base.ResCompany',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='reconcile_model_lines',
-        help_text='Odoo company_id (related=model_id.company_id, store=True '
-                   '— columna sincronizada en save(), ver divergencia #5).',
+        help_text=(
+            'Odoo company_id (related=model_id.company_id, store=True '
+            '— columna sincronizada en save(), ver divergencia #5).'
+        ),
     )
-    sequence      = fields.Integer(
-        default=10, help_text='Orden dentro de la regla (Odoo sequence).',
+    sequence = fields.Integer(
+        default=10,
+        help_text='Orden dentro de la regla (Odoo sequence).',
     )
-    account       = fields.Many2one(
-        'account.AccountAccount', on_delete=models.CASCADE, null=True,
-        blank=True, related_name='reconcile_model_lines',
+    account = fields.Many2one(
+        'account.AccountAccount',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='reconcile_model_lines',
         help_text='Cuenta destino de la línea generada (Odoo account_id).',
     )
-    partner       = fields.Many2one(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
-        blank=True, related_name='+',
+    partner = fields.Many2one(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+',
         help_text='Contacto de la línea generada (Odoo partner_id).',
     )
-    label         = fields.Char(
-        max_length=255, blank=True, default='',
+    label = fields.Char(
+        max_length=255,
+        blank=True,
+        default='',
         help_text='Etiqueta de la línea generada (Odoo label).',
     )
-    amount_type   = fields.Selection(
-        max_length=24, choices=AMOUNT_TYPES, default='percentage',
-        help_text='Cómo se calcula el monto de la línea (Odoo amount_type, '
-                   'requerido).',
+    amount_type = fields.Selection(
+        max_length=24,
+        choices=AMOUNT_TYPES,
+        default='percentage',
+        help_text=(
+            'Cómo se calcula el monto de la línea (Odoo amount_type, '
+            'requerido).'
+        ),
     )
     amount_string = fields.Char(
-        max_length=255, default='100',
-        help_text='Valor crudo del monto: porcentaje, fijo, o regex sobre la '
-                   'etiqueta del extracto (Odoo amount_string, requerido).',
+        max_length=255,
+        default='100',
+        help_text=(
+            'Valor crudo del monto: porcentaje, fijo, o regex sobre la '
+            'etiqueta del extracto (Odoo amount_string, requerido).'
+        ),
     )
-    amount        = fields.Float(
+    amount = fields.Float(
         default=0.0,
-        help_text='amount_string parseado a float (Odoo amount, computado '
-                   'en save() — Odoo lo declara compute+store).',
+        help_text=(
+            'amount_string parseado a float (Odoo amount, computado '
+            'en save() — Odoo lo declara compute+store).'
+        ),
     )
 
     class Meta:

@@ -3,7 +3,8 @@
 Portación fiel de ``odoo19c: odoo/addons/base/models/res_users_settings.py``
 (LGPL-3) — atribución y aviso de licencia preservados (DEC-KX-03).
 
-**El contraste con ``res.users.deletion``** es lo que hay que conservar: allí la
+**El contraste con ``res.users.deletion``** es lo que hay que conservar: allí
+la
 FK es ``ondelete='set null'`` y el registro sobrevive al usuario; aquí es
 ``ondelete='cascade'`` y las preferencias **mueren con él**. Son decisiones
 opuestas sobre la misma pregunta, y sólo se ven leyendo los dos archivos.
@@ -15,6 +16,7 @@ esa forma — un contenedor con la FK— en vez de rellenarlo con campos que
 ningún addon nuestro pide todavía. Inventar preferencias aquí sería fabricar
 superficie.
 """
+
 import fields
 import models
 
@@ -28,7 +30,8 @@ class ResUsersSettings(TimeStampedModel):
     """
 
     user = fields.Many2one(
-        'base.ResUsers', on_delete=models.CASCADE,
+        'base.ResUsers',
+        on_delete=models.CASCADE,
         related_name='settings',
         help_text=(
             'Usuario dueño de las preferencias (Odoo user_id, requerido, '
@@ -37,8 +40,8 @@ class ResUsersSettings(TimeStampedModel):
     )
 
     class Meta:
-        db_table            = 'res_users_settings'
-        verbose_name        = 'Preferencias de usuario'
+        db_table = 'res_users_settings'
+        verbose_name = 'Preferencias de usuario'
         verbose_name_plural = 'Preferencias de usuario'
         # La unicidad es una **constraint declarada aparte**, no el tipo del
         # campo — igual que en la referencia, que mantiene ``user_id`` como
@@ -50,7 +53,8 @@ class ResUsersSettings(TimeStampedModel):
         # referencia declara.
         constraints = [
             models.UniqueConstraint(
-                fields=['user'], name='res_users_settings_unique_user',
+                fields=['user'],
+                name='res_users_settings_unique_user',
             ),
         ]
 
@@ -106,11 +110,15 @@ class ResUsersSettings(TimeStampedModel):
         """
         blacklist = self._get_fields_blacklist()
         if fields_to_format:
-            fields_to_format = [f for f in fields_to_format if f not in blacklist]
+            fields_to_format = [
+                f for f in fields_to_format if f not in blacklist
+            ]
         else:
             fields_to_format = ['id'] + [
-                f.name for f in self._meta.get_fields()
-                if f.name not in self.AUDIT_COLUMNS and f.name not in blacklist
+                f.name
+                for f in self._meta.get_fields()
+                if f.name not in self.AUDIT_COLUMNS
+                and f.name not in blacklist
                 and f.name != 'id'
             ]
         return self._format_settings(fields_to_format)
@@ -144,7 +152,8 @@ class ResUsersSettings(TimeStampedModel):
                 values['user'] = {'id': self.user_id}
             elif name in reverse:
                 values[name] = list(
-                    getattr(self, name).values_list('pk', flat=True))
+                    getattr(self, name).values_list('pk', flat=True)
+                )
             else:
                 values[name] = getattr(self, name)
         return values
@@ -157,7 +166,8 @@ class ResUsersSettings(TimeStampedModel):
         que permite al cliente saber qué se movió de verdad.
         """
         changed = {
-            name: value for name, value in new_settings.items()
+            name: value
+            for name, value in new_settings.items()
             if any(f.name == name for f in self._meta.concrete_fields)
             and getattr(self, name) != value
         }

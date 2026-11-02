@@ -29,6 +29,7 @@ no están ahí en la referencia y tampoco aquí: se importan por nombre, no por
 Adaptado de Odoo Community ``odoo/tools/func.py`` (LGPL-3) — atribución y
 aviso de licencia preservados (DEC-KX-03).
 """
+
 import functools
 import typing
 import warnings
@@ -90,7 +91,8 @@ class lazy_property(functools.cached_property):
     def __init__(self, func):
         super().__init__(func)
         warnings.warn(
-            "lazy_property is deprecated since Odoo 19, use `functools.cached_property`",
+            "lazy_property is deprecated since Odoo 19, use"
+            " `functools.cached_property`",
             category=DeprecationWarning,
             stacklevel=2,
         )
@@ -103,13 +105,16 @@ class lazy_property(functools.cached_property):
         llamar directamente.
         """
         warnings.warn(
-            "lazy_property is deprecated since Odoo 19, use `reset_cache_properties` directly",
+            "lazy_property is deprecated since Odoo 19, use"
+            " `reset_cache_properties` directly",
             category=DeprecationWarning,
         )
         reset_cached_properties(instance)
 
 
-def conditional(condition: typing.Any, decorator: Callable[[T], T]) -> Callable[[T], T]:
+def conditional(
+    condition: typing.Any, decorator: Callable[[T], T]
+) -> Callable[[T], T]:
     """Aplica ``decorator`` sólo si ``condition`` es verdadera — ≙ ``:49-60``.
 
     Docstring de la fuente, verbatim: *"Decorator for a conditionally applied
@@ -130,7 +135,9 @@ def conditional(condition: typing.Any, decorator: Callable[[T], T]) -> Callable[
         return lambda fn: fn
 
 
-def filter_kwargs(func: Callable, kwargs: dict[str, typing.Any]) -> dict[str, typing.Any]:
+def filter_kwargs(
+    func: Callable, kwargs: dict[str, typing.Any]
+) -> dict[str, typing.Any]:
     """Recorta ``kwargs`` a lo que la firma de ``func`` acepta — ≙ ``:63-77``.
 
     Docstring de la fuente, verbatim: *"Filter the given keyword arguments to
@@ -163,7 +170,9 @@ def filter_kwargs(func: Callable, kwargs: dict[str, typing.Any]) -> dict[str, ty
     return {key: kwargs[key] for key in kwargs if key not in leftovers}
 
 
-def synchronized(lock_attr: str = '_lock') -> Callable[[Callable[P, T]], Callable[P, T]]:
+def synchronized(
+    lock_attr: str = '_lock',
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """Envuelve un método en el cerrojo que la instancia lleva — ≙ ``:80-90``.
 
     El cerrojo **no** lo crea este decorador: lo busca en la instancia por
@@ -174,23 +183,28 @@ def synchronized(lock_attr: str = '_lock') -> Callable[[Callable[P, T]], Callabl
     Se entra con ``with``, así que el cerrojo se libera también cuando el
     cuerpo levanta una excepción.
     """
+
     def synchronized_lock(func, /):
         @functools.wraps(func)
         def locked(inst, *args, **kwargs):
             with getattr(inst, lock_attr):
                 return func(inst, *args, **kwargs)
+
         return locked
+
     return synchronized_lock
 
 
 locked = synchronized()
-"""El caso corriente de :func:`synchronized`: el cerrojo en ``self._lock``.
+"""El caso corriente de :func:`synchronized`: el cerrojo en
+``self._lock``.
 
-≙ ``odoo19c: odoo/tools/func.py:93``. Es un alias de módulo, no una función
-propia — se aplica sin llamar (``@locked``), mientras que ``synchronized``
-se llama para nombrar otro atributo (``@synchronized('_mi_cerrojo')``).
-Su consumidor en el ORM es ``Registry``, que decora con él sus métodos de
-clase (``odoo19c: odoo/orm/registry.py:32``).
+≙ ``odoo19c: odoo/tools/func.py:93``. Es un alias de módulo, no una
+función propia — se aplica sin llamar (``@locked``), mientras que
+``synchronized`` se llama para nombrar otro atributo
+(``@synchronized('_mi_cerrojo')``). Su consumidor en el ORM es
+``Registry``, que decora con él sus métodos de clase (``odoo19c:
+odoo/orm/registry.py:32``).
 """
 
 
@@ -276,7 +290,8 @@ class lazy_classproperty(classproperty[T], typing.Generic[T]):
 
 
 class lazy:
-    """Proxy al resultado (memoizado) de una evaluación diferida — ≙ ``:135-262``.
+    """
+    Proxy al resultado (memoizado) de una evaluación diferida — ≙ ``:135-262``.
 
     .. code-block::
 
@@ -298,6 +313,7 @@ class lazy:
     La fuente declara ``class lazy(object)``, herencia explícita que en Python
     3 no cambia nada; aquí se omite la base redundante y no la conducta.
     """
+
     __slots__ = ['_func', '_args', '_kwargs', '_cached_value']
 
     def __init__(self, func, *args, **kwargs):
@@ -322,109 +338,259 @@ class lazy:
             object.__setattr__(self, '_cached_value', value)
         return self._cached_value
 
-    def __getattr__(self, name): return getattr(self._value, name)
-    def __setattr__(self, name, value): return setattr(self._value, name, value)
-    def __delattr__(self, name): return delattr(self._value, name)
+    def __getattr__(self, name):
+        return getattr(self._value, name)
+
+    def __setattr__(self, name, value):
+        return setattr(self._value, name, value)
+
+    def __delattr__(self, name):
+        return delattr(self._value, name)
 
     def __repr__(self):
         # sin evaluar, el ``repr`` de un objeto cualquiera: pedirlo desde un
-        # depurador no debe disparar el cálculo que el proxy existe para diferir
-        return repr(self._value) if self._func is None else object.__repr__(self)
+        # depurador no debe disparar el cálculo que el proxy existe para
+        # diferir
+        return (
+            repr(self._value) if self._func is None else object.__repr__(self)
+        )
 
-    def __str__(self): return str(self._value)
-    def __bytes__(self): return bytes(self._value)
-    def __format__(self, format_spec): return format(self._value, format_spec)
+    def __str__(self):
+        return str(self._value)
 
-    def __lt__(self, other): return other > self._value
-    def __le__(self, other): return other >= self._value
-    def __eq__(self, other): return other == self._value
-    def __ne__(self, other): return other != self._value
-    def __gt__(self, other): return other < self._value
-    def __ge__(self, other): return other <= self._value
+    def __bytes__(self):
+        return bytes(self._value)
 
-    def __hash__(self): return hash(self._value)
-    def __bool__(self): return bool(self._value)
+    def __format__(self, format_spec):
+        return format(self._value, format_spec)
 
-    def __call__(self, *args, **kwargs): return self._value(*args, **kwargs)
+    def __lt__(self, other):
+        return other > self._value
 
-    def __len__(self): return len(self._value)
-    def __getitem__(self, key): return self._value[key]
-    def __missing__(self, key): return self._value.__missing__(key)
-    def __setitem__(self, key, value): self._value[key] = value
-    def __delitem__(self, key): del self._value[key]
-    def __iter__(self): return iter(self._value)
-    def __reversed__(self): return reversed(self._value)
-    def __contains__(self, key): return key in self._value
+    def __le__(self, other):
+        return other >= self._value
 
-    def __add__(self, other): return self._value.__add__(other)
-    def __sub__(self, other): return self._value.__sub__(other)
-    def __mul__(self, other): return self._value.__mul__(other)
-    def __matmul__(self, other): return self._value.__matmul__(other)
-    def __truediv__(self, other): return self._value.__truediv__(other)
-    def __floordiv__(self, other): return self._value.__floordiv__(other)
-    def __mod__(self, other): return self._value.__mod__(other)
-    def __divmod__(self, other): return self._value.__divmod__(other)
-    def __pow__(self, other): return self._value.__pow__(other)
-    def __lshift__(self, other): return self._value.__lshift__(other)
-    def __rshift__(self, other): return self._value.__rshift__(other)
-    def __and__(self, other): return self._value.__and__(other)
-    def __xor__(self, other): return self._value.__xor__(other)
-    def __or__(self, other): return self._value.__or__(other)
+    def __eq__(self, other):
+        return other == self._value
 
-    def __radd__(self, other): return self._value.__radd__(other)
-    def __rsub__(self, other): return self._value.__rsub__(other)
-    def __rmul__(self, other): return self._value.__rmul__(other)
-    def __rmatmul__(self, other): return self._value.__rmatmul__(other)
-    def __rtruediv__(self, other): return self._value.__rtruediv__(other)
-    def __rfloordiv__(self, other): return self._value.__rfloordiv__(other)
-    def __rmod__(self, other): return self._value.__rmod__(other)
-    def __rdivmod__(self, other): return self._value.__rdivmod__(other)
-    def __rpow__(self, other): return self._value.__rpow__(other)
-    def __rlshift__(self, other): return self._value.__rlshift__(other)
-    def __rrshift__(self, other): return self._value.__rrshift__(other)
-    def __rand__(self, other): return self._value.__rand__(other)
-    def __rxor__(self, other): return self._value.__rxor__(other)
-    def __ror__(self, other): return self._value.__ror__(other)
+    def __ne__(self, other):
+        return other != self._value
 
-    def __iadd__(self, other): return self._value.__iadd__(other)
-    def __isub__(self, other): return self._value.__isub__(other)
-    def __imul__(self, other): return self._value.__imul__(other)
-    def __imatmul__(self, other): return self._value.__imatmul__(other)
-    def __itruediv__(self, other): return self._value.__itruediv__(other)
-    def __ifloordiv__(self, other): return self._value.__ifloordiv__(other)
-    def __imod__(self, other): return self._value.__imod__(other)
-    def __ipow__(self, other): return self._value.__ipow__(other)
-    def __ilshift__(self, other): return self._value.__ilshift__(other)
-    def __irshift__(self, other): return self._value.__irshift__(other)
-    def __iand__(self, other): return self._value.__iand__(other)
-    def __ixor__(self, other): return self._value.__ixor__(other)
-    def __ior__(self, other): return self._value.__ior__(other)
+    def __gt__(self, other):
+        return other < self._value
 
-    def __neg__(self): return self._value.__neg__()
-    def __pos__(self): return self._value.__pos__()
-    def __abs__(self): return self._value.__abs__()
-    def __invert__(self): return self._value.__invert__()
+    def __ge__(self, other):
+        return other <= self._value
 
-    def __complex__(self): return complex(self._value)
-    def __int__(self): return int(self._value)
-    def __float__(self): return float(self._value)
+    def __hash__(self):
+        return hash(self._value)
 
-    def __index__(self): return self._value.__index__()
+    def __bool__(self):
+        return bool(self._value)
 
-    def __round__(self): return self._value.__round__()
-    def __trunc__(self): return self._value.__trunc__()
-    def __floor__(self): return self._value.__floor__()
-    def __ceil__(self): return self._value.__ceil__()
+    def __call__(self, *args, **kwargs):
+        return self._value(*args, **kwargs)
 
-    def __enter__(self): return self._value.__enter__()
+    def __len__(self):
+        return len(self._value)
+
+    def __getitem__(self, key):
+        return self._value[key]
+
+    def __missing__(self, key):
+        return self._value.__missing__(key)
+
+    def __setitem__(self, key, value):
+        self._value[key] = value
+
+    def __delitem__(self, key):
+        del self._value[key]
+
+    def __iter__(self):
+        return iter(self._value)
+
+    def __reversed__(self):
+        return reversed(self._value)
+
+    def __contains__(self, key):
+        return key in self._value
+
+    def __add__(self, other):
+        return self._value.__add__(other)
+
+    def __sub__(self, other):
+        return self._value.__sub__(other)
+
+    def __mul__(self, other):
+        return self._value.__mul__(other)
+
+    def __matmul__(self, other):
+        return self._value.__matmul__(other)
+
+    def __truediv__(self, other):
+        return self._value.__truediv__(other)
+
+    def __floordiv__(self, other):
+        return self._value.__floordiv__(other)
+
+    def __mod__(self, other):
+        return self._value.__mod__(other)
+
+    def __divmod__(self, other):
+        return self._value.__divmod__(other)
+
+    def __pow__(self, other):
+        return self._value.__pow__(other)
+
+    def __lshift__(self, other):
+        return self._value.__lshift__(other)
+
+    def __rshift__(self, other):
+        return self._value.__rshift__(other)
+
+    def __and__(self, other):
+        return self._value.__and__(other)
+
+    def __xor__(self, other):
+        return self._value.__xor__(other)
+
+    def __or__(self, other):
+        return self._value.__or__(other)
+
+    def __radd__(self, other):
+        return self._value.__radd__(other)
+
+    def __rsub__(self, other):
+        return self._value.__rsub__(other)
+
+    def __rmul__(self, other):
+        return self._value.__rmul__(other)
+
+    def __rmatmul__(self, other):
+        return self._value.__rmatmul__(other)
+
+    def __rtruediv__(self, other):
+        return self._value.__rtruediv__(other)
+
+    def __rfloordiv__(self, other):
+        return self._value.__rfloordiv__(other)
+
+    def __rmod__(self, other):
+        return self._value.__rmod__(other)
+
+    def __rdivmod__(self, other):
+        return self._value.__rdivmod__(other)
+
+    def __rpow__(self, other):
+        return self._value.__rpow__(other)
+
+    def __rlshift__(self, other):
+        return self._value.__rlshift__(other)
+
+    def __rrshift__(self, other):
+        return self._value.__rrshift__(other)
+
+    def __rand__(self, other):
+        return self._value.__rand__(other)
+
+    def __rxor__(self, other):
+        return self._value.__rxor__(other)
+
+    def __ror__(self, other):
+        return self._value.__ror__(other)
+
+    def __iadd__(self, other):
+        return self._value.__iadd__(other)
+
+    def __isub__(self, other):
+        return self._value.__isub__(other)
+
+    def __imul__(self, other):
+        return self._value.__imul__(other)
+
+    def __imatmul__(self, other):
+        return self._value.__imatmul__(other)
+
+    def __itruediv__(self, other):
+        return self._value.__itruediv__(other)
+
+    def __ifloordiv__(self, other):
+        return self._value.__ifloordiv__(other)
+
+    def __imod__(self, other):
+        return self._value.__imod__(other)
+
+    def __ipow__(self, other):
+        return self._value.__ipow__(other)
+
+    def __ilshift__(self, other):
+        return self._value.__ilshift__(other)
+
+    def __irshift__(self, other):
+        return self._value.__irshift__(other)
+
+    def __iand__(self, other):
+        return self._value.__iand__(other)
+
+    def __ixor__(self, other):
+        return self._value.__ixor__(other)
+
+    def __ior__(self, other):
+        return self._value.__ior__(other)
+
+    def __neg__(self):
+        return self._value.__neg__()
+
+    def __pos__(self):
+        return self._value.__pos__()
+
+    def __abs__(self):
+        return self._value.__abs__()
+
+    def __invert__(self):
+        return self._value.__invert__()
+
+    def __complex__(self):
+        return complex(self._value)
+
+    def __int__(self):
+        return int(self._value)
+
+    def __float__(self):
+        return float(self._value)
+
+    def __index__(self):
+        return self._value.__index__()
+
+    def __round__(self):
+        return self._value.__round__()
+
+    def __trunc__(self):
+        return self._value.__trunc__()
+
+    def __floor__(self):
+        return self._value.__floor__()
+
+    def __ceil__(self):
+        return self._value.__ceil__()
+
+    def __enter__(self):
+        return self._value.__enter__()
 
     def __exit__(self, exc_type, exc_value, traceback):
         return self._value.__exit__(exc_type, exc_value, traceback)
 
-    def __await__(self): return self._value.__await__()
-    def __aiter__(self): return self._value.__aiter__()
-    def __anext__(self): return self._value.__anext__()
-    def __aenter__(self): return self._value.__aenter__()
+    def __await__(self):
+        return self._value.__await__()
+
+    def __aiter__(self):
+        return self._value.__aiter__()
+
+    def __anext__(self):
+        return self._value.__anext__()
+
+    def __aenter__(self):
+        return self._value.__aenter__()
 
     def __aexit__(self, exc_type, exc_value, traceback):
         return self._value.__aexit__(exc_type, exc_value, traceback)

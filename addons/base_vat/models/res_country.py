@@ -41,7 +41,8 @@ está portado en este árbol con los tres campos que la consulta necesita:
 - ``AccountFiscalPosition.company`` (``:55``), que es lo que hace resoluble
   el ``_check_company_domain`` de la fuente.
 
-*Métrica:* ``grep -c "AccountFiscalPosition" addons/account/models/account_fiscal_position.py``
+*Métrica:* ``grep -c "AccountFiscalPosition"
+addons/account/models/account_fiscal_position.py``
 da hits en la clase y en su ``__init__``; el campo se leyó por número de línea.
 *Ciega a:* si la posición fiscal está **poblada** en una base concreta — el
 porte responde por el mecanismo, no por los datos.
@@ -62,6 +63,7 @@ Divergencias declaradas
 3. **``limit=1`` → ``.exists()``.** La fuente pide una fila y la evalúa como
    booleano; ``.exists()`` es lo mismo sin traerla.
 """
+
 from django.apps import apps
 
 from orm.environments import get_current_company
@@ -83,10 +85,11 @@ def _compute_has_foreign_fiscal_position(country):
     —que aquí es el ``get_current_company()`` que la consulta ya lee.
     """
     fiscal_position = apps.get_model('account', 'AccountFiscalPosition')
-    queryset = (fiscal_position.objects
-                .filter(country=country)
-                .exclude(foreign_vat='')
-                .exclude(foreign_vat=None))
+    queryset = (
+        fiscal_position.objects.filter(country=country)
+        .exclude(foreign_vat='')
+        .exclude(foreign_vat=None)
+    )
     predicate = fiscal_position._check_company_domain(get_current_company())
     if predicate is not None:
         queryset = queryset.filter(predicate)
@@ -106,12 +109,16 @@ def _has_foreign_fiscal_position(country):
 
 
 def apply_base_vat_res_country_extensions():
-    """Cuelga sobre ``res.country`` lo que ``base_vat`` le añade — ≙ ``_inherit``."""
+    """
+    Cuelga sobre ``res.country`` lo que ``base_vat`` le añade — ≙ ``_inherit``.
+    """
     extend_model(
-        'base', 'ResCountry',
+        'base',
+        'ResCountry',
         metodos={
-            '_compute_has_foreign_fiscal_position':
-                _compute_has_foreign_fiscal_position,
+            '_compute_has_foreign_fiscal_position': (
+                _compute_has_foreign_fiscal_position
+            ),
         },
         propiedades={
             'has_foreign_fiscal_position': _has_foreign_fiscal_position,

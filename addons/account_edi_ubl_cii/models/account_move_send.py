@@ -1,6 +1,9 @@
-r"""``account.move.send`` — lo que ``account_edi_ubl_cii`` le cuelga (≙ ``_inherit``).
+r"""
+``account.move.send`` — lo que ``account_edi_ubl_cii`` le cuelga (≙
+``_inherit``).
 
-Adaptación de ``odoo19c: addons/account_edi_ubl_cii/models/account_move_send.py``
+Adaptación de ``odoo19c:
+addons/account_edi_ubl_cii/models/account_move_send.py``
 (``odoo-tools@622ddc2a``, LGPL-3, 312 líneas) — atribución y aviso de licencia
 preservados (DEC-KX-03).
 
@@ -67,6 +70,7 @@ Cobertura: 11 de 11 símbolos presentes — **4 portados, 7 bloqueados**
 ``SUPPORTED_FILE_TYPES`` viene de ``account_edi_common.py`` (portada verbatim
 allí): es la tabla de mimetypes que UBL admite como adjunto embebido.
 """
+
 from orm.method_chain import chain_method, extend_list
 
 from addons.account.models.account_move_send import AccountMoveSend
@@ -90,8 +94,9 @@ def _display_attachments_widget(cls, edi_format, sending_methods):
     return ubl_format_info.get(edi_format, {}).get('embed_attachments') or None
 
 
-def _get_ubl_available_attachments(cls, mail_attachments_widget,
-                                   invoice_edi_format):
+def _get_ubl_available_attachments(
+    cls, mail_attachments_widget, invoice_edi_format
+):
     """≙ ``_get_ubl_available_attachments`` (``odoo19c: :105-117``).
 
     Parte los adjuntos manuales del asistente en (los que el formato admite
@@ -105,19 +110,31 @@ def _get_ubl_available_attachments(cls, mail_attachments_widget,
     """
     if not invoice_edi_format or not mail_attachments_widget:
         return [], []
-    attachment_ids = [values['id'] for values in mail_attachments_widget
-                      if values.get('manual')]
+    attachment_ids = [
+        values['id']
+        for values in mail_attachments_widget
+        if values.get('manual')
+    ]
     attachments = env['ir.attachment'].browse(attachment_ids)
 
-    ubl_format_info = env['res.partner']._get_ubl_cii_formats_info().get(
-        invoice_edi_format, {})
+    ubl_format_info = (
+        env['res.partner']
+        ._get_ubl_cii_formats_info()
+        .get(invoice_edi_format, {})
+    )
     if not ubl_format_info.get('embed_attachments'):
         return [], attachments
 
-    accepted_attachments = [attachment for attachment in attachments
-                            if attachment.mimetype in SUPPORTED_FILE_TYPES]
-    rejected = [attachment for attachment in attachments
-                if attachment not in accepted_attachments]
+    accepted_attachments = [
+        attachment
+        for attachment in attachments
+        if attachment.mimetype in SUPPORTED_FILE_TYPES
+    ]
+    rejected = [
+        attachment
+        for attachment in attachments
+        if attachment not in accepted_attachments
+    ]
     return accepted_attachments, rejected
 
 
@@ -127,9 +144,9 @@ def _needs_ubl_postprocessing(cls, invoice_data):
     Factur-X y ZUGFeRD quedan fuera porque en esos dos el XML va dentro del
     PDF, no al revés.
     """
-    return ('ubl_cii_xml_options' in invoice_data
-            and invoice_data['ubl_cii_xml_options']['ubl_cii_format']
-            not in ('facturx', 'zugferd'))
+    return 'ubl_cii_xml_options' in invoice_data and invoice_data[
+        'ubl_cii_xml_options'
+    ]['ubl_cii_format'] not in ('facturx', 'zugferd')
 
 
 def _get_invoice_extra_attachments_ubl_cii(cls, move):
@@ -146,37 +163,48 @@ def _get_move_constraints(cls, move):
     quita la restricción ``not_sale_document`` cuando el asiento es
     autofacturable, y ``AccountMove._is_exportable_as_self_invoice`` está
     bloqueado (ver ``account_move.py`` de este addon)."""
-    _blocked('_get_move_constraints',
-             'AccountMove._is_exportable_as_self_invoice esta bloqueado '
-             '(commercial_partner_id / is_purchase_document: 0 hits)')
+    _blocked(
+        '_get_move_constraints',
+        'AccountMove._is_exportable_as_self_invoice esta bloqueado '
+        '(commercial_partner_id / is_purchase_document: 0 hits)',
+    )
 
 
 def _get_alerts(cls, moves, moves_data):
     """≙ ``_get_alerts`` (``odoo19c: :33-73``) — **bloqueado**:
     ``commercial_partner_id`` e ``IrModule._get()`` no existen (0 hits)."""
-    _blocked('_get_alerts',
-             'ResPartner.commercial_partner_id e IrModule._get() no existen '
-             '(0 hits)')
+    _blocked(
+        '_get_alerts',
+        'ResPartner.commercial_partner_id e IrModule._get() no existen '
+        '(0 hits)',
+    )
 
 
-def _get_placeholder_mail_attachments_data(cls, move, invoice_edi_format=None,
-                                           extra_edis=None, pdf_report=None):
+def _get_placeholder_mail_attachments_data(
+    cls, move, invoice_edi_format=None, extra_edis=None, pdf_report=None
+):
     """≙ ``_get_placeholder_mail_attachments_data`` (``odoo19c: :83-95``) —
     **bloqueado**: ``commercial_partner_id`` (0 hits) y ``_need_ubl_cii_xml``,
     bloqueado."""
-    _blocked('_get_placeholder_mail_attachments_data',
-             'ResPartner.commercial_partner_id no existe (0 hits) y '
-             'AccountMove._need_ubl_cii_xml esta bloqueado')
+    _blocked(
+        '_get_placeholder_mail_attachments_data',
+        'ResPartner.commercial_partner_id no existe (0 hits) y '
+        'AccountMove._need_ubl_cii_xml esta bloqueado',
+    )
 
 
-def _hook_invoice_document_before_pdf_report_render(cls, invoice, invoice_data):
+def _hook_invoice_document_before_pdf_report_render(
+    cls, invoice, invoice_data
+):
     """≙ ``_hook_invoice_document_before_pdf_report_render``
     (``odoo19c: :122-155``) — **bloqueado**: ``commercial_partner_id`` (0 hits)
     y ``_init_invoice_export_values``, bloqueado por la envoltura de
     base-lines de ``account.tax``."""
-    _blocked('_hook_invoice_document_before_pdf_report_render',
-             'ResPartner.commercial_partner_id no existe (0 hits) y la '
-             'envoltura de base-lines de account.tax no se porta')
+    _blocked(
+        '_hook_invoice_document_before_pdf_report_render',
+        'ResPartner.commercial_partner_id no existe (0 hits) y la '
+        'envoltura de base-lines de account.tax no se porta',
+    )
 
 
 def _hook_invoice_document_after_pdf_report_render(cls, invoice, invoice_data):
@@ -186,17 +214,22 @@ def _hook_invoice_document_after_pdf_report_render(cls, invoice, invoice_data):
     ``uv.lock``) y renderiza con ``env['ir.qweb']._render`` (sin motor QWeb en
     este árbol, GAP ya declarado por ``account_edi/models/
     ir_actions_report.py``)."""
-    _blocked('_hook_invoice_document_after_pdf_report_render',
-             'pypdf (0 en uv.lock) y el motor QWeb no existen en este arbol')
+    _blocked(
+        '_hook_invoice_document_after_pdf_report_render',
+        'pypdf (0 en uv.lock) y el motor QWeb no existen en este arbol',
+    )
 
 
 def _postprocess_invoice_ubl_xml(cls, invoice, invoice_data):
     """≙ ``_postprocess_invoice_ubl_xml`` (``odoo19c: :227-298``) —
-    **bloqueado**: incluye el PDF en el UBL como ``AdditionalDocumentReference``
+    **bloqueado**: incluye el PDF en el UBL como
+    ``AdditionalDocumentReference``
     y necesita ``odoo.tools.cleanup_xml_node``, que ``src/tools`` no porta
     (0 hits), además del PDF ya renderizado por la cadena anterior."""
-    _blocked('_postprocess_invoice_ubl_xml',
-             'odoo.tools.cleanup_xml_node no existe en src/tools (0 hits)')
+    _blocked(
+        '_postprocess_invoice_ubl_xml',
+        'odoo.tools.cleanup_xml_node no existe en src/tools (0 hits)',
+    )
 
 
 def _link_invoice_documents(cls, invoices_data):
@@ -204,9 +237,11 @@ def _link_invoice_documents(cls, invoices_data):
     ``with_user(SUPERUSER_ID)`` y ``browse`` sobre varios ids; el proxy de
     ``env`` de este addon no emula recordsets (límite declarado en
     ``account_edi_common.py``)."""
-    _blocked('_link_invoice_documents',
-             'with_user(SUPERUSER_ID) y la aritmetica de recordsets no se '
-             'emulan (limite declarado del proxy env)')
+    _blocked(
+        '_link_invoice_documents',
+        'with_user(SUPERUSER_ID) y la aritmetica de recordsets no se '
+        'emulan (limite declarado del proxy env)',
+    )
 
 
 def apply_account_edi_ubl_cii_account_move_send_extensions():
@@ -214,26 +249,40 @@ def apply_account_edi_ubl_cii_account_move_send_extensions():
     ``_inherit = 'account.move.send'``. La llama
     ``AccountEdiUblCiiConfig.ready()``."""
     chain_method(
-        AccountMoveSend, '_get_invoice_extra_attachments',
+        AccountMoveSend,
+        '_get_invoice_extra_attachments',
         classmethod(_get_invoice_extra_attachments_ubl_cii),
         combine=extend_list,
     )
 
     for name, function in (
-        ('_display_attachments_widget', classmethod(_display_attachments_widget)),
-        ('_get_ubl_available_attachments',
-         classmethod(_get_ubl_available_attachments)),
+        (
+            '_display_attachments_widget',
+            classmethod(_display_attachments_widget),
+        ),
+        (
+            '_get_ubl_available_attachments',
+            classmethod(_get_ubl_available_attachments),
+        ),
         ('_needs_ubl_postprocessing', classmethod(_needs_ubl_postprocessing)),
         ('_get_move_constraints', classmethod(_get_move_constraints)),
         ('_get_alerts', classmethod(_get_alerts)),
-        ('_get_placeholder_mail_attachments_data',
-         classmethod(_get_placeholder_mail_attachments_data)),
-        ('_hook_invoice_document_before_pdf_report_render',
-         classmethod(_hook_invoice_document_before_pdf_report_render)),
-        ('_hook_invoice_document_after_pdf_report_render',
-         classmethod(_hook_invoice_document_after_pdf_report_render)),
-        ('_postprocess_invoice_ubl_xml',
-         classmethod(_postprocess_invoice_ubl_xml)),
+        (
+            '_get_placeholder_mail_attachments_data',
+            classmethod(_get_placeholder_mail_attachments_data),
+        ),
+        (
+            '_hook_invoice_document_before_pdf_report_render',
+            classmethod(_hook_invoice_document_before_pdf_report_render),
+        ),
+        (
+            '_hook_invoice_document_after_pdf_report_render',
+            classmethod(_hook_invoice_document_after_pdf_report_render),
+        ),
+        (
+            '_postprocess_invoice_ubl_xml',
+            classmethod(_postprocess_invoice_ubl_xml),
+        ),
         ('_link_invoice_documents', classmethod(_link_invoice_documents)),
     ):
         chain_method(AccountMoveSend, name, function)

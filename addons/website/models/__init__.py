@@ -1,8 +1,10 @@
-"""Modelos del addon ``website`` — paquete espejo de ``addons/website/models/``.
+"""
+Modelos del addon ``website`` — paquete espejo de ``addons/website/models/``.
 
 Un archivo por modelo, como la referencia y como ``base``:
 
-- ``ir_ui_view.py`` → ``WebsiteViewInfo`` + ``apply_website_ir_ui_view_extensions``
+- ``ir_ui_view.py`` → ``WebsiteViewInfo`` +
+  ``apply_website_ir_ui_view_extensions``
   (la **extensión** que el addon del sitio cuelga sobre ``ir.ui.view``:
   visibilidad, contraseña, seguimiento y sitio de la vista, #565). No declara
   un modelo nuevo de la referencia — ``WebsiteViewInfo`` es la tabla lateral
@@ -32,6 +34,7 @@ en el pase sin pérdida — la decisión completa está en el docstring de
 Se reexporta aquí para preservar el contrato ``from addons.website.models
 import StaticContent, ...``.
 """
+
 from .banner import Banner
 from .ir_http import IrHttp
 from .ir_ui_view import (

@@ -9,6 +9,7 @@ hace observable que el motor funciona.
 
 **Qué haría fallar a cada control se declara en su caso.**
 """
+
 from datetime import date
 from decimal import Decimal
 
@@ -17,8 +18,13 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import connection
 
-from addons.base.models import (IrModelData, ResCompany, ResCurrency,
-                                ResGroups, res_currency)
+from addons.base.models import (
+    IrModelData,
+    ResCompany,
+    ResCurrency,
+    ResGroups,
+    res_currency,
+)
 from addons.base.models.res_currency import ResCurrencyRate
 from orm.environments import company_scope, context_scope
 
@@ -27,36 +33,51 @@ pytestmark = pytest.mark.integration
 
 @pytest.fixture
 def mxn(db):
-    return ResCurrency.objects.create(name='XMX', symbol='$', rounding='0.01',
-                                      currency_unit_label='Pesos',
-                                      currency_subunit_label='Centavos')
+    return ResCurrency.objects.create(
+        name='XMX',
+        symbol='$',
+        rounding='0.01',
+        currency_unit_label='Pesos',
+        currency_subunit_label='Centavos',
+    )
 
 
 @pytest.fixture
 def usd(db):
-    return ResCurrency.objects.create(name='XUS', symbol='US$',
-                                      rounding='0.01')
+    return ResCurrency.objects.create(
+        name='XUS', symbol='US$', rounding='0.01'
+    )
 
 
 @pytest.fixture
 def company(db, mxn):
-    return ResCompany.objects.create(code='cur-co', name='Cur Co',
-                                     currency=mxn)
+    return ResCompany.objects.create(
+        code='cur-co', name='Cur Co', currency=mxn
+    )
 
 
 def _rate(currency, day, value, company=None):
     return ResCurrencyRate.objects.create(
-        currency=currency, company=company, name=day, rate=Decimal(str(value)))
+        currency=currency, company=company, name=day, rate=Decimal(str(value))
+    )
 
 
 class TestDecimalPlaces:
     """≙ ``_compute_decimal_places`` (``odoo19c: res_currency.py:162-168``)."""
 
-    @pytest.mark.parametrize('rounding,expected', [
-        ('0.01', 2), ('0.001', 3), ('1', 0), ('0.05', 2), ('10', 0),
-    ])
+    @pytest.mark.parametrize(
+        'rounding,expected',
+        [
+            ('0.01', 2),
+            ('0.001', 3),
+            ('1', 0),
+            ('0.05', 2),
+            ('10', 0),
+        ],
+    )
     def test_the_places_come_from_the_magnitude_not_the_factor(
-            self, db, rounding, expected):
+        self, db, rounding, expected
+    ):
         """Qué haría fallar al control: contar los decimales del factor.
 
         ``0.05`` tiene dos decimales escritos y ``ceil(log10(1/0.05))`` da
@@ -65,7 +86,8 @@ class TestDecimalPlaces:
         magnitud es mayor que 1, así que cae al 0 y no a un negativo.
         """
         currency = ResCurrency.objects.create(
-            name=f'X{rounding[-1]}{expected}', symbol='x', rounding=rounding)
+            name=f'X{rounding[-1]}{expected}', symbol='x', rounding=rounding
+        )
         assert currency.decimal_places == expected
 
     def test_it_is_computed_on_save_not_only_on_demand(self, db):
@@ -74,8 +96,9 @@ class TestDecimalPlaces:
         El valor tiene que estar **en la columna**, porque lo leen
         ``round()``, ``format()`` y ``get_all_currencies``.
         """
-        currency = ResCurrency.objects.create(name='XD3', symbol='x',
-                                              rounding='0.001')
+        currency = ResCurrency.objects.create(
+            name='XD3', symbol='x', rounding='0.001'
+        )
         currency.refresh_from_db()
         assert currency.decimal_places == 3
 
@@ -104,7 +127,8 @@ class TestGetRates:
         assert rates[usd.pk] == Decimal('20')
 
     def test_an_earlier_rate_is_the_fallback_when_none_precedes(
-            self, mxn, usd, company):
+        self, mxn, usd, company
+    ):
         """El segundo escalón de la fuente, y el menos obvio.
 
         Qué haría fallar al control: caer a 1.0 en cuanto no haya tasa
@@ -134,7 +158,8 @@ class TestGetRates:
         assert rates[usd.pk] == Decimal('30')
 
     def test_the_global_rate_applies_when_there_is_no_company_one(
-            self, mxn, usd, company):
+        self, mxn, usd, company
+    ):
         """El control positivo del caso anterior: sin él, un filtro que
         excluyera la global también lo pasaría."""
         _rate(usd, date(2026, 2, 1), 20, None)
@@ -146,7 +171,9 @@ class TestGetRates:
 
 
 class TestConversion:
-    """≙ ``_get_conversion_rate`` (``:271-281``) y ``_convert`` (``:283-302``)."""
+    """
+    ≙ ``_get_conversion_rate`` (``:271-281``) y ``_convert`` (``:283-302``).
+    """
 
     def test_the_same_currency_converts_exactly(self, mxn, company):
         """Qué haría fallar al control: quitar el corto-circuito.
@@ -154,10 +181,13 @@ class TestConversion:
         No es optimización: sin él, un importe pasa por una división y una
         multiplicación, y el redondeo de ida y vuelta puede moverlo.
         """
-        assert ResCurrency._get_conversion_rate(mxn, mxn, company) == Decimal('1')
+        assert ResCurrency._get_conversion_rate(mxn, mxn, company) == Decimal(
+            '1'
+        )
 
     def test_converting_multiplies_by_the_ratio_of_the_two_rates(
-            self, mxn, usd, company):
+        self, mxn, usd, company
+    ):
         """La moneda de la empresa vale 1 y el dólar 20, así que 5 dólares
         son 100 pesos.
 
@@ -180,29 +210,34 @@ class TestConversion:
         assert usd._convert(Decimal('0'), mxn, company) == Decimal('0')
 
     def test_the_result_is_rounded_with_the_target_currency(
-            self, mxn, company):
+        self, mxn, company
+    ):
         """Qué haría fallar al control: redondear con la moneda de origen.
 
         El origen tiene tres decimales y el destino dos. Un importe que en el
         origen conservaría el tercer decimal tiene que perderlo al llegar.
         """
-        centimo = ResCurrency.objects.create(name='XML', symbol='m',
-                                             rounding='0.001')
+        centimo = ResCurrency.objects.create(
+            name='XML', symbol='m', rounding='0.001'
+        )
         _rate(mxn, date(2026, 1, 1), 1, company)
         _rate(centimo, date(2026, 1, 1), 1, company)
-        converted = centimo._convert(Decimal('1.005'), mxn, company,
-                                     date(2026, 2, 1))
+        converted = centimo._convert(
+            Decimal('1.005'), mxn, company, date(2026, 2, 1)
+        )
         assert converted == Decimal('1.01')
 
     def test_round_false_keeps_the_full_precision(self, mxn, company):
         """El control negativo del anterior: sin él, un ``round`` que
         ignorara su parámetro pasaría igual."""
-        centimo = ResCurrency.objects.create(name='XM2', symbol='m',
-                                             rounding='0.001')
+        centimo = ResCurrency.objects.create(
+            name='XM2', symbol='m', rounding='0.001'
+        )
         _rate(mxn, date(2026, 1, 1), 1, company)
         _rate(centimo, date(2026, 1, 1), 1, company)
-        converted = centimo._convert(Decimal('1.005'), mxn, company,
-                                     date(2026, 2, 1), round=False)
+        converted = centimo._convert(
+            Decimal('1.005'), mxn, company, date(2026, 2, 1), round=False
+        )
         assert converted == Decimal('1.005')
 
 
@@ -220,7 +255,8 @@ class TestCurrentRate:
             assert mxn._compute_current_rate(company=company)[2] == ''
 
     def test_another_currency_gets_a_label_naming_both(
-            self, mxn, usd, company):
+        self, mxn, usd, company
+    ):
         """El control positivo: sin él, un ``rate_string`` vacío siempre
         pasaría el caso anterior."""
         _rate(mxn, date(2026, 1, 1), 1, company)
@@ -315,7 +351,8 @@ class TestCompanyCurrencyStaysActive:
     """≙ ``_check_company_currency_stays_active`` (``odoo19c: :105-115``)."""
 
     def test_a_currency_used_by_a_company_cannot_be_archived(
-            self, mxn, company):
+        self, mxn, company
+    ):
         """Qué haría fallar al control: quitar la guarda.
 
         Sin ella la empresa apunta a una moneda inactiva y todo importe suyo
@@ -349,8 +386,10 @@ class TestGetAllCurrencies:
     def test_it_publishes_the_five_keys_of_the_source(self, mxn):
         listing = ResCurrency.get_all_currencies()
         assert listing[mxn.pk] == {
-            'name': mxn.name, 'symbol': mxn.symbol,
-            'position': mxn.position, 'digits': [69, mxn.decimal_places],
+            'name': mxn.name,
+            'symbol': mxn.symbol,
+            'position': mxn.position,
+            'digits': [69, mxn.decimal_places],
         }
 
     def test_an_archived_currency_is_not_listed(self, usd):
@@ -366,7 +405,7 @@ class TestGetAllCurrencies:
         es el defecto entero que los tres puntos de escritura de la fuente
         existen para evitar.
         """
-        ResCurrency.get_all_currencies()          # puebla el caché
+        ResCurrency.get_all_currencies()  # puebla el caché
         mxn.write({'symbol': '@'})
         assert ResCurrency.get_all_currencies()[mxn.pk]['symbol'] == '@'
 
@@ -396,10 +435,12 @@ class TestFormat:
     def test_the_symbol_goes_where_the_currency_says(self, db):
         """Qué haría fallar al control: poner el símbolo siempre del mismo
         lado. Por eso el caso mide las dos posiciones."""
-        after = ResCurrency.objects.create(name='XPA', symbol='@',
-                                           rounding='0.01', position='after')
-        before = ResCurrency.objects.create(name='XPB', symbol='#',
-                                            rounding='0.01', position='before')
+        after = ResCurrency.objects.create(
+            name='XPA', symbol='@', rounding='0.01', position='after'
+        )
+        before = ResCurrency.objects.create(
+            name='XPB', symbol='#', rounding='0.01', position='before'
+        )
         assert after.format(Decimal('1')).endswith('@')
         assert before.format(Decimal('1')).startswith('#')
 
@@ -454,7 +495,8 @@ class TestAmountToText:
         assert generic is not None, (
             'el atributo instalado tiene que ser el ENVOLTORIO de la cadena, '
             'con el genérico de base como eslabón previo. Si es None, o la '
-            'localización desplazó al genérico, o el genérico no existe.')
+            'localización desplazó al genérico, o el genérico no existe.'
+        )
         if res_currency.num2words is None:
             assert generic(mxn, Decimal('1.5')) == ''
         else:
@@ -464,7 +506,9 @@ class TestAmountToText:
 
 
 class TestViewLabels:
-    """≙ ``_get_view`` (``:328-343``) y ``_get_view_cache_key`` (``:321-326``)."""
+    """
+    ≙ ``_get_view`` (``:328-343``) y ``_get_view_cache_key`` (``:321-326``).
+    """
 
     def test_the_four_rate_fields_get_a_label(self, mxn, company):
         """La fuente empareja ``company_rate`` con ``rate`` bajo un rótulo, e
@@ -475,8 +519,12 @@ class TestViewLabels:
         """
         with company_scope(company.pk):
             labels = ResCurrency._get_view()
-        assert set(labels) == {'company_rate', 'rate',
-                               'inverse_company_rate', 'inverse_rate'}
+        assert set(labels) == {
+            'company_rate',
+            'rate',
+            'inverse_company_rate',
+            'inverse_rate',
+        }
         assert labels['rate'] == labels['company_rate']
         assert labels['inverse_rate'] == labels['inverse_company_rate']
         assert labels['rate'] != labels['inverse_rate']
@@ -493,9 +541,11 @@ class TestViewLabels:
             assert ResCurrency._get_view(view_type='kanban') == {}
 
     def test_the_cache_key_varies_with_the_company_currency(
-            self, mxn, usd, company):
-        other = ResCompany.objects.create(code='cur-co2', name='Cur Co Two',
-                                          currency=usd)
+        self, mxn, usd, company
+    ):
+        other = ResCompany.objects.create(
+            code='cur-co2', name='Cur Co Two', currency=usd
+        )
         with company_scope(company.pk):
             k1 = ResCurrency._get_view_cache_key()
         with company_scope(other.pk):
@@ -507,7 +557,8 @@ class TestSelectCompaniesRates:
     """≙ ``_select_companies_rates`` (``odoo19c: res_currency.py:304-319``)."""
 
     def test_the_sql_runs_and_gives_the_validity_window(
-            self, mxn, usd, company):
+        self, mxn, usd, company
+    ):
         """Qué haría fallar al control: un SQL que no compile contra nuestro
         esquema.
 
@@ -519,9 +570,11 @@ class TestSelectCompaniesRates:
         _rate(usd, date(2026, 3, 1), 25, company)
         with connection.cursor() as cursor:
             cursor.execute(
-                f'SELECT currency_id, rate, date_start, date_end FROM '
+                'SELECT currency_id, rate, date_start, date_end FROM '
                 f'({ResCurrency._select_companies_rates()}) AS w '
-                f'WHERE currency_id = %s ORDER BY date_start', [usd.pk])
+                'WHERE currency_id = %s ORDER BY date_start',
+                [usd.pk],
+            )
             rows = cursor.fetchall()
         assert [(r[2], r[3]) for r in rows] == [
             (date(2026, 1, 1), date(2026, 3, 1)),

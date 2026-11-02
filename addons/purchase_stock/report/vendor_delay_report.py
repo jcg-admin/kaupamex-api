@@ -1,4 +1,5 @@
-r"""``vendor.delay.report`` — la puntualidad del proveedor, por línea de compra:
+r"""
+``vendor.delay.report`` — la puntualidad del proveedor, por línea de compra:
 NO PORTADO.
 
 Adaptación de Odoo ``purchase_stock/report/vendor_delay_report.py``

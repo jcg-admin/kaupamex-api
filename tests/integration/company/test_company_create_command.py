@@ -1,12 +1,17 @@
 """Integración — management command ``company_create`` (SOL-091, T-091-07).
 
-Verifica la orquestación del adapter contra la ``ResCompany`` **real** (get_or_create
-idempotente) mockeando sólo el primitivo de provisioning ``provision_company_database``
-(que requiere DDL global — fuera del alcance de este test de alta unitaria). Cubre:
+Verifica la orquestación del adapter contra la ``ResCompany`` **real**
+(get_or_create
+idempotente) mockeando sólo el primitivo de provisioning
+``provision_company_database``
+(que requiere DDL global — fuera del alcance de este test de alta unitaria).
+Cubre:
 
-1. Alta de la fila L0 + provisioning de ``company_<id>_db`` con el alias derivado.
+1. Alta de la fila L0 + provisioning de ``company_<id>_db`` con el alias
+   derivado.
 2. Idempotencia: re-ejecutar con el mismo código NO duplica la fila.
 """
+
 from io import StringIO
 from unittest import mock
 
@@ -19,7 +24,9 @@ from addons.base.models import ResCompany
 pytestmark = pytest.mark.integration
 
 
-@mock.patch('addons.base.management.commands.company_create.provision_company_database')
+@mock.patch(
+    'addons.base.management.commands.company_create.provision_company_database'
+)
 def test_creates_row_and_provisions_db(mock_provision, db):
     mock_provision.return_value = ('company_stub_db', True)
     out = StringIO()
@@ -31,7 +38,9 @@ def test_creates_row_and_provisions_db(mock_provision, db):
     assert 'row_created=True' in out.getvalue()
 
 
-@mock.patch('addons.base.management.commands.company_create.provision_company_database')
+@mock.patch(
+    'addons.base.management.commands.company_create.provision_company_database'
+)
 def test_second_run_is_idempotent(mock_provision, db):
     mock_provision.return_value = ('company_stub_db', False)
     call_command('company_create', 'globex', stdout=StringIO())

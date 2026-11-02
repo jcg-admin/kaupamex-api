@@ -37,7 +37,9 @@ JUSTIF = "# silent OK because"
 
 
 def _is_silent_body(body: list[ast.stmt]) -> bool:
-    """True si el cuerpo del handler es solo pass o una constante (... / str)."""
+    """
+    True si el cuerpo del handler es solo pass o una constante (... / str).
+    """
     if len(body) != 1:
         return False
     stmt = body[0]
@@ -66,9 +68,11 @@ def check_file(path: pathlib.Path) -> list[str]:
         # rango de lineas del handler (1-based, inclusivo)
         start = node.lineno
         end = getattr(node, "end_lineno", node.lineno) or node.lineno
-        block = "\n".join(lines[start - 1:end])
+        block = "\n".join(lines[start - 1: end])
         if JUSTIF.lower() not in block.lower():
-            violations.append(f"{path}:{start}: silencio sin '{JUSTIF} <razon>'")
+            violations.append(
+                f"{path}:{start}: silencio sin '{JUSTIF} <razon>'"
+            )
     return violations
 
 
@@ -99,8 +103,10 @@ def iter_targets(argv: list[str]) -> list[pathlib.Path]:
 def main(argv: list[str]) -> int:
     targets = iter_targets(argv)
     if not targets:
-        print("check_silent_oks: 0 archivos que medir — el gate no puede "
-              "afirmar nada. Revisa RAICES.")
+        print(
+            "check_silent_oks: 0 archivos que medir — el gate no puede "
+            "afirmar nada. Revisa RAICES."
+        )
         return 2
     all_violations: list[str] = []
     for path in targets:
@@ -112,11 +118,15 @@ def main(argv: list[str]) -> int:
         print("Silencios de excepción SIN justificación (AC uc-sys-06):")
         for v in all_violations:
             print(f"  {v}")
-        print(f"\nTotal: {len(all_violations)}. "
-              f"Añade '# silent OK because <razon>' o maneja la excepción.")
+        print(
+            f"\nTotal: {len(all_violations)}. "
+            "Añade '# silent OK because <razon>' o maneja la excepción."
+        )
         return 1
-    print(f"OK: todo silencio de excepción está justificado "
-          f"({len(targets)} archivos medidos).")
+    print(
+        "OK: todo silencio de excepción está justificado "
+        f"({len(targets)} archivos medidos)."
+    )
     return 0
 
 

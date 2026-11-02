@@ -1,4 +1,6 @@
-"""``ir.attachment`` extendido por ``html_editor`` — la imagen vista por el editor.
+"""
+``ir.attachment`` extendido por ``html_editor`` — la imagen vista por el
+editor.
 
 Adaptación de ``odoo19c: addons/html_editor/models/ir_attachment.py``
 (86 líneas, LGPL-3 — copia + adaptación con atribución, DEC-KX-03).
@@ -102,6 +104,7 @@ Símbolo de la fuente             Estado      Nota
 ``_can_bypass_rights_on_media_dialog``  portado  enganche, como allá
 ===============================  ==========  =========================
 """
+
 from urllib.parse import quote
 
 from addons.base.models.ir_attachment import IrAttachment
@@ -148,7 +151,8 @@ def original_attachment_of(attachment):
 
 
 def set_original_attachment(values, original):
-    """Anota el original en el ``dict`` de valores — ≙ escribir ``original_id``.
+    """
+    Anota el original en el ``dict`` de valores — ≙ escribir ``original_id``.
 
     Costura de la divergencia 1. Mientras el campo no exista, **no** siembra la
     clave: hacerlo reventaría el ``copy`` que la consume.
@@ -198,7 +202,10 @@ def _compute_image_src(self):
     no tiene receptor.
     """
     # Sólo se añade un src para las imágenes soportadas.
-    if not self.mimetype or self.mimetype.split(';')[0] not in SUPPORTED_IMAGE_MIMETYPES:
+    if (
+        not self.mimetype
+        or self.mimetype.split(';')[0] not in SUPPORTED_IMAGE_MIMETYPES
+    ):
         return False
 
     if self.type == 'url':
@@ -302,7 +309,8 @@ def apply_html_editor_extensions():
     # constante ``_inherit`` sigue arriba porque es donde se documenta el
     # destino; aquí manda la forma que se puede leer sin ejecutar.
     extend_model(
-        'base', 'IrAttachment',
+        'base',
+        'IrAttachment',
         propiedades={
             'local_url': _compute_local_url,
             'image_src': _compute_image_src,
@@ -314,7 +322,8 @@ def apply_html_editor_extensions():
             '_compute_image_src': _compute_image_src,
             '_compute_image_size': _compute_image_size,
             '_get_media_info': _get_media_info,
-            '_can_bypass_rights_on_media_dialog':
-                _can_bypass_rights_on_media_dialog,
+            '_can_bypass_rights_on_media_dialog': (
+                _can_bypass_rights_on_media_dialog
+            ),
         },
     )

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Renombra un identificador SIN tocar prosa — comentarios, docstrings ni cadenas.
+"""
+Renombra un identificador SIN tocar prosa — comentarios, docstrings ni cadenas.
 
 Por que existe (:ref:`h-api-799`)
 ==================================
@@ -74,7 +75,7 @@ _CAMPO_POR_NODO = {
     ast.FunctionDef: 'name',
     ast.AsyncFunctionDef: 'name',
     ast.ClassDef: 'name',
-    ast.Global: None,        # lleva una lista de cadenas, sin posicion propia
+    ast.Global: None,  # lleva una lista de cadenas, sin posicion propia
     ast.Nonlocal: None,
 }
 
@@ -88,18 +89,21 @@ def require_interpreter():
     """
     if sys.version_info < (3, 12):
         print(
-            f'ERROR — este renombrador necesita Python 3.12+; corriendo '
+            'ERROR — este renombrador necesita Python 3.12+; corriendo '
             f'{sys.version_info.major}.{sys.version_info.minor}.\n'
-            f'Hasta 3.11 una f-string entera es un solo token STRING y su '
-            f'interior es invisible para un renombre por posicion '
-            f'(H-API-607). Usar: uv run python scripts/rename_identifier.py\n'
-            f'NO se emite un conteo: un 0 aqui seria un verde falso.',
-            file=sys.stderr)
+            'Hasta 3.11 una f-string entera es un solo token STRING y su '
+            'interior es invisible para un renombre por posicion '
+            '(H-API-607). Usar: uv run python scripts/rename_identifier.py\n'
+            'NO se emite un conteo: un 0 aqui seria un verde falso.',
+            file=sys.stderr,
+        )
         raise SystemExit(2)
 
 
 def _posiciones_por_ast(source, old):
-    """Posiciones ``(linea, columna)`` donde el AST declara el identificador."""
+    """
+    Posiciones ``(linea, columna)`` donde el AST declara el identificador.
+    """
     arbol = ast.parse(source)
     encontradas = set()
     for nodo in ast.walk(arbol):
@@ -108,12 +112,13 @@ def _posiciones_por_ast(source, old):
             continue
         if getattr(nodo, campo) != old:
             continue
-        if isinstance(nodo, (ast.FunctionDef, ast.AsyncFunctionDef,
-                             ast.ClassDef)):
-            continue        # su nombre se localiza por tokens, ver abajo
+        if isinstance(
+            nodo, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+        ):
+            continue  # su nombre se localiza por tokens, ver abajo
         if isinstance(nodo, ast.Attribute):
             # col_offset apunta al inicio de la expresion, no al atributo
-            continue        # idem
+            continue  # idem
         encontradas.add((nodo.lineno, nodo.col_offset))
     return encontradas
 
@@ -140,7 +145,7 @@ def posiciones(source, old):
     confirma que el archivo parsea. Un ``NAME`` con ese texto nunca esta dentro
     de una cadena ni de un comentario: el tokenizador los clasifica aparte.
     """
-    ast.parse(source)                       # falla temprano si no parsea
+    ast.parse(source)  # falla temprano si no parsea
     return sorted(set(_tokens_nombre(source, old)))
 
 
@@ -149,8 +154,10 @@ def posiciones(source, old):
 #: ``NAME`` aparte, que es justo lo que hace renombrable el interior de una
 #: f-string y no lo era hasta 3.11 (H-API-607).
 _TIPOS_DE_PROSA = tuple(
-    getattr(token_mod, nombre) for nombre in
-    ('COMMENT', 'STRING', 'FSTRING_MIDDLE') if hasattr(token_mod, nombre))
+    getattr(token_mod, nombre)
+    for nombre in ('COMMENT', 'STRING', 'FSTRING_MIDDLE')
+    if hasattr(token_mod, nombre)
+)
 
 
 def _prosa(source):
@@ -162,8 +169,11 @@ def _prosa(source):
     version de este control abortaba ese caso.
     """
     lector = io.StringIO(source).readline
-    return [tok.string for tok in tokenize.generate_tokens(lector)
-            if tok.type in _TIPOS_DE_PROSA]
+    return [
+        tok.string
+        for tok in tokenize.generate_tokens(lector)
+        if tok.type in _TIPOS_DE_PROSA
+    ]
 
 
 def renombrar(source, old, new):
@@ -172,9 +182,9 @@ def renombrar(source, old, new):
     puntos = posiciones(source, old)
     # de atras hacia adelante: renombrar no desplaza lo que aun no se toco
     for fila, columna in reversed(puntos):
-        l = lineas[fila - 1]
-        assert l[columna:columna + len(old)] == old, (fila, columna, l)
-        lineas[fila - 1] = l[:columna] + new + l[columna + len(old):]
+        item = lineas[fila - 1]
+        assert item[columna: columna + len(old)] == old, (fila, columna, item)
+        lineas[fila - 1] = item[:columna] + new + item[columna + len(old):]
     return ''.join(lineas), len(puntos)
 
 
@@ -194,8 +204,11 @@ def _prosa_intacta(antes, despues):
 def main():
     require_interpreter()
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument('--check', action='store_true',
-                   help='no escribe: solo cuenta y lista las lineas')
+    p.add_argument(
+        '--check',
+        action='store_true',
+        help='no escribe: solo cuenta y lista las lineas',
+    )
     p.add_argument('old')
     p.add_argument('new', nargs='?')
     p.add_argument('files', nargs='+')
@@ -217,8 +230,10 @@ def main():
                 puntos = posiciones(antes, args.old)
                 if puntos:
                     lineas = sorted({f for f, _ in puntos})
-                    print(f'{ruta}: {len(puntos)} en lineas '
-                          f'{", ".join(map(str, lineas))}')
+                    print(
+                        f'{ruta}: {len(puntos)} en lineas '
+                        f'{", ".join(map(str, lineas))}'
+                    )
                 total += len(puntos)
                 continue
 
@@ -227,8 +242,11 @@ def main():
                 continue
             ok, danadas = _prosa_intacta(antes, despues)
             if not ok:
-                print(f'{ruta}: ABORTADO — el renombre tocaria prosa: '
-                      f'{danadas[:3]}', file=sys.stderr)
+                print(
+                    f'{ruta}: ABORTADO — el renombre tocaria prosa: '
+                    f'{danadas[:3]}',
+                    file=sys.stderr,
+                )
                 fallidos += 1
                 continue
             camino.write_text(despues, encoding='utf-8')
@@ -240,8 +258,10 @@ def main():
             fallidos += 1
 
     verbo = 'encontradas' if args.check else 'renombradas'
-    print(f'{total} ocurrencia(s) {verbo} en {tocados or len(files)} archivo(s) '
-          f'(alcance medido: {len(files)} pedido(s), {fallidos} con error)')
+    print(
+        f'{total} ocurrencia(s) {verbo} en {tocados or len(files)} archivo(s) '
+        f'(alcance medido: {len(files)} pedido(s), {fallidos} con error)'
+    )
     return 1 if fallidos else 0
 
 

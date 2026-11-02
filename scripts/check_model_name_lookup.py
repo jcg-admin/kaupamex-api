@@ -56,13 +56,15 @@ import sys
 #: Raíces de modelo, medidas sobre las bases que el árbol declara de verdad.
 #: ``Model`` es la del ORM espejado (``src/orm``), de la que ``TransientModel``
 #: desciende; ``models.Model`` es la de Django directa.
-MODEL_ROOTS = frozenset({
-    'models.Model',
-    'Model',
-    'TimeStampedModel',
-    'TransientModel',
-    'SoftDeleteModel',
-})
+MODEL_ROOTS = frozenset(
+    {
+        'models.Model',
+        'Model',
+        'TimeStampedModel',
+        'TransientModel',
+        'SoftDeleteModel',
+    }
+)
 
 #: Dónde se busca cuando no se piden rutas. ``tests`` entra a propósito: el
 #: modelo de :ref:`h-api-751` vivía ahí, y el registro de apps no distingue.
@@ -85,10 +87,12 @@ def _is_abstract(node):
             if not isinstance(stmt, ast.Assign):
                 continue
             for objetivo in stmt.targets:
-                if (isinstance(objetivo, ast.Name)
-                        and objetivo.id == 'abstract'
-                        and isinstance(stmt.value, ast.Constant)
-                        and stmt.value.value is True):
+                if (
+                    isinstance(objetivo, ast.Name)
+                    and objetivo.id == 'abstract'
+                    and isinstance(stmt.value, ast.Constant)
+                    and stmt.value.value is True
+                ):
                     return True
     return False
 
@@ -106,7 +110,10 @@ def _offending_reason(name):
 
 
 def scan_file(path):
-    """Devuelve las infracciones de un archivo: ``(linea, clase, codigo, motivo)``."""
+    """
+    Devuelve las infracciones de un archivo: ``(linea, clase, codigo,
+    motivo)``.
+    """
     try:
         arbol = ast.parse(path.read_text(encoding='utf-8'))
     except (SyntaxError, UnicodeDecodeError):
@@ -138,7 +145,9 @@ def _targets(argv):
     for raiz in DEFAULT_ROOTS:
         base = pathlib.Path(raiz)
         if base.is_dir():
-            archivos += [p for p in base.rglob('*.py') if 'migrations' not in p.parts]
+            archivos += [
+                p for p in base.rglob('*.py') if 'migrations' not in p.parts
+            ]
     return archivos
 
 
@@ -150,15 +159,19 @@ def main(argv):
             continue
         for lineno, clase, codigo, motivo in scan_file(path):
             total += 1
-            print(f'{path}:{lineno}: [{codigo}] el modelo concreto '
-                  f'{clase!r} {motivo} — choca con la sintaxis de lookup')
+            print(
+                f'{path}:{lineno}: [{codigo}] el modelo concreto '
+                f'{clase!r} {motivo} — choca con la sintaxis de lookup'
+            )
 
     alcance = f'alcance medido: {len(archivos)} archivos'
     if total:
         print(f'\nFAIL: {total} modelo(s) con nombre ilegal ({alcance}).')
-        print('  Django lo rechaza en checks; renombrar sin el guion bajo. Si la'
-              ' clase es de apoyo\n  y no debe ser un modelo concreto, declarar'
-              ' abstract = True en su Meta.')
+        print(
+            '  Django lo rechaza en checks; renombrar sin el guion bajo. Si la'
+            ' clase es de apoyo\n  y no debe ser un modelo concreto, declarar'
+            ' abstract = True en su Meta.'
+        )
         return 1
     print(f'OK: ningún modelo concreto choca con el lookup ({alcance}).')
     return 0

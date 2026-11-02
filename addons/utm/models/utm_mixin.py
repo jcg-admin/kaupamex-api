@@ -40,6 +40,7 @@ por símbolo, no el silencio):
   campo del mixin— se conserva verbatim: son las dos mitades que sí hablan con
   la referencia. Ver :ref:`h-api-633`.
 """
+
 import itertools
 import re
 from collections import defaultdict
@@ -61,7 +62,9 @@ TRACKING_FIELDS = [
 
 
 class UtmMixin(models.Model):
-    """``utm.mixin`` — los tres ejes de marketing sobre un modelo cualquiera."""
+    """
+    ``utm.mixin`` — los tres ejes de marketing sobre un modelo cualquiera.
+    """
 
     _name = 'utm.mixin'
     _description = 'UTM Mixin'
@@ -76,24 +79,43 @@ class UtmMixin(models.Model):
     # no omitido.
     # ≙ ``campaign_id``.
     campaign_id = fields.Many2one(
-        'utm.UtmCampaign', null=True, blank=True, on_delete=models.SET_NULL,
-        db_index=True, related_name='+', verbose_name='Campaña',
-        help_text='Nombre con el que se distingue cada esfuerzo de campaña, '
-                  'p. ej. Fall_Drive, Christmas_Special.',
+        'utm.UtmCampaign',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        db_index=True,
+        related_name='+',
+        verbose_name='Campaña',
+        help_text=(
+            'Nombre con el que se distingue cada esfuerzo de campaña, '
+            'p. ej. Fall_Drive, Christmas_Special.'
+        ),
         db_column='campaign_id',
     )
     # ≙ ``source_id``.
     source_id = fields.Many2one(
-        'utm.UtmSource', null=True, blank=True, on_delete=models.SET_NULL,
-        db_index=True, related_name='+', verbose_name='Fuente',
-        help_text='Origen del enlace: un buscador, otro dominio, o el nombre '
-                  'de una lista de correo.',
+        'utm.UtmSource',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        db_index=True,
+        related_name='+',
+        verbose_name='Fuente',
+        help_text=(
+            'Origen del enlace: un buscador, otro dominio, o el nombre '
+            'de una lista de correo.'
+        ),
         db_column='source_id',
     )
     # ≙ ``medium_id``.
     medium_id = fields.Many2one(
-        'utm.UtmMedium', null=True, blank=True, on_delete=models.SET_NULL,
-        db_index=True, related_name='+', verbose_name='Medio',
+        'utm.UtmMedium',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        db_index=True,
+        related_name='+',
+        verbose_name='Medio',
         help_text='Método de entrega: postal, correo, banner.',
         db_column='medium_id',
     )
@@ -145,7 +167,8 @@ class UtmMixin(models.Model):
 
     @classmethod
     def _tracking_models(cls):
-        """≙ ``_tracking_models`` (``:62-68``) — los modelos que los ejes citan.
+        """
+        ≙ ``_tracking_models`` (``:62-68``) — los modelos que los ejes citan.
 
         La fuente lo deriva de ``self._fields[fname].comodel_name`` filtrando
         por ``type == 'many2one'``. Aquí los tres campos son FK por
@@ -180,7 +203,8 @@ class UtmMixin(models.Model):
 
     @classmethod
     def _find_or_create_record(cls, model_name, name):
-        """≙ ``_find_or_create_record`` (``:88-103``) — busca por nombre o crea.
+        """
+        ≙ ``_find_or_create_record`` (``:88-103``) — busca por nombre o crea.
 
         ``=ilike`` sin comodines es coincidencia exacta sin distinguir
         mayúsculas: aquí ``name__iexact``.
@@ -202,7 +226,9 @@ class UtmMixin(models.Model):
 
         if record is None:
             record_values = {'name': cleaned_name}
-            if any(f.name == 'is_auto_campaign' for f in model._meta.get_fields()):
+            if any(
+                f.name == 'is_auto_campaign' for f in model._meta.get_fields()
+            ):
                 record_values['is_auto_campaign'] = True
             record = model.objects.create(**record_values)
 
@@ -212,7 +238,8 @@ class UtmMixin(models.Model):
 
     @classmethod
     def _get_unique_names(cls, model_name, names, skip_record_ids=()):
-        """≙ ``_get_unique_names`` (``:105-164``) — nombres únicos con contador.
+        """
+        ≙ ``_get_unique_names`` (``:105-164``) — nombres únicos con contador.
 
         Toma una lista de nombres y devuelve, en el mismo orden, el nombre que
         hay que grabar (con su contador ``[N]`` si hiciera falta)::
@@ -232,7 +259,9 @@ class UtmMixin(models.Model):
             raise LookupError(f'Modelo desconocido: {model_name}')
 
         # Se quita el contador de cada nombre antes de buscar.
-        names_without_counter = {cls._split_name_and_count(name)[0] for name in names}
+        names_without_counter = {
+            cls._split_name_and_count(name)[0] for name in names
+        }
 
         # Los nombres parecidos que ya están en la base.
         search_domain = Domain.OR(
@@ -241,8 +270,9 @@ class UtmMixin(models.Model):
         if skip_record_ids:
             search_domain &= Domain('id', 'not in', list(skip_record_ids))
         existing_names = set(
-            model.objects.filter(to_q(search_domain, model))
-            .values_list('name', flat=True)
+            model.objects.filter(to_q(search_domain, model)).values_list(
+                'name', flat=True
+            )
         )
 
         # Contadores ya usados por cada nombre, tomando la lista del argumento
@@ -251,8 +281,10 @@ class UtmMixin(models.Model):
             name: {
                 cls._split_name_and_count(existing_name)[1]
                 for existing_name in existing_names
-                if existing_name == name or existing_name.startswith(f'{name} [')
-            } for name in names_without_counter
+                if existing_name == name
+                or existing_name.startswith(f'{name} [')
+            }
+            for name in names_without_counter
         }
         # Contador que avanza solo por nombre; rellena los huecos del anterior.
         current_counter_per_name = defaultdict(lambda: itertools.count(1))
@@ -263,8 +295,12 @@ class UtmMixin(models.Model):
                 result.append(None)
                 continue
 
-            name_without_counter, asked_counter = cls._split_name_and_count(name)
-            existing = used_counters_per_name.setdefault(name_without_counter, set())
+            name_without_counter, asked_counter = cls._split_name_and_count(
+                name
+            )
+            existing = used_counters_per_name.setdefault(
+                name_without_counter, set()
+            )
             if asked_counter and asked_counter not in existing:
                 count = asked_counter
             else:
@@ -274,14 +310,17 @@ class UtmMixin(models.Model):
                         break
             existing.add(count)
             result.append(
-                f'{name_without_counter} [{count}]' if count > 1 else name_without_counter
+                f'{name_without_counter} [{count}]'
+                if count > 1
+                else name_without_counter
             )
 
         return result
 
     @staticmethod
     def _split_name_and_count(name):
-        """≙ ``_split_name_and_count`` (``:166-180``) — el nombre y su contador.
+        """
+        ≙ ``_split_name_and_count`` (``:166-180``) — el nombre y su contador.
 
         ::
 

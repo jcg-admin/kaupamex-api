@@ -38,16 +38,20 @@ declara su propio bloqueo (sin motor de reportes en el árbol).
 instrucción para el cliente web de Odoo (cerrar el wizard al terminar la
 descarga), sin análogo en un backend headless.
 """
+
 import re
 
 from exceptions import ValidationError
 from orm.models_transient import TransientModel
 from tools.translate import _
-from addons.account_check_printing.models.account_payment import CheckPrintingPaymentInfo
+from addons.account_check_printing.models.account_payment import (
+    CheckPrintingPaymentInfo,
+)
 
 
 class PrintPrenumberedChecksWizard(TransientModel):
-    """Asistente "Imprimir cheques prenumerados" — ≙ ``print.prenumbered.checks``.
+    """
+    Asistente "Imprimir cheques prenumerados" — ≙ ``print.prenumbered.checks``.
 
     Sin tabla (``TransientModel``, ``managed = False``): el estado del
     wizard lo pasa el llamador como argumentos de los classmethods.
@@ -62,7 +66,9 @@ class PrintPrenumberedChecksWizard(TransientModel):
         """≙ ``_check_next_check_number``
         (``odoo19c: print_prenumbered_checks.py:15-19``): sólo dígitos."""
         if value and not re.match(r'^[0-9]+$', value):
-            raise ValidationError(_('Next Check Number should only contains numbers.'))
+            raise ValidationError(
+                _('Next Check Number should only contains numbers.')
+            )
         return value
 
     @classmethod

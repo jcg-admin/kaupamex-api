@@ -26,6 +26,7 @@ Y la contraparte que la pregunta abre: **en DRF sí se declararía con clases**,
 porque los campos de DRF son nuestros para subclasificar. Los dos últimos casos
 lo miden y fijan la frontera entre las dos capas.
 """
+
 import re
 import types
 from datetime import date, datetime
@@ -71,18 +72,25 @@ class TestWhyTheDjangoFieldIsNotSubclassed:
         que respondan sobre ``models.DateField`` es lo que sustituye a la
         herencia ``BaseDate`` → ``Field`` que allá los provee.
         """
-        for name in ('expression_getter', 'property_to_sql',
-                       'convert_to_column', 'convert_to_cache',
-                       'convert_to_export', 'convert_to_display_name'):
+        for name in (
+            'expression_getter',
+            'property_to_sql',
+            'convert_to_column',
+            'convert_to_cache',
+            'convert_to_export',
+            'convert_to_display_name',
+        ):
             assert hasattr(models.DateField, name), name
             assert hasattr(models.DateTimeField, name), name
 
     def test_the_dispatcher_is_a_function_and_so_it_is_attached(self):
         """Afirmación 3 — la razón por la que no hay ``@staticmethod``.
 
-        ``Date`` y ``Datetime`` son despachadores de ``company_dependent``, y un
+        ``Date`` y ``Datetime`` son despachadores de ``company_dependent``, y
+        un
         despachador es una función. Los constructores de la fuente
-        (``Date.today``, ``Datetime.now``, ``Datetime.context_timestamp``) se le
+        (``Date.today``, ``Datetime.now``, ``Datetime.context_timestamp``) se
+        le
         **cuelgan** como atributos para que la forma de llamada quede literal.
         """
         assert isinstance(Date, types.FunctionType)
@@ -100,7 +108,9 @@ class TestWhyTheDjangoFieldIsNotSubclassed:
         """
         assert isinstance(Date.today(), date)
         assert isinstance(Datetime.now(), datetime)
-        converted = Datetime.context_timestamp(None, datetime(2026, 1, 2, 3, 4))
+        converted = Datetime.context_timestamp(
+            None, datetime(2026, 1, 2, 3, 4)
+        )
         assert converted.tzinfo is not None
         assert Date.to_date('2026-01-02') == date(2026, 1, 2)
 
@@ -110,7 +120,8 @@ class TestInDrfTheAnswerWouldBeTheOpposite:
 
     Un campo del ORM convierte **contra la columna**; uno de DRF convierte
     **contra el contrato HTTP**. Son capas distintas y la restricción también:
-    el campo de Django no es nuestro para subclasificar, el de DRF sí, y por eso
+    el campo de Django no es nuestro para subclasificar, el de DRF sí, y por
+    eso
     ahí la forma de la fuente —clases con métodos— sería la correcta.
     """
 
@@ -133,6 +144,7 @@ class TestInDrfTheAnswerWouldBeTheOpposite:
         aquí no — misma pregunta, respuesta opuesta, y la diferencia es
         medible, no de gusto.
         """
+
         class UtcDateTimeField(serializers.DateTimeField):
             """Campo de prueba: fija la salida a UTC con sufijo ``Z``."""
 
@@ -152,13 +164,15 @@ class TestInDrfTheAnswerWouldBeTheOpposite:
 
         *Métrica:* subclases directas de un campo de ``serializers`` declaradas
         a nivel de módulo.
-        *Ciega a:* una subclase declarada dentro de una función o de otra clase,
+        *Ciega a:* una subclase declarada dentro de una función o de otra
+        clase,
         y a un campo a medida que herede de ``serializers.Field`` con otro
         nombre de base. La cifra es un piso.
         """
         pattern = re.compile(r'^class \w+\(serializers\.\w*Field\)', re.M)
         found = [
-            str(path) for root in ('src', 'addons')
+            str(path)
+            for root in ('src', 'addons')
             for path in Path(root).rglob('*.py')
             if pattern.search(path.read_text(errors='ignore'))
         ]

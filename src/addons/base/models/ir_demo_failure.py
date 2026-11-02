@@ -1,4 +1,6 @@
-"""``ir.demo_failure`` — módulos cuyos datos de demostración no se pudieron cargar.
+"""
+``ir.demo_failure`` — módulos cuyos datos de demostración no se pudieron
+cargar.
 
 Adaptación fiel de ``odoo/addons/base/models/ir_demo_failure.py``
 (``odoo-tools@bf077302``, ``odoo19c:``). La referencia declara **dos** modelos
@@ -35,6 +37,7 @@ entre la corrida del seed y su lectura por el asistente. Por eso heredan de
 después, no un estado de formulario. La limpieza queda a cargo del mismo
 barrido que ``ir_autovacuum.py`` declara.
 """
+
 import fields
 import models
 
@@ -53,7 +56,10 @@ class IrDemoFailureWizard(TimeStampedModel):
 
     @property
     def failures_count(self):
-        """Cuántos módulos fallaron — ``_compute_failures_count`` de la referencia."""
+        """
+        Cuántos módulos fallaron — ``_compute_failures_count`` de la
+        referencia.
+        """
         return self.failure_ids.count()
 
     def __str__(self):
@@ -64,17 +70,27 @@ class IrDemoFailure(TimeStampedModel):
     """Un módulo cuyos datos de demostración fallaron (``ir.demo_failure``)."""
 
     module = fields.Many2one(
-        IrModule, on_delete=models.CASCADE, related_name='demo_failures',
+        IrModule,
+        on_delete=models.CASCADE,
+        related_name='demo_failures',
         verbose_name='Módulo',
         help_text='Odoo module_id. El addon cuyo seed de demostración falló.',
     )
     error = fields.Char(
-        blank=True, default='', verbose_name='Error',
+        blank=True,
+        default='',
+        verbose_name='Error',
     )
     wizard = fields.Many2one(
-        IrDemoFailureWizard, on_delete=models.CASCADE, null=True, blank=True,
-        related_name='failure_ids', verbose_name='Asistente',
-        help_text='Odoo wizard_id; el related_name conserva el nombre del One2many.',
+        IrDemoFailureWizard,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='failure_ids',
+        verbose_name='Asistente',
+        help_text=(
+            'Odoo wizard_id; el related_name conserva el nombre del One2many.'
+        ),
     )
 
     class Meta:

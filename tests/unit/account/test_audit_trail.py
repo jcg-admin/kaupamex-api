@@ -3,22 +3,28 @@
 Adaptación de ``addons/account/tests/test_audit_trail.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3).
 
-**Por qué este archivo no existía antes.** ``addons/account/models/mail_message.py``
+**Por qué este archivo no existía antes.**
+``addons/account/models/mail_message.py``
 portó la guarda completa y quedó **inerte**: ``restrictive_audit_trail`` y
-``posted_before`` no existían, así que ``account_audit_log_restricted`` devolvía
+``posted_before`` no existían, así que ``account_audit_log_restricted``
+devolvía
 siempre ``False`` y no había nada que ejercitar. Los dos campos aterrizaron en
 este pase, y estos casos son lo que lo demuestra: cada uno falla si se retira
 uno de los dos.
 
 **Qué se adapta y qué no.** La referencia ejercita cinco casos de borrado
-(``test_can_unlink_draft``, ``test_cant_unlink_posted``, ``test_cant_unlink_message``,
-``test_cant_unown_message``, ``test_cant_unlink_tracking_value``) más el contenido
+(``test_can_unlink_draft``, ``test_cant_unlink_posted``,
+``test_cant_unlink_message``,
+``test_cant_unown_message``, ``test_cant_unlink_tracking_value``) más el
+contenido
 del preview. Aquí se cubren los que la guarda portada realmente decide —
 ``_except_audit_log`` y el ``save()`` de ``MailMessage``— más la restricción de
-empresa que la fuente declara ``@api.constrains``. Los de ``tracking_value_ids``
+empresa que la fuente declara ``@api.constrains``. Los de
+``tracking_value_ids``
 quedan fuera: ese modelo tiene su propia guarda en la referencia
 (``mail_tracking_value.py``), que es otro archivo y otro porte.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -43,29 +49,41 @@ def company(db):
 @pytest.fixture
 def setup(db, company):
     journal = AccountJournal.objects.create(
-        name='Ventas', code='AUD', type='sale', company=company)
+        name='Ventas', code='AUD', type='sale', company=company
+    )
     income = AccountAccount.objects.create(
-        code='401', name='Ventas', account_type='income', company=company)
+        code='401', name='Ventas', account_type='income', company=company
+    )
     return company, journal, income
 
 
 def _balanced_move(company, journal, account):
-    """Un asiento balanceado, listo para ``post()`` — ≙ ``create_move`` (:24-37)."""
+    """
+    Un asiento balanceado, listo para ``post()`` — ≙ ``create_move`` (:24-37).
+    """
     move = AccountMove.objects.create(
-        move_type='out_invoice', date=timezone.now().date(),
-        journal=journal, company=company)
+        move_type='out_invoice',
+        date=timezone.now().date(),
+        journal=journal,
+        company=company,
+    )
     AccountMoveLine.objects.create(
-        move=move, account=account, balance=Decimal('100.00'))
+        move=move, account=account, balance=Decimal('100.00')
+    )
     AccountMoveLine.objects.create(
-        move=move, account=account, balance=Decimal('-100.00'))
+        move=move, account=account, balance=Decimal('-100.00')
+    )
     return move
 
 
 def _chatter_message(move):
     """El mensaje del chatter que documenta ese asiento."""
     return MailMessage.objects.create(
-        model='account.move', res_id=move.pk,
-        message_type='notification', body='<p>asiento creado</p>')
+        model='account.move',
+        res_id=move.pk,
+        message_type='notification',
+        body='<p>asiento creado</p>',
+    )
 
 
 def test_posted_before_starts_false(setup):
@@ -107,7 +125,7 @@ def test_can_unlink_draft_message(setup):
     company.save(update_fields=['restrictive_audit_trail'])
     message = _chatter_message(_balanced_move(company, journal, income))
 
-    message._except_audit_log()   # no levanta
+    message._except_audit_log()  # no levanta
 
 
 def test_cannot_unlink_posted_message(setup):
@@ -127,14 +145,15 @@ def test_cannot_unlink_posted_message(setup):
 def test_without_restrictive_trail_nothing_is_blocked(setup):
     """El interruptor apagado deja pasar aunque el asiento esté publicado —
     es el ``setUpClass`` de la referencia (``restrictive_audit_trail = False``,
-    :21) y la razón de que el resto de la suite de account no se vea afectada."""
+    :21) y la razón de que el resto de la suite de account no se vea afectada.
+    """
     company, journal, income = setup
     assert company.restrictive_audit_trail is False
     move = _balanced_move(company, journal, income)
     move.post()
     message = _chatter_message(move)
 
-    message._except_audit_log()   # no levanta
+    message._except_audit_log()  # no levanta
 
 
 def test_cannot_unown_posted_message(setup):
@@ -160,13 +179,15 @@ def test_restrictive_audit_trail_can_be_turned_off(setup):
     company.save(update_fields=['restrictive_audit_trail'])
 
     company.restrictive_audit_trail = False
-    company.save(update_fields=['restrictive_audit_trail'])   # no levanta
+    company.save(update_fields=['restrictive_audit_trail'])  # no levanta
 
     company.refresh_from_db()
     assert company.restrictive_audit_trail is False
 
 
-def test_localization_forcing_the_trail_blocks_turning_it_off(setup, monkeypatch):
+def test_localization_forcing_the_trail_blocks_turning_it_off(
+    setup, monkeypatch
+):
     """≙ ``_check_audit_trail_restriction`` (``odoo19c: company.py:319-322``).
 
     El gancho existe **para que una localización lo redefina**; ninguna lo hace
@@ -177,7 +198,10 @@ def test_localization_forcing_the_trail_blocks_turning_it_off(setup, monkeypatch
     """
     company, journal, income = setup
     monkeypatch.setattr(
-        ResCompany, 'force_restrictive_audit_trail', property(lambda self: True))
+        ResCompany,
+        'force_restrictive_audit_trail',
+        property(lambda self: True),
+    )
 
     company.restrictive_audit_trail = False
     with pytest.raises(ValidationError, match='localización'):

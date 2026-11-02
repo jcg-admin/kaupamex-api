@@ -7,7 +7,8 @@ función o firma de función, debe de tener odoo-*»*.
 
 El motivo es de identidad, no de estética. Este árbol **adapta** la referencia;
 no la ejecuta ni la extiende. Un símbolo nuestro que lleva su nombre confunde
-las dos cosas: hace pasar por prestada una pieza que es del producto, y arrastra
+las dos cosas: hace pasar por prestada una pieza que es del producto, y
+arrastra
 al lector a buscar en la referencia un símbolo que sólo existe aquí.
 
 El caso que lo motivó lo prueba: ``campo.odoo_translate = bool(translate)``
@@ -59,13 +60,17 @@ def declared_identifiers(tree):
     no bautizar un símbolo propio.
     """
     for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        if isinstance(
+            node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+        ):
             yield node.name, node.lineno
         elif isinstance(node, ast.arg):
             yield node.arg, node.lineno
         elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
             yield node.id, node.lineno
-        elif isinstance(node, ast.Attribute) and isinstance(node.ctx, ast.Store):
+        elif isinstance(node, ast.Attribute) and isinstance(
+            node.ctx, ast.Store
+        ):
             yield node.attr, node.lineno
 
 
@@ -95,7 +100,10 @@ def files_to_measure(paths):
         directory = root / name
         if directory.is_dir():
             files.extend(
-                f for f in directory.rglob('*.py') if '__pycache__' not in f.parts)
+                f
+                for f in directory.rglob('*.py')
+                if '__pycache__' not in f.parts
+            )
     return sorted(files)
 
 
@@ -111,17 +119,23 @@ def main(argv=None):
             offenders.append(f'{path}:{lineno}: {kind} «{name}»')
 
     if offenders:
-        print(f'Identificadores con el nombre de la referencia '
-              f'(directiva del ejecutor 2026-09-02):')
+        print(
+            f'Identificadores con el nombre de la referencia '
+            f'(directiva del ejecutor 2026-09-02):'
+        )
         for line in offenders:
             print(f'  {line}')
-        print(f'\nTotal: {len(offenders)} sobre {len(files)} archivos medidos. '
-              f'Renombra al término del dominio; si la fuente ya le da nombre, '
-              f'ése es el que va (traducir no es rebautizar).')
+        print(
+            f'\nTotal: {len(offenders)} sobre {len(files)} archivos medidos. '
+            'Renombra al término del dominio; si la fuente ya le da nombre, '
+            'ése es el que va (traducir no es rebautizar).'
+        )
         return 1
 
-    print(f'OK: ningun identificador lleva el nombre de la referencia '
-          f'({len(files)} archivos medidos).')
+    print(
+        'OK: ningun identificador lleva el nombre de la referencia '
+        f'({len(files)} archivos medidos).'
+    )
     return 0
 
 

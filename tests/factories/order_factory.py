@@ -1,7 +1,9 @@
 """Fábrica canónica de órdenes O2C — post-V5d (ADR-024).
 
-Tras el retiro de la columna espejo ``orders_order.status`` una ``SaleOrder`` **no
-tiene estado propio**: se deriva de tres ejes (comercial ``sale.SaleOrder.state``
+Tras el retiro de la columna espejo ``orders_order.status`` una ``SaleOrder``
+**no
+tiene estado propio**: se deriva de tres ejes (comercial
+``sale.SaleOrder.state``
 · pago ``payment.Payment`` · fulfillment ``delivery.ShipmentGuide``). Fabricar
 una orden "en estado X" deja de ser fijar un enum y pasa a ser **construir los
 hechos** que proyectan X:
@@ -22,6 +24,7 @@ un solo lado de la asimetría de FK (``Payment``/``ShipmentGuide`` apuntan tanto
 a ``order`` como a ``sale_order``; la proyección lee el lado ``sale`` y el
 filtro anota por ``order`` — ver H-API-20). Aquí se setean **ambos** siempre.
 """
+
 from decimal import Decimal
 from uuid import uuid4
 
@@ -41,9 +44,8 @@ from addons.sale.status_projection import (
     STATUS_SHIPPED,
 )
 
-
 _SALE_STATE = {
-    STATUS_DRAFT:     SaleOrder.STATE_DRAFT,
+    STATUS_DRAFT: SaleOrder.STATE_DRAFT,
     STATUS_CANCELLED: SaleOrder.STATE_CANCEL,
 }
 
@@ -56,9 +58,15 @@ def make_courier(**kwargs):
     return Courier.objects.create(**kwargs)
 
 
-def make_order(status=STATUS_PENDING, courier=None, amount=None,
-               product=None, quantity=1, unit_price=None,
-               **order_kwargs):
+def make_order(
+    status=STATUS_PENDING,
+    courier=None,
+    amount=None,
+    product=None,
+    quantity=1,
+    unit_price=None,
+    **order_kwargs,
+):
     """Crea la ``SaleOrder`` cuyos ejes proyectan ``status``.
 
     :param status: valor de ``STATUSES`` que debe proyectar
@@ -99,11 +107,12 @@ def make_order(status=STATUS_PENDING, courier=None, amount=None,
     # resto va tal cual a ``SaleOrder``.
     partner_kw = order_kwargs.pop('user', None)
     carrier_kw = order_kwargs.pop('shipping_method', None)
-    name_kw    = order_kwargs.pop('order_number', None)
+    name_kw = order_kwargs.pop('order_number', None)
     sale = SaleOrder.objects.create(
         state=estado,
         cart_token=uuid4(),
-        name=name_kw or (None if status == STATUS_DRAFT else _next_sale_name()),
+        name=name_kw
+        or (None if status == STATUS_DRAFT else _next_sale_name()),
         date_order=timezone.now(),
         partner=partner_kw,
         carrier=carrier_kw,
@@ -124,14 +133,16 @@ def make_order(status=STATUS_PENDING, courier=None, amount=None,
         # heredado de ``catalogue.Product.price``, disuelto en ``product``
         # (H-API-212 y hermanas).
         SaleOrderLine.objects.create(
-            order=sale, product=product,
+            order=sale,
+            product=product,
             name=product.name,
             product_uom_qty=quantity,
-            price_unit=unit_price if unit_price is not None else product.lst_price,
+            price_unit=(
+                unit_price if unit_price is not None else product.lst_price
+            ),
         )
 
-    if status in (STATUS_PAID, STATUS_SHIPPED,
-                  STATUS_DELIVERED):
+    if status in (STATUS_PAID, STATUS_SHIPPED, STATUS_DELIVERED):
         Payment.objects.create(
             sale_order=sale,
             gateway=Payment.GATEWAY_MANUAL,
@@ -145,8 +156,11 @@ def make_order(status=STATUS_PENDING, courier=None, amount=None,
             sale_order=sale,
             courier=courier or make_courier(),
             tracking_number=uuid4().hex[:20],
-            status=(ShipmentGuide.STATUS_DELIVERED if delivered
-                    else ShipmentGuide.STATUS_IN_TRANSIT),
+            status=(
+                ShipmentGuide.STATUS_DELIVERED
+                if delivered
+                else ShipmentGuide.STATUS_IN_TRANSIT
+            ),
             delivered_at=timezone.now() if delivered else None,
         )
 

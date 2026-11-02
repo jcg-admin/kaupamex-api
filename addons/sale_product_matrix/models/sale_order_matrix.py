@@ -10,6 +10,7 @@ método de alta masiva.
 Bridge ``sale`` + ``product_matrix``: agrega en bloque líneas de la orden desde
 las celdas (variante, cantidad) de la grilla.
 """
+
 import fields
 import models
 
@@ -18,15 +19,20 @@ from addons.base.models import TimeStampedModel
 
 
 class SaleOrderMatrix(TimeStampedModel):
-    """Config de matriz por orden (Odoo sale.order.report_grids + _apply_grid)."""
+    """
+    Config de matriz por orden (Odoo sale.order.report_grids + _apply_grid).
+    """
 
-    order        = models.OneToOneField(
-        'sale.SaleOrder', on_delete=models.CASCADE, related_name='matrix',
+    order = models.OneToOneField(
+        'sale.SaleOrder',
+        on_delete=models.CASCADE,
+        related_name='matrix',
         help_text='Orden de venta (Odoo sale.order).',
     )
     # Odoo sale.order.report_grids.
     report_grids = fields.Boolean(
-        default=True, help_text='Imprimir la grilla de variantes (Odoo report_grids).',
+        default=True,
+        help_text='Imprimir la grilla de variantes (Odoo report_grids).',
     )
 
     class Meta:
@@ -39,12 +45,14 @@ class SaleOrderMatrix(TimeStampedModel):
 
     @classmethod
     def apply(cls, order, cells):
-        """Aplica ``cells`` (lista de ``(variant, qty)``) a ``order`` en bloque.
+        """
+        Aplica ``cells`` (lista de ``(variant, qty)``) a ``order`` en bloque.
 
         Replica el ``_apply_grid`` de Odoo: por cada celda con ``qty > 0`` crea
         o actualiza una línea de la orden para esa variante (una línea por
         variante); ``qty <= 0`` elimina la línea de esa variante si existe. El
-        ``price_unit`` sale de ``variant.effective_price()``. Devuelve las líneas
+        ``price_unit`` sale de ``variant.effective_price()``. Devuelve las
+        líneas
         vigentes tras aplicar.
 
         La rama ``qty <= 0`` borra con un ``QuerySet.delete()`` en bloque, que
@@ -56,7 +64,8 @@ class SaleOrderMatrix(TimeStampedModel):
         for variant, qty in cells:
             if qty and qty > 0:
                 line, _created = SaleOrderLine.objects.update_or_create(
-                    order=order, variant=variant,
+                    order=order,
+                    variant=variant,
                     defaults={
                         'product': variant.product,
                         'name': str(variant),
@@ -66,6 +75,8 @@ class SaleOrderMatrix(TimeStampedModel):
                 )
                 touched.append(line)
             else:
-                SaleOrderLine.objects.filter(order=order, variant=variant).delete()
+                SaleOrderLine.objects.filter(
+                    order=order, variant=variant
+                ).delete()
                 order._compute_amounts()
         return touched

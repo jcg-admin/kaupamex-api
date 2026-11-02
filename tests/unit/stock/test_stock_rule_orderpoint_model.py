@@ -25,6 +25,7 @@ Estos casos discriminan la corrección de dos formas:
    y dos de sus campos calculados y ``store``\\ ados cambian, prueba de que el
    bloque corrió y no se saltó silenciosamente.
 """
+
 import pytest
 from django.apps import apps
 from django.utils import timezone
@@ -47,7 +48,8 @@ pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 @pytest.fixture
 def company(db):
     company_record = ResCompany.objects.create(
-        code='test_rule_op_271', name='Kaupamex D-5')
+        code='test_rule_op_271', name='Kaupamex D-5'
+    )
     set_current_company(company_record.pk)
     yield company_record
     set_current_company(None)
@@ -56,18 +58,30 @@ def company(db):
 @pytest.fixture
 def warehouse(company):
     view = StockLocation.objects.create(
-        name='WH', usage=StockLocation.USAGE_VIEW, company=company,
-        barcode='RULE-OP-VIEW')
+        name='WH',
+        usage=StockLocation.USAGE_VIEW,
+        company=company,
+        barcode='RULE-OP-VIEW',
+    )
     stock = StockLocation.objects.create(
-        name='WH/Stock', usage=StockLocation.USAGE_INTERNAL,
-        location=view, company=company, barcode='RULE-OP-STOCK')
+        name='WH/Stock',
+        usage=StockLocation.USAGE_INTERNAL,
+        location=view,
+        company=company,
+        barcode='RULE-OP-STOCK',
+    )
     return StockWarehouse.objects.create(
-        name='Main D-5', code='D5', company=company,
-        view_location=view, lot_stock=stock)
+        name='Main D-5',
+        code='D5',
+        company=company,
+        view_location=view,
+        lot_stock=stock,
+    )
 
 
 def test_orderpoint_model_returns_the_class_directly():
-    """``_orderpoint_model()`` == ``apps.get_model(...)``, sin ``None`` posible.
+    """
+    ``_orderpoint_model()`` == ``apps.get_model(...)``, sin ``None`` posible.
 
     Antes el ``try``/``except LookupError`` sólo podía devolver ``None`` con
     un ``warning`` citando la tarea #330. Hoy el modelo existe: no hay
@@ -96,7 +110,8 @@ def test_orderpoint_model_never_logs_the_stale_d5_warning(caplog):
 
 
 def test_run_scheduler_tasks_no_longer_skips_the_first_task(
-        company, warehouse):
+    company, warehouse
+):
     """``_run_scheduler_tasks`` recalcula el punto de pedido — no lo omite.
 
     Con ``product_min_qty`` por encima del pronóstico (sin quants, el
@@ -118,9 +133,12 @@ def test_run_scheduler_tasks_no_longer_skips_the_first_task(
 
     product = make_product(name='Reabastecido D-5')
     orderpoint = StockWarehouseOrderpoint.objects.create(
-        product=product, company=company, warehouse=warehouse,
+        product=product,
+        company=company,
+        warehouse=warehouse,
         location=warehouse.lot_stock,
-        product_min_qty=10.0, product_max_qty=20.0,
+        product_min_qty=10.0,
+        product_max_qty=20.0,
     )
 
     # Precondición: el estado por defecto, antes de correr el planificador.
@@ -137,10 +155,12 @@ def test_run_scheduler_tasks_no_longer_skips_the_first_task(
     # función para no fallar por el desfase horario cerca de medianoche.
     assert orderpoint.deadline_date == timezone.now().date(), (
         'la primera tarea (recalcular puntos de pedido) no corrió — '
-        'stock.warehouse.orderpoint se sigue tratando como no portado')
+        'stock.warehouse.orderpoint se sigue tratando como no portado'
+    )
     assert orderpoint.qty_to_order_computed == pytest.approx(20.0), (
         'qty_to_order_computed se quedó en su default: '
-        '_compute_qty_to_order_computed no se ejecutó')
+        '_compute_qty_to_order_computed no se ejecutó'
+    )
 
 
 # === ``_quantity_for`` colgado de ``ProductProduct`` (tarea #277) ==========
@@ -156,16 +176,22 @@ def test_quantity_for_is_a_bound_method_of_the_product(company, warehouse):
     assert callable(getattr(product, '_quantity_for'))
     context = {'location': warehouse.lot_stock.pk, 'to_date': None}
     assert product._quantity_for('qty_available', **context) == 0.0
-    assert product._quantity_for('virtual_available', **context) == product.virtual_available
+    assert (
+        product._quantity_for('virtual_available', **context)
+        == product.virtual_available
+    )
 
 
 def test_qty_pair_runs_against_the_real_method(company, warehouse):
     """``_qty_pair`` del orderpoint consume el método real, sin parche."""
     product = make_product(name='Par de cantidades')
     orderpoint = StockWarehouseOrderpoint.objects.create(
-        product=product, company=company, warehouse=warehouse,
+        product=product,
+        company=company,
+        warehouse=warehouse,
         location=warehouse.lot_stock,
-        product_min_qty=1.0, product_max_qty=5.0,
+        product_min_qty=1.0,
+        product_max_qty=5.0,
     )
     on_hand, forecast = orderpoint._qty_pair()
     assert (on_hand, forecast) == (0.0, 0.0)

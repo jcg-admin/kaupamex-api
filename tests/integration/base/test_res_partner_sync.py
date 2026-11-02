@@ -45,6 +45,7 @@ Qué haría fallar a cada control
     **sin** dirección y con **un** solo hijo; sin este caso, el método podría
     pisar la dirección de cualquier empresa y los demás tests no lo verían.
 """
+
 import pytest
 
 from addons.base.models.res_partner import ResPartner
@@ -95,7 +96,9 @@ class TestConvertFieldsToValues:
     def test_it_returns_the_named_fields(self, db):
         who = _company(street='Av. Vallarta 1300', city='Guadalajara')
         assert who._convert_fields_to_values(['street', 'city']) == {
-            'street': 'Av. Vallarta 1300', 'city': 'Guadalajara'}
+            'street': 'Av. Vallarta 1300',
+            'city': 'Guadalajara',
+        }
 
     def test_a_reverse_relation_is_refused(self, db):
         """≙ el ``AssertionError`` de la fuente ante un ``one2many``.
@@ -121,7 +124,9 @@ class TestAddressValues:
 
 
 class TestUpdateAddress:
-    """≙ ``_update_address`` — filtra a los campos de dirección y no recursa."""
+    """
+    ≙ ``_update_address`` — filtra a los campos de dirección y no recursa.
+    """
 
     def test_it_writes_only_the_address_keys(self, db):
         who = _company(name='Kaupamex SA')
@@ -145,11 +150,13 @@ class TestCommercialValues:
 
     def test_a_set_field_is_returned(self, db):
         assert _company(vat='KAU010101AAA')._get_commercial_values() == {
-            'vat': 'KAU010101AAA'}
+            'vat': 'KAU010101AAA'
+        }
 
     def test_the_synced_subset_behaves_the_same(self, db):
-        assert _company(vat='KAU010101AAA')._get_synced_commercial_values() == {
-            'vat': 'KAU010101AAA'}
+        assert _company(
+            vat='KAU010101AAA'
+        )._get_synced_commercial_values() == {'vat': 'KAU010101AAA'}
 
 
 class TestCompanyDependent:
@@ -165,7 +172,9 @@ class TestCompanyDependent:
 
 
 class TestCommercialSync:
-    """≙ ``_commercial_sync_from_company`` / ``_commercial_sync_to_descendants``."""
+    """
+    ≙ ``_commercial_sync_from_company`` / ``_commercial_sync_to_descendants``.
+    """
 
     def test_a_contact_takes_the_rfc_of_its_company(self, db):
         company = _company(vat='KAU010101AAA')
@@ -187,7 +196,8 @@ class TestCommercialSync:
         fiscal, no cosmetico."""
         company = _company(vat='KAU010101AAA')
         filial = _sin_sincronizar(
-            name='Filial', parent=company, is_company=True)
+            name='Filial', parent=company, is_company=True
+        )
         company._commercial_sync_to_descendants()
         filial.refresh_from_db()
         assert not filial.vat
@@ -216,8 +226,11 @@ class TestAddressDownstream:
         proposito, y pisarla destruye lo que alguien capturo."""
         company = _company()
         bodega = _sin_sincronizar(
-            name='Bodega', parent=company, type=ResPartner.TYPE_DELIVERY,
-            city='Tlaquepaque')
+            name='Bodega',
+            parent=company,
+            type=ResPartner.TYPE_DELIVERY,
+            city='Tlaquepaque',
+        )
         company._children_sync({'city': 'Zapopan'})
         bodega.refresh_from_db()
         assert bodega.city == 'Tlaquepaque'
@@ -236,7 +249,9 @@ class TestFieldsSync:
         who.refresh_from_db()
         assert who.city == 'Guadalajara'
 
-    def test_to_upstream_the_address_of_the_contact_reaches_the_company(self, db):
+    def test_to_upstream_the_address_of_the_contact_reaches_the_company(
+        self, db
+    ):
         """El sentido que sorprende: editar el contacto edita a la empresa.
 
         Es deliberado en la fuente — para un contacto ``type='contact'`` la
@@ -253,20 +268,24 @@ class TestFieldsSync:
         """CONTROL — sólo el contacto comparte dirección con su empresa."""
         company = _company(city='Guadalajara')
         bodega = _sin_sincronizar(
-            name='Bodega', parent=company, type=ResPartner.TYPE_DELIVERY,
-            city='Tlaquepaque')
+            name='Bodega',
+            parent=company,
+            type=ResPartner.TYPE_DELIVERY,
+            city='Tlaquepaque',
+        )
         bodega._fields_sync({'city': 'Tlaquepaque'})
         company.refresh_from_db()
         assert company.city == 'Guadalajara'
 
 
 class TestFirstContact:
-    """≙ ``_handle_first_contact_creation`` — la heurística del primer contacto."""
+    """
+    ≙ ``_handle_first_contact_creation`` — la heurística del primer contacto.
+    """
 
     def test_the_first_contact_gives_its_address_to_the_company(self, db):
         company = _company()
-        who = _contact(company, street='Av. Vallarta 1300',
-                       city='Guadalajara')
+        who = _contact(company, street='Av. Vallarta 1300', city='Guadalajara')
         who._handle_first_contact_creation()
         company.refresh_from_db()
         assert company.city == 'Guadalajara'

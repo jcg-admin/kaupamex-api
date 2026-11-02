@@ -1,9 +1,11 @@
-"""La columna de una FK portada lleva el nombre que la referencia declara (#141).
+"""
+La columna de una FK portada lleva el nombre que la referencia declara (#141).
 
 ≙ ADR-029 (``docs: source/backend/adr/adr-029-convencion-fk-sufijo-id.rst``).
 
 La referencia no separa los tres ejes que Django sí separa: en
-``odoo19c: odoo/orm/fields_relational.py`` un ``partner_id = fields.Many2one(...)``
+``odoo19c: odoo/orm/fields_relational.py`` un ``partner_id =
+fields.Many2one(...)``
 nombra a la vez el atributo, la columna y —menos el sufijo— la etiqueta. Aquí
 son tres:
 
@@ -28,6 +30,7 @@ Un caso que sólo mirase ``field.name`` sería verde con y sin ``db_column`` —
 el nombre del símbolo no cambia. Por eso se mide ``field.column``, que es lo
 único que llega a PostgreSQL.
 """
+
 import pytest
 
 from addons.account.report.account_invoice_report import AccountInvoiceReport
@@ -35,7 +38,8 @@ from addons.auto_backup.models.db_backup_details import DbBackupDetails
 from addons.base_automation.models.base_automation import BaseAutomation
 from addons.hr_recruitment.models.hr_applicant import HrApplicant
 from addons.hr_recruitment.models.hr_recruitment_source import (
-    HrRecruitmentSource)
+    HrRecruitmentSource,
+)
 from addons.stock.models.stock_picking import StockPickingType
 from addons.utm.models.utm_campaign import UtmCampaign
 from addons.utm.models.utm_mixin import UtmMixin
@@ -44,18 +48,36 @@ from addons.utm.models.utm_source import UtmSourceMixin
 #: Las declaraciones que ADR-029 lleva a forma C. El nombre del símbolo ES el
 #: de la referencia, así que la columna esperada es el propio nombre.
 FORM_C = [
-    pytest.param(AccountInvoiceReport, name, id=f'account_invoice_report.{name}')
+    pytest.param(
+        AccountInvoiceReport, name, id=f'account_invoice_report.{name}'
+    )
     for name in (
-        'move_id', 'journal_id', 'company_id', 'company_currency_id',
-        'partner_id', 'commercial_partner_id', 'country_id', 'invoice_user_id',
-        'fiscal_position_id', 'product_id', 'product_uom_id',
-        'product_categ_id', 'account_id', 'currency_id',
+        'move_id',
+        'journal_id',
+        'company_id',
+        'company_currency_id',
+        'partner_id',
+        'commercial_partner_id',
+        'country_id',
+        'invoice_user_id',
+        'fiscal_position_id',
+        'product_id',
+        'product_uom_id',
+        'product_categ_id',
+        'account_id',
+        'currency_id',
     )
 ] + [
-    pytest.param(DbBackupDetails, 'db_backup_id', id='db_backup_details.db_backup_id'),
+    pytest.param(
+        DbBackupDetails, 'db_backup_id', id='db_backup_details.db_backup_id'
+    ),
     pytest.param(BaseAutomation, 'model_id', id='base_automation.model_id'),
-    pytest.param(BaseAutomation, 'trg_date_id', id='base_automation.trg_date_id'),
-    pytest.param(StockPickingType, 'sequence_id', id='stock_picking_type.sequence_id'),
+    pytest.param(
+        BaseAutomation, 'trg_date_id', id='base_automation.trg_date_id'
+    ),
+    pytest.param(
+        StockPickingType, 'sequence_id', id='stock_picking_type.sequence_id'
+    ),
     pytest.param(UtmCampaign, 'user_id', id='utm_campaign.user_id'),
     pytest.param(UtmCampaign, 'stage_id', id='utm_campaign.stage_id'),
     #: Los cuatro que llegan por mixin abstracto: la declaración vive en
@@ -63,7 +85,9 @@ FORM_C = [
     pytest.param(HrApplicant, 'campaign_id', id='hr_applicant.campaign_id'),
     pytest.param(HrApplicant, 'source_id', id='hr_applicant.source_id'),
     pytest.param(HrApplicant, 'medium_id', id='hr_applicant.medium_id'),
-    pytest.param(HrRecruitmentSource, 'source_id', id='hr_recruitment_source.source_id'),
+    pytest.param(
+        HrRecruitmentSource, 'source_id', id='hr_recruitment_source.source_id'
+    ),
 ]
 
 
@@ -102,8 +126,13 @@ class TestTheAbstractMixinPropagatesItsColumn:
 
     def test_the_declaration_lives_in_the_abstract_parent(self):
         assert UtmMixin._meta.abstract
-        assert UtmMixin._meta.get_field('campaign_id').db_column == 'campaign_id'
+        assert (
+            UtmMixin._meta.get_field('campaign_id').db_column == 'campaign_id'
+        )
 
     def test_the_source_mixin_declares_its_own(self):
         assert UtmSourceMixin._meta.abstract
-        assert UtmSourceMixin._meta.get_field('source_id').db_column == 'source_id'
+        assert (
+            UtmSourceMixin._meta.get_field('source_id').db_column
+            == 'source_id'
+        )

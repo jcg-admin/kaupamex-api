@@ -12,11 +12,15 @@ tienda, ya en producción) vs. company→Kaupamex (este módulo, la renta de los
 módulos). Ver :ref:`diseno-motor-facturacion-recurrente-l0`.
 
 **Persistencia (H-API-02, slice 2):** ``run_billing`` ya no devuelve sólo un
-dict efímero — **crea** una ``SubscriptionBillingRun`` (resumen auditable) y una
-``SubscriptionInvoice`` por suscripción y período (documento de cobro, idempotente
-por ``(subscription, period)``, con el precio **congelado**). El dict de retorno
+dict efímero — **crea** una ``SubscriptionBillingRun`` (resumen auditable) y
+una
+``SubscriptionInvoice`` por suscripción y período (documento de cobro,
+idempotente
+por ``(subscription, period)``, con el precio **congelado**). El dict de
+retorno
 se conserva para compatibilidad.
 """
+
 from decimal import Decimal
 
 from django.utils import timezone
@@ -54,26 +58,37 @@ def suspend_company_billing(company):
 
 
 def _billable_subscriptions(company, at):
-    """Suscripciones activas y con tarifa de la company (las que se facturan)."""
+    """
+    Suscripciones activas y con tarifa de la company (las que se facturan).
+    """
     return [
-        sub for sub in company.subscriptions.all()
+        sub
+        for sub in company.subscriptions.all()
         if sub.is_active(at) and sub.price is not None
     ]
 
 
-def run_billing(charge, at=None, companies=None, period=None,
-                triggered_by=SubscriptionBillingRun.TriggeredBy.TIME):
+def run_billing(
+    charge,
+    at=None,
+    companies=None,
+    period=None,
+    triggered_by=SubscriptionBillingRun.TriggeredBy.TIME,
+):
     """Corre el ciclo de cobro sobre ``companies`` (default: todas menos la
     system company) para ``period`` (default: el mes de ``at``).
 
     Persiste una ``SubscriptionBillingRun`` y, por cada suscripción facturable,
-    una ``SubscriptionInvoice`` idempotente por período (el ``amount`` se congela
+    una ``SubscriptionInvoice`` idempotente por período (el ``amount`` se
+    congela
     del ``subscription.price``). El cobro se delega a
     ``charge(company, amount) -> bool``: éxito → factura ``paid``; fallo →
-    factura ``failed`` + ``suspend_company_billing`` + estado ``suspended``. Una
+    factura ``failed`` + ``suspend_company_billing`` + estado ``suspended``.
+    Una
     factura ya ``paid`` de un período no se re-cobra (EX-04).
 
-    Devuelve, por compatibilidad, ``{company_code: 'charged'|'suspended'|'skipped'}``.
+    Devuelve, por compatibilidad, ``{company_code:
+    'charged'|'suspended'|'skipped'}``.
     """
     if at is None:
         at = timezone.now()
@@ -83,7 +98,8 @@ def run_billing(charge, at=None, companies=None, period=None,
         companies = ResCompany.objects.filter(is_system=False)
 
     run = SubscriptionBillingRun.objects.create(
-        period=period, triggered_by=triggered_by,
+        period=period,
+        triggered_by=triggered_by,
     )
     results = {}
     for company in companies:
@@ -96,9 +112,12 @@ def run_billing(charge, at=None, companies=None, period=None,
         charged_any = False
         for sub in subs:
             invoice, _created = SubscriptionInvoice.objects.get_or_create(
-                subscription=sub, period=period,
+                subscription=sub,
+                period=period,
                 defaults={
-                    'company': company, 'run': run, 'amount': sub.price,
+                    'company': company,
+                    'run': run,
+                    'amount': sub.price,
                 },
             )
             if invoice.status == SubscriptionInvoice.Status.PAID:
@@ -125,15 +144,20 @@ def run_billing(charge, at=None, companies=None, period=None,
         elif charged_any:
             results[company.code] = 'charged'
         else:
-            results[company.code] = 'skipped'  # todo el período ya estaba pagado
+            # todo el período ya estaba pagado
+            results[company.code] = 'skipped'
 
     run.finished_at = timezone.now()
     run.save()
     return results
 
 
-def issue_billing_run(at=None, companies=None, period=None,
-                      triggered_by=SubscriptionBillingRun.TriggeredBy.OPERATOR):
+def issue_billing_run(
+    at=None,
+    companies=None,
+    period=None,
+    triggered_by=SubscriptionBillingRun.TriggeredBy.OPERATOR,
+):
     """Emite (sin cobrar) las facturas del período: crea la corrida y una
     ``SubscriptionInvoice`` ``issued`` idempotente por suscripción facturable.
 
@@ -151,14 +175,18 @@ def issue_billing_run(at=None, companies=None, period=None,
         companies = ResCompany.objects.filter(is_system=False)
 
     run = SubscriptionBillingRun.objects.create(
-        period=period, triggered_by=triggered_by,
+        period=period,
+        triggered_by=triggered_by,
     )
     for company in companies:
         for sub in _billable_subscriptions(company, at):
             invoice, created = SubscriptionInvoice.objects.get_or_create(
-                subscription=sub, period=period,
+                subscription=sub,
+                period=period,
                 defaults={
-                    'company': company, 'run': run, 'amount': sub.price,
+                    'company': company,
+                    'run': run,
+                    'amount': sub.price,
                     'status': SubscriptionInvoice.Status.ISSUED,
                     'issued_at': at,
                 },
@@ -183,19 +211,24 @@ class BillingGatewayNotConfigured(Exception):
 def charge_invoice(invoice):
     """Cobra una ``SubscriptionInvoice`` por la pasarela (seam de integración).
 
-    **Deferido (H-API-03):** el adaptador MP (egress real) no está cableado; por
-    defecto levanta ``BillingGatewayNotConfigured``. Los tests inyectan un doble
-    (``monkeypatch``). Devuelve ``bool`` (aprobado/rechazado) cuando esté cableado.
+    **Deferido (H-API-03):** el adaptador MP (egress real) no está cableado;
+    por
+    defecto levanta ``BillingGatewayNotConfigured``. Los tests inyectan un
+    doble
+    (``monkeypatch``). Devuelve ``bool`` (aprobado/rechazado) cuando esté
+    cableado.
     """
     raise BillingGatewayNotConfigured(
-        'Adaptador de cobro MP no cableado para billing L0 (H-API-03).')
+        'Adaptador de cobro MP no cableado para billing L0 (H-API-03).'
+    )
 
 
 def retry_invoice(invoice, at=None):
     """Reintenta el cobro de una factura ``failed`` vía ``charge_invoice``.
 
     Éxito → ``paid`` (``paid_at``); rechazo → sigue ``failed`` con motivo. El
-    llamador (endpoint) ya validó que la factura estaba ``failed`` (si no, 409).
+    llamador (endpoint) ya validó que la factura estaba ``failed`` (si no,
+    409).
     Devuelve la factura actualizada.
     """
     if at is None:

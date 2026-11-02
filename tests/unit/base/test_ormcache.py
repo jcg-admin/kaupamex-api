@@ -4,6 +4,7 @@ Escrito antes que la implementación (TDD). Cubre las tres piezas que la
 referencia declara: el mapa acotado ``LRU``, el decorador ``ormcache`` y el
 vaciado por nombre de caché que ``Registry.clear_cache`` expone.
 """
+
 import pytest
 
 from orm import registry
@@ -22,7 +23,7 @@ class TestLru:
     def test_evicts_the_least_recently_used(self):
         lru = LRU(2)
         lru['a'], lru['b'] = 1, 2
-        lru['a']                      # 'a' pasa a ser el más reciente
+        lru['a']  # 'a' pasa a ser el más reciente
         lru['c'] = 3
         assert 'a' in lru and 'c' in lru and 'b' not in lru
 
@@ -97,7 +98,9 @@ class TestOrmcache:
         assert subject.calls == 2
 
     def test_stable_drags_default_as_the_reference_declares(self):
-        """``stable -> (stable, default, ...)``: vaciar ``stable`` vacía ``default``.
+        """
+        ``stable -> (stable, default, ...)``: vaciar ``stable`` vacía
+        ``default``.
 
         No es un efecto colateral: es la dependencia que ``_CACHES_BY_KEY``
         declara verbatim, y el gate la fija para que un cambio del mapa no pase

@@ -13,6 +13,7 @@ Se importa del módulo del addon, no de ``orm.fields``: el núcleo no conoce
 estos dos tipos (los publica ``apps.py`` en ``ready()``), igual que en la
 referencia ``odoo/orm/`` no conoce ``Serialized``.
 """
+
 import pytest
 
 from addons.base_sparse_field.models import fields
@@ -143,7 +144,9 @@ def test_the_map_is_replaced_not_mutated_in_place():
 
 
 def test_a_non_dict_container_reads_as_empty():
-    """Una fila vieja con ``NULL`` en la columna no debe reventar la lectura."""
+    """
+    Una fila vieja con ``NULL`` en la columna no debe reventar la lectura.
+    """
     carrier = Carrier(data=None)
     assert carrier.char is None
 

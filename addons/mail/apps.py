@@ -1,17 +1,21 @@
 """AppConfig — addons.mail (equivalente del addon ``mail`` de Odoo).
 
 ``addons.mail`` es el hogar fiel del envío de correo del proyecto (DEC-11 de
-``adoptar-arquitectura-server-service-odoo``). Odoo modela el correo en el addon
-``mail`` — ``mail.mail`` con ``process_email_queue`` (cola + envío async por cron,
+``adoptar-arquitectura-server-service-odoo``). Odoo modela el correo en el
+addon
+``mail`` — ``mail.mail`` con ``process_email_queue`` (cola + envío async por
+cron,
 ``odoo/addons/mail/models/mail_mail.py``) — sobre el transporte SMTP
 ``ir.mail_server`` de ``addons/base``.
 
 La cola de correo saliente es ``mail.mail`` (``MailMail``) — hogar Odoo fiel de
 la ex-``notifications.EmailTask`` (disuelta en esta familia) — drenada por el
-management command ``send_pending_emails`` (≙ ``mail.mail.process_email_queue``).
+management command ``send_pending_emails`` (≙
+``mail.mail.process_email_queue``).
 ``email_executor`` hace el dispatch async por ``ThreadPoolExecutor`` y reencola
 en ``mail.mail`` los envíos que fallan en el thread pool.
 """
+
 from django.apps import AppConfig
 
 

@@ -5,6 +5,7 @@ Verifica los campos de catálogo que extienden ``Module`` con el contrato del
 description / auto_install). El tier de pago vive en la metadata del módulo,
 no en la carpeta (principio PROVEN por Odoo). Enums en inglés (free/paid).
 """
+
 import pytest
 
 from addons.authz.models import Module
@@ -26,9 +27,14 @@ class TestModuleCatalogFields:
     def test_can_mark_application_paid_with_metadata(self):
         """Una app vendible de pago lleva su metadata de catálogo."""
         m = Module.objects.create(
-            code='crm', name='CRM', is_application=True,
-            tier=Module.Tier.PAID, category='sales', version='1.0.0',
-            description='Customer relationship management', auto_install=False,
+            code='crm',
+            name='CRM',
+            is_application=True,
+            tier=Module.Tier.PAID,
+            category='sales',
+            version='1.0.0',
+            description='Customer relationship management',
+            auto_install=False,
         )
         m.refresh_from_db()
         assert m.is_application is True
@@ -39,13 +45,19 @@ class TestModuleCatalogFields:
         assert m.description == 'Customer relationship management'
 
     def test_tier_choices_are_english_values(self):
-        """Los valores del enum son inglés (free/paid), etiquetas en español."""
+        """
+        Los valores del enum son inglés (free/paid), etiquetas en español.
+        """
         assert [c[0] for c in Module.Tier.choices] == ['free', 'paid']
 
     def test_auto_install_technical_module(self):
-        """Un módulo técnico puede marcarse auto_install (se activa con deps)."""
+        """
+        Un módulo técnico puede marcarse auto_install (se activa con deps).
+        """
         m = Module.objects.create(
-            code='core-bridge', name='Core Bridge', auto_install=True,
+            code='core-bridge',
+            name='Core Bridge',
+            auto_install=True,
         )
         m.refresh_from_db()
         assert m.auto_install is True

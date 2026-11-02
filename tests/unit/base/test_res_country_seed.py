@@ -8,6 +8,7 @@ sólo se vieron al comparar contra la referencia — ver :ref:`h-api-359`. Ambas
 tenían la misma forma: el instrumento no veía un caso, y su silencio se leyó
 como ausencia.
 """
+
 import pytest
 
 from addons.base.models import ResCountry, ResCountryGroup
@@ -43,10 +44,19 @@ class TestCountryCatalogue:
 class TestCountryGroups:
     """Las ocho agrupaciones y su membresía."""
 
-    @pytest.mark.parametrize('code, expected', [
-        ('EU', 27), ('EU_PREFIX', 31), ('SEPA', 49), ('SA', 15),
-        ('GCC', 6), ('EEU', 5), ('DOM-TOM', 10), ('CH-LI', 2),
-    ])
+    @pytest.mark.parametrize(
+        'code, expected',
+        [
+            ('EU', 27),
+            ('EU_PREFIX', 31),
+            ('SEPA', 49),
+            ('SA', 15),
+            ('GCC', 6),
+            ('EEU', 5),
+            ('DOM-TOM', 10),
+            ('CH-LI', 2),
+        ],
+    )
     def test_membership_matches_the_reference(self, code, expected):
         """Conteos medidos sobre el XML, no elegidos.
 
@@ -62,15 +72,19 @@ class TestCountryGroups:
         """La consecuencia concreta de resolver por xmlid y no por código."""
         uk = ResCountry.objects.get(code='GB')
         assert set(uk.country_groups.values_list('code', flat=True)) >= {
-            'SEPA', 'EU_PREFIX'}
+            'SEPA',
+            'EU_PREFIX',
+        }
 
 
 class TestFlagUrl:
     """``image_url`` — ≙ ``_compute_image_url``."""
 
     def test_derives_the_path_from_the_iso_code(self):
-        assert ResCountry.objects.get(code='MX').image_url == \
-            '/base/static/img/country_flags/mx.png'
+        assert (
+            ResCountry.objects.get(code='MX').image_url
+            == '/base/static/img/country_flags/mx.png'
+        )
 
     def test_the_two_countries_without_a_flag_return_none(self):
         """``NO_FLAG_COUNTRIES`` de la referencia tiene **dos** códigos.
@@ -93,7 +107,9 @@ class TestFlagUrl:
 
 
 class TestCountryGroupCodes:
-    """``country_group_codes`` — el contrato que ``account_fiscal_country`` lee."""
+    """
+    ``country_group_codes`` — el contrato que ``account_fiscal_country`` lee.
+    """
 
     def test_returns_the_codes_of_its_groups(self):
         assert 'EU' in ResCountry.objects.get(code='ES').country_group_codes
@@ -128,8 +144,14 @@ class TestPortedMethods:
 
     def test_get_address_fields_reads_the_keys_of_its_format(self):
         """México pide el **código** del estado; el Reino Unido, su nombre."""
-        assert 'state_code' in ResCountry.objects.get(code='MX').get_address_fields()
-        assert 'state_name' in ResCountry.objects.get(code='GB').get_address_fields()
+        assert (
+            'state_code'
+            in ResCountry.objects.get(code='MX').get_address_fields()
+        )
+        assert (
+            'state_name'
+            in ResCountry.objects.get(code='GB').get_address_fields()
+        )
 
     def test_phone_code_for_resolves_by_code_case_insensitively(self):
         assert ResCountry.phone_code_for('mx') == 52

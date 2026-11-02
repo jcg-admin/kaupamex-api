@@ -7,6 +7,7 @@ un valor por cada línea de atributo del producto, y el precio de cada
 combinación = precio base + Σ ``price_extra``. Es el enriquecimiento que el
 ``chartsize`` de un solo eje no cubría.
 """
+
 import itertools
 from decimal import Decimal
 
@@ -19,12 +20,16 @@ def sync_template_values(line):
     """Crea el ``ProductTemplateAttributeValue`` de cada valor de la línea.
 
     Réplica de ``_update_product_template_attribute_values`` de Odoo: por cada
-    valor en ``line.values`` asegura un PTAV (con ``price_extra=0`` si es nuevo).
+    valor en ``line.values`` asegura un PTAV (con ``price_extra=0`` si es
+    nuevo).
     """
     created = []
     for value in line.values.all():
-        ptav, was_created = ProductTemplateAttributeValue.objects.get_or_create(
-            line=line, attribute_value=value,
+        ptav, was_created = (
+            ProductTemplateAttributeValue.objects.get_or_create(
+                line=line,
+                attribute_value=value,
+            )
         )
         if was_created:
             created.append(ptav)
@@ -43,7 +48,8 @@ def combinations(template):
     'attribute_lines'``. Ver H-API-217.
 
     Devuelve una lista de combinaciones; cada combinación es una tupla de
-    ``ProductTemplateAttributeValue`` (uno por línea, en orden de ``sequence``).
+    ``ProductTemplateAttributeValue`` (uno por línea, en orden de
+    ``sequence``).
     Sin líneas → una combinación vacía (la ficha sin variantes).
     """
     lines = list(template.attribute_lines.order_by('sequence', 'id'))

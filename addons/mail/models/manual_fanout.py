@@ -6,12 +6,14 @@ notifications->mail). ``dispatch_manual_fanout`` crea un item de buzon
 Es la contraparte de dispatch del wizard de composicion de Odoo (el envio a la
 audiencia se materializa en los buzones de los seguidores).
 
-Es un modulo de **servicio** (funcion de dominio), no un modelo: no se reexporta
+Es un modulo de **servicio** (funcion de dominio), no un modelo: no se
+reexporta
 en ``models/__init__`` — los consumidores importan la ruta completa
 ``addons.mail.models.manual_fanout`` (mismo criterio que ``email_executor``).
 Llamado directamente por ``AdminManualNotificationCreateView`` (sin broker —
 cnst-arquitectura T6).
 """
+
 import logging
 
 from .notification_inbox import Notification
@@ -36,13 +38,11 @@ def dispatch_manual_fanout(user_ids, subject, message, notification_type):
         return 0
 
     disabled = set(
-        NotificationPreference.objects
-        .filter(
+        NotificationPreference.objects.filter(
             user_id__in=user_ids,
             type=notification_type,
             enabled=False,
-        )
-        .values_list('user_id', flat=True)
+        ).values_list('user_id', flat=True)
     )
     to_create = [
         Notification(
@@ -66,7 +66,9 @@ def dispatch_manual_fanout(user_ids, subject, message, notification_type):
         logger.exception(
             'dispatch_manual_fanout: bulk_create fallo para %d destinatarios '
             '(type=%s subject=%r)',
-            len(to_create), notification_type, subject,
+            len(to_create),
+            notification_type,
+            subject,
         )
         return 0
 

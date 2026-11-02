@@ -2,7 +2,8 @@
 
 Adaptación de Odoo ``addons/account/models/account_analytic_plan.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3, 81 líneas, 3 ``def``: medido
-por AST sobre ``AccountAnalyticApplicability`` — ``_compute_prefix_placeholder``,
+por AST sobre ``AccountAnalyticApplicability`` —
+``_compute_prefix_placeholder``,
 ``_get_score``, ``_compute_display_account_prefix``; más los campos
 ``business_domain`` (``selection_add``), ``account_prefix``,
 ``product_categ_id``, ``display_account_prefix``,
@@ -54,6 +55,7 @@ que no sirve tal cual; se usa ``combine=``:
 resuelven con ``.filter(pk=...).first()``, el equivalente de
 ``self.env[...].browse(...)`` de la referencia sin ``env`` ambiental.
 """
+
 import re
 
 import fields
@@ -87,13 +89,19 @@ def _extend_selection_choices(model, field_name, extra_choices):
     hace lo mismo **y** acepta el ``ondelete`` que la fuente declara junto al
     ``selection_add``, que es lo que la tarea **#205** construyó.
 
-    La política es la medida en ``odoo19c: account/models/account_analytic_plan.py:15-18``:
+    La política es la medida en ``odoo19c:
+    account/models/account_analytic_plan.py:15-18``:
     ``{'invoice': 'cascade', 'bill': 'cascade'}``. Sin ella los registros que
     guardaban el valor quedaban huérfanos al borrarlo.
     """
     return extend_selection_choices(
-        model, field_name, extra_choices,
-        ondelete={'invoice': 'cascade', 'bill': 'cascade'})
+        model,
+        field_name,
+        extra_choices,
+        ondelete={'invoice': 'cascade', 'bill': 'cascade'},
+    )
+
+
 def _add_if_absent(model, name, field):
     """Idempotente — mismo helper que ``account/models/product.py``."""
     if not any(f.name == name for f in model._meta.get_fields()):
@@ -109,10 +117,16 @@ def _default_account_prefix_placeholder(instance):
     """≙ ``_compute_prefix_placeholder`` (odoo19c: :34-57). Sin filtro de
     compañía — ver docstring del módulo, la referencia tampoco lo aplica
     aquí."""
-    account_expense = AccountAccount.objects.filter(
-        account_type='expense').order_by('code').first()
-    account_income = AccountAccount.objects.filter(
-        account_type='income').order_by('code').first()
+    account_expense = (
+        AccountAccount.objects.filter(account_type='expense')
+        .order_by('code')
+        .first()
+    )
+    account_income = (
+        AccountAccount.objects.filter(account_type='income')
+        .order_by('code')
+        .first()
+    )
 
     if instance.business_domain == 'bill':
         account = account_expense
@@ -125,7 +139,9 @@ def _default_account_prefix_placeholder(instance):
         prefix_base = account.code[:2]
         try:
             prefix_num = int(prefix_base)
-            account_prefixes = f'{prefix_num}, {prefix_num + 1}, {prefix_num + 2}'
+            account_prefixes = (
+                f'{prefix_num}, {prefix_num + 1}, {prefix_num + 2}'
+            )
         except ValueError:
             # silent OK because un código no numérico (odoo19c: :49-55) deja
             # el placeholder por defecto; la referencia hace exactamente lo
@@ -142,24 +158,40 @@ def _account_prefix_categ_bonus(self, **kwargs):
     plus = 0
     if self.account_prefix:
         prefixes = tuple(
-            p for p in _ACCOUNT_PREFIX_SPLIT.split(self.account_prefix.replace(' ', ''))
+            p
+            for p in _ACCOUNT_PREFIX_SPLIT.split(
+                self.account_prefix.replace(' ', '')
+            )
             if p
         )
         account_id = kwargs.get('account')
         account = (
-            AccountAccount.objects.filter(pk=account_id).first() if account_id else None
+            AccountAccount.objects.filter(pk=account_id).first()
+            if account_id
+            else None
         )
-        if account is not None and account.code and account.code.startswith(prefixes):
+        if (
+            account is not None
+            and account.code
+            and account.code.startswith(prefixes)
+        ):
             plus += 1
         else:
             return None
     if self.product_categ_id is not None:
         product_id = kwargs.get('product')
         product = (
-            ProductProduct.objects.filter(pk=product_id).first() if product_id else None
+            ProductProduct.objects.filter(pk=product_id).first()
+            if product_id
+            else None
         )
-        product_categ = getattr(product, 'categ', None) if product is not None else None
-        if product_categ is not None and product_categ.pk == self.product_categ_id:
+        product_categ = (
+            getattr(product, 'categ', None) if product is not None else None
+        )
+        if (
+            product_categ is not None
+            and product_categ.pk == self.product_categ_id
+        ):
             plus += 1
         else:
             return None
@@ -185,45 +217,66 @@ def apply_account_extensions():
     mano; ver ``tests/unit/account/test_account_analytic_plan.py``.
     """
     _extend_selection_choices(
-        AccountAnalyticApplicability, 'business_domain', _BUSINESS_DOMAIN_EXTRA,
+        AccountAnalyticApplicability,
+        'business_domain',
+        _BUSINESS_DOMAIN_EXTRA,
     )
     _add_if_absent(
-        AccountAnalyticApplicability, 'display_account_prefix',
+        AccountAnalyticApplicability,
+        'display_account_prefix',
         fields.NonStored(
             default=_default_display_account_prefix,
-            help_text='Odoo display_account_prefix (compute, store=False). '
-                       'Si el campo account_prefix debería mostrarse para '
-                       'este dominio de negocio.',
+            help_text=(
+                'Odoo display_account_prefix (compute, store=False). '
+                'Si el campo account_prefix debería mostrarse para '
+                'este dominio de negocio.'
+            ),
         ),
     )
     _add_if_absent(
-        AccountAnalyticApplicability, 'account_prefix_placeholder',
+        AccountAnalyticApplicability,
+        'account_prefix_placeholder',
         fields.Char(
-            store=False, default=_default_account_prefix_placeholder,
-            help_text='Odoo account_prefix_placeholder (compute, '
-                       'store=False). Ejemplo de prefijo según la primera '
-                       'cuenta de gasto/ingreso del plan de cuentas.',
+            store=False,
+            default=_default_account_prefix_placeholder,
+            help_text=(
+                'Odoo account_prefix_placeholder (compute, '
+                'store=False). Ejemplo de prefijo según la primera '
+                'cuenta de gasto/ingreso del plan de cuentas.'
+            ),
         ),
     )
     _add_if_absent(
-        AccountAnalyticApplicability, 'account_prefix',
+        AccountAnalyticApplicability,
+        'account_prefix',
         fields.Char(
-            blank=True, default='',
-            help_text='Odoo account_prefix. Prefijos de cuenta contable '
-                       'sobre los que aplica esta regla de aplicabilidad.',
+            blank=True,
+            default='',
+            help_text=(
+                'Odoo account_prefix. Prefijos de cuenta contable '
+                'sobre los que aplica esta regla de aplicabilidad.'
+            ),
         ),
     )
     _add_if_absent(
-        AccountAnalyticApplicability, 'product_categ',
+        AccountAnalyticApplicability,
+        'product_categ',
         fields.Many2one(
-            'product.ProductCategory', on_delete=models.SET_NULL,
-            null=True, blank=True, related_name='analytic_applicabilities',
-            help_text='Odoo product_categ_id. Categoría de producto sobre '
-                       'la que aplica esta regla.',
+            'product.ProductCategory',
+            on_delete=models.SET_NULL,
+            null=True,
+            blank=True,
+            related_name='analytic_applicabilities',
+            help_text=(
+                'Odoo product_categ_id. Categoría de producto sobre '
+                'la que aplica esta regla.'
+            ),
         ),
     )
 
     chain_method(
-        AccountAnalyticApplicability, '_get_score',
-        _account_prefix_categ_bonus, combine=_combine_score_with_bonus,
+        AccountAnalyticApplicability,
+        '_get_score',
+        _account_prefix_categ_bonus,
+        combine=_combine_score_with_bonus,
     )

@@ -1,10 +1,12 @@
 """Controladores del provider PayPal — webhook UC-PAY-04.
 
-En Odoo cada provider aloja sus endpoints en ``payment_<provider>/controllers``.
+En Odoo cada provider aloja sus endpoints en
+``payment_<provider>/controllers``.
 El path del webhook NO cambia (DEC-V2-02:
 ``/api/v1/payments/webhooks/paypal/`` registrado con el proveedor externo);
 ``payments/webhook_urls.py`` lo enruta hacia aquí.
 """
+
 import json
 import logging
 from decimal import Decimal
@@ -18,7 +20,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db import IntegrityError, transaction
 
-from addons.payment.models import Payment, PaymentGatewayEvent, WebhookEvent, Chargeback
+from addons.payment.models import (
+    Payment,
+    PaymentGatewayEvent,
+    WebhookEvent,
+    Chargeback,
+)
 from addons.payment.webhook_processing import _process_payment_approval
 from addons.payment_paypal.gateway import PayPalGateway
 
@@ -27,6 +34,7 @@ logger = logging.getLogger('apps')
 # =============================================================================
 # UC-PAY-04 — Webhook de PayPal
 # =============================================================================
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class PayPalWebhookView(APIView):
@@ -40,6 +48,7 @@ class PayPalWebhookView(APIView):
       - PAYMENT.CAPTURE.COMPLETED → marca como aprobado
       - PAYMENT.CAPTURE.DENIED → marca como fallido
     """
+
     permission_classes = [AllowAny]
     serializer_class = serializers.Serializer
 
@@ -63,7 +72,7 @@ class PayPalWebhookView(APIView):
             # DEC-BC-06: 400 — PayPal no reintenta 4xx.
             return Response({'status': 'invalid_json'}, status=400)
 
-        event_type      = data.get('event_type', '')
+        event_type = data.get('event_type', '')
         paypal_event_id = data.get('id', '')
         transmission_id = request.META.get('HTTP_PAYPAL_TRANSMISSION_ID', '')
 
@@ -79,11 +88,21 @@ class PayPalWebhookView(APIView):
         try:
             pp_gateway = PayPalGateway()
             headers = {
-                'paypal-cert-url':        request.META.get('HTTP_PAYPAL_CERT_URL', ''),
-                'paypal-auth-algo':       request.META.get('HTTP_PAYPAL_AUTH_ALGO', ''),
-                'paypal-transmission-id': request.META.get('HTTP_PAYPAL_TRANSMISSION_ID', ''),
-                'paypal-transmission-sig':request.META.get('HTTP_PAYPAL_TRANSMISSION_SIG', ''),
-                'paypal-transmission-time':request.META.get('HTTP_PAYPAL_TRANSMISSION_TIME',''),
+                'paypal-cert-url': request.META.get(
+                    'HTTP_PAYPAL_CERT_URL', ''
+                ),
+                'paypal-auth-algo': request.META.get(
+                    'HTTP_PAYPAL_AUTH_ALGO', ''
+                ),
+                'paypal-transmission-id': request.META.get(
+                    'HTTP_PAYPAL_TRANSMISSION_ID', ''
+                ),
+                'paypal-transmission-sig': request.META.get(
+                    'HTTP_PAYPAL_TRANSMISSION_SIG', ''
+                ),
+                'paypal-transmission-time': request.META.get(
+                    'HTTP_PAYPAL_TRANSMISSION_TIME', ''
+                ),
             }
             is_valid = pp_gateway.verify_webhook_signature(
                 webhook_id='',
@@ -95,7 +114,9 @@ class PayPalWebhookView(APIView):
             is_valid = False
 
         if not is_valid:
-            logger.warning('PayPal webhook: firma inválida para event_type=%s', event_type)
+            logger.warning(
+                'PayPal webhook: firma inválida para event_type=%s', event_type
+            )
             return Response({'status': 'invalid_signature'}, status=401)
 
         # DEC-BC-04: dedup via WebhookEvent solo después de validar la firma.
@@ -123,7 +144,9 @@ class PayPalWebhookView(APIView):
             'PAYMENT.CAPTURE.DENIED',
         }
         if event_type not in relevant:
-            return Response({'status': 'ignored', 'event_type': event_type}, status=200)
+            return Response(
+                {'status': 'ignored', 'event_type': event_type}, status=200
+            )
 
         # Extraer identificadores del payload
         resource = data.get('resource', {})
@@ -135,7 +158,8 @@ class PayPalWebhookView(APIView):
                 # DEC-BC-06: 400 — payload incompleto, no reintentable.
                 return Response({'status': 'missing_order_id'}, status=400)
 
-            # Buscar el Payment por preference_id (guardamos el order_id de PayPal ahí)
+            # Buscar el Payment por preference_id (guardamos el order_id
+            # de PayPal ahí)
             payment = Payment.objects.filter(
                 preference_id=paypal_order_id,
                 gateway='PAYPAL',
@@ -144,7 +168,10 @@ class PayPalWebhookView(APIView):
                 # DEC-BC-06: 502 (Bad Gateway) — el Payment puede aparecer
                 # en una race window con la creacion del pedido. PayPal
                 # hace backoff en 5xx y reintenta — recupera del race.
-                logger.warning('PayPal webhook: Payment no encontrado para order=%s', paypal_order_id)
+                logger.warning(
+                    'PayPal webhook: Payment no encontrado para order=%s',
+                    paypal_order_id,
+                )
                 return Response({'status': 'payment_not_found'}, status=502)
 
             PaymentGatewayEvent.objects.create(
@@ -155,9 +182,11 @@ class PayPalWebhookView(APIView):
 
             try:
                 capture_result = pp_gateway.capture_order(paypal_order_id)
-                capture_id     = capture_result['capture_id']
+                capture_id = capture_result['capture_id']
                 payment.gateway_payment_id = capture_id
-                payment.save(update_fields=['gateway_payment_id', 'updated_at'])
+                payment.save(
+                    update_fields=['gateway_payment_id', 'updated_at']
+                )
             except Exception as exc:
                 # DEC-BC-06: 500 — fallo interno al capturar. PayPal
                 # hace backoff en 5xx y reintenta el webhook.
@@ -167,7 +196,7 @@ class PayPalWebhookView(APIView):
         elif event_type == 'PAYMENT.CAPTURE.COMPLETED':
             capture_id = resource.get('id', '')
             amount_str = resource.get('amount', {}).get('value')
-            amount     = Decimal(amount_str) if amount_str else None
+            amount = Decimal(amount_str) if amount_str else None
 
             payment = Payment.objects.filter(
                 gateway_payment_id=capture_id,
@@ -175,15 +204,21 @@ class PayPalWebhookView(APIView):
             ).first()
             if not payment:
                 # Buscar por order reference
-                reference = data.get('resource', {}).get('supplementary_data', {}).get(
-                    'related_ids', {}).get('order_id', '')
+                reference = (
+                    data.get('resource', {})
+                    .get('supplementary_data', {})
+                    .get('related_ids', {})
+                    .get('order_id', '')
+                )
                 if reference:
                     payment = Payment.objects.filter(
                         preference_id=reference, gateway='PAYPAL'
                     ).first()
                     if payment:
                         payment.gateway_payment_id = capture_id
-                        payment.save(update_fields=['gateway_payment_id', 'updated_at'])
+                        payment.save(
+                            update_fields=['gateway_payment_id', 'updated_at']
+                        )
 
             if payment:
                 PaymentGatewayEvent.objects.create(
@@ -219,4 +254,6 @@ class PayPalWebhookView(APIView):
                         raw_body=raw_body,
                     )
 
-        return Response({'status': 'processed', 'event_type': event_type}, status=200)
+        return Response(
+            {'status': 'processed', 'event_type': event_type}, status=200
+        )

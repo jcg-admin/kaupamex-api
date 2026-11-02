@@ -1,5 +1,6 @@
 """
-Tests — Notificaciones transaccionales disparadas por transición de eje (UC-NOT-01..05)
+Tests — Notificaciones transaccionales disparadas por transición de eje
+(UC-NOT-01..05)
 
 No existe un módulo ``addons.mail.models.notification_signals`` con signal
 receivers: el mecanismo vigente (post-retiro del espejo ``orders.Order``,
@@ -11,6 +12,7 @@ contrato directamente en vez de un signal receiver que ya no existe.
 on_commit se parchea para ejecutar callbacks inmediatamente (los tests
 corren en transacciones que nunca commitean).
 """
+
 import pytest
 from addons.sale.models import SaleOrder
 from decimal import Decimal
@@ -31,10 +33,13 @@ from addons.sale.status_projection import (
 
 pytestmark = pytest.mark.integration
 
-_ON_COMMIT_PATH = 'addons.mail.models.notification_service.transaction.on_commit'
+_ON_COMMIT_PATH = (
+    'addons.mail.models.notification_service.transaction.on_commit'
+)
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────
+
 
 def _make_order(user):
     return make_order(user=user)
@@ -61,6 +66,7 @@ def _make_payment(order):
 # el mismo contrato (una orden nueva con comprador dispara UNA notificación
 # ORDER_UPDATE con la referencia de la venta) sobre la llamada explícita.
 
+
 class TestOrderCreatedNotification:
     def test_creates_notification_on_order_created(self, db, user):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
@@ -77,7 +83,9 @@ class TestOrderCreatedNotification:
             order = _make_order(user)
             notify_order_created(order, user, Decimal('464.00'))
 
-        notif = Notification.objects.filter(user=user, type='ORDER_UPDATE').first()
+        notif = Notification.objects.filter(
+            user=user, type='ORDER_UPDATE'
+        ).first()
         # I1/E5: la identidad pública de la venta es ``name`` (antes
         # ``order_number`` del espejo retirado).
         assert order.name in notif.subject
@@ -99,16 +107,21 @@ class TestOrderCreatedNotification:
             order = _make_order(user)
             notify_order_created(order, user, Decimal('464.00'))
 
-        assert Notification.objects.filter(user=user, type='ORDER_UPDATE').count() == 1
+        assert (
+            Notification.objects.filter(user=user, type='ORDER_UPDATE').count()
+            == 1
+        )
 
 
 # ── UC-NOT-02: notificacion EXPLICITA por transicion de eje (O2C V5d) ─────
 #
-# La signal ``post_save`` que observaba ``SaleOrder.status`` murio con la columna
+# La signal ``post_save`` que observaba ``SaleOrder.status`` murio con
+# la columna
 # espejo (V5d, H-API-20): sin campo no hay cambio que observar. El mecanismo
 # vigente es la llamada explicita ``notify_order_status_changed`` en cada punto
 # de mutacion del eje (hub admin, cancel_order, alta de guia, entrega). Estos
 # tests ejercen ese contrato directamente.
+
 
 class TestOrderStatusChangedNotification:
     def test_creates_notification_on_status_transition(self, db, user):
@@ -144,11 +157,14 @@ class TestOrderStatusChangedNotification:
             order = _make_order(user)
             notify_order_status_changed(order, STATUS_SHIPPED)
 
-        notif = Notification.objects.filter(user=user, type='ORDER_UPDATE').first()
+        notif = Notification.objects.filter(
+            user=user, type='ORDER_UPDATE'
+        ).first()
         assert 'enviado' in notif.subject.lower()
 
 
 # ── UC-NOT-04: ReturnRequest status transition ───────────────────────────
+
 
 class TestReturnStatusChangedSignal:
     def _make_return(self, user, order):
@@ -178,7 +194,9 @@ class TestReturnStatusChangedSignal:
             ret = self._make_return(user, order)
             ret.rejection_reason = 'Fuera de periodo de devolucion.'
             ret.status = ReturnRequest.Status.REJECTED
-            ret.save(update_fields=['status', 'rejection_reason', 'updated_at'])
+            ret.save(
+                update_fields=['status', 'rejection_reason', 'updated_at']
+            )
 
         assert Notification.objects.filter(
             user=user,
@@ -192,17 +210,22 @@ class TestReturnStatusChangedSignal:
             ret.status = ReturnRequest.Status.INFO_REQUESTED
             ret.save(update_fields=['status', 'updated_at'])
 
-        assert not Notification.objects.filter(user=user, type='RETURN_UPDATE').exists()
+        assert not Notification.objects.filter(
+            user=user, type='RETURN_UPDATE'
+        ).exists()
 
     def test_no_notification_on_return_creation(self, db, user):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             order = _make_order(user)
             self._make_return(user, order)
 
-        assert not Notification.objects.filter(user=user, type='RETURN_UPDATE').exists()
+        assert not Notification.objects.filter(
+            user=user, type='RETURN_UPDATE'
+        ).exists()
 
 
 # ── UC-NOT-05: Refund created ──────────────────────────────────────────────
+
 
 class TestRefundCreatedSignal:
     def test_creates_notification_on_approved_refund(self, db, user):
@@ -230,4 +253,6 @@ class TestRefundCreatedSignal:
                 status=Refund.STATUS_PENDING,
             )
 
-        assert not Notification.objects.filter(user=user, type='RETURN_UPDATE').exists()
+        assert not Notification.objects.filter(
+            user=user, type='RETURN_UPDATE'
+        ).exists()

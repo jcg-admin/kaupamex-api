@@ -1,9 +1,12 @@
-"""``res.users`` — la familia ``has_group`` (≙ ``odoo19c: res_users.py:1034-1096``).
+"""
+``res.users`` — la familia ``has_group`` (≙ ``odoo19c:
+res_users.py:1034-1096``).
 
 Tres métodos y un puente. Los métodos son ``has_groups`` (el ``group_spec`` con
 ``!``), ``has_group`` (guarda de acceso + el matiz de ``base.group_no_one``) y
 ``_has_group`` (la pertenencia cruda). El puente es que la fuente pregunta
-``group_id in user.all_group_ids`` con ``all_group_ids = group_ids.all_implied_ids``
+``group_id in user.all_group_ids`` con ``all_group_ids =
+group_ids.all_implied_ids``
 (``:447-449``), y aquí eso se lee desde el grupo como ``all_implied_by_ids`` —
 la misma arista del mismo M2M, recorrida al revés.
 
@@ -25,6 +28,7 @@ Lo que estos tests fijan, y por qué cada cosa:
 Los grupos sembrados (``0027_seed_base_groups``) se ejercitan aparte de los
 grupos sintéticos: unos fijan el catálogo, los otros el álgebra.
 """
+
 import pytest
 
 from addons.base.models.ir_model import IrModelData
@@ -105,7 +109,8 @@ class TestRawMembership:
         assert user._has_group('group_worker') is False
 
     def test_xmlid_pointing_at_another_model_grants_nothing(self, db):
-        """La tabla es genérica; un identificador puede designar cualquier cosa.
+        """
+        La tabla es genérica; un identificador puede designar cualquier cosa.
 
         Que resuelva no basta — tiene que resolver a un ``res.groups``.
         """
@@ -116,8 +121,12 @@ class TestRawMembership:
 
     def test_unsaved_user_grants_nothing(self, chain):
         """Un registro nuevo no tiene M2M que consultar."""
-        assert ResUsers(login='enelaire@kaupamex.test')._has_group(
-            'prueba.group_worker') is False
+        assert (
+            ResUsers(login='enelaire@kaupamex.test')._has_group(
+                'prueba.group_worker'
+            )
+            is False
+        )
 
 
 @pytest.mark.django_db
@@ -134,28 +143,30 @@ class TestGroupSpec:
         _, _, worker = chain
         user = _user('alguno@kaupamex.test')
         user.group_ids.add(worker)
-        assert user.has_groups(
-            'prueba.group_boss,prueba.group_worker') is True
+        assert user.has_groups('prueba.group_boss,prueba.group_worker') is True
 
     def test_no_positive_matches(self, chain):
         user = _user('ninguno@kaupamex.test')
-        assert user.has_groups(
-            'prueba.group_boss,prueba.group_worker') is False
+        assert (
+            user.has_groups('prueba.group_boss,prueba.group_worker') is False
+        )
 
     def test_negative_wins_over_a_matching_positive(self, chain):
         """``!`` niega: pertenecer al negado invalida el spec entero."""
         boss, _, _ = chain
         user = _user('negado@kaupamex.test')
         user.group_ids.add(boss)
-        assert user.has_groups(
-            'prueba.group_worker,!prueba.group_boss') is False
+        assert (
+            user.has_groups('prueba.group_worker,!prueba.group_boss') is False
+        )
 
     def test_negative_is_harmless_when_not_a_member(self, chain):
         _, _, worker = chain
         user = _user('limpio@kaupamex.test')
         user.group_ids.add(worker)
-        assert user.has_groups(
-            'prueba.group_worker,!prueba.group_boss') is True
+        assert (
+            user.has_groups('prueba.group_worker,!prueba.group_boss') is True
+        )
 
     def test_only_negatives_that_miss_is_true(self, chain):
         """``return not positives`` de la fuente.
@@ -187,8 +198,10 @@ class TestGroupSpec:
         _, _, worker = chain
         user = _user('espacios@kaupamex.test')
         user.group_ids.add(worker)
-        assert user.has_groups(
-            ' prueba.group_worker , !prueba.group_boss ') is True
+        assert (
+            user.has_groups(' prueba.group_worker , !prueba.group_boss ')
+            is True
+        )
 
 
 @pytest.mark.django_db
@@ -339,16 +352,21 @@ class TestSeededCatalog:
             'base.group_portal': 'portal',
             'base.group_public': 'public',
         }
-        assert {x: IrModelData.ref(x).user_type
-                for x in expected} == expected
+        assert {x: IrModelData.ref(x).user_type for x in expected} == expected
 
     def test_group_user_keeps_its_api_key_duration(self, db):
         """``<field name="api_key_duration">90.0</field>`` del XML."""
         assert IrModelData.ref('base.group_user').api_key_duration == 90.0
 
     def test_both_privileges_are_wired(self, db):
-        """``group_allow_export`` → Export, ``group_partner_manager`` → Contact."""
-        assert IrModelData.ref(
-            'base.group_allow_export').privilege.name == 'Export'
-        assert IrModelData.ref(
-            'base.group_partner_manager').privilege.name == 'Contact'
+        """
+        ``group_allow_export`` → Export, ``group_partner_manager`` → Contact.
+        """
+        assert (
+            IrModelData.ref('base.group_allow_export').privilege.name
+            == 'Export'
+        )
+        assert (
+            IrModelData.ref('base.group_partner_manager').privilege.name
+            == 'Contact'
+        )

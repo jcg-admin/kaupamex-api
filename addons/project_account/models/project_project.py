@@ -31,7 +31,8 @@ Porte símbolo por símbolo — 10 símbolos: 2 portados, 5 bloqueados, 3 navega
        ambiental, sin análogo de sesión en el modelo). Sucesor: tarea
        PENDIENTE DE ASIGNAR (resumen de este pase).
    * - ``_get_add_purchase_items_domain`` (:22-29)
-     - BLOQUEADO por ``project.Project._get_already_included_profitability_invoice_line_ids``
+     - BLOQUEADO por
+       ``project.Project._get_already_included_profitability_invoice_line_ids``
        — método de la infraestructura de rentabilidad del addon base
        ``project`` (``odoo19c: project/models/project_project.py:1036``), no
        portado; hogar ``addons/project``, fuera del write-set. Sucesor:
@@ -93,6 +94,7 @@ Divergencias declaradas de los dos símbolos portados
    los textos van en español como el resto de los ports (criterio de
    ``stock.StockPicking.get_empty_list_help``).
 """
+
 from orm.method_chain import chain_method
 from orm.model_classes import extend_model
 from tools.translate import _
@@ -136,11 +138,14 @@ def _chain_profitability_hooks(model):
     ``extend_model``, porque su bloque ``metodos`` usa el relevo por ``None``
     y aquí la semántica correcta es la combinación."""
     chain_method(
-        model, '_get_profitability_labels',
-        _get_profitability_labels, combine=_merge_with_previous,
+        model,
+        '_get_profitability_labels',
+        _get_profitability_labels,
+        combine=_merge_with_previous,
     )
     chain_method(
-        model, '_get_profitability_sequence_per_invoice_type',
+        model,
+        '_get_profitability_sequence_per_invoice_type',
         _get_profitability_sequence_per_invoice_type,
         combine=_merge_with_previous,
     )

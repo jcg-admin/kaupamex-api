@@ -1,4 +1,5 @@
-"""``account.move.reversal`` — el asistente "Revertir asiento / Nota de crédito".
+"""
+``account.move.reversal`` — el asistente "Revertir asiento / Nota de crédito".
 
 Adaptación de Odoo ``addons/account/wizard/account_move_reversal.py``
 (``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``, LGPL-3 —
@@ -94,6 +95,7 @@ Divergencias declaradas (por símbolo)
   el chatter de ``mail`` sobre ``account.move`` (no portado aquí); se porta
   la mitad con contraparte: ``date`` (``invoice_origin``, ver arriba).
 """
+
 from django.db import transaction
 from django.utils import timezone
 
@@ -101,7 +103,9 @@ from addons.account.models.account_full_reconcile import AccountFullReconcile
 from addons.account.models.account_journal import AccountJournal
 from addons.account.models.account_move import AccountMove
 from addons.account.models.account_move_line import AccountMoveLine
-from addons.account.models.account_partial_reconcile import AccountPartialReconcile
+from addons.account.models.account_partial_reconcile import (
+    AccountPartialReconcile,
+)
 from exceptions import UserError
 from orm.models_transient import TransientModel
 from tools.translate import _
@@ -121,14 +125,22 @@ TYPE_REVERSE_MAP = {
 #: ≙ la lista de ``reverse_moves`` (``odoo19c:
 #: account_move_reversal.py:146``).
 _MODIFY_KEPT_DISPLAY_TYPES = (
-    'product', 'line_section', 'line_subsection', 'line_note',
+    'product',
+    'line_section',
+    'line_subsection',
+    'line_note',
 )
 
 #: Campos de línea que se copian al revertir/recrear — el subconjunto de
 #: columnas propias de la línea (mismo criterio que
 #: ``AccountDebitNoteWizard.LINE_COPY_FIELDS``).
 _LINE_COPY_FIELDS = (
-    'account', 'name', 'display_type', 'quantity', 'price_unit', 'currency',
+    'account',
+    'name',
+    'display_type',
+    'quantity',
+    'price_unit',
+    'currency',
 )
 
 
@@ -176,8 +188,9 @@ class AccountMoveReversal(TransientModel):
         mismo tipo que el del asiento revertido."""
         move_types = {move.journal.type for move in moves if move.journal}
         if journal is not None and journal.type not in move_types:
-            raise UserError(_(
-                'Journal should be the same type as the reversed entry.'))
+            raise UserError(
+                _('Journal should be the same type as the reversed entry.')
+            )
 
     @classmethod
     def default_get(cls, moves):
@@ -186,12 +199,16 @@ class AccountMoveReversal(TransientModel):
         moves = list(moves)
         companies = {move.company_id for move in moves}
         if len(companies) > 1:
-            raise UserError(_(
-                'All selected moves for reversal must belong to the same '
-                'company.'))
+            raise UserError(
+                _(
+                    'All selected moves for reversal must belong to the same '
+                    'company.'
+                )
+            )
         if any(move.state != 'posted' for move in moves):
-            raise UserError(_(
-                'To reverse a journal entry, it has to be posted first.'))
+            raise UserError(
+                _('To reverse a journal entry, it has to be posted first.')
+            )
         return moves[0].company if moves else None
 
     @classmethod
@@ -207,13 +224,16 @@ class AccountMoveReversal(TransientModel):
         currencies = {move.currency for move in moves if move.currency}
         if len(moves) == 1:
             move_type = moves[0].move_type
-        elif any(move.move_type in ('in_invoice', 'out_invoice')
-                 for move in moves):
+        elif any(
+            move.move_type in ('in_invoice', 'out_invoice') for move in moves
+        ):
             move_type = 'some_invoice'
         else:
             move_type = False
         return {
-            'residual': moves[0].get_amount_residual() if len(moves) == 1 else 0,
+            'residual': (
+                moves[0].get_amount_residual() if len(moves) == 1 else 0
+            ),
             'currency': currencies.pop() if len(currencies) == 1 else None,
             'move_type': move_type,
         }
@@ -221,14 +241,17 @@ class AccountMoveReversal(TransientModel):
     # -- reversión --------------------------------------------------------
 
     @classmethod
-    def _prepare_default_reversal(cls, move, date=None, reason=None,
-                                   journal=None):
+    def _prepare_default_reversal(
+        cls, move, date=None, reason=None, journal=None
+    ):
         """Los valores del reverso — ≙ ``_prepare_default_reversal``
         (parcial declarado — ver el docstring del módulo)."""
         reverse_date = date or timezone.now().date()
         if reason:
             ref = _('Reversal of: %(move_name)s, %(reason)s') % {
-                'move_name': move.name, 'reason': reason}
+                'move_name': move.name,
+                'reason': reason,
+            }
         else:
             ref = _('Reversal of: %s') % move.name
         return {
@@ -252,10 +275,13 @@ class AccountMoveReversal(TransientModel):
             **default_values,
         )
         for line in move.line_ids.all():
-            values = {field: getattr(line, field)
-                      for field in _LINE_COPY_FIELDS}
+            values = {
+                field: getattr(line, field) for field in _LINE_COPY_FIELDS
+            }
             AccountMoveLine.objects.create(
-                move=reverse_move, debit=line.credit, credit=line.debit,
+                move=reverse_move,
+                debit=line.credit,
+                credit=line.debit,
                 **values,
             )
         return reverse_move
@@ -266,10 +292,14 @@ class AccountMoveReversal(TransientModel):
         líneas receivable/payable del original contra las del reverso —
         mismo álgebra que ``account_payment_register.py``."""
         residual_types = AccountMove._RESIDUAL_ACCOUNT_TYPES
-        original_lines = list(move.line_ids.filter(
-            account__account_type__in=residual_types))
-        reverse_lines = list(reverse_move.line_ids.filter(
-            account__account_type__in=residual_types))
+        original_lines = list(
+            move.line_ids.filter(account__account_type__in=residual_types)
+        )
+        reverse_lines = list(
+            reverse_move.line_ids.filter(
+                account__account_type__in=residual_types
+            )
+        )
         partials = []
         for original, reverse in zip(original_lines, reverse_lines):
             debit_line = original if original.debit else reverse
@@ -277,10 +307,13 @@ class AccountMoveReversal(TransientModel):
             amount = original.debit or original.credit
             if not amount:
                 continue
-            partials.append(AccountPartialReconcile.create_partial(
-                debit_move=debit_line, credit_move=credit_line,
-                amount=amount,
-            ))
+            partials.append(
+                AccountPartialReconcile.create_partial(
+                    debit_move=debit_line,
+                    credit_move=credit_line,
+                    amount=amount,
+                )
+            )
         if partials and move.get_amount_residual() <= 0:
             AccountFullReconcile.create_from_partials(partials)
         return partials
@@ -304,18 +337,22 @@ class AccountMoveReversal(TransientModel):
         for line in move.line_ids.all():
             if line.display_type not in _MODIFY_KEPT_DISPLAY_TYPES:
                 continue
-            values = {field: getattr(line, field)
-                      for field in _LINE_COPY_FIELDS}
+            values = {
+                field: getattr(line, field) for field in _LINE_COPY_FIELDS
+            }
             AccountMoveLine.objects.create(
-                move=new_move, debit=line.debit, credit=line.credit,
+                move=new_move,
+                debit=line.debit,
+                credit=line.credit,
                 **values,
             )
         return new_move
 
     @classmethod
     @transaction.atomic
-    def reverse_moves(cls, moves, date=None, reason=None, journal=None,
-                      is_modify=False):
+    def reverse_moves(
+        cls, moves, date=None, reason=None, journal=None, is_modify=False
+    ):
         """Revierte los asientos — ≙ ``reverse_moves`` (parcial declarado,
         ver el docstring del módulo).
 
@@ -329,7 +366,8 @@ class AccountMoveReversal(TransientModel):
         new_moves = []
         for move in moves:
             default_values = cls._prepare_default_reversal(
-                move, date=date, reason=reason, journal=journal)
+                move, date=date, reason=reason, journal=journal
+            )
             # Sin ``auto_post`` todo reverso es inmediato — la condición de
             # bacheo de la referencia se reduce a esta mitad.
             is_cancel_needed = is_modify or from_moves['move_type'] == 'entry'
@@ -342,7 +380,8 @@ class AccountMoveReversal(TransientModel):
 
             if is_modify:
                 modify_values = cls._modify_default_reverse_values(
-                    move, date=date)
+                    move, date=date
+                )
                 new_moves.append(cls._recreate_move(move, modify_values))
 
         return new_moves
@@ -350,14 +389,16 @@ class AccountMoveReversal(TransientModel):
     @classmethod
     def refund_moves(cls, moves, date=None, reason=None, journal=None):
         """≙ ``refund_moves`` — reverso sin recrear el original."""
-        return cls.reverse_moves(moves, date=date, reason=reason,
-                                 journal=journal, is_modify=False)
+        return cls.reverse_moves(
+            moves, date=date, reason=reason, journal=journal, is_modify=False
+        )
 
     @classmethod
     def modify_moves(cls, moves, date=None, reason=None, journal=None):
         """≙ ``modify_moves`` — reverso + recreación editable del original."""
-        return cls.reverse_moves(moves, date=date, reason=reason,
-                                 journal=journal, is_modify=True)
+        return cls.reverse_moves(
+            moves, date=date, reason=reason, journal=journal, is_modify=True
+        )
 
     @classmethod
     def _modify_default_reverse_values(cls, origin_move, date=None):

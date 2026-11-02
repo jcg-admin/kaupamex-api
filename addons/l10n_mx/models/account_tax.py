@@ -28,7 +28,8 @@ deriva de la empresa dueña del impuesto: ``instance.company.country_code``
 clase de sustitución que ``account_tax_group.py`` ya declaró para su propio
 ``country_code`` no portado.
 
-**Rellena, no recalcula (mismo criterio que ``AccountAccount._compute_account_type``).**
+**Rellena, no recalcula (mismo criterio que
+``AccountAccount._compute_account_type``).**
 La referencia recalcula en cada cambio de dependencia aunque el campo ya
 tenga valor — es el patrón ``store=True, readonly=False`` de su ORM: el
 compute sigue corriendo, pero la UI deja editarlo, y Odoo no vuelve a pisar
@@ -36,6 +37,7 @@ lo que el usuario tecleó en la sesión de edición actual. Este ORM no
 rastrea ediciones de sesión entre cómputos, así que el receptor sólo llena
 el campo cuando está vacío — un valor puesto explícitamente sobrevive.
 """
+
 from django.db.models.signals import pre_save
 
 import api
@@ -74,9 +76,12 @@ def _add_if_absent(model, name, field):
 
 @api.depends('company')
 def _compute_l10n_mx_tax_type(self):
-    """El valor por defecto de ``l10n_mx_tax_type`` — ≙ ``_compute_l10n_mx_tax_type``.
+    """
+    El valor por defecto de ``l10n_mx_tax_type`` — ≙
+    ``_compute_l10n_mx_tax_type``.
 
-    ≙ ``odoo19c: l10n_mx/models/account_tax.py:31-34`` (``odoo-tools@622ddc2a``).
+    ≙ ``odoo19c: l10n_mx/models/account_tax.py:31-34``
+    (``odoo-tools@622ddc2a``).
     Ver las dos divergencias declaradas en el docstring del módulo: la fuente
     del país (empresa, no impuesto) y el criterio de sólo-relleno.
     """
@@ -105,20 +110,38 @@ def apply_l10n_mx_extensions():
     Se llama desde ``L10nMxConfig.ready()``, no al importar: en tiempo de
     import el registro de modelos aún no está poblado.
     """
-    _add_if_absent(AccountTax, 'l10n_mx_factor_type', fields.Selection(
-        max_length=8, choices=L10N_MX_FACTOR_TYPES, default='Tasa',
-        help_text='Factor SAT (TipoFactor) para CFDI 4.0: indica cómo se '
-                  'aplica el monto sobre la base del impuesto (Odoo '
-                  'l10n_mx_factor_type).',
-    ))
-    _add_if_absent(AccountTax, 'l10n_mx_tax_type', fields.Selection(
-        max_length=8, choices=L10N_MX_TAX_TYPES, blank=True, default='',
-        help_text='Clasificación SAT del impuesto — ISR/IVA/IEPS/Local. Se '
-                  'rellena en "iva" cuando la empresa dueña del impuesto es '
-                  'mexicana y el campo está vacío (Odoo l10n_mx_tax_type, '
-                  'compute).',
-    ))
+    _add_if_absent(
+        AccountTax,
+        'l10n_mx_factor_type',
+        fields.Selection(
+            max_length=8,
+            choices=L10N_MX_FACTOR_TYPES,
+            default='Tasa',
+            help_text=(
+                'Factor SAT (TipoFactor) para CFDI 4.0: indica cómo se '
+                'aplica el monto sobre la base del impuesto (Odoo '
+                'l10n_mx_factor_type).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        AccountTax,
+        'l10n_mx_tax_type',
+        fields.Selection(
+            max_length=8,
+            choices=L10N_MX_TAX_TYPES,
+            blank=True,
+            default='',
+            help_text=(
+                'Clasificación SAT del impuesto — ISR/IVA/IEPS/Local. Se '
+                'rellena en "iva" cuando la empresa dueña del impuesto es '
+                'mexicana y el campo está vacío (Odoo l10n_mx_tax_type, '
+                'compute).'
+            ),
+        ),
+    )
     pre_save.connect(
-        _apply_l10n_mx_tax_type, sender=AccountTax,
+        _apply_l10n_mx_tax_type,
+        sender=AccountTax,
         dispatch_uid='l10n_mx.account_tax.tax_type',
     )

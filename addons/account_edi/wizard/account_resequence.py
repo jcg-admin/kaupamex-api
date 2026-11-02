@@ -1,4 +1,6 @@
-r"""``account.resequence.wizard`` — lo que ``account_edi`` le cuelga (≙ ``_inherit``).
+r"""
+``account.resequence.wizard`` — lo que ``account_edi`` le cuelga (≙
+``_inherit``).
 
 Adaptación de ``odoo19c: account_edi/wizard/account_resequence.py``
 (``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``, LGPL-3, 23 líneas)
@@ -30,6 +32,7 @@ docstring de ``account/wizard/account_resequence.py``), no un modelo Django
 de asientos como parámetro explícito (``self.move_ids`` de la referencia →
 ``moves``).
 """
+
 from addons.account.wizard.account_resequence import AccountResequenceWizard
 from addons.account_edi.models.account_edi_document import AccountEdiDocument
 from exceptions import UserError
@@ -46,7 +49,8 @@ def _frozen_edi_documents(moves):
     ya llega como parámetro en ``resequence``).
     """
     docs = AccountEdiDocument.objects.filter(
-        move_id__in=list(moves), state='sent',
+        move_id__in=list(moves),
+        state='sent',
     ).select_related('edi_format_id', 'move_id')
     return [d for d in docs if d.edi_format_id._needs_web_services()]
 
@@ -62,9 +66,13 @@ def _resequence_edi_guard(cls, moves, first_name, ordering='keep'):
     frozen = _frozen_edi_documents(moves)
     if frozen:
         names = sorted({d.move_id.name for d in frozen})
-        raise UserError(_(
-            'The following documents have already been sent and cannot be '
-            'resequenced: %s') % ', '.join(names))
+        raise UserError(
+            _(
+                'The following documents have already been sent and cannot be '
+                'resequenced: %s'
+            )
+            % ', '.join(names)
+        )
     return None
 
 

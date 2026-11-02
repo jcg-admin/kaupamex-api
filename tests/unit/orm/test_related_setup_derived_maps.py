@@ -1,4 +1,7 @@
-"""El setup relacionado debe invalidar mapas derivados de declaraciones previas."""
+"""
+El setup relacionado debe invalidar mapas derivados de declaraciones previas.
+"""
+
 import pytest
 from django.db import models
 from django.test.utils import isolate_apps
@@ -8,8 +11,11 @@ from orm import model_classes, registry
 
 @pytest.fixture
 def late_related_model(monkeypatch):
-    """Aísla declaraciones reales sin crear tablas ni alterar modelos productivos."""
+    """
+    Aísla declaraciones reales sin crear tablas ni alterar modelos productivos.
+    """
     with isolate_apps():
+
         class RelatedSetupSample(models.Model):
             source = models.CharField()
             projected = models.CharField(related='source')
@@ -18,7 +24,8 @@ def late_related_model(monkeypatch):
                 app_label = 'base'
 
         monkeypatch.setattr(
-            model_classes.apps, 'get_models',
+            model_classes.apps,
+            'get_models',
             lambda **kwargs: [RelatedSetupSample],
         )
         registry.clear_field_depends()
@@ -42,7 +49,9 @@ def test_related_compute_joins_a_group_built_before_setup(late_related_model):
     assert registry.field_computed[field] == [field]
 
 
-def test_setup_without_pending_models_keeps_the_derived_map(late_related_model):
+def test_setup_without_pending_models_keeps_the_derived_map(
+    late_related_model,
+):
     model_classes.ensure_field_setup()
     field = late_related_model._meta.get_field('projected')
     group = registry.field_computed[field]

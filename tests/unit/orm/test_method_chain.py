@@ -1,4 +1,5 @@
-"""``orm.method_chain`` — el ``super()`` del idioma de extensión por ``setattr``.
+"""
+``orm.method_chain`` — el ``super()`` del idioma de extensión por ``setattr``.
 
 Cubre las tres formas de descriptor que la referencia usa sobre un mismo
 modelo: método de instancia, ``@classmethod`` y ``@staticmethod``. El caso de
@@ -9,6 +10,7 @@ instancia como argumento extra.
 No tocan la base de datos — son clases planas de Python, que es exactamente el
 nivel en el que vive el mecanismo.
 """
+
 import pytest
 
 from orm.method_chain import chain_method, extend_list
@@ -57,6 +59,7 @@ def test_classmethod_chain_does_not_leak_self(probe_cls):
     positional arguments but 3 were given`` — la instancia viajaba como
     argumento extra hacia el método base, que ya venía ligado a ``cls``.
     """
+
     def retrieve_acc_type(cls, acc_number):
         return 'iban' if acc_number.startswith('ES') else None
 
@@ -71,7 +74,10 @@ def test_classmethod_chain_does_not_leak_self(probe_cls):
 
 
 def test_classmethod_stays_a_classmethod(probe_cls):
-    """El descriptor se preserva: ``setattr`` de una función plana lo perdía."""
+    """
+    El descriptor se preserva: ``setattr`` de una función plana lo perdía.
+    """
+
     def retrieve_acc_type(cls, acc_number):
         return None
 
@@ -82,12 +88,17 @@ def test_classmethod_stays_a_classmethod(probe_cls):
 
 
 def test_classmethod_chain_of_three(probe_cls):
-    """Tres eslabones — el defecto sólo se manifiesta al encadenar de verdad."""
+    """
+    Tres eslabones — el defecto sólo se manifiesta al encadenar de verdad.
+    """
+
     def first_link(cls, acc_number):
         return 'iban' if acc_number.startswith('ES') else None
 
     def second_link(cls, acc_number):
-        return 'clabe' if len(acc_number) == 18 and acc_number.isdigit() else None
+        return (
+            'clabe' if len(acc_number) == 18 and acc_number.isdigit() else None
+        )
 
     chain_method(probe_cls, 'retrieve_acc_type', first_link)
     chain_method(probe_cls, 'retrieve_acc_type', second_link)
@@ -99,6 +110,7 @@ def test_classmethod_chain_of_three(probe_cls):
 
 def test_classmethod_chain_is_idempotent(probe_cls):
     """``ready()`` puede correr dos veces; la cadena no debe duplicarse."""
+
     def retrieve_acc_type(cls, acc_number):
         return None
 
@@ -112,11 +124,13 @@ def test_classmethod_chain_is_idempotent(probe_cls):
 def test_classmethod_combine(probe_cls):
     """``combine=extend_list`` sobre un ``@classmethod`` — el caso de
     ``_get_supported_account_types``."""
+
     def supported_types(cls):
         return ['iban']
 
-    chain_method(probe_cls, 'supported_types', supported_types,
-                 combine=extend_list)
+    chain_method(
+        probe_cls, 'supported_types', supported_types, combine=extend_list
+    )
 
     assert probe_cls.supported_types() == ['bank', 'iban']
 
@@ -143,6 +157,7 @@ def test_installs_new_method_when_there_is_no_previous(probe_cls):
 
 def test_installs_new_classmethod_when_there_is_no_previous(probe_cls):
     """Sin previo, el llamador declara el descriptor que quiere."""
+
     def brand_new(cls):
         return cls.__name__
 

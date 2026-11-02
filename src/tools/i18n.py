@@ -8,6 +8,7 @@ forma XPG de Python a la forma BCP 47 que consume el cliente JavaScript.
 Adaptado de Odoo Community (LGPL-3, ``__manifest__`` del núcleo) — copia con
 adaptación y atribución preservada (DEC-KX-03).
 """
+
 from __future__ import annotations
 
 import re
@@ -40,8 +41,15 @@ XPG_LOCALE_RE = re.compile(
 def format_list(
     env,
     lst: Iterable,
-    style: Literal['standard', 'standard-short', 'or', 'or-short', 'unit',
-                   'unit-short', 'unit-narrow'] = 'standard',
+    style: Literal[
+        'standard',
+        'standard-short',
+        'or',
+        'or-short',
+        'unit',
+        'unit-short',
+        'unit-narrow',
+    ] = 'standard',
     lang_code: str | None = None,
 ) -> str:
     """Enumera ``lst`` con el patrón de lista del idioma, en el estilo pedido.
@@ -63,7 +71,8 @@ def format_list(
     https://www.unicode.org/reports/tr35/tr35-49/tr35-general.html#ListPatterns.
 
     El estilo se degrada dos veces, y las dos son de la fuente: un idioma puede
-    no declarar el patrón pedido —``style not in locale.list_patterns``— y babel
+    no declarar el patrón pedido —``style not in locale.list_patterns``— y
+    babel
     puede lanzar ``KeyError`` al resolverlo pese a estar declarado. En ambos
     casos se cae a ``standard`` en vez de fallar: quien formatea una lista la
     está mostrando, y un estilo ausente no puede tumbar la respuesta.

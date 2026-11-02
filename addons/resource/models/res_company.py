@@ -27,13 +27,18 @@ La referencia agrega DOS columnas a ``res.company``:
   booleano propio ``is_default`` (ver su docstring, divergencia 5) y aquí se
   expone como propiedad de sólo lectura sobre la clase.
 """
+
 from addons.base.models import ResCompany
 from addons.resource.models.resource_calendar import ResourceCalendar
 
 
 def resource_calendar(self):
-    """El calendario por defecto de la compañía (Odoo ``resource_calendar_id``)."""
-    return ResourceCalendar.objects.filter(company=self, is_default=True).first()
+    """
+    El calendario por defecto de la compañía (Odoo ``resource_calendar_id``).
+    """
+    return ResourceCalendar.objects.filter(
+        company=self, is_default=True
+    ).first()
 
 
 def get_or_create_default_resource_calendar(self):
@@ -43,11 +48,15 @@ def get_or_create_default_resource_calendar(self):
     if calendar is not None:
         return calendar
     calendar = ResourceCalendar.objects.create(
-        name='Horario estándar 40 horas/semana', company=self, is_default=True,
+        name='Horario estándar 40 horas/semana',
+        company=self,
+        is_default=True,
     )
     calendar.create_default_attendances()
     return calendar
 
 
 ResCompany.resource_calendar = property(resource_calendar)
-ResCompany.get_or_create_default_resource_calendar = get_or_create_default_resource_calendar
+ResCompany.get_or_create_default_resource_calendar = (
+    get_or_create_default_resource_calendar
+)

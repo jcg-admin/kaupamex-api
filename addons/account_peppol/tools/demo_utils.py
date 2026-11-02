@@ -10,7 +10,8 @@ Existe para conservar el SITIO del archivo contra la referencia y dejar el
 desenlace greppeable — mismo criterio que
 ``account_debit_note/security/__init__.py``. No es un *stub*: en particular
 **no** se declara un ``handle_demo`` que devuelva la función sin tocarla,
-porque eso convertiría en silencio el modo demo en modo real (:ref:`h-api-733`).
+porque eso convertiría en silencio el modo demo en modo real
+(:ref:`h-api-733`).
 
 Qué es en la referencia
 =========================

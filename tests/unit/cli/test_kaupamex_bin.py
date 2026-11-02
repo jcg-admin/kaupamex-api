@@ -1,8 +1,10 @@
 """Regresiones de ``kaupamex-bin`` — el punto de entrada del producto L0.
 
 Cubren el contrato que se adopta de ``odoo19c: odoo/cli/command.py:main``:
-comando explícito, ayuda sin comando, y **default ``server``**. Ese último es el
-que sostiene la partición por proceso de la referencia, así que se prueba en los
+comando explícito, ayuda sin comando, y **default ``server``**. Ese último es
+el
+que sostiene la partición por proceso de la referencia, así que se prueba en
+los
 dos sentidos: que aplique cuando no hay comando y que **no** aplique cuando sí.
 """
 
@@ -30,7 +32,9 @@ def capturado(monkeypatch):
     def falso_execute(argv):
         visto['argv'] = list(argv)
 
-    monkeypatch.setattr(cli_command, 'execute_from_command_line', falso_execute)
+    monkeypatch.setattr(
+        cli_command, 'execute_from_command_line', falso_execute
+    )
     return visto
 
 
@@ -43,13 +47,23 @@ def test_sin_comando_despacha_server(capturado):
 def test_sin_comando_conserva_las_banderas(capturado):
     """El default no se traga los argumentos que ya venían."""
     cli_command.main(['kaupamex-bin', '--config', '/tmp/x.py'])
-    assert capturado['argv'] == ['kaupamex-bin', 'server', '--config', '/tmp/x.py']
+    assert capturado['argv'] == [
+        'kaupamex-bin',
+        'server',
+        '--config',
+        '/tmp/x.py',
+    ]
 
 
 def test_comando_explicito_no_se_toca(capturado):
     """Con comando nombrado, ``main`` no interfiere: pasa tal cual."""
     cli_command.main(['kaupamex-bin', 'company_create', '--name', 'acme'])
-    assert capturado['argv'] == ['kaupamex-bin', 'company_create', '--name', 'acme']
+    assert capturado['argv'] == [
+        'kaupamex-bin',
+        'company_create',
+        '--name',
+        'acme',
+    ]
 
 
 @pytest.mark.parametrize('bandera', ['-h', '--help'])
@@ -73,10 +87,15 @@ def test_el_binario_lista_el_comando_server():
     """
     salida = subprocess.run(
         [sys.executable, str(BIN), '--help'],
-        capture_output=True, text=True, cwd=REPO_ROOT, timeout=120,
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
+        timeout=120,
         env=subprocess_env(),
     )
-    assert 'server' in salida.stdout, salida.stdout[-500:] + salida.stderr[-500:]
+    assert 'server' in salida.stdout, (
+        salida.stdout[-500:] + salida.stderr[-500:]
+    )
 
 
 def test_server_sale_2_si_falta_la_configuracion():
@@ -96,7 +115,8 @@ def test_server_sale_2_si_falta_la_configuracion():
 # Los dos ejes que la referencia resuelve dentro de su comando por defecto:
 # `odoo19c: odoo/tools/config.py:223` declara el perfil como opción con
 # `env_name='ODOO_RC'` y cae en sus `my_default` abiertos cuando nadie lo
-# declara; `odoo/cli/server.py:100-110` deja la base utilizable ANTES de servir.
+# declara; `odoo/cli/server.py:100-110` deja la base utilizable ANTES de
+# servir.
 
 
 def test_perfil_por_defecto_es_el_abierto(capturado, monkeypatch):
@@ -108,7 +128,9 @@ def test_perfil_por_defecto_es_el_abierto(capturado, monkeypatch):
     """
     monkeypatch.delenv('DJANGO_SETTINGS_MODULE', raising=False)
     cli_command.main(['kaupamex-bin', 'server'])
-    assert os.environ['DJANGO_SETTINGS_MODULE'] == 'config.settings.development'
+    assert (
+        os.environ['DJANGO_SETTINGS_MODULE'] == 'config.settings.development'
+    )
 
 
 def test_el_perfil_declarado_gana(capturado, monkeypatch):
@@ -133,8 +155,10 @@ def test_stop_after_init_prepara_y_no_arranca(monkeypatch):
         'os.execvp',
         lambda *a: pytest.fail('no debe arrancar con --stop-after-init'),
     )
-    ServerCommand().handle(config=str(REPO_ROOT / 'setup' / 'gunicorn.conf.py'),
-                           stop_after_init=True)
+    ServerCommand().handle(
+        config=str(REPO_ROOT / 'setup' / 'gunicorn.conf.py'),
+        stop_after_init=True,
+    )
     assert corridos == ['migrate', 'createcachetable']
 
 
@@ -146,8 +170,11 @@ def test_no_init_salta_la_preparacion(monkeypatch):
         lambda nombre, **kw: corridos.append(nombre),
     )
     monkeypatch.setattr('os.execvp', lambda *a: None)
-    ServerCommand().handle(config=str(REPO_ROOT / 'setup' / 'gunicorn.conf.py'),
-                           no_init=True, stop_after_init=True)
+    ServerCommand().handle(
+        config=str(REPO_ROOT / 'setup' / 'gunicorn.conf.py'),
+        no_init=True,
+        stop_after_init=True,
+    )
     assert corridos == []
 
 
@@ -159,13 +186,17 @@ def test_la_preparacion_no_aborta_por_error_de_base(monkeypatch):
     ``server.start()``. ``setup/kaupamex.service`` declara la misma postura al
     usar ``Wants`` y no ``Requires`` para PostgreSQL.
     """
+
     def revienta(nombre, **kw):
         raise DatabaseError('permission denied for schema public')
 
     monkeypatch.setattr(
-        'addons.base.management.commands.server.call_command', revienta,
+        'addons.base.management.commands.server.call_command',
+        revienta,
     )
     arrancado = []
     monkeypatch.setattr('os.execvp', lambda *a: arrancado.append(a))
-    ServerCommand().handle(config=str(REPO_ROOT / 'setup' / 'gunicorn.conf.py'))
+    ServerCommand().handle(
+        config=str(REPO_ROOT / 'setup' / 'gunicorn.conf.py')
+    )
     assert arrancado, 'el servidor debe arrancar aunque la base no responda'

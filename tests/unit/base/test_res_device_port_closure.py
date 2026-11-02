@@ -34,12 +34,16 @@ símbolos que consultan el almacén lo declaran y no responden con los otros
 motores; y al plan real de la consulta de orden, que mide el orden devuelto
 y no qué índice eligió el planificador.
 """
+
 import datetime
 
 import pytest
 
-from addons.base.models.res_device import (ResDevice, ResDeviceLog,
-                                           get_missing_session_identifiers)
+from addons.base.models.res_device import (
+    ResDevice,
+    ResDeviceLog,
+    get_missing_session_identifiers,
+)
 from addons.base.models.res_partner import ResPartner
 from addons.base.models.res_users import ResUsers
 from django.contrib.sessions.backends.db import SessionStore
@@ -60,11 +64,22 @@ def _make_session():
     return store.session_key
 
 
-def _make_log(user, session_key, ip='10.0.0.1', platform='linux',
-              browser='firefox', last_activity=None, revoked=False):
+def _make_log(
+    user,
+    session_key,
+    ip='10.0.0.1',
+    platform='linux',
+    browser='firefox',
+    last_activity=None,
+    revoked=False,
+):
     return ResDeviceLog.objects.create(
-        session_identifier=session_key, platform=platform, browser=browser,
-        ip_address=ip, user_id=user.pk, revoked=revoked,
+        session_identifier=session_key,
+        platform=platform,
+        browser=browser,
+        ip_address=ip,
+        user_id=user.pk,
+        revoked=revoked,
         last_activity=last_activity or timezone.now(),
     )
 
@@ -78,6 +93,7 @@ class _Request:
 # _compute_linked_ip_addresses (:50-63)
 # ----------------------------------------------------------------------
 
+
 def test_linked_ip_addresses_lists_every_ip_of_the_same_device(db):
     """≙ ``_compute_linked_ip_addresses`` — el agregado por dispositivo."""
     user = _make_user('dos-ips@ejemplo.mx')
@@ -86,8 +102,10 @@ def test_linked_ip_addresses_lists_every_ip_of_the_same_device(db):
     _make_log(user, key, ip='10.0.0.2')
 
     device = ResDevice.objects.filter(user_id=user.pk).first()
-    assert device._compute_linked_ip_addresses().split('\n') == \
-        ['10.0.0.1', '10.0.0.2']
+    assert device._compute_linked_ip_addresses().split('\n') == [
+        '10.0.0.1',
+        '10.0.0.2',
+    ]
 
 
 def test_linked_ip_addresses_deduplicates_keeping_order(db):
@@ -99,8 +117,10 @@ def test_linked_ip_addresses_deduplicates_keeping_order(db):
     _make_log(user, key, ip='10.0.0.1')
 
     device = ResDevice.objects.filter(user_id=user.pk).first()
-    assert device._compute_linked_ip_addresses().split('\n') == \
-        ['10.0.0.1', '10.0.0.2']
+    assert device._compute_linked_ip_addresses().split('\n') == [
+        '10.0.0.1',
+        '10.0.0.2',
+    ]
 
 
 def test_linked_ip_addresses_does_not_mix_two_browsers(db):
@@ -110,13 +130,16 @@ def test_linked_ip_addresses_does_not_mix_two_browsers(db):
     _make_log(user, key, ip='10.0.0.1', browser='firefox')
     _make_log(user, key, ip='10.0.0.9', browser='chrome')
 
-    firefox = ResDevice.objects.filter(user_id=user.pk, browser='firefox').first()
+    firefox = ResDevice.objects.filter(
+        user_id=user.pk, browser='firefox'
+    ).first()
     assert firefox._compute_linked_ip_addresses() == '10.0.0.1'
 
 
 # ----------------------------------------------------------------------
 # _order_field_to_sql (:65-68)
 # ----------------------------------------------------------------------
+
 
 def test_the_current_device_is_ordered_first(db):
     """≙ ``session_identifier = %s DESC`` (``:67``).
@@ -131,8 +154,11 @@ def test_the_current_device_is_ordered_first(db):
     _make_log(user, other, ip='10.0.0.9')
     _make_log(user, current, ip='10.0.0.1', last_activity=yesterday)
 
-    ordered = list(ResDevice.objects.filter(user_id=user.pk)
-                   .order_by_is_current(_Request(current)))
+    ordered = list(
+        ResDevice.objects.filter(user_id=user.pk).order_by_is_current(
+            _Request(current)
+        )
+    )
     assert ordered[0].session_identifier == current[:42]
 
 
@@ -145,14 +171,18 @@ def test_without_a_session_the_default_order_stands(db):
     _make_log(user, older, ip='10.0.0.1', last_activity=yesterday)
     _make_log(user, newer, ip='10.0.0.9')
 
-    ordered = list(ResDevice.objects.filter(user_id=user.pk)
-                   .order_by_is_current(_Request()))
+    ordered = list(
+        ResDevice.objects.filter(user_id=user.pk).order_by_is_current(
+            _Request()
+        )
+    )
     assert ordered[0].session_identifier == newer[:42]
 
 
 # ----------------------------------------------------------------------
 # _gc_device_log (:117-135)
 # ----------------------------------------------------------------------
+
 
 def test_gc_keeps_only_the_latest_row_of_each_device(db):
     """≙ el ``DELETE ... USING`` de la fuente (``:120-128``)."""
@@ -164,8 +194,11 @@ def test_gc_keeps_only_the_latest_row_of_each_device(db):
 
     ResDeviceLog._gc_device_log()
 
-    alive = list(ResDeviceLog.objects.filter(session_identifier=key)
-                 .values_list('pk', flat=True))
+    alive = list(
+        ResDeviceLog.objects.filter(session_identifier=key).values_list(
+            'pk', flat=True
+        )
+    )
     assert alive == [new_row.pk]
     assert old_row.pk not in alive
 
@@ -197,6 +230,7 @@ def test_gc_keeps_the_last_row_even_if_revoked(db):
 # ----------------------------------------------------------------------
 # get_missing_session_identifiers + __update_revoked (:138-169)
 # ----------------------------------------------------------------------
+
 
 def test_missing_identifiers_reports_only_the_dead_ones(db):
     """≙ ``get_missing_session_identifiers`` (``odoo19c: http.py:1099``)."""
@@ -232,7 +266,9 @@ def test_update_revoked_leaves_a_live_session_alone(db):
 
 
 def test_update_revoked_ignores_recent_activity(db):
-    """El umbral de inactividad de la fuente (``:150``): lo reciente no se toca."""
+    """
+    El umbral de inactividad de la fuente (``:150``): lo reciente no se toca.
+    """
     user = _make_user('revoca-reciente@ejemplo.mx')
     row = _make_log(user, 'z' * 42)
 

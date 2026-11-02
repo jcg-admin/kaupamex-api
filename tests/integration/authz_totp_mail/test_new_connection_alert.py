@@ -43,6 +43,7 @@ Los controles que exige el sub-patrón D de ``metrica-decide-la-conclusion.md``
     Un aviso ahí convertiría el correo del titular en un oráculo de qué logins
     existen, que es lo que ese 401 de código único evita.
 """
+
 import base64
 
 import pytest
@@ -84,23 +85,26 @@ def _with_totp(login, name):
     secret, _uri = begin_setup(user)
     # Con el código del intervalo anterior: desde H-API-776 el alta asienta
     # su contador, y el login siguiente necesita uno más nuevo.
-    assert confirm_setup(user, _current_code(secret, offset=-1)), \
-        'el alta de 2FA falló'
+    assert confirm_setup(
+        user, _current_code(secret, offset=-1)
+    ), 'el alta de 2FA falló'
     django_mail.outbox.clear()
     return user, secret
 
 
 def _new_connection_alerts():
     """Los correos de la bandeja que son el aviso de conexión, y sólo ésos."""
-    return [m for m in django_mail.outbox
-            if m.subject == NEW_CONNECTION_SUBJECT]
+    return [
+        m for m in django_mail.outbox if m.subject == NEW_CONNECTION_SUBJECT
+    ]
 
 
 @pytest.fixture
 def totp_user(db):
     seed_totp_mail()
-    user, secret = _with_totp('nuevo.dispositivo@kaupamex.mx',
-                              'Usuario Con Segundo Factor')
+    user, secret = _with_totp(
+        'nuevo.dispositivo@kaupamex.mx', 'Usuario Con Segundo Factor'
+    )
     user.totp_secret_value = secret
     return user
 
@@ -108,12 +112,15 @@ def totp_user(db):
 def _remembered_cookie(api_client, user):
     """Completa un login con ``remember`` y devuelve la clave de la cookie."""
     api_client.post(
-        AUTHENTICATE, {'login': user.login, 'password': PASSWORD},
-        format='json')
+        AUTHENTICATE,
+        {'login': user.login, 'password': PASSWORD},
+        format='json',
+    )
     r = api_client.post(
         TOTP_LOGIN,
         {'code': _current_code(user.totp_secret_value), 'remember': True},
-        format='json')
+        format='json',
+    )
     key = r.cookies[TRUSTED_DEVICE_COOKIE].value
     api_client.logout()
     django_mail.outbox.clear()
@@ -123,16 +130,19 @@ def _remembered_cookie(api_client, user):
 class TestNewConnectionAlert:
     """≙ ``_notify_security_new_connection`` (``:50-67``)."""
 
-    def test_alert_fires_before_the_second_factor_answers(self, api_client,
-                                                          totp_user):
+    def test_alert_fires_before_the_second_factor_answers(
+        self, api_client, totp_user
+    ):
         """CONTROL — el momento es la mitad del mecanismo.
 
         La fuente lo cuelga de ``authenticate``, no del final del login. El
         aviso tiene que estar puesto **con la sesión todavía parcial**.
         """
         r = api_client.post(
-            AUTHENTICATE, {'login': totp_user.login, 'password': PASSWORD},
-            format='json')
+            AUTHENTICATE,
+            {'login': totp_user.login, 'password': PASSWORD},
+            format='json',
+        )
         assert r.status_code == 401
         assert r.data['codigo_error'] == 'MFA_REQUIRED'
 
@@ -143,25 +153,33 @@ class TestNewConnectionAlert:
         assert alerts[0].to == [totp_user.login]
 
     def test_remembered_cookie_silences_the_alert(self, api_client, totp_user):
-        """El dispositivo ya recordado no es nuevo — la fuente tampoco avisa."""
+        """
+        El dispositivo ya recordado no es nuevo — la fuente tampoco avisa.
+        """
         api_client.cookies[TRUSTED_DEVICE_COOKIE] = _remembered_cookie(
-            api_client, totp_user)
+            api_client, totp_user
+        )
         api_client.post(
-            AUTHENTICATE, {'login': totp_user.login, 'password': PASSWORD},
-            format='json')
+            AUTHENTICATE,
+            {'login': totp_user.login, 'password': PASSWORD},
+            format='json',
+        )
         assert _new_connection_alerts() == []
 
     def test_cookie_of_another_user_still_alerts(self, api_client, totp_user):
         """CONTROL — la clave es de su dueño, no de quien la presente."""
         key = _remembered_cookie(api_client, totp_user)
-        intruder, secret = _with_totp('intruso.aviso@kaupamex.mx',
-                                      'Usuario Distinto')
+        intruder, secret = _with_totp(
+            'intruso.aviso@kaupamex.mx', 'Usuario Distinto'
+        )
         intruder.totp_secret_value = secret
 
         api_client.cookies[TRUSTED_DEVICE_COOKIE] = key
         api_client.post(
-            AUTHENTICATE, {'login': intruder.login, 'password': PASSWORD},
-            format='json')
+            AUTHENTICATE,
+            {'login': intruder.login, 'password': PASSWORD},
+            format='json',
+        )
 
         alerts = _new_connection_alerts()
         assert len(alerts) == 1
@@ -172,10 +190,14 @@ class TestNewConnectionAlert:
         seed_totp_mail()
         plain = User.objects.create_user(
             login='sin.segundo.factor@kaupamex.mx',
-            password=PASSWORD, name='Usuario Sin Segundo Factor')
+            password=PASSWORD,
+            name='Usuario Sin Segundo Factor',
+        )
         r = api_client.post(
-            AUTHENTICATE, {'login': plain.login, 'password': PASSWORD},
-            format='json')
+            AUTHENTICATE,
+            {'login': plain.login, 'password': PASSWORD},
+            format='json',
+        )
         assert r.status_code == 200  # sin 2FA la sesión se abre de una vez
         assert _new_connection_alerts() == []
 
@@ -184,7 +206,8 @@ class TestNewConnectionAlert:
         r = api_client.post(
             AUTHENTICATE,
             {'login': totp_user.login, 'password': 'no-es-la-contrasena'},
-            format='json')
+            format='json',
+        )
         assert r.status_code == 401
         assert r.data['codigo_error'] == 'INVALID_CREDENTIAL'
         assert _new_connection_alerts() == []

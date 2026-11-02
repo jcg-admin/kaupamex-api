@@ -1,4 +1,6 @@
-r"""``res.partner.bank`` — lo que ``account_qr_code_sepa`` le cuelga (≙ ``_inherit``).
+r"""
+``res.partner.bank`` — lo que ``account_qr_code_sepa`` le cuelga (≙
+``_inherit``).
 
 Adaptación de Odoo ``account_qr_code_sepa/models/res_bank.py``
 (``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``, ``odoo19c:``,
@@ -18,7 +20,8 @@ Método                            Qué hace
                                    (``BCD``/versión/charset/``SCT``/BIC/
                                    titular/IBAN/divisa+monto/vacío/
                                    comunicación estructurada/comunicación
-                                   libre/vacío) cuando ``qr_method == 'sct_qr'``.
+                                   libre/vacío) cuando ``qr_method ==
+                                   'sct_qr'``.
 ``_get_qr_code_generation_params``Envuelve lo anterior en los parámetros de
                                    generación de barcode (``barcode_type``,
                                    ``width``/``height``, ``value``).
@@ -111,6 +114,7 @@ Divergencias declaradas
    fuera de este alcance) porque el propio ``round()`` ya resuelve el
    formato.
 """
+
 from addons.account_qr_code_sepa.tools import (
     SEPA_ZONE_COUNTRY_CODES,
     is_valid_structured_reference,
@@ -125,14 +129,36 @@ from tools.translate import _
 #: same IBAN country code (e.g. Åland Islands and Finland IBANs are 'FI', but
 #: Åland Islands' code is 'AX')". Literal de ``odoo19c: account_qr_code_sepa/
 #: models/res_bank.py`` (parte del archivo que SÍ se porta, no un vendor).
-_NON_IBAN_SEPA_CODES = frozenset({
-    'AX', 'NC', 'YT', 'TF', 'BL', 'RE', 'MF', 'GP', 'PM', 'PF', 'GF', 'MQ',
-    'JE', 'GG', 'IM',
-})
+_NON_IBAN_SEPA_CODES = frozenset(
+    {
+        'AX',
+        'NC',
+        'YT',
+        'TF',
+        'BL',
+        'RE',
+        'MF',
+        'GP',
+        'PM',
+        'PF',
+        'GF',
+        'MQ',
+        'JE',
+        'GG',
+        'IM',
+    }
+)
 
 
-def _get_qr_vals(self, qr_method, amount, currency, debtor_partner,
-                  free_communication, structured_communication):
+def _get_qr_vals(
+    self,
+    qr_method,
+    amount,
+    currency,
+    debtor_partner,
+    free_communication,
+    structured_communication,
+):
     """Los 12 valores del código QR EPC (formato SEPA Credit Transfer) — ≙
     ``odoo19c: account_qr_code_sepa/models/res_bank.py:11-36``.
     """
@@ -142,9 +168,11 @@ def _get_qr_vals(self, qr_method, amount, currency, debtor_partner,
         return None
 
     if structured_communication and is_valid_structured_reference(
-            structured_communication):
+        structured_communication
+    ):
         structured_communication = sanitize_structured_reference(
-            structured_communication)
+            structured_communication
+        )
         comment = ''
     else:
         structured_communication = ''
@@ -153,24 +181,37 @@ def _get_qr_vals(self, qr_method, amount, currency, debtor_partner,
     formatted_amount = str(currency.round(amount))
     holder_name = self.acc_holder_name or self.partner.name
     return [
-        'BCD',                                                  # Service Tag
-        '002',                                                  # Version
-        '1',                                                    # Character Set
-        'SCT',                                                  # Identification Code
-        self.bank.bic if self.bank_id else '',                  # BIC of the Beneficiary Bank
-        (holder_name or '')[:71],                                # Name of the Beneficiary
-        self.sanitized_acc_number,                              # Account Number of the Beneficiary
-        currency.name + formatted_amount,                       # Currency + Amount of the Transfer in EUR
-        '',                                                     # Purpose of the Transfer
-        structured_communication,                               # Remittance Information (Structured)
-        comment[:141],                                          # Remittance Information (Unstructured)
-        '',                                                     # Beneficiary to Originator Information
+        'BCD',  # Service Tag
+        '002',  # Version
+        '1',  # Character Set
+        'SCT',  # Identification Code
+        # BIC of the Beneficiary Bank
+        self.bank.bic if self.bank_id else '',
+        # Name of the Beneficiary
+        (holder_name or '')[:71],
+        # Account Number of the Beneficiary
+        self.sanitized_acc_number,
+        # Currency + Amount of the Transfer in EUR
+        currency.name + formatted_amount,
+        '',  # Purpose of the Transfer
+        # Remittance Information (Structured)
+        structured_communication,
+        # Remittance Information (Unstructured)
+        comment[:141],
+        # Beneficiary to Originator Information
+        '',
     ]
 
 
-def _get_qr_code_generation_params(self, qr_method, amount, currency,
-                                    debtor_partner, free_communication,
-                                    structured_communication):
+def _get_qr_code_generation_params(
+    self,
+    qr_method,
+    amount,
+    currency,
+    debtor_partner,
+    free_communication,
+    structured_communication,
+):
     """Parámetros de generación del barcode QR — ≙
     ``odoo19c: account_qr_code_sepa/models/res_bank.py:38-48``.
     """
@@ -188,9 +229,17 @@ def _get_qr_code_generation_params(self, qr_method, amount, currency,
         'width': 128,
         'height': 128,
         'humanreadable': 1,
-        'value': '\n'.join(_get_qr_vals(
-            self, qr_method, amount, currency, debtor_partner,
-            free_communication, structured_communication)),
+        'value': '\n'.join(
+            _get_qr_vals(
+                self,
+                qr_method,
+                amount,
+                currency,
+                debtor_partner,
+                free_communication,
+                structured_communication,
+            )
+        ),
     }
 
 
@@ -217,22 +266,33 @@ def _get_error_messages_for_qr(self, qr_method, debtor_partner, currency):
     if currency.name != 'EUR':
         error_messages.append(
             _("Can't generate a SEPA QR Code with the %s currency.")
-            % currency.name)
+            % currency.name
+        )
     if self.acc_type != 'iban':
         error_messages.append(
-            _("Can't generate a SEPA QR code if the account type isn't IBAN."))
-    if not (self.sanitized_acc_number
-            and self.sanitized_acc_number[:2] in sepa_iban_codes):
+            _("Can't generate a SEPA QR code if the account type isn't IBAN.")
+        )
+    if not (
+        self.sanitized_acc_number
+        and self.sanitized_acc_number[:2] in sepa_iban_codes
+    ):
         error_messages.append(
-            _("Can't generate a SEPA QR code with a non SEPA iban."))
+            _("Can't generate a SEPA QR code with a non SEPA iban.")
+        )
     if error_messages:
         return '\r\n'.join(str(message) for message in error_messages)
     return None
 
 
-def _check_for_qr_code_errors(self, qr_method, amount, currency,
-                               debtor_partner, free_communication,
-                               structured_communication):
+def _check_for_qr_code_errors(
+    self,
+    qr_method,
+    amount,
+    currency,
+    debtor_partner,
+    free_communication,
+    structured_communication,
+):
     """Consistencia de datos previa a generar — ≙
     ``odoo19c: account_qr_code_sepa/models/res_bank.py:69-74``.
     """
@@ -241,7 +301,8 @@ def _check_for_qr_code_errors(self, qr_method, amount, currency,
     if not self.acc_holder_name and not self.partner.name:
         return _(
             'The account receiving the payment must have an account '
-            'holder name or partner name set.')
+            'holder name or partner name set.'
+        )
     return None
 
 
@@ -284,5 +345,9 @@ def apply_account_qr_code_sepa_extensions():
     # ``rslt = super()._get_available_qr_methods(); rslt.append(...)``
     # (``odoo19c: account_qr_code_sepa/models/res_bank.py:76-80``), así que
     # cada addon suma su método en vez de reemplazar la lista.
-    chain_method(ResPartnerBank, '_get_available_qr_methods',
-                 _get_available_qr_methods, combine=extend_list)
+    chain_method(
+        ResPartnerBank,
+        '_get_available_qr_methods',
+        _get_available_qr_methods,
+        combine=extend_list,
+    )

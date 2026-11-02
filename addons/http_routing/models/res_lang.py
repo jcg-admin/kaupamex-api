@@ -27,12 +27,15 @@ Divergencias declaradas:
   ``dict`` de filas ``ResLang``. Lo que los consumidores de este addon leen de
   cada valor —``.code`` y ``.url_code``— existe igual en la fila.
 """
+
 from addons.base.models.res_lang import ResLang
 from orm.method_chain import chain_method
 
 
 def _get_frontend(cls):
-    """≙ ``_get_frontend`` (``odoo19c: :10-14``) — ``{code: lang}`` de los activos.
+    """
+    ≙ ``_get_frontend`` (``odoo19c: :10-14``) — ``{code: lang}`` de los
+    activos.
 
     :return: los idiomas disponibles para la petición en curso, indexados por
         código.

@@ -79,6 +79,7 @@ Qué NO se porta, con su medición
   serializer DRF, que es donde el proyecto ya lo tiene (``Meta.fields``
   explícito, nunca ``'__all__'``).
 """
+
 import logging
 
 import fields
@@ -100,53 +101,90 @@ class IrEmbeddedActions(TimeStampedModel):
     """Acción embebida en la vista de un registro (``ir.embedded.actions``)."""
 
     name = fields.Char(
-        max_length=255, blank=True, default='', verbose_name='Nombre')
+        max_length=255, blank=True, default='', verbose_name='Nombre'
+    )
     sequence = fields.Integer(null=True, blank=True, verbose_name='Secuencia')
     parent_action = fields.Many2one(
-        IrActionsActWindow, on_delete=models.CASCADE, db_index=True,
-        related_name='embedded_action_ids', verbose_name='Acción padre',
+        IrActionsActWindow,
+        on_delete=models.CASCADE,
+        db_index=True,
+        related_name='embedded_action_ids',
+        verbose_name='Acción padre',
         help_text='Odoo parent_action_id, con ondelete cascade.',
     )
     parent_res_id = fields.Integer(
-        null=True, blank=True, verbose_name='ID del padre activo',
-        help_text='Vacío = la acción vale para todos los registros del modelo.',
+        null=True,
+        blank=True,
+        verbose_name='ID del padre activo',
+        help_text=(
+            'Vacío = la acción vale para todos los registros del modelo.'
+        ),
     )
     parent_res_model = fields.Char(
-        max_length=120, db_index=True, verbose_name='Modelo del padre activo')
+        max_length=120, db_index=True, verbose_name='Modelo del padre activo'
+    )
     action = fields.Many2one(
-        IrActionsActions, on_delete=models.CASCADE, null=True, blank=True,
-        db_index=True, related_name='embedded_in', verbose_name='Acción',
+        IrActionsActions,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='embedded_in',
+        verbose_name='Acción',
         help_text='Exclusivo con python_method (constraint de la fuente).',
     )
     python_method = fields.Char(
-        max_length=120, blank=True, default='', verbose_name='Método Python',
-        help_text='Método del modelo padre que devuelve una acción. Exclusivo '
-                  'con action.',
+        max_length=120,
+        blank=True,
+        default='',
+        verbose_name='Método Python',
+        help_text=(
+            'Método del modelo padre que devuelve una acción. Exclusivo '
+            'con action.'
+        ),
     )
     user = fields.Many2one(
-        ResUsers, on_delete=models.CASCADE, null=True, blank=True,
-        db_index=True, related_name='embedded_actions', verbose_name='Usuario',
+        ResUsers,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='embedded_actions',
+        verbose_name='Usuario',
         help_text='Acción privada de un usuario. Vacío = compartida.',
     )
     default_view_mode = fields.Char(
-        max_length=32, blank=True, default='', verbose_name='Vista por defecto',
+        max_length=32,
+        blank=True,
+        default='',
+        verbose_name='Vista por defecto',
         help_text='Si está vacío, se usa la vista por defecto de la acción.',
     )
     domain = fields.Char(
-        max_length=1024, blank=True, default='[]', verbose_name='Dominio',
-        help_text='Se aplica al id activo del modelo padre. Este archivo NO lo '
-                  'evalúa — ver el docstring del módulo.',
+        max_length=1024,
+        blank=True,
+        default='[]',
+        verbose_name='Dominio',
+        help_text=(
+            'Se aplica al id activo del modelo padre. Este archivo NO lo '
+            'evalúa — ver el docstring del módulo.'
+        ),
     )
     context = fields.Json(default=dict, verbose_name='Contexto')
     groups = fields.Many2many(
-        ResGroups, blank=True, related_name='embedded_action_ids',
+        ResGroups,
+        blank=True,
+        related_name='embedded_action_ids',
         verbose_name='Grupos',
         help_text='Grupos que pueden ejecutarla. Vacío = todos.',
     )
     system = fields.Boolean(
-        default=False, verbose_name='De sistema',
-        help_text='Una acción de sistema no se borra. Sustituye al chequeo de '
-                  'xml_id de la referencia (no hay ir.model.data aquí).',
+        default=False,
+        verbose_name='De sistema',
+        help_text=(
+            'Una acción de sistema no se borra. Sustituye al chequeo de '
+            'xml_id de la referencia (no hay ir.model.data aquí).'
+        ),
     )
 
     class Meta:
@@ -159,16 +197,15 @@ class IrEmbeddedActions(TimeStampedModel):
             models.CheckConstraint(
                 condition=(
                     models.Q(action__isnull=False, python_method='')
-                    | models.Q(action__isnull=True) & ~models.Q(python_method='')
+                    | models.Q(action__isnull=True)
+                    & ~models.Q(python_method='')
                 ),
                 name='ir_embedded_actions_only_one_action_defined',
             ),
             # ``_check_python_method_requires_name``: con método, hace falta
             # nombre — no hay acción de la que derivarlo.
             models.CheckConstraint(
-                condition=(
-                    models.Q(python_method='') | ~models.Q(name='')
-                ),
+                condition=(models.Q(python_method='') | ~models.Q(name='')),
                 name='ir_embedded_actions_python_method_requires_name',
             ),
         ]
@@ -178,7 +215,9 @@ class IrEmbeddedActions(TimeStampedModel):
 
     @classmethod
     def disambiguate(cls, values):
-        """Descarta el campo sobrante cuando llegan los dos — ``create`` de la fuente.
+        """
+        Descarta el campo sobrante cuando llegan los dos — ``create`` de la
+        fuente.
 
         Si ``python_method`` viene con valor, la acción la da el método y se
         descarta ``action``; si viene vacío, se descarta ``python_method``.
@@ -213,7 +252,8 @@ class IrEmbeddedActions(TimeStampedModel):
     def is_deletable(self):
         """¿Se puede borrar? — una acción de sistema, no.
 
-        ≙ ``_compute_is_deletable`` (``odoo19c: base/models/ir_embedded_actions.py``).
+        ≙ ``_compute_is_deletable`` (``odoo19c:
+        base/models/ir_embedded_actions.py``).
         """
         return not self.system
 
@@ -221,10 +261,12 @@ class IrEmbeddedActions(TimeStampedModel):
         """``_unlink_if_action_deletable`` de la fuente."""
         if not self.is_deletable:
             raise ValidationError(
-                'No se puede eliminar una acción embebida por defecto.')
+                'No se puede eliminar una acción embebida por defecto.'
+            )
 
-    def is_visible(self, active_record, user, group_ids=(),
-                   domain_matches=None):
+    def is_visible(
+        self, active_record, user, group_ids=(), domain_matches=None
+    ):
         """¿Es visible para ``user`` sobre ``active_record``?
 
         Las **tres** condiciones de ``_compute_is_visible`` más los dos
@@ -245,7 +287,8 @@ class IrEmbeddedActions(TimeStampedModel):
             return False
 
         if self.python_method and not hasattr(
-                type(active_record), self.python_method):
+            type(active_record), self.python_method
+        ):
             return False
 
         if self.parent_res_id and self.parent_res_id != active_record.pk:

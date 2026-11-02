@@ -12,6 +12,7 @@ hay ``env`` sobre una clase de Django —medido: ``IrRule.env`` levanta
 ``AttributeError``— y no hace falta: Django lo resuelve en el propio campo,
 con ``field.related_model``. Es divergencia de MECANISMO, no de alcance.
 """
+
 import pytest
 
 from addons.base.models.ir_rule import IrRule
@@ -20,7 +21,9 @@ from orm.domains import Domain, DomainCondition
 
 
 class TestTheValueBecomesADomain:
-    """``_optimize_any_domain`` — el valor de un ``any`` es siempre un dominio."""
+    """
+    ``_optimize_any_domain`` — el valor de un ``any`` es siempre un dominio.
+    """
 
     def test_a_list_value_becomes_a_domain(self):
         result = Domain('groups', 'any', [('name', '=', 'x')]).optimize(IrRule)
@@ -54,7 +57,9 @@ class TestAnyOverTheIdCollapses:
     def test_not_any_over_id_is_the_negated_subdomain(self):
         """El espejo: la negacion del subdominio, no el subdominio."""
         positive = Domain('id', 'any', [('name', '=', 'x')]).optimize(IrRule)
-        negative = Domain('id', 'not any', [('name', '=', 'x')]).optimize(IrRule)
+        negative = Domain('id', 'not any', [('name', '=', 'x')]).optimize(
+            IrRule
+        )
         assert negative != positive
 
     def test_a_relational_field_does_NOT_collapse(self):
@@ -86,7 +91,9 @@ class TestTheSubdomainIsOptimizedAgainstTheComodel:
         optimizarse contra el comodelo, el optimizador de booleano lo invierte
         a ``not in [True]``.
         """
-        result = Domain('groups', 'any', [('share', 'in', [False])]).optimize(IrRule)
+        result = Domain('groups', 'any', [('share', 'in', [False])]).optimize(
+            IrRule
+        )
         inner = result.value
         assert isinstance(inner, DomainCondition), inner
         assert inner.operator == 'not in'
@@ -102,14 +109,18 @@ class TestTheSubdomainIsOptimizedAgainstTheComodel:
         contra el comodelo"* de *"se optimiza contra cualquiera"*.
         """
         assert any(f.name == 'active' for f in IrRule._meta.get_fields())
-        assert not any(f.name == 'active' for f in ResGroups._meta.get_fields())
+        assert not any(
+            f.name == 'active' for f in ResGroups._meta.get_fields()
+        )
         with pytest.raises(ValueError):
             Domain('groups', 'any', [('active', '=', True)]).optimize(IrRule)
 
     def test_a_field_only_the_comodel_has_DOES_resolve(self):
         """El espejo: un campo propio del comodelo si resuelve."""
         assert not any(f.name == 'share' for f in IrRule._meta.get_fields())
-        result = Domain('groups', 'any', [('share', '=', True)]).optimize(IrRule)
+        result = Domain('groups', 'any', [('share', '=', True)]).optimize(
+            IrRule
+        )
         assert isinstance(result, DomainCondition), result
 
     def test_an_empty_subdomain_collapses_the_condition(self):
@@ -119,10 +130,14 @@ class TestTheSubdomainIsOptimizedAgainstTheComodel:
         constant"*. ``any`` sobre nada es FALSO; ``not any`` sobre nada es
         VERDADERO.
         """
-        assert Domain('groups', 'any', Domain.FALSE).optimize_full(
-            IrRule) == Domain.FALSE
-        assert Domain('groups', 'not any', Domain.FALSE).optimize_full(
-            IrRule) == Domain.TRUE
+        assert (
+            Domain('groups', 'any', Domain.FALSE).optimize_full(IrRule)
+            == Domain.FALSE
+        )
+        assert (
+            Domain('groups', 'not any', Domain.FALSE).optimize_full(IrRule)
+            == Domain.TRUE
+        )
 
 
 class TestAnyOverANonRelationalFieldRaises:

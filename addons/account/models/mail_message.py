@@ -1,4 +1,5 @@
-r"""``mail.message`` colgado por ``account`` — el rastro de auditoría restringido.
+r"""
+``mail.message`` colgado por ``account`` — el rastro de auditoría restringido.
 
 Adaptación de ``addons/account/models/mail_message.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3 — atribución y aviso de
@@ -80,6 +81,7 @@ Sucesor: construir el fraccionador ``Domain``/subselect cuando exista un
 consumidor real (mismo criterio que ``account_move_line_tax_details.py``
 declara para ``Query.from_clause``/``where_clause``).
 """
+
 from addons.account.models.account_move import AccountMove
 from addons.mail.models.mail_message import MailMessage
 from exceptions import UserError
@@ -98,7 +100,9 @@ AUDIT_LOG_RELATED_MODELS = {
 
 
 def _related_record_id(self, model):
-    """``_compute_audit_log_related_record_id`` (``odoo19c: mail_message.py:158-162``).
+    """
+    ``_compute_audit_log_related_record_id`` (``odoo19c:
+    mail_message.py:158-162``).
 
     ``None`` cuando el mensaje no apunta a ``model`` — mismo criterio que la
     referencia (``(self - messages_of_related)[fname] = False``).
@@ -114,14 +118,18 @@ def _make_related_property(field_name, model):
     Evita repetir el cuerpo cinco veces — el comportamiento es idéntico,
     sólo cambia el modelo objetivo.
     """
+
     def getter(self):
         return _related_record_id(self, model)
+
     getter.__name__ = field_name
     return property(getter)
 
 
 def account_audit_log_preview(self):
-    """≙ ``_compute_account_audit_log_preview`` (``odoo19c: mail_message.py:78-99``).
+    """
+    ≙ ``_compute_account_audit_log_preview`` (``odoo19c:
+    mail_message.py:78-99``).
 
     Sólo para mensajes de notificación (``message_type == 'notification'``);
     para el resto, ``None`` — mismo recorte que ``(self - audit_messages)
@@ -137,15 +145,21 @@ def account_audit_log_preview(self):
         title = str(self.subtype)
     lines = [title]
     for value in tracking_values:
-        lines.append('%s ⇨ %s (%s)' % (
-            value.get_old_value(), value.get_new_value(),
-            value.field_desc or value.field,
-        ))
+        lines.append(
+            '%s ⇨ %s (%s)'
+            % (
+                value.get_old_value(),
+                value.get_new_value(),
+                value.field_desc or value.field,
+            )
+        )
     return '\n'.join(lines)
 
 
 def account_audit_log_restricted(self):
-    """≙ ``_compute_account_audit_log_restricted`` (``odoo19c: mail_message.py:141-145``).
+    """
+    ≙ ``_compute_account_audit_log_restricted`` (``odoo19c:
+    mail_message.py:141-145``).
 
     **Cobertura reducida, declarada.** La referencia evalúa las cinco ramas
     de ``DOMAINS`` (asiento, cuenta, impuesto, socio, empresa). Aquí se
@@ -153,7 +167,8 @@ def account_audit_log_restricted(self):
     ``_except_audit_log`` consume; las otras cuatro requieren el subselect
     genérico documentado como no portado en el docstring del módulo.
 
-    ``restrictive_audit_trail`` **ya existe** en ``ResCompany`` (tarea #611); el
+    ``restrictive_audit_trail`` **ya existe** en ``ResCompany`` (tarea #611);
+    el
     ``getattr(..., False)`` se conserva porque ``move.company`` puede ser
     ``None`` o un objeto de otra clase, no porque el campo falte.
     """
@@ -165,8 +180,10 @@ def account_audit_log_restricted(self):
     if move is None:
         return False
     company = getattr(move, 'company', None)
-    return bool(company is not None
-                and getattr(company, 'restrictive_audit_trail', False))
+    return bool(
+        company is not None
+        and getattr(company, 'restrictive_audit_trail', False)
+    )
 
 
 def _resolve_move(move_id):
@@ -184,7 +201,8 @@ def _except_audit_log(self):
     ``merge_partner_automatic.py`` (que SÍ necesita saltarse esta guarda) se
     declara allá con su propia divergencia, no aquí.
 
-    ``posted_before`` **ya existe** en ``AccountMove`` (tarea #611), y es lo que
+    ``posted_before`` **ya existe** en ``AccountMove`` (tarea #611), y es lo
+    que
     parte las dos ramas de la referencia: un asiento que nunca se publicó
     devuelve ``False`` y el borrado **se permite** (el ``continue`` de la
     fuente); uno publicado alguna vez cae al ``account_audit_log_restricted``.
@@ -195,12 +213,22 @@ def _except_audit_log(self):
         if move is not None and not getattr(move, 'posted_before', False):
             return
     if account_audit_log_restricted(self):
-        raise UserError(_(
-            'No se puede eliminar parte de un rastro de auditoría '
-            'restringido. Archive el registro en su lugar.'))
+        raise UserError(
+            _(
+                'No se puede eliminar parte de un rastro de auditoría '
+                'restringido. Archive el registro en su lugar.'
+            )
+        )
 
 
-_TRACKED_FIELDS = ('res_id', 'model', 'message_type', 'subtype_id', 'subject', 'body')
+_TRACKED_FIELDS = (
+    'res_id',
+    'model',
+    'message_type',
+    'subtype_id',
+    'subject',
+    'body',
+)
 
 
 def save(self, *args, **kwargs):
@@ -231,21 +259,37 @@ def save(self, *args, **kwargs):
     fila — los dos campos que ``_related_record_id`` consulta.
     """
     if self.pk is not None:
-        previous = type(self).objects.filter(pk=self.pk).values(
-            'res_id', 'model', 'message_type', 'subtype_id',
-            'subject', 'body',
-        ).first()
+        previous = (
+            type(self)
+            .objects.filter(pk=self.pk)
+            .values(
+                'res_id',
+                'model',
+                'message_type',
+                'subtype_id',
+                'subject',
+                'body',
+            )
+            .first()
+        )
         if previous is not None:
             prev_subtype_id = previous['subtype_id']
-            cur_subtype_id = self.subtype_id if self.subtype_id is not None else None
-            normalized_prev_subject = ' '.join((previous['subject'] or '').split())
+            cur_subtype_id = (
+                self.subtype_id if self.subtype_id is not None else None
+            )
+            normalized_prev_subject = ' '.join(
+                (previous['subject'] or '').split()
+            )
             normalized_cur_subject = ' '.join((self.subject or '').split())
             triggers = bool(
                 previous['res_id'] != self.res_id
                 or previous['model'] != self.model
                 or previous['message_type'] != self.message_type
                 or prev_subtype_id != cur_subtype_id
-                or (self.subject and normalized_prev_subject != normalized_cur_subject)
+                or (
+                    self.subject
+                    and normalized_prev_subject != normalized_cur_subject
+                )
                 or (self.body and previous['body'])
             )
             if triggers:
@@ -262,13 +306,16 @@ def save(self, *args, **kwargs):
 
 @classmethod
 def find_restricted_for_move(cls, move):
-    """Reemplazo Django-idiomático de ``domain=[('account_audit_log_restricted',
+    """
+    Reemplazo Django-idiomático de ``domain=[('account_audit_log_restricted',
     '=', True)] + [('account_audit_log_move_id', '=', move.pk)]`` — el caso
     de uso real que ``_search_account_audit_log_restricted`` serviría, sin
     reconstruir el subselect genérico (ver docstring del módulo).
     """
     company = getattr(move, 'company', None)
-    if company is None or not getattr(company, 'restrictive_audit_trail', False):
+    if company is None or not getattr(
+        company, 'restrictive_audit_trail', False
+    ):
         return cls.objects.none()
     return cls.objects.filter(model='account.move', res_id=move.pk)
 
@@ -292,11 +339,19 @@ def apply_account_extensions():
     """
     for field_name, model in AUDIT_LOG_RELATED_MODELS.items():
         if not hasattr(MailMessage, field_name):
-            setattr(MailMessage, field_name, _make_related_property(field_name, model))
+            setattr(
+                MailMessage,
+                field_name,
+                _make_related_property(field_name, model),
+            )
     if not hasattr(MailMessage, 'account_audit_log_preview'):
-        MailMessage.account_audit_log_preview = property(account_audit_log_preview)
+        MailMessage.account_audit_log_preview = property(
+            account_audit_log_preview
+        )
     if not hasattr(MailMessage, 'account_audit_log_restricted'):
-        MailMessage.account_audit_log_restricted = property(account_audit_log_restricted)
+        MailMessage.account_audit_log_restricted = property(
+            account_audit_log_restricted
+        )
     chain_method(MailMessage, '_except_audit_log', _except_audit_log)
     chain_method(MailMessage, 'save', save)
     MailMessage.find_restricted_for_move = find_restricted_for_move

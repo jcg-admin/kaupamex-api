@@ -2,22 +2,28 @@
 
 Un archivo por modelo Odoo (monolito modular, como Odoo). Backbone del chatter:
 
-- ``mail_message_subtype.py`` → ``MailMessageSubtype`` (``mail.message.subtype``).
-- ``mail_message.py`` → ``MailMessage`` (``mail.message``, mensaje polimorfico).
+- ``mail_message_subtype.py`` → ``MailMessageSubtype``
+  (``mail.message.subtype``).
+- ``mail_message.py`` → ``MailMessage`` (``mail.message``, mensaje
+  polimorfico).
 - ``mail_followers.py`` → ``MailFollowers`` (``mail.followers``, seguidores).
-- ``mail_thread.py`` → ``MailThread`` (``mail.thread``, mixin abstracto que dota
+- ``mail_thread.py`` → ``MailThread`` (``mail.thread``, mixin abstracto que
+  dota
   a cualquier modelo de ``message_post``/``message_subscribe``).
 
 El correo saliente de Odoo vive en ``models/mail_mail.py`` (``mail.mail``, la
 cola encolada + envío async por ``process_email_queue``; hogar fiel de la
-ex-``notifications.EmailTask``). El servicio de dispatch async ``email_executor``
+ex-``notifications.EmailTask``). El servicio de dispatch async
+``email_executor``
 (≙ ``mail.mail.process_email_queue``) reside aquí como módulo de la capa de
 modelos y ya solo depende de ``mail`` (``MailMail``), no de ``notifications``.
 
-``email_executor`` no se reexporta en este ``__init__`` a propósito: es un módulo
+``email_executor`` no se reexporta en este ``__init__`` a propósito: es un
+módulo
 de servicio con estado (un ``ThreadPoolExecutor``), no un modelo. Los
 consumidores importan la ruta completa ``addons.mail.models.email_executor``.
 """
+
 from .mail_alias import MailAlias, DOT_ATOM_TEXT
 from .mail_alias_domain import MailAliasDomain
 from .mail_message_subtype import MailMessageSubtype
@@ -41,12 +47,24 @@ from .manual_notification import ManualNotification
 from .mail_thread import MailThread
 
 __all__ = [
-    'MailAlias', 'MailAliasDomain', 'DOT_ATOM_TEXT',
-    'MailMessageSubtype', 'MailMessage', 'MailFollowers', 'MailNotification',
-    'MailActivityType', 'MailActivity', 'MailActivityMixin',
+    'MailAlias',
+    'MailAliasDomain',
+    'DOT_ATOM_TEXT',
+    'MailMessageSubtype',
+    'MailMessage',
+    'MailFollowers',
+    'MailNotification',
+    'MailActivityType',
+    'MailActivity',
+    'MailActivityMixin',
     'MailTrackingValue',
-    'MailTemplate', 'MailMail', 'MailThread',
-    'Notification', 'NotificationType', 'NOTIFICATION_TYPE_LABELS',
-    'MANDATORY_NOTIFICATION_TYPES', 'NotificationPreference',
+    'MailTemplate',
+    'MailMail',
+    'MailThread',
+    'Notification',
+    'NotificationType',
+    'NOTIFICATION_TYPE_LABELS',
+    'MANDATORY_NOTIFICATION_TYPES',
+    'NotificationPreference',
     'ManualNotification',
 ]

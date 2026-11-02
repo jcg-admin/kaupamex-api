@@ -90,6 +90,7 @@ NO lo declara —aquí no se ejerce—, y a un cómputo que lea un precompute de
 **otro** modelo, que la recursión no persigue porque sólo mira los pendientes
 de la misma fila.
 """
+
 from datetime import timedelta
 from decimal import Decimal
 
@@ -147,7 +148,8 @@ class TestTheCallerNamedValuesAreCaptured:
         """La mitad posicional, que ``kwargs`` no ve.
 
         Django mapea los posicionales contra ``_meta.concrete_fields`` en orden
-        (``django/db/models/base.py:496``), y ``from_db`` construye **así** cada
+        (``django/db/models/base.py:496``), y ``from_db`` construye **así**
+        cada
         fila que vuelve de la base. Sin esta mitad, una fila cargada llegaría
         con el conjunto vacío.
 
@@ -158,8 +160,7 @@ class TestTheCallerNamedValuesAreCaptured:
         company = SaleOrder._meta.get_field('company')
         cut = concrete.index(company) + 1
 
-        names = orm_models._explicit_value_names(
-            SaleOrder, [None] * cut, {})
+        names = orm_models._explicit_value_names(SaleOrder, [None] * cut, {})
 
         assert company.name in names
         assert company.attname in names
@@ -173,8 +174,7 @@ class TestTheCallerNamedValuesAreCaptured:
         company = SaleOrder._meta.get_field('company')
         cut = concrete.index(company)
 
-        names = orm_models._explicit_value_names(
-            SaleOrder, [None] * cut, {})
+        names = orm_models._explicit_value_names(SaleOrder, [None] * cut, {})
 
         assert company.name not in names
 
@@ -188,7 +188,9 @@ class TestOnlyTheUncoveredPrecomputeIsPending:
     def test_a_writable_precompute_the_caller_named_is_skipped(self):
         """``if fname not in vals`` (``odoo19c: :4842``): un valor explícito
         sobrevive, aunque sea ``None``."""
-        pending = orm_models._precomputable_fields(SaleOrder(validity_date=None))
+        pending = orm_models._precomputable_fields(
+            SaleOrder(validity_date=None)
+        )
         assert 'validity_date' not in pending
 
     def test_a_readonly_precompute_is_pending_even_when_named(self):
@@ -198,7 +200,8 @@ class TestOnlyTheUncoveredPrecomputeIsPending:
         assert field.readonly is True
 
         pending = orm_models._precomputable_fields(
-            SaleOrderLine(price_subtotal=Decimal('5.00')))
+            SaleOrderLine(price_subtotal=Decimal('5.00'))
+        )
         assert 'price_subtotal' in pending
 
     def test_a_field_without_precompute_is_never_pending(self):
@@ -223,27 +226,38 @@ class TestTheComputesRunInDependencyOrder:
         el modelo.
         """
         pending = list(orm_models._precomputable_fields(SaleOrderLine()))
-        assert (pending.index('price_reduce_taxexcl')
-                < pending.index('price_subtotal'))
+        assert pending.index('price_reduce_taxexcl') < pending.index(
+            'price_subtotal'
+        )
         assert registry.field_depends[
-            field_of(SaleOrderLine, 'price_reduce_taxexcl')] == (
-                'price_subtotal', 'product_uom_qty')
+            field_of(SaleOrderLine, 'price_reduce_taxexcl')
+        ] == ('price_subtotal', 'product_uom_qty')
 
     def test_the_amount_runs_before_the_reducers(self):
         line = SaleOrderLine(
-            product_uom_qty=Decimal('2'), price_unit=Decimal('100.00'),
-            discount=Decimal('0.00'))
+            product_uom_qty=Decimal('2'),
+            price_unit=Decimal('100.00'),
+            discount=Decimal('0.00'),
+        )
         log = []
-        record_calls(line, ['_compute_amount',
-                            '_compute_price_reduce_taxexcl',
-                            '_compute_price_reduce_taxinc'], log)
+        record_calls(
+            line,
+            [
+                '_compute_amount',
+                '_compute_price_reduce_taxexcl',
+                '_compute_price_reduce_taxinc',
+            ],
+            log,
+        )
 
         orm_models._add_precomputed_values(line)
 
         assert log.index('_compute_amount') < log.index(
-            '_compute_price_reduce_taxexcl')
+            '_compute_price_reduce_taxexcl'
+        )
         assert log.index('_compute_amount') < log.index(
-            '_compute_price_reduce_taxinc')
+            '_compute_price_reduce_taxinc'
+        )
 
     def test_a_compute_that_writes_three_fields_runs_once(self):
         """``done`` lleva los MÉTODOS invocados, no los campos.
@@ -252,8 +266,10 @@ class TestTheComputesRunInDependencyOrder:
         campo repetiría su efecto tres veces sobre la misma fila.
         """
         line = SaleOrderLine(
-            product_uom_qty=Decimal('2'), price_unit=Decimal('100.00'),
-            discount=Decimal('0.00'))
+            product_uom_qty=Decimal('2'),
+            price_unit=Decimal('100.00'),
+            discount=Decimal('0.00'),
+        )
         log = []
         record_calls(line, ['_compute_amount'], log)
 
@@ -265,14 +281,17 @@ class TestTheComputesRunInDependencyOrder:
         """Y el pase hace su trabajo: el reductor sale del subtotal recién
         calculado, no del ``default`` de la columna."""
         line = SaleOrderLine(
-            product_uom_qty=Decimal('2'), price_unit=Decimal('100.00'),
-            discount=Decimal('0.00'))
+            product_uom_qty=Decimal('2'),
+            price_unit=Decimal('100.00'),
+            discount=Decimal('0.00'),
+        )
 
         orm_models._add_precomputed_values(line)
 
         assert line.price_subtotal > Decimal('0.00')
         assert line.price_reduce_taxexcl == (
-            line.price_subtotal / Decimal('2')).quantize(Decimal('0.01'))
+            line.price_subtotal / Decimal('2')
+        ).quantize(Decimal('0.01'))
 
 
 class TestTheReceiverFiresOnlyOnInsert:
@@ -280,8 +299,10 @@ class TestTheReceiverFiresOnlyOnInsert:
 
     def test_a_row_that_does_not_exist_yet_is_computed(self):
         line = SaleOrderLine(
-            product_uom_qty=Decimal('1'), price_unit=Decimal('100.00'),
-            discount=Decimal('0.00'))
+            product_uom_qty=Decimal('1'),
+            price_unit=Decimal('100.00'),
+            discount=Decimal('0.00'),
+        )
         line.price_subtotal = Decimal('1.00')
 
         orm_models._run_precompute(sender=SaleOrderLine, instance=line)
@@ -302,11 +323,13 @@ class TestTheReceiverFiresOnlyOnInsert:
         """``raw=True`` es el cargador de fixtures, que escribe la fila tal
         cual viene."""
         line = SaleOrderLine(
-            product_uom_qty=Decimal('1'), price_unit=Decimal('100.00'))
+            product_uom_qty=Decimal('1'), price_unit=Decimal('100.00')
+        )
         line.price_subtotal = Decimal('1.00')
 
         orm_models._run_precompute(
-            sender=SaleOrderLine, instance=line, raw=True)
+            sender=SaleOrderLine, instance=line, raw=True
+        )
 
         assert line.price_subtotal == Decimal('1.00')
 
@@ -316,8 +339,10 @@ class TestTheUnsavedRowNeverReachesTheCache:
 
     def test_no_none_key_lands_in_the_field_cache(self):
         line = SaleOrderLine(
-            product_uom_qty=Decimal('1'), price_unit=Decimal('100.00'),
-            discount=Decimal('0.00'))
+            product_uom_qty=Decimal('1'),
+            price_unit=Decimal('100.00'),
+            discount=Decimal('0.00'),
+        )
         field = field_of(SaleOrderLine, 'price_subtotal')
 
         with transaction_scope():
@@ -351,12 +376,14 @@ class TestValidityDateEndToEnd:
         valor ausente y el cómputo lo pisaba. El motor mira lo que el llamador
         NOMBRÓ, no el valor que resultó.
 
-        Se mide la **columna**, no el atributo, y no es un rodeo: ``values_list``
+        Se mide la **columna**, no el atributo, y no es un rodeo:
+        ``values_list``
         arma la tupla desde la fila sin instanciar el modelo, así que no pasa
         por el descriptor. Es el único plano donde «el cómputo no escribió» se
         distingue de lo que el descriptor conteste.
 
-        Y el **atributo** se mide junto a ella, porque los dos planos de lectura
+        Y el **atributo** se mide junto a ella, porque los dos planos de
+        lectura
         del descriptor ya responden lo mismo: ``False``, que es el vocabulario
         de la fuente para «sin valor» (``odoo19c: odoo/orm/fields.py:1053``:
         ``return False if value is None else value``). Su vuelta la cierra
@@ -365,8 +392,12 @@ class TestValidityDateEndToEnd:
         """
         order = SaleOrder.objects.create(company=company, validity_date=None)
 
-        assert SaleOrder.objects.filter(pk=order.pk).values_list(
-            'validity_date', flat=True)[0] is None
+        assert (
+            SaleOrder.objects.filter(pk=order.pk).values_list(
+                'validity_date', flat=True
+            )[0]
+            is None
+        )
         assert order.validity_date is False
         order.refresh_from_db()
         assert order.validity_date is False
@@ -375,15 +406,22 @@ class TestValidityDateEndToEnd:
 @pytest.fixture
 def company(db):
     return ResCompany.objects.create(
-        code='pre-312', name='Precompute 312', quotation_validity_days=15)
+        code='pre-312', name='Precompute 312', quotation_validity_days=15
+    )
 
 
 @pytest.fixture
 def saved_line(db):
     product = make_product(
-        name='Precompute 312', price=Decimal('100.00'), stock=5,
-        categ=make_category(name='Cat 312'))
+        name='Precompute 312',
+        price=Decimal('100.00'),
+        stock=5,
+        categ=make_category(name='Cat 312'),
+    )
     order = SaleOrder.objects.create()
     return SaleOrderLine.objects.create(
-        order=order, product=product, product_uom_qty=Decimal('1'),
-        price_unit=Decimal('100.00'))
+        order=order,
+        product=product,
+        product_uom_qty=Decimal('1'),
+        price_unit=Decimal('100.00'),
+    )

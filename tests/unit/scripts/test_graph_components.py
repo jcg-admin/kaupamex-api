@@ -10,10 +10,10 @@ ciclo» de «el instrumento no ve este ciclo».
 """
 import sys
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / 'scripts'))
-
-from graph_components import cyclic_components, strongly_connected_components  # noqa: E402
+from graph_components import (
+    cyclic_components,
+    strongly_connected_components,
+)
 
 
 class TestStronglyConnectedComponents:

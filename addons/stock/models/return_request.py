@@ -2,7 +2,8 @@
 Models — return requests (adaptación en ``stock``: devolución de mercancía).
 
 En Odoo una devolución de cliente es un return picking sobre ``stock.picking``;
-aquí el RMA (``ReturnRequest`` + items/historial/evidencia) se aloja en el módulo
+aquí el RMA (``ReturnRequest`` + items/historial/evidencia) se aloja en el
+módulo
 ``stock`` —su hogar fiel— manteniendo el vocabulario del caso de uso UC-RET.
 
 Identificadores en ingles segun DEC-DOC-005.
@@ -11,10 +12,13 @@ ReturnRequest: solicitud de devolucion creada por un comprador (UC-RET-01).
 ReturnItem: items concretos incluidos en la devolucion (Alt. C de UC-RET-01).
 ReturnHistoryEntry: pista de auditoria (UC-RET-04 expone el historial).
 """
+
 from django.conf import settings
 from django.db import models
 from addons.base.models import SoftDeleteModel, TimeStampedModel
 from addons.mail.models import MailThread
+
+
 class ReturnRequest(MailThread, TimeStampedModel, SoftDeleteModel):
     """Solicitud de devolucion. UC-RET-01..06.
 
@@ -48,10 +52,15 @@ class ReturnRequest(MailThread, TimeStampedModel, SoftDeleteModel):
     reason = models.CharField(max_length=24, choices=Reason.choices)
     description = models.TextField()
     status = models.CharField(
-        max_length=16, choices=Status.choices, default=Status.PENDING_REVIEW,
+        max_length=16,
+        choices=Status.choices,
+        default=Status.PENDING_REVIEW,
     )
     refund_amount = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True,
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
     )
     refund_at = models.DateTimeField(null=True, blank=True)
     received_at = models.DateTimeField(null=True, blank=True)
@@ -87,7 +96,10 @@ class ReturnItem(TimeStampedModel):
     product_id = models.PositiveIntegerField()
     quantity = models.PositiveIntegerField(default=1)
     product_condition = models.CharField(
-        max_length=16, choices=Condition.choices, blank=True, default='',
+        max_length=16,
+        choices=Condition.choices,
+        blank=True,
+        default='',
     )
 
     class Meta:
@@ -108,7 +120,9 @@ class ReturnHistoryEntry(TimeStampedModel):
         on_delete=models.CASCADE,
         related_name='history_entries',
     )
-    status_to = models.CharField(max_length=16, choices=ReturnRequest.Status.choices)
+    status_to = models.CharField(
+        max_length=16, choices=ReturnRequest.Status.choices
+    )
     actor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

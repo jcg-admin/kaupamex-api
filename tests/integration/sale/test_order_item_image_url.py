@@ -12,10 +12,12 @@ SET_NULL si el producto se eliminó"*. El campo canónico
 (``src/addons/sale/models/sale_order_line.py:28-31``) es
 ``on_delete=models.PROTECT`` **sin** ``null=True``: una línea sin producto es
 un estado que la BD ya no permite crear. La rama ``obj.product_id is None`` de
-``OrderItemSerializer.get_image_url`` (``src/addons/sale/serializers.py:110-111``)
+``OrderItemSerializer.get_image_url``
+(``src/addons/sale/serializers.py:110-111``)
 queda como código muerto — no hay forma de alcanzarla desde una fila real —,
 lo cual es un hallazgo aparte, no algo que este test pueda seguir ejerciendo.
 """
+
 from addons.sale.controllers.serializers import OrderItemSerializer
 import pytest
 

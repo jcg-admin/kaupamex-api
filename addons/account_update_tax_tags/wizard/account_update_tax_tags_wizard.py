@@ -1,7 +1,10 @@
-"""``account.update.tax.tags.wizard`` — el asistente "Actualizar casillas fiscales".
+"""
+``account.update.tax.tags.wizard`` — el asistente "Actualizar casillas
+fiscales".
 
 Adaptación de ``odoo19c: addons/account_update_tax_tags/wizard/
-account_update_tax_tags_wizard.py`` (``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``,
+account_update_tax_tags_wizard.py``
+(``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``,
 LGPL-3 — atribución y aviso de licencia preservados, DEC-KX-03).
 
 ``TransientModel`` → clase con classmethods, no tabla
@@ -128,10 +131,13 @@ Divergencias declaradas (con su medición)
    contexto de request en el ORM (ver ``res_company.py``); la empresa la
    pasa el llamador.
 """
+
 from datetime import date, timedelta
 
 from addons.account.models.account_tax import AccountTax
-from addons.account.models.account_tax_repartition_line import AccountTaxRepartitionLine
+from addons.account.models.account_tax_repartition_line import (
+    AccountTaxRepartitionLine,
+)
 from addons.account_update_tax_tags.models.account_move_line_tax_link import (
     AccountMoveLineTag,
     AccountMoveLineTax,
@@ -156,7 +162,12 @@ class AccountUpdateTaxTagsWizard(TransientModel):
 
     #: ≙ el primer bloque del ``CASE`` de ``_modify_tag_to_aml_relation``
     #: (``odoo19c: :75-79``): estos ``move_type`` resuelven a ``'invoice'``.
-    INVOICE_MOVE_TYPES = ('out_invoice', 'in_invoice', 'out_receipt', 'in_receipt')
+    INVOICE_MOVE_TYPES = (
+        'out_invoice',
+        'in_invoice',
+        'out_receipt',
+        'in_receipt',
+    )
     #: ≙ el segundo bloque (``:81-85``): estos resuelven a ``'refund'``.
     REFUND_MOVE_TYPES = ('out_refund', 'in_refund')
 
@@ -168,7 +179,11 @@ class AccountUpdateTaxTagsWizard(TransientModel):
         Un día después del candado fiscal, o hoy si no hay candado fijado.
         """
         tax_lock_date = company.tax_lock_date
-        return tax_lock_date + timedelta(days=1) if tax_lock_date else date.today()
+        return (
+            tax_lock_date + timedelta(days=1)
+            if tax_lock_date
+            else date.today()
+        )
 
     @classmethod
     def display_lock_date_warning(cls, company, date_from):
@@ -218,7 +233,9 @@ class AccountUpdateTaxTagsWizard(TransientModel):
         ``document_type`` — ≙ el ``JOIN account_tax_repartition_line`` de la
         referencia (ver divergencia declarada #2 del docstring del módulo)."""
         return AccountTaxRepartitionLine.objects.filter(
-            tax=tax, repartition_type='base', document_type=document_type,
+            tax=tax,
+            repartition_type='base',
+            document_type=document_type,
         ).first()
 
     @classmethod
@@ -226,15 +243,15 @@ class AccountUpdateTaxTagsWizard(TransientModel):
         """Pares ``(aml_id, tag_id)`` de líneas base — ≙
         ``base_aml_id_rep_tag_to_insert`` (``odoo19c: :51-119``)."""
         pairs = set()
-        links = (
-            AccountMoveLineTax.objects
-            .filter(line__move__company=company, line__move__date__gte=date_from)
-            .select_related('line', 'line__move', 'tax')
-        )
+        links = AccountMoveLineTax.objects.filter(
+            line__move__company=company, line__move__date__gte=date_from
+        ).select_related('line', 'line__move', 'tax')
         for link in links:
             line, applied_tax, move = link.line, link.tax, link.line.move
             for tax in cls._expand_children(applied_tax):
-                document_type = cls._document_type_for_base_line(move, line, applied_tax)
+                document_type = cls._document_type_for_base_line(
+                    move, line, applied_tax
+                )
                 if document_type is None:
                     continue
                 rep_line = cls._base_repartition_line_for(tax, document_type)
@@ -252,11 +269,9 @@ class AccountUpdateTaxTagsWizard(TransientModel):
         """Pares ``(aml_id, tag_id)`` de líneas de impuesto — ≙
         ``tax_aml_id_rep_tag_to_insert`` (``odoo19c: :121-129``)."""
         pairs = set()
-        links = (
-            AccountMoveLineTaxRepartition.objects
-            .filter(line__move__company=company, line__move__date__gte=date_from)
-            .select_related('line', 'repartition_line')
-        )
+        links = AccountMoveLineTaxRepartition.objects.filter(
+            line__move__company=company, line__move__date__gte=date_from
+        ).select_related('line', 'repartition_line')
         for link in links:
             tags = list(link.repartition_line.tag_ids.all())
             if not tags:
@@ -276,20 +291,22 @@ class AccountUpdateTaxTagsWizard(TransientModel):
         módulo: un par ``(aml, None)`` sin fila previa que borrar no cuenta
         como impactado, aunque sí se evaluó).
         """
-        pairs = cls._base_line_tag_pairs(company, date_from) | cls._tax_line_tag_pairs(company, date_from)
+        pairs = cls._base_line_tag_pairs(
+            company, date_from
+        ) | cls._tax_line_tag_pairs(company, date_from)
         candidate_ids = {aml_id for aml_id, _tag_id in pairs}
         if not candidate_ids:
             return []
         deleted_ids = set(
-            AccountMoveLineTag.objects
-            .filter(line_id__in=candidate_ids)
+            AccountMoveLineTag.objects.filter(line_id__in=candidate_ids)
             .values_list('line_id', flat=True)
             .distinct()
         )
         AccountMoveLineTag.objects.filter(line_id__in=candidate_ids).delete()
         to_insert = [
             AccountMoveLineTag(line_id=aml_id, tag_id=tag_id)
-            for aml_id, tag_id in pairs if tag_id is not None
+            for aml_id, tag_id in pairs
+            if tag_id is not None
         ]
         AccountMoveLineTag.objects.bulk_create(to_insert)
         inserted_ids = {row.line_id for row in to_insert}
@@ -297,7 +314,9 @@ class AccountUpdateTaxTagsWizard(TransientModel):
 
     @classmethod
     def update_amls_tax_tags(cls, company, date_from):
-        """Punto de entrada del wizard — ≙ ``update_amls_tax_tags`` (``:172-183``).
+        """
+        Punto de entrada del wizard — ≙ ``update_amls_tax_tags``
+        (``:172-183``).
 
         Valida que ningún impuesto hijo pertenezca a más de un padre entre
         los impuestos con hijos de ``company`` (≙ la comparación de
@@ -307,12 +326,17 @@ class AccountUpdateTaxTagsWizard(TransientModel):
         aristas padre→hijo", el mismo invariante sin depender de la
         semántica de unión de un recordset Odoo), y reescribe las casillas.
         """
-        parent_taxes = AccountTax.objects.filter(company=company, children__isnull=False).distinct()
+        parent_taxes = AccountTax.objects.filter(
+            company=company, children__isnull=False
+        ).distinct()
         child_ids = []
         for tax in parent_taxes:
             child_ids.extend(tax.children.values_list('pk', flat=True))
         if len(child_ids) > len(set(child_ids)):
-            raise UserError(_(
-                'No se puede actualizar con impuestos hijos que pertenezcan '
-                'a múltiples padres.'))
+            raise UserError(
+                _(
+                    'No se puede actualizar con impuestos hijos que'
+                    ' pertenezcan a múltiples padres.'
+                )
+            )
         return cls._modify_tag_to_aml_relation(company, date_from)

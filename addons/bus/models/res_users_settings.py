@@ -1,4 +1,5 @@
-"""``res.users.settings`` extendido por ``bus`` — emite en el canal de su usuario.
+"""
+``res.users.settings`` extendido por ``bus`` — emite en el canal de su usuario.
 
 Adaptación de ``addons/bus/models/res_users_settings.py``
 (``odoo-tools@bf077302``, ``odoo19c:``, 11 líneas): ``_bus_channel`` devuelve
@@ -9,6 +10,7 @@ delega en su partner. El recorrido hasta el **punto fijo** de ``_bus_send``
 resuelve los dos saltos sin que quien emite conozca ninguno — que es
 exactamente para lo que ese bucle existe.
 """
+
 from addons.bus.models.bus_listener_mixin import register_channel
 
 

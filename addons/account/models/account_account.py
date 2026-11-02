@@ -12,6 +12,7 @@ Hallazgo H-ACC-01 (drift 18→19): el enum ``account_type`` de 19 añade
 ``expense_other`` respecto de 18. Se adopta el **superset de 19** (nada
 fabricado; ambos valores existen en 19). Ver audit.
 """
+
 from bisect import bisect_left
 
 import api
@@ -57,17 +58,22 @@ class AccountAccount(models.Model):
         ('off', 'Fuera de balance'),
     ]
 
-    code           = fields.Char(
-        max_length=64, help_text='Código de cuenta (Odoo account.account.code).',
+    code = fields.Char(
+        max_length=64,
+        help_text='Código de cuenta (Odoo account.account.code).',
     )
-    name           = fields.Char(
-        max_length=255, help_text='Nombre de la cuenta (Odoo name, requerido).',
+    name = fields.Char(
+        max_length=255,
+        help_text='Nombre de la cuenta (Odoo name, requerido).',
     )
-    account_type   = fields.Selection(
-        max_length=32, choices=ACCOUNT_TYPES,
+    account_type = fields.Selection(
+        max_length=32,
+        choices=ACCOUNT_TYPES,
         help_text='Tipo de cuenta (Odoo account_type, requerido).',
-        compute='_compute_account_type', store=True,
-        readonly=False, precompute=True,
+        compute='_compute_account_type',
+        store=True,
+        readonly=False,
+        precompute=True,
     )
     #: DIVERGENCIA DECLARADA — la fuente NO le da columna: la declara
     #: ``compute="_compute_internal_group", search="_search_internal_group"``
@@ -86,28 +92,42 @@ class AccountAccount(models.Model):
     #: (``orm/fields_nonstored.py:521``), no el calculado. Sucesor con su
     #: condicion de cierre: tarea #310.
     internal_group = fields.Selection(
-        max_length=16, choices=INTERNAL_GROUPS, blank=True, default='',
-        help_text='Grupo interno derivado de account_type (Odoo internal_group).',
-        compute='_compute_internal_group', store=True,
+        max_length=16,
+        choices=INTERNAL_GROUPS,
+        blank=True,
+        default='',
+        help_text=(
+            'Grupo interno derivado de account_type (Odoo internal_group).'
+        ),
+        compute='_compute_internal_group',
+        store=True,
     )
-    reconcile      = fields.Boolean(
+    reconcile = fields.Boolean(
         default=False,
         help_text='Permite conciliación (Odoo reconcile).',
     )
-    deprecated     = fields.Boolean(
-        default=False, help_text='Cuenta obsoleta (Odoo deprecated).',
+    deprecated = fields.Boolean(
+        default=False,
+        help_text='Cuenta obsoleta (Odoo deprecated).',
     )
-    currency       = fields.Many2one(
-        'base.ResCurrency', on_delete=models.SET_NULL, null=True, blank=True,
+    currency = fields.Many2one(
+        'base.ResCurrency',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='accounts',
         help_text='Moneda de la cuenta (Odoo currency_id).',
     )
-    company        = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, related_name='accounts',
+    company = fields.Many2one(
+        'base.ResCompany',
+        on_delete=models.CASCADE,
+        related_name='accounts',
         help_text='Empresa (Odoo company_id / company_ids).',
     )
-    note           = fields.Text(
-        blank=True, default='', help_text='Notas internas (Odoo note).',
+    note = fields.Text(
+        blank=True,
+        default='',
+        help_text='Notas internas (Odoo note).',
     )
     #: ≙ ``tag_ids`` (``odoo19c: account_account.py:104-112``), que la fuente
     #: declara ``compute='_compute_account_tags', readonly=False, store=True,
@@ -120,13 +140,19 @@ class AccountAccount(models.Model):
     #: (``orm/fields_nonstored.py:_apply_precompute_block``) en vez de
     #: aceptarlo en silencio, así que declararlo aquí sería declarar algo que
     #: no ocurre. Sucesor del adelanto: tarea **#312**.
-    tags           = fields.Many2many(
-        'account.AccountAccountTag', blank=True, related_name='accounts',
+    tags = fields.Many2many(
+        'account.AccountAccountTag',
+        blank=True,
+        related_name='accounts',
         db_table='account_account_account_tag',
-        compute='_compute_account_tags', store=True, readonly=False,
-        help_text='Etiquetas de reporte de la cuenta (Odoo tag_ids). Una '
-                  'cuenta sin etiqueta propia hereda las de la cuenta de '
-                  'código inmediatamente anterior.',
+        compute='_compute_account_tags',
+        store=True,
+        readonly=False,
+        help_text=(
+            'Etiquetas de reporte de la cuenta (Odoo tag_ids). Una '
+            'cuenta sin etiqueta propia hereda las de la cuenta de '
+            'código inmediatamente anterior.'
+        ),
     )
 
     class Meta:
@@ -134,7 +160,8 @@ class AccountAccount(models.Model):
         ordering = ['code']
         constraints = [
             models.UniqueConstraint(
-                fields=['company', 'code'], name='unique_account_code_company',
+                fields=['company', 'code'],
+                name='unique_account_code_company',
             ),
         ]
         verbose_name = 'Cuenta contable'
@@ -151,8 +178,9 @@ class AccountAccount(models.Model):
         self.internal_group = at.split('_')[0] if at else ''
 
     @classmethod
-    def _get_closest_parent_account(cls, accounts_to_process, field_name,
-                                    default_value):
+    def _get_closest_parent_account(
+        cls, accounts_to_process, field_name, default_value
+    ):
         """El valor de la cuenta de código inmediatamente anterior.
 
         ≙ ``_get_closest_parent_account`` (``odoo19c: account_account.py:613``,
@@ -178,16 +206,20 @@ class AccountAccount(models.Model):
             company = account.company
             if company.pk not in codes_of_the_company:
                 codes_of_the_company[company.pk] = list(
-                    cls.objects.filter(company=company).order_by('code')
-                    .values_list('pk', 'code'))
+                    cls.objects.filter(company=company)
+                    .order_by('code')
+                    .values_list('pk', 'code')
+                )
             rows = codes_of_the_company[company.pk]
-            closest_index = bisect_left(
-                [code for _pk, code in rows], account.code) - 1
+            closest_index = (
+                bisect_left([code for _pk, code in rows], account.code) - 1
+            )
             if closest_index == -1:
                 out.append(default_value)
                 continue
-            value = getattr(cls.objects.get(pk=rows[closest_index][0]),
-                            field_name)
+            value = getattr(
+                cls.objects.get(pk=rows[closest_index][0]), field_name
+            )
             out.append(list(value.all()) if hasattr(value, 'all') else value)
         return out
 
@@ -201,10 +233,12 @@ class AccountAccount(models.Model):
 
         **Requerido y computado no se contradicen.** La referencia declara el
         campo ``required=True`` *y* ``compute=… precompute=True`` a la vez
-        (``account_account.py:104-126``): el cómputo corre **antes** del insert,
+        (``account_account.py:104-126``): el cómputo corre **antes** del
+        insert,
         así que rellena lo que el usuario no puso y la exigencia se comprueba
         después. Aquí el orden lo fija ``save``, que lo llama antes de guardar.
-        Por eso esto **no** cambia el contrato del campo: el serializer lo sigue
+        Por eso esto **no** cambia el contrato del campo: el serializer lo
+        sigue
         exigiendo, y el modelo sólo cubre el caso de la carga masiva.
 
         ``asset_current`` es el default de la referencia cuando no hay cuenta
@@ -212,12 +246,18 @@ class AccountAccount(models.Model):
         """
         if not self.code or self.account_type:
             return
-        self.account_type = self._get_closest_parent_account(
-            [self], 'account_type', 'asset_current')[0] or 'asset_current'
+        self.account_type = (
+            self._get_closest_parent_account(
+                [self], 'account_type', 'asset_current'
+            )[0]
+            or 'asset_current'
+        )
 
     @api.depends('code')
     def _compute_account_tags(self):
-        """Hereda las etiquetas de la cuenta anterior — ≙ ``_compute_account_tags``.
+        """
+        Hereda las etiquetas de la cuenta anterior — ≙
+        ``_compute_account_tags``.
 
         Corre **después** de guardar, no antes: sin ``pk`` no hay tabla
         intermedia que poblar. La referencia lo resuelve con ``precompute`` de
@@ -245,7 +285,9 @@ class AccountAccount(models.Model):
 
     @classmethod
     def search_new_account_code(cls, start_code, company, cache=None):
-        """El primer código libre a partir de ``start_code`` — ≙ ``_search_new_account_code``.
+        """
+        El primer código libre a partir de ``start_code`` — ≙
+        ``_search_new_account_code``.
 
         Es lo que permite declarar una cuenta por **prefijo** en vez de por
         código: la plantilla dice "la cuenta transitoria de banco va bajo
@@ -267,8 +309,10 @@ class AccountAccount(models.Model):
             cache = {start_code}
 
         def is_free(code):
-            return code not in cache and not cls.objects.filter(
-                company=company, code=code).exists()
+            return (
+                code not in cache
+                and not cls.objects.filter(company=company, code=code).exists()
+            )
 
         if is_free(start_code):
             return start_code
@@ -277,21 +321,22 @@ class AccountAccount(models.Model):
         tail = start_code[len(head):]
         if tail:
             width = len(tail)
-            for number in range(int(tail) + 1, 10 ** width):
+            for number in range(int(tail) + 1, 10**width):
                 candidate = f'{head}{number:0{width}d}'
                 if is_free(candidate):
                     return candidate
         else:
             # Sin cola numérica: la referencia incrementa el número que
             # precede al sufijo no numérico (``1021A`` → ``1022A``).
-            stem = start_code.rstrip('abcdefghijklmnopqrstuvwxyz'
-                                     'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+            stem = start_code.rstrip(
+                'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+            )
             suffix = start_code[len(stem):]
             inner = stem.rstrip('0123456789')
             digits = stem[len(inner):]
             if digits:
                 width = len(digits)
-                for number in range(int(digits) + 1, 10 ** width):
+                for number in range(int(digits) + 1, 10**width):
                     candidate = f'{inner}{number:0{width}d}{suffix}'
                     if is_free(candidate):
                         return candidate
@@ -302,4 +347,5 @@ class AccountAccount(models.Model):
                 return candidate
         raise UserError(
             _('No hay código disponible a partir de «%(code)s».')
-            % {'code': start_code})
+            % {'code': start_code}
+        )

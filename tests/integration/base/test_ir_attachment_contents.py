@@ -38,6 +38,7 @@ Los controles, cada uno con lo que lo haria fallar
     Qué lo haría fallar: regenerarlo en cada llamada. La fuente devuelve el
     que ya hay; un token que cambia invalida los enlaces ya repartidos.
 """
+
 import base64
 
 import pytest
@@ -50,41 +51,55 @@ from exceptions import ValidationError
 
 pytestmark = pytest.mark.integration
 
-SVG = b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'
-DOCX = ('application/vnd.openxmlformats-officedocument'
-        '.wordprocessingml.document')
+SVG = (
+    b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'
+)
+DOCX = (
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+)
 
 
 class TestMimetype:
     """≙ ``_compute_mimetype`` — del valor dado, del nombre, de la url."""
 
     def test_a_given_mimetype_wins(self):
-        assert IrAttachment._compute_mimetype(
-            {'mimetype': 'image/png', 'name': 'x.txt'}) == 'image/png'
+        assert (
+            IrAttachment._compute_mimetype(
+                {'mimetype': 'image/png', 'name': 'x.txt'}
+            )
+            == 'image/png'
+        )
 
     def test_without_one_it_is_guessed_from_the_name(self):
-        assert IrAttachment._compute_mimetype({'name': 'factura.pdf'}) == \
-            'application/pdf'
+        assert (
+            IrAttachment._compute_mimetype({'name': 'factura.pdf'})
+            == 'application/pdf'
+        )
 
     def test_the_url_loses_its_query_string_first(self):
         """La fuente parte por ``?`` antes de adivinar."""
-        assert IrAttachment._compute_mimetype(
-            {'url': 'https://x.mx/logo.png?v=3'}) == 'image/png'
+        assert (
+            IrAttachment._compute_mimetype(
+                {'url': 'https://x.mx/logo.png?v=3'}
+            )
+            == 'image/png'
+        )
 
     def test_with_nothing_to_go_on_it_is_a_binary_stream(self):
         assert IrAttachment._compute_mimetype({}) == 'application/octet-stream'
 
     def test_it_comes_back_in_lower_case(self):
-        assert IrAttachment._compute_mimetype(
-            {'mimetype': 'IMAGE/PNG'}) == 'image/png'
+        assert (
+            IrAttachment._compute_mimetype({'mimetype': 'IMAGE/PNG'})
+            == 'image/png'
+        )
 
 
 class TestContents:
     """≙ ``_check_contents`` — la degradacion que evita el XSS almacenado."""
 
     def test_an_svg_from_anyone_becomes_plain_text(self):
-        values = IrAttachment._check_contents(
-            {'name': 'logo.svg', 'raw': SVG})
+        values = IrAttachment._check_contents({'name': 'logo.svg', 'raw': SVG})
         assert values['mimetype'] == 'text/plain'
 
     def test_an_html_from_anyone_becomes_plain_text(self):
@@ -94,7 +109,8 @@ class TestContents:
     def test_an_office_document_is_not_degraded(self):
         """CONTROL — lleva ``xml`` y la fuente lo exceptua por nombre."""
         values = IrAttachment._check_contents(
-            {'name': 'contrato.docx', 'mimetype': DOCX})
+            {'name': 'contrato.docx', 'mimetype': DOCX}
+        )
         assert values['mimetype'] == DOCX
 
     def test_a_png_is_not_degraded(self):
@@ -104,11 +120,14 @@ class TestContents:
     def test_a_trusted_caller_keeps_the_mimetype(self):
         """CONTROL — sin este caso el argumento seria decorativo."""
         values = IrAttachment._check_contents(
-            {'name': 'plantilla.html'}, trusted=True)
+            {'name': 'plantilla.html'}, trusted=True
+        )
         assert values['mimetype'] == 'text/html'
 
     def test_the_default_is_fail_closed(self):
-        """No hace falta pedir la degradacion: es lo que pasa si nadie decide."""
+        """
+        No hace falta pedir la degradacion: es lo que pasa si nadie decide.
+        """
         values = IrAttachment._check_contents({'name': 'x.svg'})
         assert values['mimetype'] == 'text/plain'
 
@@ -147,8 +166,9 @@ class TestCircular:
         """CONTROL — la fuente prohibe el bucle, no la relacion."""
         uno = IrAttachment(name='a.pdf', res_model='res.partner', res_id=1)
         uno.save()
-        dos = IrAttachment(name='b.pdf', res_model='ir.attachment',
-                           res_id=uno.pk)
+        dos = IrAttachment(
+            name='b.pdf', res_model='ir.attachment', res_id=uno.pk
+        )
         dos.save()
         dos.clean()
 
@@ -163,23 +183,22 @@ class TestWiring:
     """
 
     def test_an_svg_saved_by_anyone_lands_as_plain_text(self, db):
-        card = IrAttachment(name='logo.svg', res_model='res.partner',
-                            res_id=1)
+        card = IrAttachment(name='logo.svg', res_model='res.partner', res_id=1)
         card.save()
         card.refresh_from_db()
         assert card.mimetype == 'text/plain'
 
     def test_a_trusted_save_keeps_the_mimetype(self, db):
-        card = IrAttachment(name='plantilla.html', res_model='res.partner',
-                            res_id=1)
+        card = IrAttachment(
+            name='plantilla.html', res_model='res.partner', res_id=1
+        )
         card.save(trusted=True)
         card.refresh_from_db()
         assert card.mimetype == 'text/html'
 
     def test_a_png_saved_keeps_its_type(self, db):
         """CONTROL — la guarda degrada lo peligroso, no todo."""
-        card = IrAttachment(name='foto.png', res_model='res.partner',
-                            res_id=1)
+        card = IrAttachment(name='foto.png', res_model='res.partner', res_id=1)
         card.save()
         card.refresh_from_db()
         assert card.mimetype == 'image/png'
@@ -208,9 +227,9 @@ class TestAclPermission:
         IrModel = apps.get_model('base', 'IrModel')
         IrModelAccess = apps.get_model('base', 'IrModelAccess')
         view_model, _ = IrModel.objects.get_or_create(
-            model=self.VIEW_LABEL, defaults={'name': 'Vista'})
-        data = dict(name='acl de prueba', model_id=view_model,
-                    perm_write=True)
+            model=self.VIEW_LABEL, defaults={'name': 'Vista'}
+        )
+        data = dict(name='acl de prueba', model_id=view_model, perm_write=True)
         data.update(extra)
         return IrModelAccess.objects.create(**data)
 
@@ -221,37 +240,42 @@ class TestAclPermission:
     def test_a_global_acl_opens_it_to_everyone(self, db):
         self._acl(group_id=None)
         who = get_user_model().objects.create_user(
-            login='acl.global@kaupamex.mx', password='AclPrueba123!')
+            login='acl.global@kaupamex.mx', password='AclPrueba123!'
+        )
         assert IrAttachment._can_write_views(who) is True
 
     def test_an_acl_of_a_group_opens_it_to_its_members(self, db):
-        group = ResGroups.objects.create(name='editores de vista',
-                                         user_type='internal')
+        group = ResGroups.objects.create(
+            name='editores de vista', user_type='internal'
+        )
         self._acl(group_id=group)
         who = get_user_model().objects.create_user(
-            login='acl.grupo@kaupamex.mx', password='AclPrueba123!')
+            login='acl.grupo@kaupamex.mx', password='AclPrueba123!'
+        )
         assert IrAttachment._can_write_views(who) is False, 'sin el grupo, no'
         who.group_ids.add(group)
         assert IrAttachment._can_write_views(who) is True
 
     def test_a_user_outside_the_group_still_degrades(self, db):
         """CONTROL — la ACL de un grupo no abre el permiso a cualquiera."""
-        group = ResGroups.objects.create(name='otros editores',
-                                         user_type='internal')
+        group = ResGroups.objects.create(
+            name='otros editores', user_type='internal'
+        )
         self._acl(group_id=group)
         fuera = get_user_model().objects.create_user(
-            login='acl.fuera@kaupamex.mx', password='AclPrueba123!')
-        values = IrAttachment._check_contents({'name': 'x.svg'},
-                                              user=fuera)
+            login='acl.fuera@kaupamex.mx', password='AclPrueba123!'
+        )
+        values = IrAttachment._check_contents({'name': 'x.svg'}, user=fuera)
         assert values['mimetype'] == 'text/plain'
 
     def test_the_user_with_the_acl_keeps_the_mimetype(self, db):
-        group = ResGroups.objects.create(name='editores con acl',
-                                         user_type='internal')
+        group = ResGroups.objects.create(
+            name='editores con acl', user_type='internal'
+        )
         self._acl(group_id=group)
         dentro = get_user_model().objects.create_user(
-            login='acl.dentro@kaupamex.mx', password='AclPrueba123!')
+            login='acl.dentro@kaupamex.mx', password='AclPrueba123!'
+        )
         dentro.group_ids.add(group)
-        values = IrAttachment._check_contents({'name': 'x.svg'},
-                                              user=dentro)
+        values = IrAttachment._check_contents({'name': 'x.svg'}, user=dentro)
         assert values['mimetype'] == 'image/svg+xml'

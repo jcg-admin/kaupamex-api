@@ -39,6 +39,7 @@ Divergencias transversales, declaradas una vez aquí
    (``model_by_name('website.rewrite')`` ≙ su ``env['website.rewrite']``) —
    misma nota que ``website_page.py``.
 """
+
 import logging
 import re
 
@@ -69,9 +70,12 @@ class WebsiteRoute(TimeStampedModel):
     _order = 'path'
 
     path = fields.Char(
-        max_length=512, null=True, blank=True,
-        help_text='La ruta, tal como la declara la URLconf (Odoo path, '
-                  '"Route").',
+        max_length=512,
+        null=True,
+        blank=True,
+        help_text=(
+            'La ruta, tal como la declara la URLconf (Odoo path, "Route").'
+        ),
     )
 
     class Meta:
@@ -87,7 +91,9 @@ class WebsiteRoute(TimeStampedModel):
 
     @classmethod
     def _search_display_name(cls, operator, value):
-        """≙ ``_search_display_name`` (``@api.model``, ``odoo19c: addons/website/models/website_rewrite.py:22-27``).
+        """
+        ≙ ``_search_display_name`` (``@api.model``, ``odoo19c:
+        addons/website/models/website_rewrite.py:22-27``).
 
         Si el dominio por nombre no tiene resultados, refrescar el catálogo
         antes de devolverlo (comentario de la fuente).
@@ -112,14 +118,17 @@ class WebsiteRoute(TimeStampedModel):
         Django o ``None``; el resultado es una lista de tuplas, no un
         recordset.
         """
+
         def _matches():
             queryset = cls.objects.all()
             if domain is not None:
                 queryset = queryset.filter(domain)
             if name:
                 queryset = queryset.filter(path__icontains=name)
-            return [(route.pk, route.path)
-                    for route in queryset.order_by('path')[:limit]]
+            return [
+                (route.pk, route.path)
+                for route in queryset.order_by('path')[:limit]
+            ]
 
         result = _matches()
         if not result:
@@ -181,27 +190,42 @@ class WebsiteRewrite(TimeStampedModel):
         help_text='Nombre de la regla (Odoo name, required).',
     )
     website = fields.Many2one(
-        'website.Website', on_delete=models.CASCADE, null=True, blank=True,
-        db_index=True, related_name='rewrites',
-        help_text='Sitio al que aplica; vacía = todos (Odoo website_id, '
-                  "ondelete='cascade', index).",
+        'website.Website',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='rewrites',
+        help_text=(
+            'Sitio al que aplica; vacía = todos (Odoo website_id, '
+            'ondelete=\'cascade\', index).'
+        ),
     )
     active = fields.Boolean(
         default=True,
         help_text='Regla activa (Odoo active).',
     )
     url_from = fields.Char(
-        max_length=1024, null=True, blank=True, db_index=True,
+        max_length=1024,
+        null=True,
+        blank=True,
+        db_index=True,
         help_text='URL de origen (Odoo url_from, "URL from", index).',
     )
     route = fields.Many2one(
-        WebsiteRoute, on_delete=models.SET_NULL, null=True, blank=True,
+        WebsiteRoute,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='rewrites',
-        help_text='Ruta del catálogo de la que parte la regla (Odoo '
-                  'route_id).',
+        help_text=(
+            'Ruta del catálogo de la que parte la regla (Odoo route_id).'
+        ),
     )
     url_to = fields.Char(
-        max_length=1024, null=True, blank=True,
+        max_length=1024,
+        null=True,
+        blank=True,
         help_text='URL de destino (Odoo url_to, "URL to").',
     )
     redirect_type = fields.Selection(
@@ -211,12 +235,15 @@ class WebsiteRewrite(TimeStampedModel):
             ('302', '302 Moved temporarily'),
             ('308', '308 Redirect / Rewrite'),
         ],
-        max_length=3, default='302',
-        help_text='Tipo de redirección/reescritura (Odoo redirect_type, '
-                  '"Action"): 301 el navegador cachea la URL nueva; 302 no '
-                  'la cachea; 404 retira una página/controlador; 308 renombra '
-                  'un controlador — ambas URL sirven y la vieja redirige a '
-                  'la nueva.',
+        max_length=3,
+        default='302',
+        help_text=(
+            'Tipo de redirección/reescritura (Odoo redirect_type, '
+            '"Action"): 301 el navegador cachea la URL nueva; 302 no '
+            'la cachea; 404 retira una página/controlador; 308 renombra '
+            'un controlador — ambas URL sirven y la vieja redirige a '
+            'la nueva.'
+        ),
     )
     sequence = fields.Integer(
         default=0,
@@ -232,7 +259,9 @@ class WebsiteRewrite(TimeStampedModel):
         return self.display_name
 
     def _onchange_route_id(self):
-        """≙ ``_onchange_route_id`` (``@api.onchange('route_id')``, ``odoo19c: website_rewrite.py:85-88``).
+        """
+        ≙ ``_onchange_route_id`` (``@api.onchange('route_id')``, ``odoo19c:
+        website_rewrite.py:85-88``).
 
         Divergencia declarada: sin motor de onchange en este ORM, lo invoca
         la capa API/formulario al cambiar la ruta — el efecto (sembrar ambos
@@ -242,7 +271,9 @@ class WebsiteRewrite(TimeStampedModel):
         self.url_to = self.route.path if self.route_id else None
 
     def _check_url_to(self):
-        """≙ ``_check_url_to`` (``@api.constrains``, ``odoo19c: website_rewrite.py:90-130``).
+        """
+        ≙ ``_check_url_to`` (``@api.constrains``, ``odoo19c:
+        website_rewrite.py:90-130``).
 
         El invariante de la regla; corre en ``save()`` (divergencia 4 del
         módulo). Los mensajes conservan el texto de la fuente vía el hook de
@@ -261,32 +292,47 @@ class WebsiteRewrite(TimeStampedModel):
                 raise ValidationError(_('"URL to" can not be empty.'))
             if not rewrite.url_from:
                 raise ValidationError(_('"URL from" can not be empty.'))
-            if rewrite.url_to.startswith('#') or rewrite.url_from.startswith('#'):
+            if rewrite.url_to.startswith('#') or rewrite.url_from.startswith(
+                '#'
+            ):
                 raise ValidationError(_("URL must not start with '#'."))
             if rewrite.url_to.split('#')[0] == rewrite.url_from.split('#')[0]:
                 raise ValidationError(
-                    _("base URL of 'URL to' should not be same as 'URL from'."))
+                    _("base URL of 'URL to' should not be same as 'URL from'.")
+                )
 
         if rewrite.redirect_type == '308':
             if not rewrite.url_to.startswith('/'):
                 raise ValidationError(
-                    _('"URL to" must start with a leading slash.'))
+                    _('"URL to" must start with a leading slash.')
+                )
             for param in re.findall('/<.*?>', rewrite.url_from):
                 if param not in rewrite.url_to:
-                    raise ValidationError(_(
-                        '"URL to" must contain parameter %s used in '
-                        '"URL from".') % param)
+                    raise ValidationError(
+                        _(
+                            '"URL to" must contain parameter %s used in '
+                            '"URL from".'
+                        )
+                        % param
+                    )
             for param in re.findall('/<.*?>', rewrite.url_to):
                 if param not in rewrite.url_from:
-                    raise ValidationError(_(
-                        '"URL to" cannot contain parameter %s which is not '
-                        'used in "URL from".') % param)
+                    raise ValidationError(
+                        _(
+                            '"URL to" cannot contain parameter %s which is not'
+                            ' used in "URL from".'
+                        )
+                        % param
+                    )
 
             if rewrite.url_to == '/':
-                raise ValidationError(_(
-                    '"URL to" cannot be set to "/". To change the homepage '
-                    'content, use the "Homepage URL" field in the website '
-                    'settings or the page properties on any custom page.'))
+                raise ValidationError(
+                    _(
+                        '"URL to" cannot be set to "/". To change the homepage'
+                        ' content, use the "Homepage URL" field in the website'
+                        ' settings or the page properties on any custom page.'
+                    )
+                )
 
             try:
                 get_resolver().resolve(rewrite.url_to)
@@ -294,10 +340,14 @@ class WebsiteRewrite(TimeStampedModel):
                 pass  # silent OK because destino libre: la 308 puede apuntarle
             else:
                 raise ValidationError(
-                    _('"URL to" cannot be set to an existing page.'))
+                    _('"URL to" cannot be set to an existing page.')
+                )
 
     def _compute_display_name(self):
-        """≙ ``_compute_display_name`` (``@api.depends('redirect_type')``, ``odoo19c: website_rewrite.py:132-135``)."""
+        """
+        ≙ ``_compute_display_name`` (``@api.depends('redirect_type')``,
+        ``odoo19c: website_rewrite.py:132-135``).
+        """
         return f"{self.redirect_type} - {self.name}"
 
     def save(self, *args, **kwargs):
@@ -314,8 +364,9 @@ class WebsiteRewrite(TimeStampedModel):
         if self.pk:
             previous = type(self).objects.filter(pk=self.pk).first()
             if previous is not None:
-                need_invalidate = (need_invalidate
-                                   or previous.redirect_type in ('308', '404'))
+                need_invalidate = (
+                    need_invalidate or previous.redirect_type in ('308', '404')
+                )
         result = super().save(*args, **kwargs)
         if need_invalidate:
             self._invalidate_routing()

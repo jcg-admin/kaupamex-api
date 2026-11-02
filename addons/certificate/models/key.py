@@ -12,13 +12,15 @@ en la fila (``with_context(bin_size=False)`` es su forma de pedir los bytes
 completos en vez de sólo el tamaño). El ``BinaryField`` de Django guarda
 **bytes crudos** — no hay capa base64 que atravesar. Por eso este archivo
 **omite** todos los ``base64.b64decode``/``b64encode`` de la referencia:
-``self.content``/``self.pem_key`` ya son los bytes reales. ``_get_formatted_value``
+``self.content``/``self.pem_key`` ya son los bytes reales.
+``_get_formatted_value``
 se conserva (decide el formato de **salida** para el llamador, no el
 almacenamiento) porque sigue siendo una decisión legítima del caller.
 
 ``ensure_one()`` de la referencia no aplica: Django no tiene recordsets —
 ``self`` siempre es una fila.
 """
+
 import base64
 from contextlib import suppress
 
@@ -73,36 +75,54 @@ class CertificateKey(TimeStampedModel):
     en la referencia (``@api.depends('content', 'password')``). Django no
     tiene ese grafo declarativo: se recalculan en ``save()`` en cada
     escritura — equivalente funcional, ejecutado en el único punto por el que
-    pasa toda escritura (mismo patrón que ``hr.department._compute_parent_path``
+    pasa toda escritura (mismo patrón que
+    ``hr.department._compute_parent_path``
     en este árbol).
     """
 
     name = fields.Char(
-        max_length=255, default='New key', verbose_name='Nombre',
+        max_length=255,
+        default='New key',
+        verbose_name='Nombre',
     )
     content = fields.Binary(verbose_name='Archivo de la llave')
     password = fields.Char(
-        max_length=255, blank=True, default='',
+        max_length=255,
+        blank=True,
+        default='',
         verbose_name='Contraseña de la llave privada',
     )
     pem_key = fields.Binary(
-        null=True, blank=True, verbose_name='Bytes de la llave en PEM',
-        help_text='Computado: PEM normalizado de la llave (pública o privada).',
+        null=True,
+        blank=True,
+        verbose_name='Bytes de la llave en PEM',
+        help_text=(
+            'Computado: PEM normalizado de la llave (pública o privada).'
+        ),
     )
     public = fields.Boolean(
-        null=True, blank=True, verbose_name='Pública/privada',
-        help_text='Computado: True si es pública, False si privada, '
-                  'None si no se pudo determinar (error de carga).',
+        null=True,
+        blank=True,
+        verbose_name='Pública/privada',
+        help_text=(
+            'Computado: True si es pública, False si privada, '
+            'None si no se pudo determinar (error de carga).'
+        ),
     )
     loading_error = fields.Text(
-        blank=True, default='', verbose_name='Error de carga',
+        blank=True,
+        default='',
+        verbose_name='Error de carga',
     )
     active = fields.Boolean(
-        default=True, verbose_name='Activa',
+        default=True,
+        verbose_name='Activa',
         help_text='Archivar sin borrar la llave.',
     )
     company = fields.Many2one(
-        ResCompany, on_delete=models.CASCADE, related_name='certificate_keys',
+        ResCompany,
+        on_delete=models.CASCADE,
+        related_name='certificate_keys',
         verbose_name='Empresa',
     )
 
@@ -110,7 +130,8 @@ class CertificateKey(TimeStampedModel):
         db_table = 'certificate_key'
         verbose_name = 'Llave criptográfica'
         verbose_name_plural = 'Llaves criptográficas'
-        ordering = ['pk']  # la referencia no declara `_order`; orden de creación
+        # la referencia no declara `_order`; orden de creación
+        ordering = ['pk']
 
     def __str__(self):
         return self.name
@@ -137,7 +158,9 @@ class CertificateKey(TimeStampedModel):
             self.loading_error = ''
             return
 
-        pkey_password = self.password.encode('utf-8') if self.password else None
+        pkey_password = (
+            self.password.encode('utf-8') if self.password else None
+        )
 
         pkey = None
         is_public = None
@@ -148,8 +171,11 @@ class CertificateKey(TimeStampedModel):
             (serialization.load_pem_public_key, True),
         ):
             try:
-                pkey = (loader(content) if public
-                        else loader(content, pkey_password))
+                pkey = (
+                    loader(content)
+                    if public
+                    else loader(content, pkey_password)
+                )
                 is_public = public
                 break
             except (ValueError, TypeError):
@@ -173,7 +199,8 @@ class CertificateKey(TimeStampedModel):
         else:
             encryption = (
                 serialization.BestAvailableEncryption(pkey_password)
-                if pkey_password else serialization.NoEncryption()
+                if pkey_password
+                else serialization.NoEncryption()
             )
             self.pem_key = pkey.private_bytes(
                 encoding=Encoding.PEM,
@@ -186,34 +213,45 @@ class CertificateKey(TimeStampedModel):
     #                   Métodos de negocio
     # -------------------------------------------------------
 
-    def _sign(self, message, hashing_algorithm='sha256', formatting='encodebytes'):
+    def _sign(
+        self, message, hashing_algorithm='sha256', formatting='encodebytes'
+    ):
         """Firma ``message`` con esta llave (debe ser privada)."""
         if self.public:
             raise UserError(
-                'Se requiere una llave privada para firmar documentos.')
+                'Se requiere una llave privada para firmar documentos.'
+            )
 
         pem_key = bytes(self.pem_key) if self.pem_key else None
         if self.loading_error:
             raise UserError(f'{self.name} - {self.loading_error}')
 
         return self._sign_with_key(
-            message, pem_key, pwd=self.password,
-            hashing_algorithm=hashing_algorithm, formatting=formatting,
+            message,
+            pem_key,
+            pwd=self.password,
+            hashing_algorithm=hashing_algorithm,
+            formatting=formatting,
         )
 
     def _verify(self, signed_message, signature, hashing_algorithm='sha256'):
-        """Verifica ``signature`` sobre ``signed_message`` (debe ser pública)."""
+        """
+        Verifica ``signature`` sobre ``signed_message`` (debe ser pública).
+        """
         if not self.public:
             raise UserError(
                 'Se requiere una llave pública para verificar la firma '
-                'de documentos.')
+                'de documentos.'
+            )
 
         pem_key = bytes(self.pem_key) if self.pem_key else None
         if self.loading_error:
             raise UserError(f'{self.name} - {self.loading_error}')
 
         return self._verify_with_key(
-            signed_message, signature, pem_key,
+            signed_message,
+            signature,
+            pem_key,
             signature_algorithm=hashing_algorithm,
         )
 
@@ -227,18 +265,21 @@ class CertificateKey(TimeStampedModel):
     def _get_public_key_bytes(self, encoding='der', formatting='encodebytes'):
         """Bytes de la llave pública correspondiente a esta llave."""
         if self.public:
-            public_key = serialization.load_pem_public_key(
-                bytes(self.pem_key))
+            public_key = serialization.load_pem_public_key(bytes(self.pem_key))
         else:
             password = self.password
             if password and not isinstance(password, bytes):
                 password = password.encode()
             public_key = serialization.load_pem_private_key(
-                bytes(self.pem_key), password or None,
+                bytes(self.pem_key),
+                password or None,
             ).public_key()
 
-        enc = (serialization.Encoding.DER if encoding == 'der'
-               else serialization.Encoding.PEM)
+        enc = (
+            serialization.Encoding.DER
+            if encoding == 'der'
+            else serialization.Encoding.PEM
+        )
         return _get_formatted_value(
             public_key.public_bytes(
                 encoding=enc,
@@ -253,18 +294,23 @@ class CertificateKey(TimeStampedModel):
             message = message.encode('utf-8')
 
         if self.public:
-            raise UserError('Se requiere una llave privada para descifrar datos.')
+            raise UserError(
+                'Se requiere una llave privada para descifrar datos.'
+            )
         if hashing_algorithm not in STR_TO_HASH:
             raise UserError(
                 f"Algoritmo de hash no soportado '{hashing_algorithm}'. "
-                "Soportados: sha1 y sha256.")
+                "Soportados: sha1 y sha256."
+            )
 
         private_key = serialization.load_pem_private_key(
-            bytes(self.pem_key), None)
+            bytes(self.pem_key), None
+        )
         if not isinstance(private_key, rsa.RSAPrivateKey):
             raise UserError(
                 'Algoritmo de criptografía asimétrica no soportado '
-                f"'{type(private_key)}'. Soportado para descifrado: RSA.")
+                f"'{type(private_key)}'. Soportado para descifrado: RSA."
+            )
 
         return private_key.decrypt(
             message,
@@ -276,8 +322,13 @@ class CertificateKey(TimeStampedModel):
         ).decode()
 
     @staticmethod
-    def _sign_with_key(message, pem_key, pwd=None, hashing_algorithm='sha256',
-                        formatting='encodebytes'):
+    def _sign_with_key(
+        message,
+        pem_key,
+        pwd=None,
+        hashing_algorithm='sha256',
+        formatting='encodebytes',
+    ):
         """Firma ``message`` con la llave privada PEM dada (sin instancia)."""
         if not isinstance(message, bytes):
             message = message.encode('utf-8')
@@ -289,38 +340,48 @@ class CertificateKey(TimeStampedModel):
         if hashing_algorithm not in STR_TO_HASH:
             raise UserError(
                 f"Algoritmo de hash no soportado '{hashing_algorithm}'. "
-                "Soportados: sha1 y sha256.")
+                "Soportados: sha1 y sha256."
+            )
 
         try:
-            private_key = serialization.load_pem_private_key(pem_key, pwd or None)
+            private_key = serialization.load_pem_private_key(
+                pem_key, pwd or None
+            )
         except ValueError:
             raise UserError('No se pudo cargar la llave privada.')
 
         match private_key:
             case ec.EllipticCurvePrivateKey():
                 signature = private_key.sign(
-                    message, ec.ECDSA(STR_TO_HASH[hashing_algorithm]))
+                    message, ec.ECDSA(STR_TO_HASH[hashing_algorithm])
+                )
             case rsa.RSAPrivateKey():
                 signature = private_key.sign(
-                    message, padding.PKCS1v15(), STR_TO_HASH[hashing_algorithm])
+                    message, padding.PKCS1v15(), STR_TO_HASH[hashing_algorithm]
+                )
             case ed25519.Ed25519PrivateKey():
                 signature = private_key.sign(message)
             case _:
                 raise UserError(
                     'Algoritmo de criptografía asimétrica no soportado '
                     f"'{type(private_key)}'. Soportado para firma: "
-                    'ED25519, EC y RSA.')
+                    'ED25519, EC y RSA.'
+                )
 
         return _get_formatted_value(signature, formatting=formatting)
 
     @staticmethod
-    def _verify_with_key(signed_message, signature, pem_key,
-                          signature_algorithm='sha256'):
-        """Verifica ``signature`` con la llave pública PEM dada (sin instancia)."""
+    def _verify_with_key(
+        signed_message, signature, pem_key, signature_algorithm='sha256'
+    ):
+        """
+        Verifica ``signature`` con la llave pública PEM dada (sin instancia).
+        """
         if signature_algorithm not in STR_TO_HASH:
             raise UserError(
                 f"Algoritmo de firma no soportado '{signature_algorithm}'. "
-                "Soportados: sha1 y sha256.")
+                "Soportados: sha1 y sha256."
+            )
 
         if not isinstance(signed_message, bytes):
             signed_message = signed_message.encode('utf-8')
@@ -336,15 +397,20 @@ class CertificateKey(TimeStampedModel):
             case ec.EllipticCurvePublicKey():
                 with suppress(InvalidSignature):
                     public_key.verify(
-                        signature, signed_message,
-                        ec.ECDSA(STR_TO_HASH[signature_algorithm]))
+                        signature,
+                        signed_message,
+                        ec.ECDSA(STR_TO_HASH[signature_algorithm]),
+                    )
                     return True
                 return False
             case rsa.RSAPublicKey():
                 with suppress(InvalidSignature):
                     public_key.verify(
-                        signature, signed_message,
-                        padding.PKCS1v15(), STR_TO_HASH[signature_algorithm])
+                        signature,
+                        signed_message,
+                        padding.PKCS1v15(),
+                        STR_TO_HASH[signature_algorithm],
+                    )
                     return True
                 return False
             case ed25519.Ed25519PublicKey():
@@ -355,7 +421,8 @@ class CertificateKey(TimeStampedModel):
             case _:
                 raise UserError(
                     'Algoritmo de criptografía asimétrica no soportado '
-                    f'{public_key!r}. Soportado para firma: EC y RSA.')
+                    f'{public_key!r}. Soportado para firma: EC y RSA.'
+                )
 
     @staticmethod
     def _numbers_public_key_bytes_with_key(pem_key, formatting='encodebytes'):
@@ -377,7 +444,8 @@ class CertificateKey(TimeStampedModel):
         else:
             raise UserError(
                 'Algoritmo de criptografía asimétrica no soportado '
-                f"'{type(public_key)}'. Soportados: EC, RSA.")
+                f"'{type(public_key)}'. Soportados: EC, RSA."
+            )
 
         return (
             _get_formatted_value(_int_to_bytes(e), formatting=formatting),
@@ -385,8 +453,9 @@ class CertificateKey(TimeStampedModel):
         )
 
     @classmethod
-    def _generate_ec_private_key(cls, company, name='id_ec', curve='SECP256R1',
-                                  password=None):
+    def _generate_ec_private_key(
+        cls, company, name='id_ec', curve='SECP256R1', password=None
+    ):
         """Genera una llave privada de curva elíptica y la persiste.
 
         Divergencia declarada frente a la referencia (``key.py:407-434``):
@@ -398,14 +467,19 @@ class CertificateKey(TimeStampedModel):
         if curve not in STR_TO_CURVE:
             raise UserError(
                 f"Algoritmo de curva no soportado '{curve}'. "
-                "Soportado: SECP256R1.")
+                "Soportado: SECP256R1."
+            )
 
         private_key = ec.generate_private_key(STR_TO_CURVE[curve])
-        password_bytes = (password.encode() if password
-                           and not isinstance(password, bytes) else password)
+        password_bytes = (
+            password.encode()
+            if password and not isinstance(password, bytes)
+            else password
+        )
         encryption = (
             serialization.BestAvailableEncryption(password_bytes)
-            if password_bytes else serialization.NoEncryption()
+            if password_bytes
+            else serialization.NoEncryption()
         )
         return cls.objects.create(
             name=name,
@@ -419,23 +493,36 @@ class CertificateKey(TimeStampedModel):
         )
 
     @classmethod
-    def _generate_rsa_private_key(cls, company, name='id_rsa',
-                                   public_exponent=65537, key_size=2048,
-                                   password=None):
+    def _generate_rsa_private_key(
+        cls,
+        company,
+        name='id_rsa',
+        public_exponent=65537,
+        key_size=2048,
+        password=None,
+    ):
         """Genera una llave privada RSA y la persiste."""
         if public_exponent not in (65537, 3):
             raise UserError(
-                'El exponente público debe ser 65537 (o 3 por legado).')
+                'El exponente público debe ser 65537 (o 3 por legado).'
+            )
         if key_size < 512:
-            raise UserError('El tamaño de la llave debe ser al menos 512 bits.')
+            raise UserError(
+                'El tamaño de la llave debe ser al menos 512 bits.'
+            )
 
         private_key = rsa.generate_private_key(
-            public_exponent=public_exponent, key_size=key_size)
-        password_bytes = (password.encode() if password
-                           and not isinstance(password, bytes) else password)
+            public_exponent=public_exponent, key_size=key_size
+        )
+        password_bytes = (
+            password.encode()
+            if password and not isinstance(password, bytes)
+            else password
+        )
         encryption = (
             serialization.BestAvailableEncryption(password_bytes)
-            if password_bytes else serialization.NoEncryption()
+            if password_bytes
+            else serialization.NoEncryption()
         )
         return cls.objects.create(
             name=name,
@@ -449,15 +536,20 @@ class CertificateKey(TimeStampedModel):
         )
 
     @classmethod
-    def _generate_ed25519_private_key(cls, company, name='id_ed25519',
-                                       password=None):
+    def _generate_ed25519_private_key(
+        cls, company, name='id_ed25519', password=None
+    ):
         """Genera una llave privada Ed25519 y la persiste."""
         private_key = ed25519.Ed25519PrivateKey.generate()
-        password_bytes = (password.encode() if password
-                           and not isinstance(password, bytes) else password)
+        password_bytes = (
+            password.encode()
+            if password and not isinstance(password, bytes)
+            else password
+        )
         encryption = (
             serialization.BestAvailableEncryption(password_bytes)
-            if password_bytes else serialization.NoEncryption()
+            if password_bytes
+            else serialization.NoEncryption()
         )
         return cls.objects.create(
             name=name,

@@ -1,8 +1,12 @@
-r"""``report_type`` ofrece lo que este árbol sabe emitir, y sus tres referentes coinciden.
+r"""
+``report_type`` ofrece lo que este árbol sabe emitir, y sus tres referentes
+coinciden.
 
 :ref:`h-api-931` midió que el campo tenía **tres referentes discordantes**: la
-constante ofrecía un valor, el docstring del módulo decía dos y el ``help_text``
-del campo decía tres. La exigencia que aquel hallazgo fijó no era un número sino
+constante ofrecía un valor, el docstring del módulo decía dos y el
+``help_text``
+del campo decía tres. La exigencia que aquel hallazgo fijó no era un número
+sino
 una **coincidencia**: los tres referentes dicen lo mismo, y lo que dicen es lo
 que el árbol sabe emitir. Ese invariante no cambia; lo que cambia es la cifra.
 
@@ -34,6 +38,7 @@ de los tres serializadores sobre un mismo descriptor.
 *Ciega a:* si un consumidor externo espera alguno de los tres formatos por
 contrato HTTP — eso lo mide la superficie del endpoint, no este archivo.
 """
+
 import inspect
 
 import pytest
@@ -48,7 +53,8 @@ from addons.base.models.ir_actions_report import (
     IrActionsReport,
 )
 
-#: Los tres valores que ``odoo19c: odoo/addons/base/models/ir_actions_report.py:170-174``
+#: Los tres valores que ``odoo19c:
+#: odoo/addons/base/models/ir_actions_report.py:170-174``
 #: declara, verbatim. Se escriben aquí y no se leen del árbol de referencia
 #: para que el caso mida sin depender de que ``odoo-tools`` esté montado.
 SOURCE_VALUES = ('qweb-html', 'qweb-pdf', 'qweb-text')
@@ -56,21 +62,28 @@ SOURCE_VALUES = ('qweb-html', 'qweb-pdf', 'qweb-text')
 #: Un descriptor con las tres formas del vocabulario, para que la comparación
 #: entre formatos no dependa de un solo campo plano.
 DESCRIPTOR = {
-    'bodies': [{
-        'title': 'Factura',
-        'issuer': {'name': 'Kaupamex'},
-        'lines': [{'concept': 'Servicio'}],
-    }],
+    'bodies': [
+        {
+            'title': 'Factura',
+            'issuer': {'name': 'Kaupamex'},
+            'lines': [{'concept': 'Servicio'}],
+        }
+    ],
     'html_ids': [7],
 }
 
 
 class TestTheThreeReferentsAgree:
-    """El defecto que :ref:`h-api-931` registró: tres declaraciones, tres cifras."""
+    """
+    El defecto que :ref:`h-api-931` registró: tres declaraciones, tres cifras.
+    """
 
     def test_the_enum_offers_the_three_formats_of_the_source(self):
         assert [v for v, _ in REPORT_TYPE_CHOICES] == [
-            REPORT_TYPE_HTML, REPORT_TYPE_PDF, REPORT_TYPE_TEXT]
+            REPORT_TYPE_HTML,
+            REPORT_TYPE_PDF,
+            REPORT_TYPE_TEXT,
+        ]
 
     def test_and_they_are_the_source_values_minus_the_qweb_prefix(self):
         # El porte se mide contra la fuente, no contra sí mismo: cada valor
@@ -88,7 +101,10 @@ class TestTheThreeReferentsAgree:
         # La etiqueta es lo que ve quien elige el formato; la fuente escribe
         # 'HTML', 'PDF' y 'Text', y el porte no las reescribe.
         assert [label for _v, label in REPORT_TYPE_CHOICES] == [
-            'HTML', 'PDF', 'Text']
+            'HTML',
+            'PDF',
+            'Text',
+        ]
 
     def test_the_module_docstring_does_not_promise_a_single_format(self):
         # El referente que más lejos llega: quien lee el módulo entero se
@@ -100,13 +116,17 @@ class TestTheThreeReferentsAgree:
         # El referente que ve el usuario final. La aserción NO es sobre el
         # número escrito en prosa —eso mediría el significante— sino sobre que
         # los tres formatos que el campo acepta estén nombrados en él.
-        help_text = IrActionsReport._meta.get_field('report_type').help_text.lower()
+        help_text = IrActionsReport._meta.get_field(
+            'report_type'
+        ).help_text.lower()
         for value in (REPORT_TYPE_HTML, REPORT_TYPE_PDF, REPORT_TYPE_TEXT):
             assert value in help_text, value
 
 
 class TestEachOfferedFormatHasWhatItsReentryDemanded:
-    """Las cuatro exigencias de :ref:`h-api-291` + :ref:`h-api-935`, medidas."""
+    """
+    Las cuatro exigencias de :ref:`h-api-291` + :ref:`h-api-935`, medidas.
+    """
 
     def test_every_offered_value_reaches_its_renderer(self):
         # El invariante que el mapa ``RENDERER_BY_TYPE`` retirado protegía.
@@ -145,14 +165,21 @@ class TestTheThreeFormatsProduceThreeDifferentDocuments:
     def test_both_return_bytes_as_the_signature_of_the_source_promises(self):
         # ``odoo19c: ir_actions_report.py:774`` declara ``:rtype: bytes`` para
         # el paso que comparten los tres formatos.
-        assert isinstance(report_template.descriptor_to_html(DESCRIPTOR), bytes)
-        assert isinstance(report_template.descriptor_to_text(DESCRIPTOR), bytes)
+        assert isinstance(
+            report_template.descriptor_to_html(DESCRIPTOR), bytes
+        )
+        assert isinstance(
+            report_template.descriptor_to_text(DESCRIPTOR), bytes
+        )
 
-    def test_html_carries_the_markup_contract_and_text_carries_none_of_it(self):
+    def test_html_carries_the_markup_contract_and_text_carries_none_of_it(
+        self,
+    ):
         # El par ``data-oe-model``/``data-oe-id`` es lo que la fuente busca al
         # partir el documento por registro (``_prepare_html``, ``:383-463``).
         html = report_template.descriptor_to_html(
-            DESCRIPTOR, model='sale.SaleOrder').decode()
+            DESCRIPTOR, model='sale.SaleOrder'
+        ).decode()
         text = report_template.descriptor_to_text(DESCRIPTOR).decode()
         assert 'data-oe-model="sale.SaleOrder"' in html
         assert 'data-oe-id="7"' in html

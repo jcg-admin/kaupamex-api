@@ -19,7 +19,8 @@ ausencia de nombre castiga lo correcto (un addon propio decidido) y, peor, da
 por bueno lo incorrecto en cuanto alguien añade una línea al archivo.
 
 Lo destapó el ejecutor con dos ejemplos: ``auto_backup`` —que este script marcó
-"sin contraparte, pendiente de decisión" cuando ``analisis-familia-backups.rst``
+"sin contraparte, pendiente de decisión" cuando
+``analisis-familia-backups.rst``
 lo documenta como **home-map correcto** contra ``app_auto_backup``, un árbol
 community fuera de los cuatro alias— y la pregunta de fondo: *"¿qué pasa cuando
 nosotros queremos nuestros propios addons?"*.
@@ -57,17 +58,23 @@ Sin ``odoo-tools`` montado el gate no puede medir: sale 0 con aviso, en vez de
 inventar un veredicto (``react-verification-gate.md`` — sin Observation el
 estado es DESCONOCIDO, no "éxito").
 """
+
 import os
 import sys
+import sys as _s
+import os.path as _op
+import sys as _sys
+import os as _os
+from reference_roots import addons_de as _addons_de, tree as _tree
+from addons_roots import addon_names
+
 
 # Raíces canónicas — ``convencion-cita-referencia-odoo.rst``. 19c aporta dos
 # porque el núcleo (``base``, ``web``…) vive en ``odoo/addons/``, no en
 # ``addons/``. Los empaquetados sin alias de Enterprise 18 quedan fuera a
 # propósito: son la misma población que ``odoo18e:`` y contarlos dos veces
 # infla el universo (H-API-76).
-import sys as _s, os.path as _op
-_s.path.insert(0, _op.dirname(_op.abspath(__file__)))
-from reference_roots import addons_de as _addons_de, tree as _tree
+
 
 REFERENCE_ROOTS = {
     alias: [str(p) for p in _addons_de(alias)]
@@ -96,9 +103,8 @@ def reference_name_of(ours):
 
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-import sys as _sys, os as _os
-_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
-from addons_roots import addon_names
+
+
 REGISTRY = os.path.join(REPO_ROOT, 'scripts', 'addon_provenance.txt')
 DOCS_ROOT = os.path.join(os.path.dirname(REPO_ROOT), 'kaupamex-docs')
 
@@ -151,8 +157,10 @@ def citation_exists(cita):
     """La cita apunta a un archivo real (relativo a docs o al repo)."""
     if not cita:
         return False
-    return any(os.path.exists(os.path.join(base, cita))
-               for base in (DOCS_ROOT, REPO_ROOT))
+    return any(
+        os.path.exists(os.path.join(base, cita))
+        for base in (DOCS_ROOT, REPO_ROOT)
+    )
 
 
 def is_valid_analysis(cita, addon):
@@ -177,7 +185,9 @@ def is_valid_analysis(cita, addon):
         return False
     if base.startswith(FAMILY_ANALYSIS_PREFIX):
         return True
-    norm = lambda t: t.replace('_', '-')
+
+    def norm(t):
+        return t.replace('_', '-')
     return norm(addon) in norm(base)
 
 
@@ -193,9 +203,11 @@ def main(argv):
 
     reference, missing = reference_names()
     if not reference:
-        print('check_addon_names: odoo-tools no está montado '
-              f'({"; ".join(missing) or "sin raíces"}); '
-              'el gate no puede medir — estado DESCONOCIDO, no OK.')
+        print(
+            'check_addon_names: odoo-tools no está montado '
+            f'({"; ".join(missing) or "sin raíces"}); '
+            'el gate no puede medir — estado DESCONOCIDO, no OK.'
+        )
         return 0
 
     registry = load_registry()
@@ -220,42 +232,63 @@ def main(argv):
     fail = bool(sin_declarar or cita_rota or sin_familia)
 
     if quiet:
-        print(f'sin_declarar={len(sin_declarar)} cita_rota={len(cita_rota)} '
-              f'sin_familia={len(sin_familia)} declarados={len(declarados)} '
-              f'pendientes={len(pendientes)}')
+        print(
+            f'sin_declarar={len(sin_declarar)} cita_rota={len(cita_rota)} '
+            f'sin_familia={len(sin_familia)} declarados={len(declarados)} '
+            f'pendientes={len(pendientes)}'
+        )
         return 1 if fail or (strict and pendientes) else 0
 
-    print(f'check_addon_names — referencia: {len(reference)} nombres '
-          f'(unión de {len(REFERENCE_ROOTS)} árboles con alias)')
-    renombrados = [n for n in our_names()
-                   if reference_name_of(n) != n and reference_name_of(n) in reference]
+    print(
+        f'check_addon_names — referencia: {len(reference)} nombres '
+        f'(unión de {len(REFERENCE_ROOTS)} árboles con alias)'
+    )
+    renombrados = [
+        n
+        for n in our_names()
+        if reference_name_of(n) != n and reference_name_of(n) in reference
+    ]
     if renombrados:
-        print(f'Renames forzados que SÍ resuelven ({len(renombrados)}): '
-              + ', '.join(f'{n}→{reference_name_of(n)}' for n in renombrados))
+        print(
+            f'Renames forzados que SÍ resuelven ({len(renombrados)}): '
+            + ', '.join(f'{n}→{reference_name_of(n)}' for n in renombrados)
+        )
 
     if sin_declarar:
-        print(f'\nFAIL — {len(sin_declarar)} addon(s) sin procedencia declarada:')
+        print(
+            f'\nFAIL — {len(sin_declarar)} addon(s) sin procedencia declarada:'
+        )
         for name in sin_declarar:
             print(f'  - src/addons/{name}')
-        print('\nNo se pide que el nombre exista en la referencia: se pide '
-              'saber POR QUÉ\nes propio. Antes de crearlo, medir dónde declara '
-              'la referencia el dominio\n(H-API-119). Si de verdad no lo cubre, '
-              'la decisión se documenta y se cita\nen scripts/addon_provenance.txt.')
+        print(
+            '\nNo se pide que el nombre exista en la referencia: se pide saber'
+            ' POR QUÉ\nes propio. Antes de crearlo, medir dónde declara la'
+            ' referencia el dominio\n(H-API-119). Si de verdad no lo cubre, la'
+            ' decisión se documenta y se cita\nen'
+            ' scripts/addon_provenance.txt.'
+        )
 
     if cita_rota:
-        print(f'\nFAIL — {len(cita_rota)} cita(s) que no apuntan a un archivo real:')
+        print(
+            f'\nFAIL — {len(cita_rota)} cita(s) que no apuntan a un archivo'
+            ' real:'
+        )
         for name, cita in cita_rota:
             print(f'  - {name}  →  {cita}')
 
     if sin_familia:
-        print(f'\nFAIL — {len(sin_familia)} addon(s) que aprueban citando algo '
-              'que NO es un\nanálisis (ni de familia ni del addon):')
+        print(
+            f'\nFAIL — {len(sin_familia)} addon(s) que aprueban citando algo '
+            'que NO es un\nanálisis (ni de familia ni del addon):'
+        )
         for name, clase, cita in sin_familia:
             print(f'  - {name:22} [{clase}]  {cita}')
-        print('\nEl hogar se decide en un analisis-familia-*.rst o en un '
-              'analisis-*<addon>*.rst,\nno en un README ni en un progreso. Si '
-              'ese análisis no existe, la clase\nhonesta es ``pendiente`` — no '
-              'aprobar citando otra cosa.')
+        print(
+            '\nEl hogar se decide en un analisis-familia-*.rst o en un '
+            'analisis-*<addon>*.rst,\nno en un README ni en un progreso. Si '
+            'ese análisis no existe, la clase\nhonesta es ``pendiente`` — no '
+            'aprobar citando otra cosa.'
+        )
 
     if declarados:
         print(f'\nProcedencia declarada y verificada ({len(declarados)}):')
@@ -263,13 +296,18 @@ def main(argv):
             print(f'  - {name:22} [{clase}]  {cita}')
 
     if pendientes:
-        print(f'\nDeuda declarada ({len(pendientes)}) — pasa en modo normal, '
-              'falla con --strict:')
+        print(
+            f'\nDeuda declarada ({len(pendientes)}) — pasa en modo normal, '
+            'falla con --strict:'
+        )
         for name, clase, cita in pendientes:
             print(f'  - {name:22} [{clase}]  {cita}')
 
     if not absent:
-        print('\nOK — todos los addons resuelven por nombre contra la referencia.')
+        print(
+            '\nOK — todos los addons resuelven por nombre contra la'
+            ' referencia.'
+        )
     elif not fail:
         print('\nOK — todo addon propio tiene procedencia declarada.')
 

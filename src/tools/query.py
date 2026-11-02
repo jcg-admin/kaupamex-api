@@ -12,7 +12,8 @@ líneas que declaraban la equivalencia y no portaban nada. La equivalencia es
 cierta a grandes rasgos (los dos componen una consulta sin ejecutarla) y **es
 insuficiente donde importa**: la referencia expone ``make_alias`` y
 ``add_join``, que es la superficie con la que un campo relacional añade su
-LEFT JOIN a una consulta ajena (``odoo19c: odoo/orm/fields_relational.py:466``).
+LEFT JOIN a una consulta ajena (``odoo19c:
+odoo/orm/fields_relational.py:466``).
 Un ``QuerySet`` de Django no la tiene: sus joins los decide el compilador a
 partir de ``filter()``/``select_related()``, y no hay API pública para pedirle
 "añade este JOIN con este alias y esta condición".
@@ -65,6 +66,7 @@ operación sobre el mismo conjunto**, en la forma que este controlador adapta;
 no es una libertad de diseño sino el precio de cambiar de driver, y sin ella
 las dos rutas producían SQL inválido en tiempo de ejecución.
 """
+
 import itertools
 from collections.abc import Iterable, Iterator
 
@@ -123,7 +125,7 @@ class Query:
     :param table: expresión de tabla (``str`` o ``SQL``), opcional
     """
 
-    def __init__(self, env, alias: str, table: (SQL | None) = None):
+    def __init__(self, env, alias: str, table: SQL | None = None):
         # cursor de base de datos
         self._env = env
 
@@ -166,15 +168,22 @@ class Query:
         """Devuelve un alias construido sobre ``alias`` y ``link``."""
         return _generate_table_alias(alias, link)
 
-    def add_table(self, alias: str, table: (SQL | None) = None):
+    def add_table(self, alias: str, table: SQL | None = None):
         """Añade a la cláusula FROM una tabla con el alias dado."""
-        assert alias not in self._tables and alias not in self._joins, \
-            f"Alias {alias!r} already in {self}"
-        self._tables[alias] = table if table is not None else SQL.identifier(alias)
+        assert (
+            alias not in self._tables and alias not in self._joins
+        ), f"Alias {alias!r} already in {self}"
+        self._tables[alias] = (
+            table if table is not None else SQL.identifier(alias)
+        )
         self._ids = self._ids and None
 
-    def add_join(self, kind: str, alias: str, table: str | SQL | None, condition: SQL):
-        """Añade una cláusula de JOIN con el alias, la tabla y la condición dados."""
+    def add_join(
+        self, kind: str, alias: str, table: str | SQL | None, condition: SQL
+    ):
+        """
+        Añade una cláusula de JOIN con el alias, la tabla y la condición dados.
+        """
         sql_kind = _SQL_JOINS.get(kind.upper())
         assert sql_kind is not None, f"Invalid JOIN type {kind!r}"
         assert alias not in self._tables, f"Alias {alias!r} already used"
@@ -193,8 +202,14 @@ class Query:
         self._where_clauses.append(SQL(where_clause, *where_params))
         self._ids = self._ids and None
 
-    def join(self, lhs_alias: str, lhs_column: str, rhs_table: str | SQL,
-             rhs_column: str, link: str) -> str:
+    def join(
+        self,
+        lhs_alias: str,
+        lhs_column: str,
+        rhs_table: str | SQL,
+        rhs_column: str,
+        link: str,
+    ) -> str:
         """Une una tabla ya presente en este ``Query`` con otra tabla.
 
         Es en esencia un atajo de :meth:`~.make_alias` y :meth:`~.add_join`.
@@ -206,26 +221,40 @@ class Query:
         :param str link: sirve para generar el alias de la tabla unida; debe
             representar la relación (el enlace) entre ambas tablas.
         """
-        assert lhs_alias in self._tables or lhs_alias in self._joins, \
-            "Alias %r not in %s" % (lhs_alias, str(self))
+        assert (
+            lhs_alias in self._tables or lhs_alias in self._joins
+        ), "Alias %r not in %s" % (lhs_alias, str(self))
         rhs_alias = self.make_alias(lhs_alias, link)
-        condition = SQL("%s = %s", SQL.identifier(lhs_alias, lhs_column),
-                        SQL.identifier(rhs_alias, rhs_column))
+        condition = SQL(
+            "%s = %s",
+            SQL.identifier(lhs_alias, lhs_column),
+            SQL.identifier(rhs_alias, rhs_column),
+        )
         self.add_join('JOIN', rhs_alias, rhs_table, condition)
         return rhs_alias
 
-    def left_join(self, lhs_alias: str, lhs_column: str, rhs_table: str,
-                  rhs_column: str, link: str) -> str:
+    def left_join(
+        self,
+        lhs_alias: str,
+        lhs_column: str,
+        rhs_table: str,
+        rhs_column: str,
+        link: str,
+    ) -> str:
         """Añade un LEFT JOIN a la tabla actual (si hace falta) y devuelve el
         alias que corresponde a ``rhs_table``.
 
         Ver la documentación de :meth:`join` para el detalle de los argumentos.
         """
-        assert lhs_alias in self._tables or lhs_alias in self._joins, \
-            "Alias %r not in %s" % (lhs_alias, str(self))
+        assert (
+            lhs_alias in self._tables or lhs_alias in self._joins
+        ), "Alias %r not in %s" % (lhs_alias, str(self))
         rhs_alias = self.make_alias(lhs_alias, link)
-        condition = SQL("%s = %s", SQL.identifier(lhs_alias, lhs_column),
-                        SQL.identifier(rhs_alias, rhs_column))
+        condition = SQL(
+            "%s = %s",
+            SQL.identifier(lhs_alias, lhs_column),
+            SQL.identifier(rhs_alias, rhs_column),
+        )
         self.add_join('LEFT JOIN', rhs_alias, rhs_table, condition)
         return rhs_alias
 
@@ -245,7 +274,9 @@ class Query:
     @property
     def from_clause(self) -> SQL:
         """La cláusula FROM de ``self``, sin la palabra FROM."""
-        tables = SQL(", ").join(itertools.starmap(_sql_from_table, self._tables.items()))
+        tables = SQL(", ").join(
+            itertools.starmap(_sql_from_table, self._tables.items())
+        )
         if not self._joins:
             return tables
         items = (
@@ -268,12 +299,18 @@ class Query:
 
     def select(self, *args: str | SQL) -> SQL:
         """La consulta SELECT como objeto ``SQL``."""
-        sql_args = map(SQL, args) if args else [SQL.identifier(self.table, 'id')]
+        sql_args = (
+            map(SQL, args) if args else [SQL.identifier(self.table, 'id')]
+        )
         return SQL(
             "%s%s%s%s%s%s%s%s",
             SQL("SELECT %s", SQL(", ").join(sql_args)),
             SQL(" FROM %s", self.from_clause),
-            SQL(" WHERE %s", self.where_clause) if self._where_clauses else SQL(),
+            (
+                SQL(" WHERE %s", self.where_clause)
+                if self._where_clauses
+                else SQL()
+            ),
             SQL(" GROUP BY %s", self.groupby) if self.groupby else SQL(),
             SQL(" HAVING %s", self.having) if self.having else SQL(),
             SQL(" ORDER BY %s", self._order) if self._order else SQL(),
@@ -304,12 +341,18 @@ class Query:
             # en este caso la cláusula ORDER BY es necesaria
             return SQL("(%s)", self.select(*args))
 
-        sql_args = map(SQL, args) if args else [SQL.identifier(self.table, 'id')]
+        sql_args = (
+            map(SQL, args) if args else [SQL.identifier(self.table, 'id')]
+        )
         return SQL(
             "(%s%s%s)",
             SQL("SELECT %s", SQL(", ").join(sql_args)),
             SQL(" FROM %s", self.from_clause),
-            SQL(" WHERE %s", self.where_clause) if self._where_clauses else SQL(),
+            (
+                SQL(" WHERE %s", self.where_clause)
+                if self._where_clauses
+                else SQL()
+            ),
         )
 
     def get_result_ids(self) -> tuple[int, ...]:
@@ -317,7 +360,9 @@ class Query:
         lo que evita hacer dos veces la misma consulta.
         """
         if self._ids is None:
-            self._ids = tuple(id_ for id_, in self._execute_query(self.select()))
+            self._ids = tuple(
+                id_ for id_, in self._execute_query(self.select())
+            )
         return self._ids
 
     def set_result_ids(self, ids: Iterable[int], ordered: bool = True) -> None:
@@ -325,8 +370,9 @@ class Query:
         ``ordered`` dice si la consulta debe ordenarse para corresponder
         exactamente a la secuencia ``ids``.
         """
-        assert not (self._joins or self._where_clauses or self.limit or self.offset), \
-            "Method set_result_ids() can only be called on a virgin Query"
+        assert not (
+            self._joins or self._where_clauses or self.limit or self.offset
+        ), "Method set_result_ids() can only be called on a virgin Query"
         ids = tuple(ids)
         if not ids:
             self.add_where("FALSE")
@@ -339,8 +385,10 @@ class Query:
             #       ON ("stuff"."id" = "stuff__ids"."unnest")
             #   ORDER BY "stuff__ids"."ordinality"
             alias = self.join(
-                self.table, 'id',
-                SQL('(SELECT * FROM unnest(%s) WITH ORDINALITY)', list(ids)), 'unnest',
+                self.table,
+                'id',
+                SQL('(SELECT * FROM unnest(%s) WITH ORDINALITY)', list(ids)),
+                'unnest',
                 'ids',
             )
             self.order = SQL.identifier(alias, 'ordinality')
@@ -348,8 +396,11 @@ class Query:
             # Misma divergencia de controlador que en `subselect`: `= ANY`
             # sobre una lista es la forma que psycopg 3 adapta, y es
             # equivalente a `IN` sobre el mismo conjunto.
-            self.add_where(SQL("%s = ANY(%s)",
-                               SQL.identifier(self.table, 'id'), list(ids)))
+            self.add_where(
+                SQL(
+                    "%s = ANY(%s)", SQL.identifier(self.table, 'id'), list(ids)
+                )
+            )
         self._ids = ids
 
     def __str__(self) -> str:

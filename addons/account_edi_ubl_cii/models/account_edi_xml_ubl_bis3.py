@@ -1,6 +1,7 @@
 r"""``account.edi.xml.ubl_bis3`` — Peppol BIS Billing 3.0.12.
 
-Adaptación de ``odoo19c: addons/account_edi_ubl_cii/models/account_edi_xml_ubl_bis3.py``
+Adaptación de ``odoo19c:
+addons/account_edi_ubl_cii/models/account_edi_xml_ubl_bis3.py``
 (``odoo-tools@622ddc2a``, LGPL-3, 400 líneas, 37 métodos) — atribución y aviso
 de licencia preservados (DEC-KX-03).
 
@@ -16,7 +17,8 @@ Cobertura: 37 de 37 presentes — **33 portados, 4 bloqueados**
   normaliza y su resultado es verificable a ojo, mientras que una checksum mal
   transcrita produce **falsos errores de validación en silencio**. Portarlo
   contra la librería es la tarea **#292**.
-* ``_import_order_payment_terms_id`` — ``AccountPaymentTerm._check_company_domain``
+* ``_import_order_payment_terms_id`` —
+  ``AccountPaymentTerm._check_company_domain``
   no existe (0 hits).
 * ``_import_order_ubl`` — ``markupsafe.Markup`` (0 en ``uv.lock``) más la API
   de importación de registros.
@@ -32,11 +34,13 @@ convención, sus dos consecuencias y la tabla de piezas ausentes que bloquean el
 lado de registros están declaradas una sola vez en
 ``account_edi_common.py`` — no se repiten aquí.
 """
+
 from typing import Literal
 
 from .account_edi_common import _blocked
 from .account_edi_ubl_pint_eu import AccountEdiUBLPintEU
 from .account_edi_xml_ubl_21 import AccountEdiXmlUbl_21
+
 CHORUS_PRO_PEPPOL_ID = "0009:11000201100044"
 
 
@@ -44,7 +48,6 @@ class AccountEdiXmlUBLBIS3(AccountEdiXmlUbl_21, AccountEdiUBLPintEU):
     _name = "account.edi.xml.ubl_bis3"
     _inherit = ['account.edi.xml.ubl_21', 'account.edi.ubl_pint_eu']
     _description = "UBL BIS Billing 3.0.12"
-
     """
     * Documentation of EHF Billing 3.0: https://anskaffelser.dev/postaward/g3/
     * EHF 2.0 is no longer used:
@@ -64,7 +67,12 @@ class AccountEdiXmlUBLBIS3(AccountEdiXmlUbl_21, AccountEdiUBLPintEU):
 
     @classmethod
     def _is_customer_behind_chorus_pro(cls, customer):
-        return customer.peppol_eas and customer.peppol_endpoint and f"{customer.peppol_eas}:{customer.peppol_endpoint}" == CHORUS_PRO_PEPPOL_ID
+        return (
+            customer.peppol_eas
+            and customer.peppol_endpoint
+            and f"{customer.peppol_eas}:{customer.peppol_endpoint}"
+            == CHORUS_PRO_PEPPOL_ID
+        )
 
     # -------------------------------------------------------------------------
     # EXPORT
@@ -82,7 +90,9 @@ class AccountEdiXmlUBLBIS3(AccountEdiXmlUbl_21, AccountEdiUBLPintEU):
         return bool(cls._get_customization_id(process_type='selfbilling'))
 
     @classmethod
-    def _get_customization_id(cls, process_type: Literal['billing', 'selfbilling'] = 'billing'):
+    def _get_customization_id(
+        cls, process_type: Literal['billing', 'selfbilling'] = 'billing'
+    ):
         if process_type == 'billing':
             return 'urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0'
         else:
@@ -268,7 +278,8 @@ class AccountEdiXmlUBLBIS3(AccountEdiXmlUbl_21, AccountEdiUBLPintEU):
 
     @classmethod
     def _ubl_add_invoice_line_node(cls, vals):
-        # OVERRIDE. For retro-compatibility, ensure '_get_invoice_line_node' is called.
+        # OVERRIDE. For retro-compatibility, ensure
+        # '_get_invoice_line_node' is called.
         sub_vals = {
             **vals,
             'base_line': vals['line_vals']['base_line'],
@@ -277,7 +288,8 @@ class AccountEdiXmlUBLBIS3(AccountEdiXmlUbl_21, AccountEdiUBLPintEU):
 
     @classmethod
     def _ubl_add_credit_note_line_node(cls, vals):
-        # OVERRIDE. For retro-compatbility, ensure '_get_invoice_line_node' is called.
+        # OVERRIDE. For retro-compatbility, ensure
+        # '_get_invoice_line_node' is called.
         sub_vals = {
             **vals,
             'base_line': vals['line_vals']['base_line'],
@@ -328,7 +340,8 @@ class AccountEdiXmlUBLBIS3(AccountEdiXmlUbl_21, AccountEdiUBLPintEU):
     def _add_invoice_config_vals(cls, vals):
         super()._add_invoice_config_vals(vals)
 
-        # There is no specifications for debit notes in BIS3, we'll concider them as invoices
+        # There is no specifications for debit notes in BIS3, we'll
+        # concider them as invoices
         if vals['document_type'] == 'debit_note':
             vals['document_type'] = 'invoice'
 
@@ -374,8 +387,18 @@ class AccountEdiXmlUBLBIS3(AccountEdiXmlUbl_21, AccountEdiUBLPintEU):
 
     @classmethod
     def _invoice_constraints_peppol_en16931_ubl(cls, invoice, vals):
-        """≙ ``_invoice_constraints_peppol_en16931_ubl`` (odoo19c: :312-345) — **bloqueado**: stdnum no es dependencia de este arbol (0 hits en uv.lock): be_vat.is_valid/mva.is_valid son digitos de control, no se transcriben a mano."""
-        _blocked("_invoice_constraints_peppol_en16931_ubl", "stdnum no es dependencia de este arbol (0 hits en uv.lock): be_vat.is_valid/mva.is_valid son digitos de control, no se transcriben a mano")
+        """
+        ≙ ``_invoice_constraints_peppol_en16931_ubl`` (odoo19c: :312-345) —
+        **bloqueado**: stdnum no es dependencia de este arbol (0 hits en
+        uv.lock): be_vat.is_valid/mva.is_valid son digitos de control, no se
+        transcriben a mano.
+        """
+        _blocked(
+            "_invoice_constraints_peppol_en16931_ubl",
+            "stdnum no es dependencia de este arbol (0 hits en uv.lock):"
+            " be_vat.is_valid/mva.is_valid son digitos de control, no se"
+            " transcriben a mano",
+        )
 
     # -------------------------------------------------------------------------
     # Sale/Purchase Order: Import
@@ -383,28 +406,56 @@ class AccountEdiXmlUBLBIS3(AccountEdiXmlUbl_21, AccountEdiUBLPintEU):
 
     @classmethod
     def _import_order_payment_terms_id(cls, company_id, tree, xpath):
-        """≙ ``_import_order_payment_terms_id`` (odoo19c: :351-358) — **bloqueado**: AccountPaymentTerm._check_company_domain() no existe (0 hits)."""
-        _blocked("_import_order_payment_terms_id", "AccountPaymentTerm._check_company_domain() no existe (0 hits)")
+        """
+        ≙ ``_import_order_payment_terms_id`` (odoo19c: :351-358) —
+        **bloqueado**: AccountPaymentTerm._check_company_domain() no existe (0
+        hits).
+        """
+        _blocked(
+            "_import_order_payment_terms_id",
+            "AccountPaymentTerm._check_company_domain() no existe (0 hits)",
+        )
 
     @classmethod
     def _retrieve_order_vals(cls, order, tree):
         order_vals = {}
         logs = []
 
-        order_vals['date_order'] = tree.findtext('.//{*}EndDate') or tree.findtext('.//{*}IssueDate')
-        order_vals['note'] = cls._import_description(tree, xpaths=['./{*}Note'])
-        order_vals['payment_term_id'] = cls._import_order_payment_terms_id(order.company_id, tree, './/cac:PaymentTerms/cbc:Note')
-        order_vals['currency_id'], currency_logs = cls._import_currency(tree, './/{*}DocumentCurrencyCode')
+        order_vals['date_order'] = tree.findtext(
+            './/{*}EndDate'
+        ) or tree.findtext('.//{*}IssueDate')
+        order_vals['note'] = cls._import_description(
+            tree, xpaths=['./{*}Note']
+        )
+        order_vals['payment_term_id'] = cls._import_order_payment_terms_id(
+            order.company_id, tree, './/cac:PaymentTerms/cbc:Note'
+        )
+        order_vals['currency_id'], currency_logs = cls._import_currency(
+            tree, './/{*}DocumentCurrencyCode'
+        )
 
         logs += currency_logs
         return order_vals, logs
 
     @classmethod
     def _import_order_ubl(cls, order, file_data, new):
-        """≙ ``_import_order_ubl`` (odoo19c: :372-387) — **bloqueado**: markupsafe (0 en uv.lock) y la API de importacion de registros no existen."""
-        _blocked("_import_order_ubl", "markupsafe (0 en uv.lock) y la API de importacion de registros no existen")
+        """
+        ≙ ``_import_order_ubl`` (odoo19c: :372-387) — **bloqueado**: markupsafe
+        (0 en uv.lock) y la API de importacion de registros no existen.
+        """
+        _blocked(
+            "_import_order_ubl",
+            "markupsafe (0 en uv.lock) y la API de importacion de registros no"
+            " existen",
+        )
 
     @classmethod
     def _import_invoice_ubl_cii(cls, invoice, file_data, new=False):
-        """≙ ``_import_invoice_ubl_cii`` (odoo19c: :389-400) — **bloqueado**: la API de importacion de registros no existe (0 hits)."""
-        _blocked("_import_invoice_ubl_cii", "la API de importacion de registros no existe (0 hits)")
+        """
+        ≙ ``_import_invoice_ubl_cii`` (odoo19c: :389-400) — **bloqueado**: la
+        API de importacion de registros no existe (0 hits).
+        """
+        _blocked(
+            "_import_invoice_ubl_cii",
+            "la API de importacion de registros no existe (0 hits)",
+        )

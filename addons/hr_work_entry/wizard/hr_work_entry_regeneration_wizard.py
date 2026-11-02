@@ -72,6 +72,7 @@ Divergencias declaradas
    sesión de idioma a nivel de wizard (familia (b) de
    ``hr/models/hr_version.py``).
 """
+
 import calendar
 
 from addons.hr.models import HrEmployee, HrVersion
@@ -80,7 +81,9 @@ from orm.models_transient import TransientModel
 
 
 class HrWorkEntryRegenerationWizard(TransientModel):
-    """El asistente de regeneración — ≙ ``hr.work.entry.regeneration.wizard``."""
+    """
+    El asistente de regeneración — ≙ ``hr.work.entry.regeneration.wizard``.
+    """
 
     class Meta:
         abstract = True
@@ -102,39 +105,58 @@ class HrWorkEntryRegenerationWizard(TransientModel):
     @classmethod
     def _compute_earliest_available_date(cls, employees):
         """≙ ``_compute_earliest_available_date`` (``:33-37``) — D-2."""
-        earliest = HrVersion.objects.filter(
-            employee__in=list(employees),
-            date_generated_from__isnull=False,
-        ).order_by('date_generated_from').values_list(
-            'date_generated_from', flat=True,
-        ).first()
+        earliest = (
+            HrVersion.objects.filter(
+                employee__in=list(employees),
+                date_generated_from__isnull=False,
+            )
+            .order_by('date_generated_from')
+            .values_list(
+                'date_generated_from',
+                flat=True,
+            )
+            .first()
+        )
         return earliest.date() if earliest else None
 
     @classmethod
     def _compute_latest_available_date(cls, employees):
         """≙ ``_compute_latest_available_date`` (``:39-43``) — D-2."""
-        latest = HrVersion.objects.filter(
-            employee__in=list(employees),
-            date_generated_to__isnull=False,
-        ).order_by('-date_generated_to').values_list(
-            'date_generated_to', flat=True,
-        ).first()
+        latest = (
+            HrVersion.objects.filter(
+                employee__in=list(employees),
+                date_generated_to__isnull=False,
+            )
+            .order_by('-date_generated_to')
+            .values_list(
+                'date_generated_to',
+                flat=True,
+            )
+            .first()
+        )
         return latest.date() if latest else None
 
     @classmethod
-    def _compute_validated_work_entry_employee_ids(cls, employees, date_from,
-                                                   date_to):
+    def _compute_validated_work_entry_employee_ids(
+        cls, employees, date_from, date_to
+    ):
         """≙ ``_compute_validated_work_entry_employee_ids`` (``:45-58``) —
         los empleados con entradas ya validadas en el rango (el
         ``_read_group`` de la fuente es el ``distinct`` de aquí)."""
         if not cls._compute_search_criteria_completed(
-                employees, date_from, date_to):
+            employees, date_from, date_to
+        ):
             return HrEmployee.objects.none()
-        employee_ids = HrWorkEntry.objects.filter(
-            employee__in=list(employees),
-            date__gte=date_from, date__lte=date_to,
-            state='validated',
-        ).values_list('employee_id', flat=True).distinct()
+        employee_ids = (
+            HrWorkEntry.objects.filter(
+                employee__in=list(employees),
+                date__gte=date_from,
+                date__lte=date_to,
+                state='validated',
+            )
+            .values_list('employee_id', flat=True)
+            .distinct()
+        )
         return HrEmployee.objects.filter(pk__in=list(employee_ids))
 
     @classmethod
@@ -142,11 +164,14 @@ class HrWorkEntryRegenerationWizard(TransientModel):
         """≙ ``_compute_valid`` (``:60-63``) — ¿queda al menos un empleado
         regenerable (sin entradas validadas en el rango)?"""
         if not cls._compute_search_criteria_completed(
-                employees, date_from, date_to):
+            employees, date_from, date_to
+        ):
             return False
         validated = set(
             cls._compute_validated_work_entry_employee_ids(
-                employees, date_from, date_to,
+                employees,
+                date_from,
+                date_to,
             ).values_list('pk', flat=True)
         )
         return len([e for e in employees if e.pk not in validated]) > 0
@@ -156,7 +181,9 @@ class HrWorkEntryRegenerationWizard(TransientModel):
         """≙ ``_compute_search_criteria_completed`` (``:65-68``)."""
         employees = list(employees)
         return bool(
-            date_from and date_to and employees
+            date_from
+            and date_to
+            and employees
             and cls._compute_earliest_available_date(employees)
             and cls._compute_latest_available_date(employees)
         )
@@ -169,7 +196,9 @@ class HrWorkEntryRegenerationWizard(TransientModel):
         — los dos mensajes son los campos ``*_message`` de la fuente."""
         earliest_message = ''
         latest_message = ''
-        if cls._compute_search_criteria_completed(employees, date_from, date_to):
+        if cls._compute_search_criteria_completed(
+            employees, date_from, date_to
+        ):
             if date_from > date_to:
                 date_from, date_to = date_to, date_from
             earliest = cls._compute_earliest_available_date(employees)
@@ -177,12 +206,14 @@ class HrWorkEntryRegenerationWizard(TransientModel):
             if earliest and date_from < earliest:
                 date_from = earliest
                 earliest_message = (
-                    f'The earliest available date is {cls._date_to_string(earliest)}'
+                    'The earliest available date is'
+                    f' {cls._date_to_string(earliest)}'
                 )
             if latest and date_to > latest:
                 date_to = latest
                 latest_message = (
-                    f'The latest available date is {cls._date_to_string(latest)}'
+                    'The latest available date is'
+                    f' {cls._date_to_string(latest)}'
                 )
         return date_from, date_to, earliest_message, latest_message
 

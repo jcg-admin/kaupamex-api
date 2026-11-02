@@ -1,4 +1,6 @@
-"""``account.payment.method`` — lo que ``account_payment`` le cuelga (≙ ``_inherit``).
+"""
+``account.payment.method`` — lo que ``account_payment`` le cuelga (≙
+``_inherit``).
 
 Adaptación de ``odoo19c: account_payment/models/account_payment_method.py``
 (``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``, LGPL-3, 21
@@ -24,6 +26,7 @@ configuración de pasarela) — así que no hay nada análogo a excluir: los
 tres se marcan ``electronic``, incluido ``TEST`` (el modo sandbox de una
 pasarela real sigue siendo un flujo electrónico, no manual).
 """
+
 from addons.account.models.account_payment_method import AccountPaymentMethod
 from addons.payment.models import PaymentGateway
 from orm.method_chain import chain_method
@@ -39,7 +42,8 @@ def _get_payment_method_information(self):
 
 
 def _merge_payment_method_information(new, previous):
-    """``combine`` de ``chain_method`` — ≙ ``res = super()...; res[code] = ...``:
+    """
+    ``combine`` de ``chain_method`` — ≙ ``res = super()...; res[code] = ...``:
     las entradas nuevas se suman a (y ganan sobre) las de la cadena previa."""
     return {**(previous or {}), **(new or {})}
 
@@ -55,7 +59,8 @@ def apply_account_payment_extensions():
     que el relevo por defecto nunca delegaría en la cadena previa.
     """
     chain_method(
-        AccountPaymentMethod, '_get_payment_method_information',
+        AccountPaymentMethod,
+        '_get_payment_method_information',
         _get_payment_method_information,
         combine=_merge_payment_method_information,
     )

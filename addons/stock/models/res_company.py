@@ -53,7 +53,8 @@ se porta como el ``default`` de su campo. Quedan **27** que sí se portan.
    * - Reparadores del parque instalado (6)
      - ``create_missing_warehouse``, ``create_missing_transit_location``,
        ``create_missing_inventory_loss_location``,
-       ``create_missing_production_location``, ``create_missing_scrap_location``,
+       ``create_missing_production_location``,
+       ``create_missing_scrap_location``,
        ``create_missing_scrap_sequence``
    * - Ganchos de composición (4)
      - ``_create_per_company_locations``, ``_create_per_company_sequences``,
@@ -102,6 +103,7 @@ Lo que este archivo NO cierra
   (``:184-186``) — la siembra de datos de ``stock`` es alcance de **#330**; el
   receptor lo busca por ``ir.model.data`` y no falla si aún no está.
 """
+
 import fields
 import models
 from django.apps import apps
@@ -112,9 +114,17 @@ from tools.translate import _
 #: ≙ ``annual_inventory_month`` (``odoo19c: :24-38``) — el vocabulario de la
 #: fuente, verbatim y en el mismo orden.
 ANNUAL_INVENTORY_MONTH_CHOICES = [
-    ('1', 'January'), ('2', 'February'), ('3', 'March'), ('4', 'April'),
-    ('5', 'May'), ('6', 'June'), ('7', 'July'), ('8', 'August'),
-    ('9', 'September'), ('10', 'October'), ('11', 'November'),
+    ('1', 'January'),
+    ('2', 'February'),
+    ('3', 'March'),
+    ('4', 'April'),
+    ('5', 'May'),
+    ('6', 'June'),
+    ('7', 'July'),
+    ('8', 'August'),
+    ('9', 'September'),
+    ('10', 'October'),
+    ('11', 'November'),
     ('12', 'December'),
 ]
 
@@ -126,7 +136,8 @@ def _add_if_absent(model, name, field):
     """Cuelga el campo sólo si el modelo no lo tiene ya.
 
     Idempotente a propósito: ``ready()`` puede correr más de una vez en un
-    proceso (recarga del autoreloader), y ``add_to_class`` sobre un campo que ya
+    proceso (recarga del autoreloader), y ``add_to_class`` sobre un campo que
+    ya
     existe rompe con ``FieldError``. Mismo criterio que
     ``sale/models/res_company.py::_add_if_absent``.
     """
@@ -144,20 +155,24 @@ def _default_confirmation_mail_template(self=None):
     """
     ir_model_data = apps.get_model('base', 'IrModelData')
     registro = ir_model_data.objects.filter(
-        module='stock', name='mail_template_data_delivery_confirmation',
+        module='stock',
+        name='mail_template_data_delivery_confirmation',
     ).first()
     return registro.res_id if registro is not None else None
 
 
 # --------------------------------------------------------------------------- #
-# Creadores por empresa (≙ :53-113)                                            #
+# Creadores por empresa (≙ :53-113)
+# #
 # --------------------------------------------------------------------------- #
+
 
 def _create_transit_location(self):
     """≙ ``_create_transit_location`` (``odoo19c: :53-71``).
 
     «Create a transit location with company_id being the given company_id. This
-    is needed in case of resuply routes between warehouses belonging to the same
+    is needed in case of resuply routes between warehouses belonging to the
+    same
     company, because we don't want to create accounting entries at that time.»
 
     Nace **archivada** (``active=False``): sólo se ve cuando alguien configura
@@ -173,7 +188,8 @@ def _create_transit_location(self):
         active=False,
     )
     type(self).objects.filter(pk=self.pk).update(
-        internal_transit_location=location)
+        internal_transit_location=location
+    )
     self.internal_transit_location = location
 
     if self.partner_id is not None:
@@ -195,10 +211,16 @@ def _create_inventory_loss_location(self):
     ir_default = apps.get_model('base', 'IrDefault')
 
     location = stock_location.objects.create(
-        name='Inventory adjustment', usage='inventory', company=self,
+        name='Inventory adjustment',
+        usage='inventory',
+        company=self,
     )
-    ir_default.set_default('product.template', 'property_stock_inventory',
-                           location.pk, company=self)
+    ir_default.set_default(
+        'product.template',
+        'property_stock_inventory',
+        location.pk,
+        company=self,
+    )
     return location
 
 
@@ -211,10 +233,16 @@ def _create_production_location(self):
     ir_default = apps.get_model('base', 'IrDefault')
 
     location = stock_location.objects.create(
-        name='Production', usage='production', company=self,
+        name='Production',
+        usage='production',
+        company=self,
     )
-    ir_default.set_default('product.template', 'property_stock_production',
-                           location.pk, company=self)
+    ir_default.set_default(
+        'product.template',
+        'property_stock_production',
+        location.pk,
+        company=self,
+    )
     return location
 
 
@@ -227,7 +255,9 @@ def _create_scrap_location(self):
     """
     stock_location = apps.get_model('stock', 'StockLocation')
     return stock_location.objects.create(
-        name='Scrap', usage='inventory', company=self,
+        name='Scrap',
+        usage='inventory',
+        company=self,
     )
 
 
@@ -249,13 +279,16 @@ def _create_scrap_sequence(self):
 
 
 # --------------------------------------------------------------------------- #
-# Reparadores del parque instalado (≙ :115-161)                                #
+# Reparadores del parque instalado (≙ :115-161)
+# #
 # --------------------------------------------------------------------------- #
+
 
 def create_missing_warehouse(cls):
     """≙ ``create_missing_warehouse`` (``odoo19c: :115-127``).
 
-    «This hook is used to add a warehouse on the first company of the database.»
+    «This hook is used to add a warehouse on the first company of the
+    database.»
     Sin almacén no hay ubicación de existencias, así que la base recién
     instalada necesita al menos uno.
     """
@@ -276,14 +309,16 @@ def create_missing_warehouse(cls):
 def create_missing_transit_location(cls):
     """≙ ``create_missing_transit_location`` (``odoo19c: :129-132``)."""
     for empresa in ResCompany.objects.filter(
-            internal_transit_location__isnull=True):
+        internal_transit_location__isnull=True
+    ):
         _create_transit_location(empresa)
 
 
 def create_missing_inventory_loss_location(cls):
     """≙ ``create_missing_inventory_loss_location`` (``odoo19c: :134-140``).
 
-    La fuente resta a todas las empresas las que ya tienen el default puesto; el
+    La fuente resta a todas las empresas las que ya tienen el default puesto;
+    el
     porte hace la misma resta sobre ``ir.default``.
     """
     for empresa in _companies_without_default('property_stock_inventory'):
@@ -305,9 +340,11 @@ def create_missing_scrap_location(cls):
     recibe la de desecho.
     """
     stock_location = apps.get_model('stock', 'StockLocation')
-    con_desecho = set(stock_location.objects.filter(usage='inventory')
-                      .exclude(company__isnull=True)
-                      .values_list('company_id', flat=True))
+    con_desecho = set(
+        stock_location.objects.filter(usage='inventory')
+        .exclude(company__isnull=True)
+        .values_list('company_id', flat=True)
+    )
     for empresa in ResCompany.objects.exclude(pk__in=con_desecho):
         _create_scrap_location(empresa)
 
@@ -315,9 +352,11 @@ def create_missing_scrap_location(cls):
 def create_missing_scrap_sequence(cls):
     """≙ ``create_missing_scrap_sequence`` (``odoo19c: :157-161``)."""
     sequence_model = apps.get_model('base', 'IrSequence')
-    with_sequence = set(sequence_model.objects.filter(code='stock.scrap')
-                        .exclude(company__isnull=True)
-                        .values_list('company_id', flat=True))
+    with_sequence = set(
+        sequence_model.objects.filter(code='stock.scrap')
+        .exclude(company__isnull=True)
+        .values_list('company_id', flat=True)
+    )
     for empresa in ResCompany.objects.exclude(pk__in=with_sequence):
         _create_scrap_sequence(empresa)
 
@@ -331,22 +370,27 @@ def _companies_without_default(field_name):
     idéntico (``:134-148``). Se factoriza aquí en vez de duplicarlo — misma
     consulta, un solo sitio donde equivocarse.
 
-    La referencia llega al default por ``ir.model.fields._get(modelo, campo)`` y
+    La referencia llega al default por ``ir.model.fields._get(modelo, campo)``
+    y
     filtra ``ir.default`` por esa FK. Aquí ``IrDefault.field`` es el **nombre**
-    del campo, no una FK (``src/addons/base/models/ir_default.py:160``), así que
+    del campo, no una FK (``src/addons/base/models/ir_default.py:160``), así
+    que
     el filtro es directo: un salto menos, mismo conjunto.
     """
     ir_default = apps.get_model('base', 'IrDefault')
-    con_propiedad = set(ir_default.objects
-                        .filter(model='product.template', field=field_name)
-                        .exclude(company__isnull=True)
-                        .values_list('company_id', flat=True))
+    con_propiedad = set(
+        ir_default.objects.filter(model='product.template', field=field_name)
+        .exclude(company__isnull=True)
+        .values_list('company_id', flat=True)
+    )
     return ResCompany.objects.exclude(pk__in=con_propiedad)
 
 
 # --------------------------------------------------------------------------- #
-# Ganchos de composición y ciclo de vida (≙ :163-215)                          #
+# Ganchos de composición y ciclo de vida (≙ :163-215)
+# #
 # --------------------------------------------------------------------------- #
+
 
 def _create_per_company_locations(self):
     """≙ ``_create_per_company_locations`` (``odoo19c: :163-168``)."""
@@ -365,7 +409,8 @@ def _create_per_company_picking_types(self):
     """≙ ``_create_per_company_picking_types`` (``odoo19c: :174-175``).
 
     Vacío en la fuente **a propósito**: es el punto de extensión que otros
-    addons rellenan. Se porta con su cuerpo real —ninguno— porque su valor es el
+    addons rellenan. Se porta con su cuerpo real —ninguno— porque su valor es
+    el
     contrato, no el cálculo (mismo criterio que
     ``product._get_quantity_in_progress``).
     """
@@ -408,8 +453,10 @@ def _get_text_validation(self, confirmation_type):
 
     ¿Esta empresa avisa por texto, y por este canal?
     """
-    return bool(self.stock_text_confirmation
-                and self.stock_confirmation_type == confirmation_type)
+    return bool(
+        self.stock_text_confirmation
+        and self.stock_confirmation_type == confirmation_type
+    )
 
 
 def setup_new_company(company):
@@ -426,10 +473,12 @@ def setup_new_company(company):
     ir_model_data = apps.get_model('base', 'IrModelData')
 
     registro = ir_model_data.objects.filter(
-        module='stock', name='stock_location_inter_company').first()
+        module='stock', name='stock_location_inter_company'
+    ).first()
     inter_company = (
         stock_location.objects.filter(pk=registro.res_id).first()
-        if registro is not None else None
+        if registro is not None
+        else None
     )
     if inter_company is not None and not inter_company.active:
         stock_location.objects.filter(pk=inter_company.pk).update(active=True)
@@ -452,60 +501,123 @@ def apply_stock_res_company_extensions():
     if not hasattr(ResCompany, '_check_company_auto'):
         ResCompany._check_company_auto = True
 
-    _add_if_absent(ResCompany, 'internal_transit_location', fields.Many2one(
-        'stock.StockLocation', null=True, blank=True,
-        on_delete=models.RESTRICT, related_name='companies_as_transit',
-        verbose_name='Ubicación de tránsito interna',
-        help_text='Ubicación por la que pasa la mercancía al moverse entre dos '
-                  'almacenes de esta misma empresa '
-                  '(Odoo internal_transit_location_id).',
-    ))
-    _add_if_absent(ResCompany, 'stock_move_email_validation', fields.Boolean(
-        default=False, verbose_name='Confirmación por correo de la transferencia',
-        help_text='Envía un correo al cliente cuando la transferencia se '
-                  'completa (Odoo stock_move_email_validation).',
-    ))
     _add_if_absent(
-        ResCompany, 'stock_mail_confirmation_template',
+        ResCompany,
+        'internal_transit_location',
         fields.Many2one(
-            'mail.MailTemplate', null=True, blank=True,
+            'stock.StockLocation',
+            null=True,
+            blank=True,
+            on_delete=models.RESTRICT,
+            related_name='companies_as_transit',
+            verbose_name='Ubicación de tránsito interna',
+            help_text=(
+                'Ubicación por la que pasa la mercancía al moverse entre dos '
+                'almacenes de esta misma empresa '
+                '(Odoo internal_transit_location_id).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResCompany,
+        'stock_move_email_validation',
+        fields.Boolean(
+            default=False,
+            verbose_name='Confirmación por correo de la transferencia',
+            help_text=(
+                'Envía un correo al cliente cuando la transferencia se '
+                'completa (Odoo stock_move_email_validation).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResCompany,
+        'stock_mail_confirmation_template',
+        fields.Many2one(
+            'mail.MailTemplate',
+            null=True,
+            blank=True,
             on_delete=models.SET_NULL,
             related_name='companies_as_stock_confirmation',
             default=_default_confirmation_mail_template,
             verbose_name='Plantilla de confirmación de transferencia',
-            help_text='Correo que recibe el cliente cuando su pedido sale '
-                      '(Odoo stock_mail_confirmation_template_id).',
-        ))
-    _add_if_absent(ResCompany, 'annual_inventory_month', fields.Selection(
-        choices=ANNUAL_INVENTORY_MONTH_CHOICES, max_length=2, default='12',
-        null=True, blank=True, verbose_name='Mes del inventario anual',
-        help_text='Mes del inventario anual para los productos que no están en '
-                  'una ubicación con conteo cíclico; vacío desactiva el '
-                  'inventario anual automático (Odoo annual_inventory_month).',
-    ))
-    _add_if_absent(ResCompany, 'annual_inventory_day', fields.Integer(
-        default=31, verbose_name='Día del mes',
-        help_text='Día del mes en que ocurre el inventario anual. Cero o '
-                  'negativo se toma como el primer día del mes; mayor que el '
-                  'último día del mes, como el último '
-                  '(Odoo annual_inventory_day).',
-    ))
-    _add_if_absent(ResCompany, 'horizon_days', fields.Float(
-        default=365.0, verbose_name='Horizonte de reabastecimiento',
-        help_text='Cuántos días antes se dispara una regla de reabastecimiento '
-                  'para adelantarse a los retrasos; 0 la dispara justo a tiempo '
-                  'y evita sobrestock (Odoo horizon_days, required=True).',
-    ))
-    _add_if_absent(ResCompany, 'stock_text_confirmation', fields.Boolean(
-        default=False, verbose_name='Confirmación por texto',
-        help_text='Avisa por texto (SMS) al completar la transferencia '
-                  '(Odoo stock_text_confirmation).',
-    ))
-    _add_if_absent(ResCompany, 'stock_confirmation_type', fields.Selection(
-        choices=STOCK_CONFIRMATION_TYPE_CHOICES, max_length=8, default='sms',
-        null=True, blank=True, verbose_name='Canal de confirmación',
-        help_text='Canal del aviso por texto (Odoo stock_confirmation_type).',
-    ))
+            help_text=(
+                'Correo que recibe el cliente cuando su pedido sale '
+                '(Odoo stock_mail_confirmation_template_id).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResCompany,
+        'annual_inventory_month',
+        fields.Selection(
+            choices=ANNUAL_INVENTORY_MONTH_CHOICES,
+            max_length=2,
+            default='12',
+            null=True,
+            blank=True,
+            verbose_name='Mes del inventario anual',
+            help_text=(
+                'Mes del inventario anual para los productos que no están en '
+                'una ubicación con conteo cíclico; vacío desactiva el '
+                'inventario anual automático (Odoo annual_inventory_month).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResCompany,
+        'annual_inventory_day',
+        fields.Integer(
+            default=31,
+            verbose_name='Día del mes',
+            help_text=(
+                'Día del mes en que ocurre el inventario anual. Cero o '
+                'negativo se toma como el primer día del mes; mayor que el '
+                'último día del mes, como el último '
+                '(Odoo annual_inventory_day).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResCompany,
+        'horizon_days',
+        fields.Float(
+            default=365.0,
+            verbose_name='Horizonte de reabastecimiento',
+            help_text=(
+                'Cuántos días antes se dispara una regla de reabastecimiento '
+                'para adelantarse a los retrasos; 0 la dispara justo a tiempo '
+                'y evita sobrestock (Odoo horizon_days, required=True).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResCompany,
+        'stock_text_confirmation',
+        fields.Boolean(
+            default=False,
+            verbose_name='Confirmación por texto',
+            help_text=(
+                'Avisa por texto (SMS) al completar la transferencia '
+                '(Odoo stock_text_confirmation).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResCompany,
+        'stock_confirmation_type',
+        fields.Selection(
+            choices=STOCK_CONFIRMATION_TYPE_CHOICES,
+            max_length=8,
+            default='sms',
+            null=True,
+            blank=True,
+            verbose_name='Canal de confirmación',
+            help_text=(
+                'Canal del aviso por texto (Odoo stock_confirmation_type).'
+            ),
+        ),
+    )
 
     for nombre, funcion in (
         ('_create_transit_location', _create_transit_location),
@@ -515,10 +627,15 @@ def apply_stock_res_company_extensions():
         ('_create_scrap_sequence', _create_scrap_sequence),
         ('_create_per_company_locations', _create_per_company_locations),
         ('_create_per_company_sequences', _create_per_company_sequences),
-        ('_create_per_company_picking_types', _create_per_company_picking_types),
+        (
+            '_create_per_company_picking_types',
+            _create_per_company_picking_types,
+        ),
         ('_create_per_company_rules', _create_per_company_rules),
-        ('_set_per_company_inter_company_locations',
-         _set_per_company_inter_company_locations),
+        (
+            '_set_per_company_inter_company_locations',
+            _set_per_company_inter_company_locations,
+        ),
         ('_get_text_validation', _get_text_validation),
     ):
         if not hasattr(ResCompany, nombre):
@@ -527,9 +644,14 @@ def apply_stock_res_company_extensions():
     for nombre, funcion in (
         ('create_missing_warehouse', create_missing_warehouse),
         ('create_missing_transit_location', create_missing_transit_location),
-        ('create_missing_inventory_loss_location',
-         create_missing_inventory_loss_location),
-        ('create_missing_production_location', create_missing_production_location),
+        (
+            'create_missing_inventory_loss_location',
+            create_missing_inventory_loss_location,
+        ),
+        (
+            'create_missing_production_location',
+            create_missing_production_location,
+        ),
         ('create_missing_scrap_location', create_missing_scrap_location),
         ('create_missing_scrap_sequence', create_missing_scrap_sequence),
     ):

@@ -2,7 +2,8 @@
 
 Verifican la politica de retencion sobre su **unico sujeto vivo**:
 
-- ``IrLogging`` INFO/DEBUG > 14 d se purga; WARNING/ERROR se conservan hasta 90 d,
+- ``IrLogging`` INFO/DEBUG > 14 d se purga; WARNING/ERROR se conservan hasta 90
+  d,
 - ``--dry-run`` cuenta pero no borra,
 - idempotente: segunda corrida purga 0.
 
@@ -20,6 +21,7 @@ invoca tiene su propio test en ``tests/unit/base/test_ir_logging.py``.
 ``created_at`` es ``auto_now_add`` → se fuerza con ``queryset.update`` para
 simular antiguedad. Toca DB → ``django_db``.
 """
+
 from datetime import timedelta
 from io import StringIO
 
@@ -34,7 +36,8 @@ pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
 def _age(model, pk, days):
     model.objects.filter(pk=pk).update(
-        created_at=timezone.now() - timedelta(days=days))
+        created_at=timezone.now() - timedelta(days=days)
+    )
 
 
 def _run(*args):
@@ -46,8 +49,8 @@ def _run(*args):
 def test_low_level_purged_at_14d_high_kept():
     info = IrLogging.objects.create(name='a', level='INFO', message='i')
     err = IrLogging.objects.create(name='a', level='ERROR', message='e')
-    _age(IrLogging, info.pk, 15)   # INFO > 14 d -> purga
-    _age(IrLogging, err.pk, 15)    # ERROR a 15 d -> se conserva (< 90 d)
+    _age(IrLogging, info.pk, 15)  # INFO > 14 d -> purga
+    _age(IrLogging, err.pk, 15)  # ERROR a 15 d -> se conserva (< 90 d)
     _run()
     assert not IrLogging.objects.filter(pk=info.pk).exists()
     assert IrLogging.objects.filter(pk=err.pk).exists()

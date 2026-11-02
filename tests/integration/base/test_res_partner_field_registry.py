@@ -45,6 +45,7 @@ Qué haría fallar a cada control
     columna y siempre se puede escribir, también en un contacto que todavía
     no tiene fila RELATED.
 """
+
 import pytest
 
 from addons.base.models.res_partner import ResPartner
@@ -67,14 +68,18 @@ def _company(**extra):
 
 def _city(name='Guadalajara'):
     country, _ = ResCountry.objects.get_or_create(
-        code='MX', defaults={'name': 'México'})
+        code='MX', defaults={'name': 'México'}
+    )
     city, _ = ResCity.objects.get_or_create(
-        name=name, country_id=country, defaults={'zipcode': '44100'})
+        name=name, country_id=country, defaults={'zipcode': '44100'}
+    )
     return city
 
 
 class TestTheRegistryHoldsEveryDeclaredField:
-    """≙ ``BaseModel._fields`` — el registro del modelo, no el de sus columnas."""
+    """
+    ≙ ``BaseModel._fields`` — el registro del modelo, no el de sus columnas.
+    """
 
     def test_it_holds_the_columns(self, db):
         registry = _company()._fields
@@ -82,7 +87,8 @@ class TestTheRegistryHoldsEveryDeclaredField:
         assert 'city' in registry
 
     def test_it_holds_the_field_without_a_column(self, db):
-        """``city_id`` lo declara ``base_address_extended``, y no tiene columna.
+        """
+        ``city_id`` lo declara ``base_address_extended``, y no tiene columna.
 
         Qué lo haría fallar: que ``_fields`` se construya sólo con
         ``_meta.get_fields()``. Ése era el estado hasta :ref:`h-api-1025`.
@@ -90,7 +96,8 @@ class TestTheRegistryHoldsEveryDeclaredField:
         registry = _company()._fields
         assert 'city_id' in registry, (
             'el registro del modelo dejó fuera un campo que el propio '
-            '_address_fields() devuelve')
+            '_address_fields() devuelve'
+        )
         assert isinstance(registry['city_id'], NonStored)
 
     def test_every_address_field_is_in_the_registry(self, db):
@@ -100,8 +107,12 @@ class TestTheRegistryHoldsEveryDeclaredField:
         esa lista y consulta el registro por cada nombre.
         """
         registry = _company()._fields
-        missing = [f for f in ResPartner._address_fields() if f not in registry]
-        assert missing == [], f'campos de dirección fuera del registro: {missing}'
+        missing = [
+            f for f in ResPartner._address_fields() if f not in registry
+        ]
+        assert (
+            missing == []
+        ), f'campos de dirección fuera del registro: {missing}'
 
 
 class TestTheOneToManyGuardSurvives:
@@ -134,8 +145,10 @@ class TestWritingTheFieldWithoutAColumn:
         who.city_id = _city()
 
         assert who.city_id.name == 'Guadalajara'
-        assert AddressStructured.objects.get(partner=who).city_id.name == \
-            'Guadalajara'
+        assert (
+            AddressStructured.objects.get(partner=who).city_id.name
+            == 'Guadalajara'
+        )
 
     def test_it_overwrites_an_existing_related_row(self, db):
         who = _company()
@@ -145,8 +158,9 @@ class TestWritingTheFieldWithoutAColumn:
 
         row = AddressStructured.objects.get(partner=who)
         assert row.city_id.name == 'Zapopan'
-        assert row.street_name == 'Vallarta', (
-            'la escritura de la ciudad pisó el resto de la fila RELATED')
+        assert (
+            row.street_name == 'Vallarta'
+        ), 'la escritura de la ciudad pisó el resto de la fila RELATED'
 
     def test_the_address_values_carry_it(self, db):
         """El camino completo: ``_get_address_values`` lo incluye."""

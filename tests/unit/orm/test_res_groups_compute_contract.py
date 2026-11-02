@@ -1,4 +1,7 @@
-"""Contrato compute de ResGroups: asignación, caché y diagnóstico sin recursión."""
+"""
+Contrato compute de ResGroups: asignación, caché y diagnóstico sin recursión.
+"""
+
 from unittest.mock import patch
 
 import pytest
@@ -15,14 +18,16 @@ def group():
         with transaction_scope():
             yield apps.get_model('base', 'ResGroups')(name='Operations')
     finally:
-        # Los mocks de compute no deben conservar metadata derivada entre casos.
+        # Los mocks de compute no deben conservar metadata derivada
+        # entre casos.
         registry.field_depends_context.clear()
 
 
 def test_first_and_second_reads_compute_once(group):
     method = type(group)._compute_full_name
-    with patch.object(type(group), '_compute_full_name', autospec=True,
-                      side_effect=method) as compute:
+    with patch.object(
+        type(group), '_compute_full_name', autospec=True, side_effect=method
+    ) as compute:
         compute._depends = method._depends
         compute._depends_context = method._depends_context
         registry.field_depends_context.clear()
@@ -37,13 +42,17 @@ def test_compute_assigns_instead_of_returning(group):
 
 
 def test_privilege_prefix_uses_real_consumer(group):
-    privilege = apps.get_model('base', 'ResGroupsPrivilege')(pk=43, name='Admin')
+    privilege = apps.get_model('base', 'ResGroupsPrivilege')(
+        pk=43, name='Admin'
+    )
     group.privilege = privilege
     assert group.full_name == 'Admin / Operations'
 
 
 def test_short_display_name_omits_privilege(group):
-    group.privilege = apps.get_model('base', 'ResGroupsPrivilege')(pk=43, name='Admin')
+    group.privilege = apps.get_model('base', 'ResGroupsPrivilege')(
+        pk=43, name='Admin'
+    )
     with context_scope(short_display_name=True):
         assert group.full_name == 'Operations'
 
@@ -68,20 +77,30 @@ def test_compute_declares_reference_dependencies(group):
 
 
 def test_return_without_assignment_raises_without_recursive_label(group):
-    with patch.object(type(group), '_compute_full_name', return_value='ignored'):
-        with pytest.raises(ValueError, match='Compute method failed to assign'):
+    with patch.object(
+        type(group), '_compute_full_name', return_value='ignored'
+    ):
+        with pytest.raises(
+            ValueError, match='Compute method failed to assign'
+        ):
             group.full_name
 
 
 def test_compute_exception_is_not_swallowed(group):
-    with patch.object(type(group), '_compute_full_name', side_effect=RuntimeError('compute failed')):
+    with patch.object(
+        type(group),
+        '_compute_full_name',
+        side_effect=RuntimeError('compute failed'),
+    ):
         with pytest.raises(RuntimeError, match='compute failed'):
             group.full_name
 
 
 def test_context_buckets_do_not_reuse_the_instance_label(group):
     group.pk = 37
-    group.privilege = apps.get_model('base', 'ResGroupsPrivilege')(pk=43, name='Admin')
+    group.privilege = apps.get_model('base', 'ResGroupsPrivilege')(
+        pk=43, name='Admin'
+    )
     assert group.full_name == 'Admin / Operations'
     with context_scope(short_display_name=True):
         assert group.full_name == 'Operations'
@@ -96,7 +115,9 @@ def test_cache_key_uses_dependencies_derived_from_the_compute(group):
 
 
 def test_unsaved_context_switch_preserves_each_cached_value(group):
-    group.privilege = apps.get_model('base', 'ResGroupsPrivilege')(pk=43, name='Admin')
+    group.privilege = apps.get_model('base', 'ResGroupsPrivilege')(
+        pk=43, name='Admin'
+    )
     group.full_name = 'Explicit normal-context label'
     assert group.full_name == 'Explicit normal-context label'
     with context_scope(short_display_name=True):
@@ -125,7 +146,9 @@ def test_constructor_contextual_value_seeds_only_its_context(group):
     assert record.full_name == 'Constructor label'
 
 
-def test_virtual_cache_invalidation_recomputes_instead_of_using_instance_value(group):
+def test_virtual_cache_invalidation_recomputes_instead_of_using_instance_value(
+    group,
+):
     assert group.full_name == 'Operations'
     field = group._meta.get_field('full_name')
     group.name = 'Support'
@@ -137,8 +160,12 @@ def test_invalidated_virtual_value_does_not_hide_missing_assignment(group):
     assert group.full_name == 'Operations'
     field = group._meta.get_field('full_name')
     field._invalidate_cache(env())
-    with patch.object(type(group), '_compute_full_name', return_value='ignored'):
-        with pytest.raises(ValueError, match='Compute method failed to assign'):
+    with patch.object(
+        type(group), '_compute_full_name', return_value='ignored'
+    ):
+        with pytest.raises(
+            ValueError, match='Compute method failed to assign'
+        ):
             group.full_name
 
 

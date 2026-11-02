@@ -23,6 +23,7 @@ es ``<template id="...">`` y su manejador ``_tag_template``
 *Ciega a:* las filas que una base de producción ya tenga con el valor viejo —
 eso lo cubre la migración de datos, no este archivo.
 """
+
 import inspect
 
 import pytest
@@ -54,11 +55,15 @@ class TestTheValueNamesTheThingAndNotItsInterpreter:
         assert len(VIEW_TYPE_CHOICES) == 8
 
     def test_the_field_offers_it(self):
-        assert IrUiView(type=VIEW_TYPE_TEMPLATE).get_type_display() == 'Plantilla'
+        assert (
+            IrUiView(type=VIEW_TYPE_TEMPLATE).get_type_display() == 'Plantilla'
+        )
 
 
 class TestTheThreeConsumersAgreeOnTheNewValue:
-    """Lo que hace de este tipo el distinto: los tres sitios que lo discriminan."""
+    """
+    Lo que hace de este tipo el distinto: los tres sitios que lo discriminan.
+    """
 
     def test_the_constraint_requires_a_key_for_this_type(self):
         # Es el único tipo que se resuelve por clave y no por (modelo, tipo).
@@ -71,15 +76,21 @@ class TestTheThreeConsumersAgreeOnTheNewValue:
         # El control tiene que poder fallar: sin clave, la fila no entra.
         with pytest.raises(IntegrityError):
             IrUiView.objects.create(
-                name='sin clave', type=VIEW_TYPE_TEMPLATE, key='',
-                arch_db='<descriptor/>')
+                name='sin clave',
+                type=VIEW_TYPE_TEMPLATE,
+                key='',
+                arch_db='<descriptor/>',
+            )
 
     @pytest.mark.django_db
     def test_and_it_lets_a_template_with_a_key_through(self):
         # El control positivo: lo que cae es la falta de clave, no el tipo.
         fila = IrUiView.objects.create(
-            name='con clave', type=VIEW_TYPE_TEMPLATE, key='test.plantilla',
-            arch_db='<descriptor/>')
+            name='con clave',
+            type=VIEW_TYPE_TEMPLATE,
+            key='test.plantilla',
+            arch_db='<descriptor/>',
+        )
         assert fila.pk is not None
 
     def test_the_client_registry_excludes_it_by_the_new_name(self):

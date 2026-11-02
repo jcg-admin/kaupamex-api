@@ -10,6 +10,7 @@ verificado en 18 y 19): configuración de costeo del producto.
 - ``standard_price`` — costo unitario. En AVCO es el promedio móvil que
   ``receive`` recalcula; en FIFO refleja el último costo; en estándar es fijo.
 """
+
 from decimal import Decimal
 
 import fields
@@ -19,27 +20,36 @@ from addons.base.models import TimeStampedModel
 
 
 class ProductCosting(TimeStampedModel):
-    """``product`` costeo — método + costo unitario (Odoo cost_method + standard_price)."""
+    """
+    ``product`` costeo — método + costo unitario (Odoo cost_method +
+    standard_price).
+    """
 
     COST_STANDARD = 'standard'
-    COST_FIFO     = 'fifo'
-    COST_AVERAGE  = 'average'
+    COST_FIFO = 'fifo'
+    COST_AVERAGE = 'average'
     COST_CHOICES = [
         (COST_STANDARD, 'Precio estándar'),
         (COST_FIFO, 'Primeras entradas, primeras salidas (FIFO)'),
         (COST_AVERAGE, 'Costo promedio (AVCO)'),
     ]
 
-    product        = models.OneToOneField(
-        'product.ProductProduct', on_delete=models.CASCADE, related_name='costing',
+    product = models.OneToOneField(
+        'product.ProductProduct',
+        on_delete=models.CASCADE,
+        related_name='costing',
         help_text='Producto (Odoo product_id).',
     )
-    cost_method    = fields.Selection(
-        max_length=16, choices=COST_CHOICES, default=COST_AVERAGE,
+    cost_method = fields.Selection(
+        max_length=16,
+        choices=COST_CHOICES,
+        default=COST_AVERAGE,
         help_text='Método de costeo (Odoo property_cost_method).',
     )
     standard_price = fields.Monetary(
-        max_digits=12, decimal_places=4, default=Decimal('0.0000'),
+        max_digits=12,
+        decimal_places=4,
+        default=Decimal('0.0000'),
         help_text='Costo unitario (Odoo standard_price).',
     )
 
@@ -53,7 +63,9 @@ class ProductCosting(TimeStampedModel):
 
     @classmethod
     def for_product(cls, product, cost_method=None):
-        """Obtiene (o crea) el costeo del producto (Odoo tiene siempre categoría)."""
+        """
+        Obtiene (o crea) el costeo del producto (Odoo tiene siempre categoría).
+        """
         costing, _ = cls.objects.get_or_create(product=product)
         if cost_method is not None and costing.cost_method != cost_method:
             costing.cost_method = cost_method

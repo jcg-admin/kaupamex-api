@@ -32,7 +32,8 @@ Porte símbolo por símbolo — 9 de 9 campos
      - portado
    * - ``contract_expiration_notice_period`` (``:16``)
      - portado — es la pieza que ``hr_employee.py`` declaraba BLOQUEADA
-       (sucesor #515): con esta columna, ``notify_expiring_contract_work_permit``
+       (sucesor #515): con esta columna,
+       ``notify_expiring_contract_work_permit``
        ya tiene de dónde leer los plazos
    * - ``work_permit_expiration_notice_period`` (``:17``)
      - portado — ídem #515
@@ -56,6 +57,7 @@ Divergencias declaradas
    ``website/models/ir_ui_view.py``, que documenta el mecanismo), no dentro
    del archivo de extensión.
 """
+
 import fields
 
 from orm.model_classes import extend_model
@@ -63,54 +65,78 @@ from orm.model_classes import extend_model
 
 def apply_hr_res_company_extensions():
     """Cuelga sobre ``res.company`` lo que ``hr`` le añade — ≙ ``_inherit``."""
-    extend_model('base', 'ResCompany', campos={
-        'hr_presence_control_email_amount': fields.Integer(
-            default=0,
-            help_text='Odoo hr_presence_control_email_amount ("# emails to '
-                      'send") — umbral de correos enviados para considerar '
-                      'presente al empleado.',
-        ),
-        'hr_presence_control_ip_list': fields.Char(
-            blank=True, default='',
-            help_text='Odoo hr_presence_control_ip_list ("Valid IP '
-                      'addresses") — lista de IPs válidas para el control de '
-                      'presencia.',
-        ),
-        'employee_properties_definition': fields.PropertiesDefinition(
-            null=True, blank=True,
-            help_text='Odoo employee_properties_definition ("Employee '
-                      'Properties") — esquema de propiedades dinámicas de '
-                      'los empleados de la empresa.',
-        ),
-        'hr_presence_control_login': fields.Boolean(
-            default=True,
-            help_text='Odoo hr_presence_control_login ("Based on user status '
-                      'in system").',
-        ),
-        'hr_presence_control_email': fields.Boolean(
-            default=False,
-            help_text='Odoo hr_presence_control_email ("Based on number of '
-                      'emails sent").',
-        ),
-        'hr_presence_control_ip': fields.Boolean(
-            default=False,
-            help_text='Odoo hr_presence_control_ip ("Based on IP Address").',
-        ),
-        'hr_presence_control_attendance': fields.Boolean(
-            default=False,
-            help_text='Odoo hr_presence_control_attendance ("Based on '
-                      'attendances").',
-        ),
-        'contract_expiration_notice_period': fields.Integer(
-            default=7,
-            help_text='Odoo contract_expiration_notice_period ("Contract '
-                      'Expiry Notice Period") — días de aviso antes del fin '
-                      'de contrato.',
-        ),
-        'work_permit_expiration_notice_period': fields.Integer(
-            default=60,
-            help_text='Odoo work_permit_expiration_notice_period ("Work '
-                      'Permit Expiry Notice Period") — días de aviso antes '
-                      'del vencimiento del permiso de trabajo.',
-        ),
-    })
+    extend_model(
+        'base',
+        'ResCompany',
+        campos={
+            'hr_presence_control_email_amount': fields.Integer(
+                default=0,
+                help_text=(
+                    'Odoo hr_presence_control_email_amount ("# emails to '
+                    'send") — umbral de correos enviados para considerar '
+                    'presente al empleado.'
+                ),
+            ),
+            'hr_presence_control_ip_list': fields.Char(
+                blank=True,
+                default='',
+                help_text=(
+                    'Odoo hr_presence_control_ip_list ("Valid IP '
+                    'addresses") — lista de IPs válidas para el control de '
+                    'presencia.'
+                ),
+            ),
+            'employee_properties_definition': fields.PropertiesDefinition(
+                null=True,
+                blank=True,
+                help_text=(
+                    'Odoo employee_properties_definition ("Employee '
+                    'Properties") — esquema de propiedades dinámicas de '
+                    'los empleados de la empresa.'
+                ),
+            ),
+            'hr_presence_control_login': fields.Boolean(
+                default=True,
+                help_text=(
+                    'Odoo hr_presence_control_login ("Based on user status '
+                    'in system").'
+                ),
+            ),
+            'hr_presence_control_email': fields.Boolean(
+                default=False,
+                help_text=(
+                    'Odoo hr_presence_control_email ("Based on number of '
+                    'emails sent").'
+                ),
+            ),
+            'hr_presence_control_ip': fields.Boolean(
+                default=False,
+                help_text=(
+                    'Odoo hr_presence_control_ip ("Based on IP Address").'
+                ),
+            ),
+            'hr_presence_control_attendance': fields.Boolean(
+                default=False,
+                help_text=(
+                    'Odoo hr_presence_control_attendance ("Based on '
+                    'attendances").'
+                ),
+            ),
+            'contract_expiration_notice_period': fields.Integer(
+                default=7,
+                help_text=(
+                    'Odoo contract_expiration_notice_period ("Contract '
+                    'Expiry Notice Period") — días de aviso antes del fin '
+                    'de contrato.'
+                ),
+            ),
+            'work_permit_expiration_notice_period': fields.Integer(
+                default=60,
+                help_text=(
+                    'Odoo work_permit_expiration_notice_period ("Work '
+                    'Permit Expiry Notice Period") — días de aviso antes '
+                    'del vencimiento del permiso de trabajo.'
+                ),
+            ),
+        },
+    )

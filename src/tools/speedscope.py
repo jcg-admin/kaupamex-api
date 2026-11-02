@@ -19,6 +19,7 @@ eventos.
 Adaptado de Odoo Community (LGPL-3, declarado en el ``__manifest__`` del
 núcleo) — copia con adaptación y atribución preservada (DEC-KX-03).
 """
+
 import reprlib
 
 #: El acortador de la cadena de consulta que va al nombre del marco SQL. La
@@ -61,7 +62,9 @@ class Speedscope:
             if 'query' in entry:
                 query = entry['query']
                 full_query = entry['full_query']
-                entry['stack'].append((f'sql({shorten(query)})', full_query, None))
+                entry['stack'].append(
+                    (f'sql({shorten(query)})', full_query, None)
+                )
         self.profiles_raw[key] = profile
 
     def convert_stack(self, stack):
@@ -76,12 +79,28 @@ class Speedscope:
             line = ''
             number = ''
             if self.caller_frame and len(self.caller_frame) == 4:
-                line = f"called at {self.caller_frame[0]} ({self.caller_frame[3].strip()})"
+                line = (
+                    "called at"
+                    f" {self.caller_frame[0]} ({self.caller_frame[3].strip()})"
+                )
                 number = self.caller_frame[1]
-            stack[index] = (method, line, number,)
+            stack[index] = (
+                method,
+                line,
+                number,
+            )
             self.caller_frame = frame
 
-    def add_output(self, names, complete=True, display_name=None, use_context=True, constant_time=False, context_per_name=None, **params):
+    def add_output(
+        self,
+        names,
+        complete=True,
+        display_name=None,
+        use_context=True,
+        constant_time=False,
+        context_per_name=None,
+        **params,
+    ):
         """Añade una salida de perfil a la lista de perfiles.
 
         :param names: claves a combinar en esta salida; son las que se usaron
@@ -103,7 +122,12 @@ class Speedscope:
                 continue
             entries += raw
         entries.sort(key=lambda e: e['start'])
-        result = self.process(entries, use_context=use_context, constant_time=constant_time, **params)
+        result = self.process(
+            entries,
+            use_context=use_context,
+            constant_time=constant_time,
+            **params,
+        )
         if not result:
             return self
         start = result[0]['at']
@@ -112,32 +136,33 @@ class Speedscope:
         if complete:
             start_stack = []
             end_stack = []
-            init_stack_trace_ids = self.stack_to_ids(self.init_stack_trace, use_context and entries[0].get('exec_context'))
+            init_stack_trace_ids = self.stack_to_ids(
+                self.init_stack_trace,
+                use_context and entries[0].get('exec_context'),
+            )
             for frame_id in init_stack_trace_ids:
-                start_stack.append({
-                    "type": "O",
-                    "frame": frame_id,
-                    "at": start
-                })
+                start_stack.append(
+                    {"type": "O", "frame": frame_id, "at": start}
+                )
             for frame_id in reversed(init_stack_trace_ids):
-                end_stack.append({
-                    "type": "C",
-                    "frame": frame_id,
-                    "at": end
-                })
+                end_stack.append({"type": "C", "frame": frame_id, "at": end})
             result = start_stack + result + end_stack
 
-        self.profiles.append({
-            "name": display_name,
-            "type": "evented",
-            "unit": "entries" if constant_time else "seconds",
-            "startValue": 0,
-            "endValue": end - start,
-            "events": result
-        })
+        self.profiles.append(
+            {
+                "name": display_name,
+                "type": "evented",
+                "unit": "entries" if constant_time else "seconds",
+                "startValue": 0,
+                "endValue": end - start,
+                "events": result,
+            }
+        )
         return self
 
-    def add_memory_output(self, names, display_name=None, use_context=True, **params):
+    def add_memory_output(
+        self, names, display_name=None, use_context=True, **params
+    ):
         """Añade una salida de perfil muestreado por memoria.
 
         Para cada par de entradas consecutivas de ``names`` se calcula la
@@ -176,7 +201,9 @@ class Speedscope:
                 continue
             stack = current.get('stack') or []
             context = use_context and current.get('exec_context')
-            stack_ids = self.stack_to_ids(stack, context, False, self.init_stack_trace_level)
+            stack_ids = self.stack_to_ids(
+                stack, context, False, self.init_stack_trace_level
+            )
             full_ids = init_ids + stack_ids
             if full_ids:
                 samples.append(full_ids)
@@ -186,15 +213,17 @@ class Speedscope:
         if not samples:
             return self
 
-        self.profiles.append({
-            "name": display_name,
-            "type": "sampled",
-            "unit": "bytes",
-            "startValue": 0,
-            "endValue": total_weight,
-            "samples": samples,
-            "weights": weights,
-        })
+        self.profiles.append(
+            {
+                "name": display_name,
+                "type": "sampled",
+                "unit": "bytes",
+                "startValue": 0,
+                "endValue": total_weight,
+                "samples": samples,
+                "weights": weights,
+            }
+        )
         return self
 
     def add_default(self, **params):
@@ -205,14 +234,27 @@ class Speedscope:
         """
         if len(self.profiles_raw) > 1:
             if params['combined_profile']:
-                self.add_output(self.profiles_raw, display_name='Combined', **params)
+                self.add_output(
+                    self.profiles_raw, display_name='Combined', **params
+                )
         for key, profile in self.profiles_raw.items():
             sql = profile and profile[0].get('query')
             if sql:
                 if params['sql_no_gap_profile']:
-                    self.add_output([key], hide_gaps=True, display_name=f'{key} (no gap)', **params)
+                    self.add_output(
+                        [key],
+                        hide_gaps=True,
+                        display_name=f'{key} (no gap)',
+                        **params,
+                    )
                 if params['sql_density_profile']:
-                    self.add_output([key], continuous=False, complete=False, display_name=f'{key} (density)', **params)
+                    self.add_output(
+                        [key],
+                        continuous=False,
+                        complete=False,
+                        display_name=f'{key} (density)',
+                        **params,
+                    )
 
             elif params['frames_profile']:
                 self.add_output([key], display_name=key, **params)
@@ -227,23 +269,26 @@ class Speedscope:
             "activeProfileIndex": 0,
             "$schema": "https://www.speedscope.app/file-format-schema.json",
             "shared": {
-                "frames": [{
-                    "name": frame[0],
-                    "file": frame[1],
-                    "line": frame[2]
-                } for frame in self.frames_indexes]
+                "frames": [
+                    {"name": frame[0], "file": frame[1], "line": frame[2]}
+                    for frame in self.frames_indexes
+                ]
             },
             "profiles": self.profiles,
         }
 
     def get_frame_id(self, frame):
-        """Devuelve el índice de ``frame`` en la tabla compartida, creándolo."""
+        """
+        Devuelve el índice de ``frame`` en la tabla compartida, creándolo.
+        """
         if frame not in self.frames_indexes:
             self.frames_indexes[frame] = self.frame_count
             self.frame_count += 1
         return self.frames_indexes[frame]
 
-    def stack_to_ids(self, stack, context, aggregate_sql=False, stack_offset=0):
+    def stack_to_ids(
+        self, stack, context, aggregate_sql=False, stack_offset=0
+    ):
         """Ensambla pila y contexto y devuelve la lista de identificadores.
 
         :param stack: lista de marcos hashables.
@@ -264,13 +309,28 @@ class Speedscope:
             if aggregate_sql:
                 frame = (frame[0], '', frame[2])
             while context_level == level:
-                context_frame = (", ".join(f"{k}={v}" for k, v in context_value.items()), '', '')
+                context_frame = (
+                    ", ".join(f"{k}={v}" for k, v in context_value.items()),
+                    '',
+                    '',
+                )
                 stack_ids.append(self.get_frame_id(context_frame))
-                context_level, context_value = next(context_iterator, (None, None))
+                context_level, context_value = next(
+                    context_iterator, (None, None)
+                )
             stack_ids.append(self.get_frame_id(frame))
         return stack_ids
 
-    def process(self, entries, continuous=True, hide_gaps=False, use_context=True, constant_time=False, aggregate_sql=False, **params):
+    def process(
+        self,
+        entries,
+        continuous=True,
+        hide_gaps=False,
+        use_context=True,
+        constant_time=False,
+        aggregate_sql=False,
+        **params,
+    ):
         """Convierte las entradas ordenadas en la lista de eventos ``O``/``C``.
 
         El emparejamiento se hace por prefijo común: entre dos entradas
@@ -290,7 +350,12 @@ class Speedscope:
         # Se añade la última entrada de cierre si falta.
         last_entry = entries[-1]
         if last_entry['stack']:
-            entries.append({'stack': [], 'start': last_entry['start'] + last_entry.get('time', 0)})
+            entries.append(
+                {
+                    'stack': [],
+                    'start': last_entry['start'] + last_entry.get('time', 0),
+                }
+            )
 
         for index, entry in enumerate(entries):
             if constant_time:
@@ -312,13 +377,15 @@ class Speedscope:
                     close_time = entry_start
 
                 entry_time = entry.get('time')
-                entry_end = None if entry_time is None else entry_start + entry_time
+                entry_end = (
+                    None if entry_time is None else entry_start + entry_time
+                )
 
             entry_stack_ids = self.stack_to_ids(
                 entry['stack'] or [],
                 use_context and entry.get('exec_context'),
                 aggregate_sql,
-                self.init_stack_trace_level
+                self.init_stack_trace_level,
             )
             level = 0
             if continuous:
@@ -331,17 +398,9 @@ class Speedscope:
                     level += 1
 
             for frame in reversed(current_stack_ids[level:]):
-                events.append({
-                    "type": "C",
-                    "frame": frame,
-                    "at": close_time
-                })
+                events.append({"type": "C", "frame": frame, "at": close_time})
             for frame in entry_stack_ids[level:]:
-                events.append({
-                    "type": "O",
-                    "frame": frame,
-                    "at": entry_start
-                })
+                events.append({"type": "O", "frame": frame, "at": entry_start})
             current_stack_ids = entry_stack_ids
 
         return events

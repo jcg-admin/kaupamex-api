@@ -1,11 +1,13 @@
 """Descubrimiento de bases via catálogo del motor (SOL-091, T-091-04).
 
 Verifica contra PostgreSQL real (no SQLite) que ``list_all_schema_names`` lee
-``pg_database`` —el mismo catálogo que ``list_dbs`` de Odoo— y que ``list_company_db_names`` aplica el filtro
+``pg_database`` —el mismo catálogo que ``list_dbs`` de Odoo— y que
+``list_company_db_names`` aplica el filtro
 ``company_<N>_db`` (== ``db_filter``). Sin este descubrimiento por catálogo,
 ``orm`` necesitaría un modelo/tabla de registro, lo que lo volvería una app de
 dominio (infiel a ``odoo/orm/``, que no tiene modelos de negocio).
 """
+
 import pytest
 from django.db import connection
 

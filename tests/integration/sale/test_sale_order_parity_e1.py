@@ -11,7 +11,8 @@ se estimó al abrir la rebanada):
 - ``carrier`` — Odoo ``sale.order.carrier_id``
   (``delivery/models/sale_order.py:13``). Se porta.
 - ``admin_cancelled_by`` / ``cancellation_reason`` / ``cancelled_at`` — sin
-  equivalente en Odoo core (allí la cancelación es ``state`` + ``mail.thread``);
+  equivalente en Odoo core (allí la cancelación es ``state`` +
+  ``mail.thread``);
   son extensión propia del proyecto (UC-ORD-04, UC-ORD-08). Se portan.
 - ``order_number`` — **ya existía** como ``SaleOrder.name``. No se porta.
 - ``voucher_code`` / ``voucher_discount`` — **ya existían** como
@@ -19,6 +20,7 @@ se estimó al abrir la rebanada):
 - ``shipping_cost`` — en Odoo es una **línea** ``is_delivery=True``, no una
   columna; su port tiene prerequisito (H-API-24) y es rebanada aparte.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -39,14 +41,17 @@ def draft():
 
 
 class TestCarrierParity:
-    """``SaleOrder.carrier`` — paridad con ``sale.order.carrier_id`` de Odoo."""
+    """
+    ``SaleOrder.carrier`` — paridad con ``sale.order.carrier_id`` de Odoo.
+    """
 
     def test_carrier_es_opcional_y_arranca_vacio(self, draft):
         assert draft.carrier_id is None
 
     def test_carrier_guarda_el_metodo_de_envio_elegido(self, draft):
         metodo = ShippingMethod.objects.create(
-            name='Estándar E1', cost=Decimal('99.00'), estimated_days=3)
+            name='Estándar E1', cost=Decimal('99.00'), estimated_days=3
+        )
         draft.carrier = metodo
         draft.save(update_fields=['carrier', 'updated_at'])
 
@@ -57,7 +62,8 @@ class TestCarrierParity:
     def test_borrar_el_metodo_no_borra_la_orden(self, draft):
         """``SET_NULL``: el catálogo de envío es configuración, no la venta."""
         metodo = ShippingMethod.objects.create(
-            name='Temporal E1', cost=Decimal('50.00'), estimated_days=2)
+            name='Temporal E1', cost=Decimal('50.00'), estimated_days=2
+        )
         draft.carrier = metodo
         draft.save(update_fields=['carrier', 'updated_at'])
 
@@ -69,7 +75,8 @@ class TestCarrierParity:
 
     def test_la_orden_es_alcanzable_desde_el_metodo(self, draft):
         metodo = ShippingMethod.objects.create(
-            name='Inverso E1', cost=Decimal('120.00'), estimated_days=5)
+            name='Inverso E1', cost=Decimal('120.00'), estimated_days=5
+        )
         draft.carrier = metodo
         draft.save(update_fields=['carrier', 'updated_at'])
 
@@ -89,8 +96,14 @@ class TestCancellationParity:
         draft.state = SaleOrder.STATE_CANCEL
         draft.cancellation_reason = 'Ya no lo necesito'
         draft.cancelled_at = momento
-        draft.save(update_fields=['state', 'cancellation_reason',
-                                  'cancelled_at', 'updated_at'])
+        draft.save(
+            update_fields=[
+                'state',
+                'cancellation_reason',
+                'cancelled_at',
+                'updated_at',
+            ]
+        )
 
         draft.refresh_from_db()
         assert draft.cancellation_reason == 'Ya no lo necesito'
@@ -100,14 +113,21 @@ class TestCancellationParity:
 
     def test_cancelacion_administrativa_registra_quien(self, draft):
         admin = User.objects.create_user(
-            login='admin.e1@kaupamex.mx', password='x')
+            login='admin.e1@kaupamex.mx', password='x'
+        )
         draft.state = SaleOrder.STATE_CANCEL
         draft.admin_cancelled_by = admin
         draft.cancellation_reason = 'Sin inventario'
         draft.cancelled_at = timezone.now()
-        draft.save(update_fields=['state', 'admin_cancelled_by',
-                                  'cancellation_reason', 'cancelled_at',
-                                  'updated_at'])
+        draft.save(
+            update_fields=[
+                'state',
+                'admin_cancelled_by',
+                'cancellation_reason',
+                'cancelled_at',
+                'updated_at',
+            ]
+        )
 
         draft.refresh_from_db()
         assert draft.admin_cancelled_by_id == admin.pk
@@ -116,14 +136,21 @@ class TestCancellationParity:
     def test_borrar_al_admin_conserva_la_orden_cancelada(self, draft):
         """El historial de la venta sobrevive a la baja de la cuenta."""
         admin = User.objects.create_user(
-            login='baja.e1@kaupamex.mx', password='x')
+            login='baja.e1@kaupamex.mx', password='x'
+        )
         draft.state = SaleOrder.STATE_CANCEL
         draft.admin_cancelled_by = admin
         draft.cancellation_reason = 'Fraude'
         draft.cancelled_at = timezone.now()
-        draft.save(update_fields=['state', 'admin_cancelled_by',
-                                  'cancellation_reason', 'cancelled_at',
-                                  'updated_at'])
+        draft.save(
+            update_fields=[
+                'state',
+                'admin_cancelled_by',
+                'cancellation_reason',
+                'cancelled_at',
+                'updated_at',
+            ]
+        )
 
         admin.delete()
 

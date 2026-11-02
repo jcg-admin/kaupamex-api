@@ -1,15 +1,19 @@
-"""``mailing.trace`` — rastreo de entrega por destinatario (Odoo ``mass_mailing``).
+"""
+``mailing.trace`` — rastreo de entrega por destinatario (Odoo
+``mass_mailing``).
 
 Portacion fiel de ``mass_mailing/models/mailing_trace.py`` (``mailing.trace``,
 Odoo 19 community, LGPL-3): una fila por (campana, destinatario) con el estado
 de entrega y los timestamps de envio/apertura/respuesta. Es el analogo
 mass-mailing de ``mail.notification`` — pero el destinatario de un envio masivo
-es un ``mailing.contact`` (posiblemente anonimo), no un usuario/partner, por eso
+es un ``mailing.contact`` (posiblemente anonimo), no un usuario/partner, por
+eso
 el rastreo vive aqui y no en el backbone ``mail``.
 
 Nota: este modelo se habia portado por error dentro del addon de proyecto
 ``newsletter`` (revertido, 2026-07-19); su hogar Odoo fiel es ``mass_mailing``.
 """
+
 import fields
 import models
 
@@ -61,25 +65,37 @@ class MailingTrace(TimeStampedModel):
     ]
 
     mailing = fields.Many2one(
-        MailingMailing, on_delete=models.CASCADE, related_name='trace_ids',
+        MailingMailing,
+        on_delete=models.CASCADE,
+        related_name='trace_ids',
         help_text='Envio masivo rastreado (Odoo mass_mailing_id).',
     )
     contact = fields.Many2one(
-        MailingContact, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='trace_ids', help_text='Destinatario (Odoo res_id).',
+        MailingContact,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='trace_ids',
+        help_text='Destinatario (Odoo res_id).',
     )
-    # Snapshot del email al momento del envio (Odoo email). Sobrevive al borrado
+    # Snapshot del email al momento del envio (Odoo email). Sobrevive al
+    # borrado
     # del contacto para conservar el historial de entrega.
     email = fields.Char(max_length=254, blank=True, default='')
     trace_status = fields.Selection(
-        max_length=12, choices=STATUS_CHOICES, default=STATUS_OUTGOING,
+        max_length=12,
+        choices=STATUS_CHOICES,
+        default=STATUS_OUTGOING,
         help_text='Estado de entrega (Odoo trace_status).',
     )
     sent_datetime = fields.Datetime(null=True, blank=True)
     open_datetime = fields.Datetime(null=True, blank=True)
     reply_datetime = fields.Datetime(null=True, blank=True)
     failure_type = fields.Selection(
-        max_length=24, choices=FAILURE_CHOICES, null=True, blank=True,
+        max_length=24,
+        choices=FAILURE_CHOICES,
+        null=True,
+        blank=True,
     )
     failure_reason = fields.Text(blank=True, default='')
 

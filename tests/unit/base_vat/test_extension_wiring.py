@@ -7,6 +7,7 @@ es el ``_inherit`` de la fuente materializado con ``extend_model`` desde
 es lo que ningún gate estático puede ver: el gate de porte compara nombres en
 el AST y da por instalado lo que la llamada nombra, sin arrancar Django.
 """
+
 import pytest
 
 from addons.base.models.res_company import ResCompany
@@ -19,6 +20,7 @@ pytestmark = pytest.mark.django_db
 
 
 # --- Los campos que el addon aporta --------------------------------------
+
 
 def test_partner_gains_vies_valid_field():
     """≙ ``vies_valid = fields.Boolean(...)`` (``odoo19c: :181-184``)."""
@@ -34,7 +36,8 @@ def test_company_gains_vat_check_vies_field():
 
 
 def test_config_settings_gains_vat_check_vies():
-    """≙ ``res_config_settings.py`` (``odoo19c: :7``) — el campo del formulario.
+    """
+    ≙ ``res_config_settings.py`` (``odoo19c: :7``) — el campo del formulario.
 
     Va por ``add_field_if_absent`` y no por ``extend_model``: la clase destino
     es ``Meta: abstract = True`` y ``extend_model`` resuelve por el registro de
@@ -46,8 +49,10 @@ def test_config_settings_gains_vat_check_vies():
 
 # --- Las propiedades: el compute sin store de la fuente -------------------
 
+
 def test_perform_vies_validation_is_a_property():
-    """≙ ``perform_vies_validation`` (``odoo19c: :179``), ``compute`` sin store.
+    """
+    ≙ ``perform_vies_validation`` (``odoo19c: :179``), ``compute`` sin store.
 
     Sin ``store`` no hay columna: aquí el hogar es una ``property`` que deriva
     el valor en cada acceso.
@@ -62,11 +67,14 @@ def test_country_gains_has_foreign_fiscal_position_property_and_its_compute():
     ``_compute_has_foreign_fiscal_position`` conserva el name de la fuente
     para el consumidor que lo llame directo, como allá.
     """
-    assert isinstance(ResCountry.__dict__['has_foreign_fiscal_position'], property)
+    assert isinstance(
+        ResCountry.__dict__['has_foreign_fiscal_position'], property
+    )
     assert callable(ResCountry._compute_has_foreign_fiscal_position)
 
 
 # --- El override de escritura --------------------------------------------
+
 
 def test_save_is_wrapped_and_still_persists():
     """≙ ``create``/``write`` (``odoo19c: :963-974``) en una sola entrada.
@@ -101,16 +109,26 @@ def test_create_contact_parent_company_is_wrapped():
 
 # --- Las quince expresiones regulares precompiladas -----------------------
 
-#: Las quince que la fuente declara dentro de la clase (``odoo19c: :385``…``:790``).
+#: Las quince que la fuente declara dentro de la clase (``odoo19c:
+#: :385``…``:790``).
 #: La lista está entera a propósito: un caso sobre una muestra no distingue
 #: «las cuelga todas» de «cuelga la que el caso nombra».
 SOURCE_REGEXES = [
-    '_check_vat_al_re', '_check_tin1_ro_natural_persons',
-    '_check_tin2_ro_natural_persons', '_check_vat_gt_testing_infile',
-    '_check_tin_hu_individual_re', '_check_tin_hu_companies_re',
-    '_check_tin_hu_european_re', '_check_vat_ch_re', '_check_vat_mx_re',
-    '_check_vat_ph_re', '_check_vat_sa_re', '_check_vat_br_re',
-    '_check_vat_cr_re', '_check_vat_vn_re', '_check_vat_vn_companies_re',
+    '_check_vat_al_re',
+    '_check_tin1_ro_natural_persons',
+    '_check_tin2_ro_natural_persons',
+    '_check_vat_gt_testing_infile',
+    '_check_tin_hu_individual_re',
+    '_check_tin_hu_companies_re',
+    '_check_tin_hu_european_re',
+    '_check_vat_ch_re',
+    '_check_vat_mx_re',
+    '_check_vat_ph_re',
+    '_check_vat_sa_re',
+    '_check_vat_br_re',
+    '_check_vat_cr_re',
+    '_check_vat_vn_re',
+    '_check_vat_vn_companies_re',
 ]
 
 
@@ -124,18 +142,24 @@ def test_precompiled_regexes_hang_on_the_class(name):
     localización que herede del partner redefine una sin tocar su método.
     """
     assert hasattr(ResPartner, name), f'{name} no quedó colgada'
-    assert hasattr(getattr(ResPartner, name), 'match'), f'{name} no es un patrón'
+    assert hasattr(
+        getattr(ResPartner, name), 'match'
+    ), f'{name} no es un patrón'
 
 
 # --- Los cinco bloqueados: fallan RUIDOSAMENTE ----------------------------
 
-@pytest.mark.parametrize('name, args', [
-    ('_inverse_vat', ()),
-    ('_onchange_vat', ()),
-    ('_get_country_specific_vat_variants', ('MXAAA010101AAA', 'MX')),
-    ('_get_vat_required_valid', ()),
-    ('_check_vies_iap', ()),
-])
+
+@pytest.mark.parametrize(
+    'name, args',
+    [
+        ('_inverse_vat', ()),
+        ('_onchange_vat', ()),
+        ('_get_country_specific_vat_variants', ('MXAAA010101AAA', 'MX')),
+        ('_get_vat_required_valid', ()),
+        ('_check_vies_iap', ()),
+    ],
+)
 def test_blocked_symbols_raise_instead_of_returning_a_wrong_answer(name, args):
     """Un símbolo bloqueado existe y **grita**; no devuelve un valor plausible.
 

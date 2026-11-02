@@ -5,11 +5,13 @@ analisis-modelo-company-l1-foundation.rst`` — ``ResCompany`` (L1 root) +
 ``CompanyModuleSubscription`` (per-module billing/gating) reusing the existing
 ``authz.Module`` pivot (L1<->L2). Slice 1: models + the L1-a "active module
 codes" primitive **in isolation** — NOT yet wired into ``authz.services.
-resolve_capabilities`` (that needs a user<->company link, a later slice), so the
+resolve_capabilities`` (that needs a user<->company link, a later slice), so
+the
 existing suite stays green.
 
 TDD for the Kaupamex platform base loop (design-first -> construction).
 """
+
 import datetime
 
 import pytest
@@ -57,7 +59,8 @@ class TestCompanyModuleSubscription:
         m = Module.objects.create(code="orders", name="Órdenes")
         now = timezone.now()
         active = CompanyModuleSubscription.objects.create(
-            company=t, module=m,
+            company=t,
+            module=m,
             status=CompanyModuleSubscription.Status.ACTIVE,
             expires_at=now + datetime.timedelta(days=30),
         )
@@ -74,7 +77,8 @@ class TestCompanyModuleSubscription:
         t = ResCompany.objects.create(code="acme", name="Acme")
         m = Module.objects.create(code="orders", name="Órdenes")
         sub = CompanyModuleSubscription.objects.create(
-            company=t, module=m,
+            company=t,
+            module=m,
             status=CompanyModuleSubscription.Status.ACTIVE,
             expires_at=None,
         )
@@ -91,18 +95,21 @@ class TestActiveModuleCodes:
         m_pos = Module.objects.create(code="pos", name="POS")
         # catalogue: active, no expiry -> included
         CompanyModuleSubscription.objects.create(
-            company=t, module=m_cat,
+            company=t,
+            module=m_cat,
             status=CompanyModuleSubscription.Status.ACTIVE,
         )
         # orders: active but expired -> excluded
         CompanyModuleSubscription.objects.create(
-            company=t, module=m_ord,
+            company=t,
+            module=m_ord,
             status=CompanyModuleSubscription.Status.ACTIVE,
             expires_at=timezone.now() - datetime.timedelta(days=1),
         )
         # pos: suspended -> excluded
         CompanyModuleSubscription.objects.create(
-            company=t, module=m_pos,
+            company=t,
+            module=m_pos,
             status=CompanyModuleSubscription.Status.SUSPENDED,
         )
         assert t.active_module_codes() == {"catalogue"}

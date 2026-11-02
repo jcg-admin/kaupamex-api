@@ -111,6 +111,7 @@ Divergencias transversales
    registro público ES el id del empleado; aquí igual (``employee_id`` es
    además la FK navegable).
 """
+
 from datetime import timedelta
 
 from django.db import connection
@@ -139,74 +140,125 @@ class HrEmployeePublic(models.Model):
 
     # ==== Columnas de la vista (ver _get_fields) ====
     create_date = fields.Datetime(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text='Odoo create_date — en la vista sale de e.created_at.',
     )
     name = fields.Char(blank=True, default='')
     active = fields.Boolean(default=True)
     department_id = fields.Many2one(
-        'hr.HrDepartment', on_delete=models.DO_NOTHING, null=True, blank=True,
-        related_name='+', db_column='department_id',
+        'hr.HrDepartment',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
+        db_column='department_id',
         help_text='Columna de la vista — origen v.department_id.',
     )
     job_id = fields.Many2one(
-        'hr.HrJob', on_delete=models.DO_NOTHING, null=True, blank=True,
-        related_name='+', db_column='job_id',
+        'hr.HrJob',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
+        db_column='job_id',
         help_text='Origen v.job_id.',
     )
     company_id = fields.Many2one(
-        'base.ResCompany', on_delete=models.DO_NOTHING, null=True, blank=True,
-        related_name='+', db_column='company_id',
+        'base.ResCompany',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
+        db_column='company_id',
         help_text='Origen e.company_id (columna del ResourceMixin).',
     )
     address_id = fields.Many2one(
-        'base.ResPartner', on_delete=models.DO_NOTHING, null=True, blank=True,
-        related_name='+', db_column='address_id',
+        'base.ResPartner',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
+        db_column='address_id',
         help_text='Origen v.address_id.',
     )
     mobile_phone = fields.Char(blank=True, default='')
     work_phone = fields.Char(blank=True, default='')
     work_email = fields.Char(blank=True, default='')
     work_contact_id = fields.Many2one(
-        'base.ResPartner', on_delete=models.DO_NOTHING, null=True, blank=True,
-        related_name='+', db_column='work_contact_id',
+        'base.ResPartner',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
+        db_column='work_contact_id',
         help_text='Origen e.work_contact_id.',
     )
     work_location_id = fields.Many2one(
-        'hr.HrWorkLocation', on_delete=models.DO_NOTHING, null=True, blank=True,
-        related_name='+', db_column='work_location_id',
+        'hr.HrWorkLocation',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
+        db_column='work_location_id',
         help_text='Origen v.work_location_id.',
     )
     user_id = fields.Many2one(
-        'base.ResUsers', on_delete=models.DO_NOTHING, null=True, blank=True,
-        related_name='+', db_column='user_id',
+        'base.ResUsers',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
+        db_column='user_id',
         help_text='Origen r.user_id (el vínculo vive en resource_resource).',
     )
     resource_id = fields.Many2one(
-        'resource.ResourceResource', on_delete=models.DO_NOTHING,
-        null=True, blank=True, related_name='+', db_column='resource_id',
+        'resource.ResourceResource',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
+        db_column='resource_id',
         help_text='Origen e.resource_id.',
     )
     color = fields.Integer(default=0)
     resource_calendar_id = fields.Many2one(
-        'resource.ResourceCalendar', on_delete=models.DO_NOTHING,
-        null=True, blank=True, related_name='+', db_column='resource_calendar_id',
+        'resource.ResourceCalendar',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
+        db_column='resource_calendar_id',
         help_text='Origen v.resource_calendar_id.',
     )
     employee_id = fields.Many2one(
-        HrEmployee, on_delete=models.DO_NOTHING, null=True, blank=True,
-        related_name='+', db_column='employee_id',
+        HrEmployee,
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
+        db_column='employee_id',
         help_text='Odoo employee_id — en la vista, e.id (= id del registro).',
     )
     parent_id = fields.Many2one(
-        'self', on_delete=models.DO_NOTHING, null=True, blank=True,
-        related_name='child_ids', db_column='parent_id',
-        help_text='Odoo parent_id ("Manager"); child_ids es su reverso '
-                  '("Direct subordinates").',
+        'self',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='child_ids',
+        db_column='parent_id',
+        help_text=(
+            'Odoo parent_id ("Manager"); child_ids es su reverso '
+            '("Direct subordinates").'
+        ),
     )
     coach_id = fields.Many2one(
-        'self', on_delete=models.DO_NOTHING, null=True, blank=True,
-        related_name='+', db_column='coach_id',
+        'self',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
+        db_column='coach_id',
         help_text='Odoo coach_id ("Coach").',
     )
 
@@ -247,12 +299,16 @@ class HrEmployeePublic(models.Model):
     @property
     def work_location_name(self):
         """≙ ``work_location_name``."""
-        return self.employee_id.work_location_name if self.employee_id_id else ''
+        return (
+            self.employee_id.work_location_name if self.employee_id_id else ''
+        )
 
     @property
     def work_location_type(self):
         """≙ ``work_location_type``."""
-        return self.employee_id.work_location_type if self.employee_id_id else ''
+        return (
+            self.employee_id.work_location_type if self.employee_id_id else ''
+        )
 
     @property
     def tz(self):
@@ -280,8 +336,11 @@ class HrEmployeePublic(models.Model):
     @property
     def hr_presence_state(self):
         """≙ ``hr_presence_state`` — delega (origen bloqueado por #21)."""
-        return (self.employee_id.hr_presence_state
-                if self.employee_id_id else 'out_of_working_hour')
+        return (
+            self.employee_id.hr_presence_state
+            if self.employee_id_id
+            else 'out_of_working_hour'
+        )
 
     @property
     def hr_icon_display(self):
@@ -291,21 +350,29 @@ class HrEmployeePublic(models.Model):
     @property
     def show_hr_icon_display(self):
         """≙ ``show_hr_icon_display``."""
-        return bool(self.employee_id_id and self.employee_id.show_hr_icon_display)
+        return bool(
+            self.employee_id_id and self.employee_id.show_hr_icon_display
+        )
 
     @property
     def country_code(self):
         """≙ ``country_code`` — ver DIVERGENCIA (``company_country_code``).
 
-        ≙ ``_compute_country_code`` (``odoo19c: hr/models/hr_employee_public.py``).
+        ≙ ``_compute_country_code`` (``odoo19c:
+        hr/models/hr_employee_public.py``).
         """
-        return self.employee_id.company_country_code if self.employee_id_id else ''
+        return (
+            self.employee_id.company_country_code
+            if self.employee_id_id
+            else ''
+        )
 
     @property
     def newly_hired(self):
         """≙ ``newly_hired``.
 
-        ≙ ``_compute_newly_hired`` (``odoo19c: hr/models/hr_employee_public.py``).
+        ≙ ``_compute_newly_hired`` (``odoo19c:
+        hr/models/hr_employee_public.py``).
         """
         return bool(self.employee_id_id and self.employee_id.newly_hired)
 
@@ -378,7 +445,9 @@ class HrEmployeePublic(models.Model):
             field_names = [field_names]
         employee = self.employee_id if self.employee_id_id else None
         return {
-            field_name: getattr(employee, field_name, None) if employee else None
+            field_name: (
+                getattr(employee, field_name, None) if employee else None
+            )
             for field_name in field_names
         }
 
@@ -405,8 +474,10 @@ class HrEmployeePublic(models.Model):
     def _compute_is_user(self, user):
         """≙ ``_compute_is_user`` (``:120-124``)."""
         user_employee = user.employee if user is not None else None
-        return bool(user_employee is not None
-                    and self.employee_id_id == user_employee.pk)
+        return bool(
+            user_employee is not None
+            and self.employee_id_id == user_employee.pk
+        )
 
     def _compute_presence_state(self):
         """≙ ``_compute_presence_state`` (``:126-127``)."""
@@ -423,11 +494,14 @@ class HrEmployeePublic(models.Model):
         módulo)."""
         user_employee = user.employee if user is not None else None
         own_department = self.department_id if self.department_id_id else None
-        user_department = (user_employee.department
-                          if user_employee is not None else None)
+        user_department = (
+            user_employee.department if user_employee is not None else None
+        )
         if own_department is None or user_department is None:
             return False
-        return own_department.parent_path.startswith(user_department.parent_path)
+        return own_department.parent_path.startswith(
+            user_department.parent_path
+        )
 
     def _get_manager_only_fields(self):
         """≙ ``_get_manager_only_fields`` (``:136-137``) — verbatim."""
@@ -472,7 +546,9 @@ class HrEmployeePublic(models.Model):
         if self._compute_is_manager(user):
             employee = self.employee_id if self.employee_id_id else None
             return {
-                field_name: getattr(employee, field_name, None) if employee else None
+                field_name: (
+                    getattr(employee, field_name, None) if employee else None
+                )
                 for field_name in manager_fields
             }
         return {field_name: False for field_name in manager_fields}
@@ -508,28 +584,30 @@ class HrEmployeePublic(models.Model):
         mapeo se declara explícito — el metadata de este ORM no distingue
         "delegado a la versión" de "propio".
         """
-        return ','.join((
-            'e.id AS id',
-            'e.id AS employee_id',
-            'e.name AS name',
-            'e.active AS active',
-            'e.created_at AS create_date',
-            'v.department_id AS department_id',
-            'v.job_id AS job_id',
-            'e.company_id AS company_id',
-            'v.address_id AS address_id',
-            'e.mobile_phone AS mobile_phone',
-            'e.work_phone AS work_phone',
-            'e.work_email AS work_email',
-            'e.work_contact_id AS work_contact_id',
-            'v.work_location_id AS work_location_id',
-            'r.user_id AS user_id',
-            'e.resource_id AS resource_id',
-            'e.color AS color',
-            'v.resource_calendar_id AS resource_calendar_id',
-            'e.parent_id AS parent_id',
-            'e.coach_id AS coach_id',
-        ))
+        return ','.join(
+            (
+                'e.id AS id',
+                'e.id AS employee_id',
+                'e.name AS name',
+                'e.active AS active',
+                'e.created_at AS create_date',
+                'v.department_id AS department_id',
+                'v.job_id AS job_id',
+                'e.company_id AS company_id',
+                'v.address_id AS address_id',
+                'e.mobile_phone AS mobile_phone',
+                'e.work_phone AS work_phone',
+                'e.work_email AS work_email',
+                'e.work_contact_id AS work_contact_id',
+                'v.work_location_id AS work_location_id',
+                'r.user_id AS user_id',
+                'e.resource_id AS resource_id',
+                'e.color AS color',
+                'v.resource_calendar_id AS resource_calendar_id',
+                'e.parent_id AS parent_id',
+                'e.coach_id AS coach_id',
+            )
+        )
 
     @classmethod
     def init(cls):
@@ -558,5 +636,7 @@ class HrEmployeePublic(models.Model):
     def get_avatar_card_data(self, field_names):
         """≙ ``get_avatar_card_data`` (``:205-206``) — ``read(fields)`` como
         dict de los atributos pedidos."""
-        return {field_name: getattr(self, field_name, None)
-                for field_name in field_names}
+        return {
+            field_name: getattr(self, field_name, None)
+            for field_name in field_names
+        }

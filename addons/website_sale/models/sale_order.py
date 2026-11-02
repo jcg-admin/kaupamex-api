@@ -90,7 +90,8 @@ y ése es exactamente el campo que ``orm/fields_nonstored.py`` construye. Se usa
 él y no una ``property`` porque la fuente admite asignarlo en memoria y una
 ``property`` de sólo lectura no.
 
-**D-3 — el ``compute`` devuelve en vez de asignar.** ``_compute_abandoned_cart``
+**D-3 — el ``compute`` devuelve en vez de asignar.**
+``_compute_abandoned_cart``
 allá recorre ``self`` y escribe ``order.is_abandoned_cart``; aquí recibe un
 pedido y devuelve el booleano, que es lo que el ``default`` del ``NonStored``
 consume. El cuerpo de la decisión —sitio, borrador, fecha, comprador distinto
@@ -118,7 +119,8 @@ significado. Dentro, dos adaptaciones más:
 - ``partner_id.email`` → el correo del comprador, que aquí puede venir del
   ``login`` del usuario o del ``guest_email`` del checkout anónimo.
 
-**D-6 — el envío es ``MailTemplate.render`` + ``dispatch_email``.** Igual que en
+**D-6 — el envío es ``MailTemplate.render`` + ``dispatch_email``.** Igual que
+en
 ``models/website.py`` (su D-5): ``MailTemplate`` de este árbol declara
 ``render()`` y deja el despacho a ``email_executor``.
 
@@ -132,7 +134,8 @@ Porte BLOQUEADO — 8 de 12 símbolos
   ``ir.actions.act_window`` que abre el asistente de composición, y ni el
   asistente ni el cliente web que lo abriría existen en este árbol
   (``grep -rn "mail.compose.message" addons/ src/`` → 0 hits). Mismo criterio
-  que ``account_check_printing``/``action_checks_to_print`` (su D-3): navegación
+  que ``account_check_printing``/``action_checks_to_print`` (su D-3):
+  navegación
   pura sin vista DRF en este pase. Lo que el botón dispara **sí** está portado:
   es ``_cart_recovery_email_send``. Sucesor: tarea **#570**.
 - ``_message_mail_after_hook`` (``:736-743``) —
@@ -152,9 +155,11 @@ Porte BLOQUEADO — 8 de 12 símbolos
 
 Ese último dato afecta también a un símbolo **sí** portado:
 ``_cart_recovery_email_send`` llama a ``order._portal_ensure_token()`` antes de
-enviar, *"para evitar enlaces rotos"*. Aquí esa línea no tiene a qué llamar y se
+enviar, *"para evitar enlaces rotos"*. Aquí esa línea no tiene a qué llamar y
+se
 omite con la razón escrita en el propio método, no en silencio.
 """
+
 import logging
 from datetime import timedelta
 
@@ -199,15 +204,21 @@ class WebsiteSaleOrderInfo(TimeStampedModel):
     """
 
     sale_order = models.OneToOneField(
-        'sale.SaleOrder', on_delete=models.CASCADE,
+        'sale.SaleOrder',
+        on_delete=models.CASCADE,
         related_name='website_sale_info',
-        help_text='Pedido al que pertenece esta información (Odoo _inherit '
-                  'sale.order).',
+        help_text=(
+            'Pedido al que pertenece esta información (Odoo _inherit '
+            'sale.order).'
+        ),
     )
     website_id = fields.Many2one(
-        Website, on_delete=models.CASCADE, related_name='sale_orders',
-        help_text='Sitio por el que se hizo el pedido (Odoo website_id, '
-                  'readonly).',
+        Website,
+        on_delete=models.CASCADE,
+        related_name='sale_orders',
+        help_text=(
+            'Sitio por el que se hizo el pedido (Odoo website_id, readonly).'
+        ),
         db_column='website_id',
     )
     cart_recovery_email_sent = fields.Boolean(
@@ -243,7 +254,8 @@ def _settings_of(website_id):
 
 
 def _abandoned_delay_of(website_id):
-    """Las horas de abandono efectivas de un sitio — ≙ el ``or 1.0`` de la fuente.
+    """
+    Las horas de abandono efectivas de un sitio — ≙ el ``or 1.0`` de la fuente.
 
     La referencia lo escribe inline dos veces (``:84`` y ``:137``) con el mismo
     respaldo de 1 hora cuando el sitio no lo configura. Aquí, además, el sitio
@@ -264,10 +276,13 @@ def _compute_abandoned_cart(self):
     del ``NonStored`` ``is_abandoned_cart``.
     """
     info = _info_of(self)
-    if not (info and info.website_id and self.state == 'draft' and self.date_order):
+    if not (
+        info and info.website_id and self.state == 'draft' and self.date_order
+    ):
         return False
     abandoned_datetime = timezone.now() - timedelta(
-        hours=_abandoned_delay_of(info.website_id))
+        hours=_abandoned_delay_of(info.website_id)
+    )
     # ``partner_id != public_partner_id`` de la fuente. Allá el público es un
     # ``res.partner``; aquí el comprador del pedido es un ``res.users``, así
     # que la comparación se hace contra ``website.user`` —el mismo registro,
@@ -293,14 +308,17 @@ def _search_abandoned_cart(cls, operator, value):
     # política cuenta igual, con el respaldo de 1 hora; recorrer las políticas
     # dejaría a esos sitios fuera del search y **dentro** del compute, que es
     # la desincronización que este par existe para no tener.
-    delays = {row.website_id: row._get_cart_abandoned_delay()
-              for row in WebsiteSaleSettings.objects.all()}
+    delays = {
+        row.website_id: row._get_cart_abandoned_delay()
+        for row in WebsiteSaleSettings.objects.all()
+    }
     condition = models.Q()
     matched_any_website = False
     for website in Website.objects.all():
         matched_any_website = True
         deadline = timezone.now() - timedelta(
-            hours=delays.get(website.pk, 1.0))
+            hours=delays.get(website.pk, 1.0)
+        )
         condition |= (
             models.Q(website_sale_info__website_id=website.pk)
             & models.Q(date_order__lte=deadline)
@@ -308,16 +326,19 @@ def _search_abandoned_cart(cls, operator, value):
             # ``partner_id`` NULL, que son los carritos anónimos y sí cuentan
             # (su correo lo aporta ``guest_email``). La disyunción explícita lo
             # evita.
-            & (models.Q(partner_id__isnull=True)
-               | ~models.Q(partner_id=website.user_id))
+            & (
+                models.Q(partner_id__isnull=True)
+                | ~models.Q(partner_id=website.user_id)
+            )
         )
     if not matched_any_website:
         return cls.objects.none()
-    return (cls.objects
-            .filter(state='draft')
-            .exclude(order_line=None)
-            .filter(condition)
-            .distinct())
+    return (
+        cls.objects.filter(state='draft')
+        .exclude(order_line=None)
+        .filter(condition)
+        .distinct()
+    )
 
 
 def _get_cart_recovery_template(self):
@@ -328,14 +349,18 @@ def _get_cart_recovery_template(self):
     ``self.env['mail.template']``, que es su forma de decir lo mismo.
 
     Divergencia: la fuente opera sobre un recordset y sólo usa la plantilla del
-    sitio ``if len(websites) == 1``. Aquí ``self`` es siempre un pedido, así que
+    sitio ``if len(websites) == 1``. Aquí ``self`` es siempre un pedido, así
+    que
     la condición es trivialmente cierta y se omite en vez de simularla.
     """
     info = _info_of(self)
-    settings = _settings_of(info.website_id) if info and info.website_id else None
+    settings = (
+        _settings_of(info.website_id) if info and info.website_id else None
+    )
     template = settings.cart_recovery_mail_template_id if settings else None
-    return template or IrModelData.ref(CART_RECOVERY_TEMPLATE_XMLID,
-                                       raise_if_not_found=False)
+    return template or IrModelData.ref(
+        CART_RECOVERY_TEMPLATE_XMLID, raise_if_not_found=False
+    )
 
 
 def _cart_recovery_email_send(self):
@@ -357,20 +382,26 @@ def _cart_recovery_email_send(self):
     if template is None:
         logger.warning(
             'Recuperación de carrito: no hay plantilla para el pedido %s.',
-            self.pk)
+            self.pk,
+        )
         return False
     rendered = template.render(self)
     recipient = rendered.get('email_to') or ''
-    if not (template.email_to or template.partner_to or template.use_default_to):
+    if not (
+        template.email_to or template.partner_to or template.use_default_to
+    ):
         recipient = _buyer_email(self)
     if not recipient:
         logger.warning(
             'Recuperación de carrito: el pedido %s no tiene destinatario.',
-            self.pk)
+            self.pk,
+        )
         return False
     dispatch_email(
-        rendered['subject'], rendered['body_html'],
-        rendered['email_from'] or None, [recipient],
+        rendered['subject'],
+        rendered['body_html'],
+        rendered['email_from'] or None,
+        [recipient],
     )
     info = _info_of(self)
     if info is not None:
@@ -401,12 +432,17 @@ def _filter_can_send_abandoned_cart_mail(cls, orders):
     infos = {order.pk: _info_of(order) for order in orders}
     website_ids = {info.website_id for info in infos.values() if info}
     if len(website_ids) != 1:
-        raise UserError(_(
-            'El filtro de recuperación de carrito exige un solo sitio; '
-            'se recibieron %(count)s.', count=len(website_ids)))
+        raise UserError(
+            _(
+                'El filtro de recuperación de carrito exige un solo sitio; '
+                'se recibieron %(count)s.',
+                count=len(website_ids),
+            )
+        )
     website_id = website_ids.pop()
     abandoned_datetime = timezone.now() - timedelta(
-        hours=_abandoned_delay_of(website_id))
+        hours=_abandoned_delay_of(website_id)
+    )
 
     buyers = [order.partner_id for order in orders if order.partner_id]
     sales_after_abandoned_date = cls.objects.filter(
@@ -419,24 +455,32 @@ def _filter_can_send_abandoned_cart_mail(cls, orders):
     for sale in orders:
         previous = latest_create_date_per_buyer.get(sale.partner_id)
         latest_create_date_per_buyer[sale.partner_id] = (
-            sale.created_at if previous is None
-            else max(previous, sale.created_at))
+            sale.created_at
+            if previous is None
+            else max(previous, sale.created_at)
+        )
     has_later_sale_order = {}
     for sale in sales_after_abandoned_date:
         if has_later_sale_order.get(sale.partner_id, False):
             continue
         latest = latest_create_date_per_buyer.get(sale.partner_id)
         has_later_sale_order[sale.partner_id] = (
-            latest is not None and sale.date_order is not None
-            and latest <= sale.date_order)
+            latest is not None
+            and sale.date_order is not None
+            and latest <= sale.date_order
+        )
 
     return [
-        order for order in orders
+        order
+        for order in orders
         if _buyer_email(order)
         and not order.payments.filter(status=Payment.STATUS_FAILED).exists()
-        and any(not float_is_zero(float(line.price_unit),
-                                  precision_digits=PRICE_PRECISION_DIGITS)
-                for line in order.order_line.all())
+        and any(
+            not float_is_zero(
+                float(line.price_unit), precision_digits=PRICE_PRECISION_DIGITS
+            )
+            for line in order.order_line.all()
+        )
         and not has_later_sale_order.get(order.partner_id, False)
     ]
 
@@ -453,18 +497,27 @@ def apply_website_sale_order_extensions():
     `h-api-618`). Completar su cabecera toca ``addons/sale``, transversal, y no
     entra en este pase.
     """
-    extend_model('sale', 'SaleOrder', campos={
-        # ``store=False`` en la fuente (``:46-48``): no genera columna. D-2.
-        'is_abandoned_cart': fields.NonStored(
-            default=_compute_abandoned_cart,
-            help_text='El carrito lleva más del retraso configurado sin '
-                      'confirmarse (Odoo is_abandoned_cart, store=False).',
-        ),
-    }, metodos={
-        '_compute_abandoned_cart': _compute_abandoned_cart,
-        '_search_abandoned_cart': classmethod(_search_abandoned_cart),
-        '_get_cart_recovery_template': _get_cart_recovery_template,
-        '_cart_recovery_email_send': _cart_recovery_email_send,
-        '_filter_can_send_abandoned_cart_mail': classmethod(
-            _filter_can_send_abandoned_cart_mail),
-    })
+    extend_model(
+        'sale',
+        'SaleOrder',
+        campos={
+            # ``store=False`` en la fuente (``:46-48``): no genera
+            # columna. D-2.
+            'is_abandoned_cart': fields.NonStored(
+                default=_compute_abandoned_cart,
+                help_text=(
+                    'El carrito lleva más del retraso configurado sin '
+                    'confirmarse (Odoo is_abandoned_cart, store=False).'
+                ),
+            ),
+        },
+        metodos={
+            '_compute_abandoned_cart': _compute_abandoned_cart,
+            '_search_abandoned_cart': classmethod(_search_abandoned_cart),
+            '_get_cart_recovery_template': _get_cart_recovery_template,
+            '_cart_recovery_email_send': _cart_recovery_email_send,
+            '_filter_can_send_abandoned_cart_mail': classmethod(
+                _filter_can_send_abandoned_cart_mail
+            ),
+        },
+    )

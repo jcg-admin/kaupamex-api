@@ -27,8 +27,10 @@ existe**, y los dos vienen del addon ``calendar``, ausente de este árbol:
   ``calendar`` sobre ``mail.activity``, y ``opportunity_id`` es justo el campo
   que ``crm/models/calendar.py`` cuelga y que está bloqueado por lo mismo.
 
-``mail.activity`` **sí existe** aquí (``addons/mail/models/mail_activity.py:32``),
-así que el bloqueo es del símbolo, no del modelo: en cuanto ``calendar`` exista,
+``mail.activity`` **sí existe** aquí
+(``addons/mail/models/mail_activity.py:32``),
+así que el bloqueo es del símbolo, no del modelo: en cuanto ``calendar``
+exista,
 este archivo se escribe sin tocar nada más.
 
 Lo que la fuente hace, para cuando se desbloquee: al crear la reunión desde una

@@ -51,14 +51,15 @@ genera el SVG de iniciales o cae al placeholder gris. ``_avatar_raw_bytes``
 distingue las dos ramas antes de construir el campo ``PHOTO`` — b64decode
 sin distinguir rompería con un ``ImageFieldFile`` real.
 """
+
 from base64 import b64decode, b64encode
 
 from orm.method_chain import chain_method
 
 from addons.base.models.res_partner import ResPartner
 
-
-#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no
+#: es clase).
 _inherit = 'res.partner'
 
 
@@ -119,8 +120,10 @@ def _build_vcard(self):
         country = self.country.name if self.country else ''
         lines.append(
             'ADR;TYPE=work:;;{};{};{};{};{}'.format(
-                _vcard_escape(self.street), _vcard_escape(self.city),
-                _vcard_escape(region), _vcard_escape(self.zip),
+                _vcard_escape(self.street),
+                _vcard_escape(self.city),
+                _vcard_escape(region),
+                _vcard_escape(self.zip),
                 _vcard_escape(country),
             )
         )
@@ -142,9 +145,7 @@ def _build_vcard(self):
 
     photo = _avatar_raw_bytes(self)
     if photo:
-        lines.append(
-            'PHOTO;ENCODING=b;TYPE=JPEG:' + b64encode(photo).decode()
-        )
+        lines.append('PHOTO;ENCODING=b;TYPE=JPEG:' + b64encode(photo).decode())
 
     lines.append('END:VCARD')
     return '\r\n'.join(lines)
@@ -165,7 +166,8 @@ def _get_vcard_file(self):
 
 
 def apply_web_extensions():
-    """Cuelga la construcción de vCard sobre ``base.ResPartner`` — ≙ ``_inherit``.
+    """
+    Cuelga la construcción de vCard sobre ``base.ResPartner`` — ≙ ``_inherit``.
 
     Se invoca desde ``WebConfig.ready()`` (pendiente de sumar
     ``'addons.web.models.res_partner'`` a ``WebConfig._EXTENSIONES`` — fase

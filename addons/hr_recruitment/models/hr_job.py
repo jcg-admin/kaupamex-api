@@ -58,7 +58,8 @@ Porte símbolo por símbolo — 27 de 43 medidos, 16 BLOQUEADOS
    * - ``activity_count``/``_compute_activities`` (``:75,103-128``)
      - portado — traducido a ORM Django (la fuente usa SQL crudo)
    * - ``job_properties``/``applicant_properties_definition`` (``:77,79``)
-     - portados — ``fields.Properties``/``PropertiesDefinition`` (``JSONField``)
+     - portados — ``fields.Properties``/``PropertiesDefinition``
+       (``JSONField``)
    * - ``no_of_hired_employee``/``_compute_no_of_hired_employee``
        (``:80-84,88-101``)
      - portado
@@ -81,6 +82,7 @@ Porte símbolo por símbolo — 27 de 43 medidos, 16 BLOQUEADOS
        (``:351-420``)
      - BLOQUEADOS — familia (b): framework de acciones cliente Odoo
 """
+
 from django.apps import apps
 from django.db.models import Q
 
@@ -103,9 +105,13 @@ def open_application_count(job):
     hired_stage_ids = HrRecruitmentStage.objects.filter(
         hired_stage=True,
     ).values_list('pk', flat=True)
-    return HrApplicant.objects.filter(job=job).exclude(
-        stage__in=hired_stage_ids,
-    ).count()
+    return (
+        HrApplicant.objects.filter(job=job)
+        .exclude(
+            stage__in=hired_stage_ids,
+        )
+        .count()
+    )
 
 
 def all_application_count(job):
@@ -118,9 +124,13 @@ def all_application_count(job):
     referencia es el negocio: activo, o inactivo con motivo de rechazo.
     """
     HrApplicant = apps.get_model('hr_recruitment', 'HrApplicant')
-    return HrApplicant.objects.filter(job=job).filter(
-        Q(active=True) | Q(active=False, refuse_reason__isnull=False),
-    ).count()
+    return (
+        HrApplicant.objects.filter(job=job)
+        .filter(
+            Q(active=True) | Q(active=False, refuse_reason__isnull=False),
+        )
+        .count()
+    )
 
 
 def get_first_stage(job):
@@ -128,9 +138,13 @@ def get_first_stage(job):
     (por secuencia) elegible para este puesto: la suya, o una sin puestos
     específicos."""
     HrRecruitmentStage = apps.get_model('hr_recruitment', 'HrRecruitmentStage')
-    return HrRecruitmentStage.objects.filter(
-        Q(jobs__isnull=True) | Q(jobs=job),
-    ).order_by('sequence').first()
+    return (
+        HrRecruitmentStage.objects.filter(
+            Q(jobs__isnull=True) | Q(jobs=job),
+        )
+        .order_by('sequence')
+        .first()
+    )
 
 
 def new_application_count(job):
@@ -159,13 +173,17 @@ def applicant_hired(job):
     hired_stage_ids = HrRecruitmentStage.objects.filter(
         hired_stage=True,
     ).values_list('pk', flat=True)
-    return HrApplicant.objects.filter(job=job, stage__in=hired_stage_ids).count()
+    return HrApplicant.objects.filter(
+        job=job, stage__in=hired_stage_ids
+    ).count()
 
 
 def no_of_hired_employee(job):
     """≙ ``_compute_no_of_hired_employee`` (``odoo19c: :88-101``)."""
     HrApplicant = apps.get_model('hr_recruitment', 'HrApplicant')
-    return HrApplicant.objects.filter(job=job, date_closed__isnull=False).count()
+    return HrApplicant.objects.filter(
+        job=job, date_closed__isnull=False
+    ).count()
 
 
 def document_ids(job):
@@ -173,9 +191,12 @@ def document_ids(job):
     puesto más los de sus candidatos sin empleado vinculado."""
     IrAttachment = apps.get_model('base', 'IrAttachment')
     HrApplicant = apps.get_model('hr_recruitment', 'HrApplicant')
-    applicant_ids = list(HrApplicant.objects.filter(
-        job=job, employee__isnull=True,
-    ).values_list('pk', flat=True))
+    applicant_ids = list(
+        HrApplicant.objects.filter(
+            job=job,
+            employee__isnull=True,
+        ).values_list('pk', flat=True)
+    )
     return IrAttachment.objects.filter(
         Q(res_model='hr.job', res_id=job.pk)
         | Q(res_model='hr.applicant', res_id__in=applicant_ids),
@@ -210,11 +231,18 @@ def activity_count(job):
         return 0
     MailActivity = apps.get_model('mail', 'MailActivity')
     HrApplicant = apps.get_model('hr_recruitment', 'HrApplicant')
-    applicant_ids = list(HrApplicant.objects.filter(
-        job=job, active=True,
-    ).exclude(stage__hired_stage=True).values_list('pk', flat=True))
+    applicant_ids = list(
+        HrApplicant.objects.filter(
+            job=job,
+            active=True,
+        )
+        .exclude(stage__hired_stage=True)
+        .values_list('pk', flat=True)
+    )
     return MailActivity.objects.filter(
-        user=user, res_model='hr.applicant', res_id__in=applicant_ids,
+        user=user,
+        res_model='hr.applicant',
+        res_id__in=applicant_ids,
     ).count()
 
 
@@ -227,8 +255,12 @@ def extended_interviewer_ids(job):
     HrApplicant = apps.get_model('hr_recruitment', 'HrApplicant')
     ResUsersModel = apps.get_model('base', 'ResUsers')
     interviewer_pks = set()
-    for applicant in HrApplicant.objects.filter(job=job).prefetch_related('interviewers'):
-        interviewer_pks |= set(applicant.interviewers.values_list('pk', flat=True))
+    for applicant in HrApplicant.objects.filter(job=job).prefetch_related(
+        'interviewers'
+    ):
+        interviewer_pks |= set(
+            applicant.interviewers.values_list('pk', flat=True)
+        )
     return ResUsersModel.objects.filter(pk__in=interviewer_pks)
 
 
@@ -261,37 +293,61 @@ def apply_hr_recruitment_hr_job_extensions():
     """Cuelga sobre ``hr.job`` lo que ``hr_recruitment`` le añade — ≙
     ``_inherit``."""
     extend_model(
-        'hr', 'HrJob',
+        'hr',
+        'HrJob',
         campos={
-            'expected_employees': fields.Integer(default=0, verbose_name='Empleados esperados'),
-            'no_of_employee': fields.Integer(default=0, verbose_name='Número de empleados actual'),
+            'expected_employees': fields.Integer(
+                default=0, verbose_name='Empleados esperados'
+            ),
+            'no_of_employee': fields.Integer(
+                default=0, verbose_name='Número de empleados actual'
+            ),
             'address': fields.Many2one(
-                'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,
-                related_name='hr_jobs_located', verbose_name='Ubicación',
-                help_text='Odoo address_id: dirección donde trabajará el candidato.',
+                'base.ResPartner',
+                on_delete=models.SET_NULL,
+                null=True,
+                blank=True,
+                related_name='hr_jobs_located',
+                verbose_name='Ubicación',
+                help_text=(
+                    'Odoo address_id: dirección donde trabajará el candidato.'
+                ),
             ),
             'color': fields.Integer(default=0, verbose_name='Índice de color'),
             'favorite_users': fields.Many2many(
-                'base.ResUsers', related_name='favorite_jobs', blank=True,
+                'base.ResUsers',
+                related_name='favorite_jobs',
+                blank=True,
                 verbose_name='Usuarios que lo marcaron favorito',
             ),
             'interviewers': fields.Many2many(
-                'base.ResUsers', related_name='interviewer_jobs', blank=True,
+                'base.ResUsers',
+                related_name='interviewer_jobs',
+                blank=True,
                 verbose_name='Entrevistadores',
-                help_text='Ven todos los candidatos del puesto y pueden '
-                          'rechazarlos, sin necesitar permisos de reclutamiento.',
+                help_text=(
+                    'Ven todos los candidatos del puesto y pueden '
+                    'rechazarlos, sin necesitar permisos de reclutamiento.'
+                ),
             ),
             'expected_degree': fields.Many2one(
-                'hr_recruitment.HrRecruitmentDegree', on_delete=models.SET_NULL,
-                null=True, blank=True, related_name='jobs',
+                'hr_recruitment.HrRecruitmentDegree',
+                on_delete=models.SET_NULL,
+                null=True,
+                blank=True,
+                related_name='jobs',
                 verbose_name='Grado esperado',
             ),
             'job_properties': fields.Properties(
-                null=True, blank=True, verbose_name='Propiedades del puesto',
+                null=True,
+                blank=True,
+                verbose_name='Propiedades del puesto',
                 definition='company.job_properties_definition',
             ),
             'applicant_properties_definition': fields.PropertiesDefinition(
-                null=True, blank=True, verbose_name='Definición de propiedades de candidato',
+                null=True,
+                blank=True,
+                verbose_name='Definición de propiedades de candidato',
             ),
         },
         propiedades={

@@ -1,4 +1,4 @@
-"""Grafo de dependencias entre addons — fiel a ``odoo/modules/module_graph.py``.
+"""Grafo de addons adaptado de ``odoo/modules/module_graph.py``.
 
 Resuelve el **primero** de los tres grafos del proyecto (H-API-228): el de
 addons-código, declarado en ``__manifest__.py:depends``.
@@ -16,6 +16,7 @@ Contratos de ejecución todavía pendientes bajo TASK-API-0382:
   lanza ModuleGraphCycle. La referencia elimina los nodos afectados al fallar
   su cálculo de profundidad; ``from_database`` aplica esa poda explícita.
 """
+
 from __future__ import annotations
 
 from collections.abc import Collection, Iterable, Iterator
@@ -40,8 +41,18 @@ class ModuleGraphCycle(ValueError):
 class ModuleNode:
     """Un addon dentro del grafo. ≙ ``ModuleNode`` de la referencia."""
 
-    __slots__ = ('name', '_graph', 'depends', 'manifest', 'demo', 'state',
-                 'id', 'installed_version', 'load_version', 'load_state')
+    __slots__ = (
+        'name',
+        '_graph',
+        'depends',
+        'manifest',
+        'demo',
+        'state',
+        'id',
+        'installed_version',
+        'load_version',
+        'load_state',
+    )
 
     def __init__(self, name: str, module_graph: ModuleGraph) -> None:
         self.name = name
@@ -64,7 +75,7 @@ class ModuleNode:
     def phase(self) -> int:
         """Fase según el modo y las fronteras de instalación explícitas."""
         if self.name != 'base' and self._graph.mode == 'update':
-            # Keep the existing explicit cycle diagnostic for recursive phases.
+            # Conserva el diagnóstico de ciclos para fases recursivas.
             self._graph._depth(self, {}, {})
         return self._graph._phase(self, {})
 
@@ -81,11 +92,15 @@ class ModuleNode:
     def order_name(self) -> str:
         """Clave de orden estable. ≙ referencia."""
         if self.name.startswith('test_'):
-            # Validate the complete path before recursively resolving names;
-            # a cycle must remain a domain error, not a RecursionError.
+            # Valida la ruta antes de resolver nombres recursivamente;
+            # un ciclo conserva su error de dominio.
             _ = self.depth
             dependency = max(
-                (self._graph[dep] for dep in self.depends if dep in self._graph),
+                (
+                    self._graph[dep]
+                    for dep in self.depends
+                    if dep in self._graph
+                ),
                 key=lambda node: (node.depth, node.order_name),
             )
             return dependency.order_name + ' ' + self.name
@@ -96,7 +111,7 @@ class ModuleNode:
 
 
 class ModuleGraph:
-    """Grafo de addons ordenable topológicamente. ≙ ``ModuleGraph`` de la referencia."""
+    """Grafo de addons ordenable topológicamente. ≙ ``ModuleGraph``."""
 
     def __init__(self, *, mode: str = 'load') -> None:
         if mode not in ('load', 'update'):
@@ -106,7 +121,9 @@ class ModuleGraph:
         self._nodes: dict[str, ModuleNode] = {}
 
     @classmethod
-    def from_database(cls, names: Collection[str], *, using: str, mode: str = 'load'):
+    def from_database(
+        cls, names: Collection[str], *, using: str, mode: str = 'load'
+    ):
         """Prepara un grafo de lectura para una base explícita.
 
         Adapta la preparación y snapshot de Odoo Community19 (LGPL-3),
@@ -116,7 +133,8 @@ class ModuleGraph:
         """
         if not isinstance(using, str) or not using:
             raise ValueError('An explicit database alias is required')
-        connections[using]  # Rechaza alias desconocidos antes de preparar el grafo.
+        # Rechaza alias desconocidos antes de preparar el grafo.
+        connections[using]
         graph = cls(mode=mode)
         graph.using = using
         graph.extend(names)
@@ -135,8 +153,12 @@ class ModuleGraph:
         if not names:
             return
         model = apps.get_model('base', 'IrModule')
-        rows = model.objects.using(using).filter(name__in=names).order_by().values_list(
-            'name', 'id', 'state', 'demo', 'installed_version')
+        rows = (
+            model.objects.using(using)
+            .filter(name__in=names)
+            .order_by()
+            .values_list('name', 'id', 'state', 'demo', 'installed_version')
+        )
         for name, identifier, state, demo, version in rows:
             # Un antecesor puede haber retirado este dependiente antes
             # de su fila.
@@ -170,8 +192,12 @@ class ModuleGraph:
             self._depth(self._nodes[name], depths, {})
         for node in self._nodes.values():
             self._phase(node, phases)
-        return iter(sorted(self._nodes.values(), key=lambda n: (
-            phases[n.name], depths[n.name], n.order_name)))
+        return iter(
+            sorted(
+                self._nodes.values(),
+                key=lambda n: (phases[n.name], depths[n.name], n.order_name),
+            )
+        )
 
     def _phase(self, node, memo):
         if node.name in memo:
@@ -183,7 +209,10 @@ class ModuleGraph:
         else:
             phase = max(
                 self._phase(self._nodes[dep], memo)
-                + int((node.state == 'to install') != (self._nodes[dep].state == 'to install'))
+                + int(
+                    (node.state == 'to install')
+                    != (self._nodes[dep].state == 'to install')
+                )
                 + int(dep == 'base')
                 for dep in node.depends
             )
@@ -237,7 +266,7 @@ class ModuleGraph:
         return len(self._nodes)
 
     def extend(self, names: Collection[str]) -> None:
-        """Amplía dependencias y prepara los nodos nuevos si hay base vinculada.
+        """Amplía dependencias y prepara nodos nuevos en una base vinculada.
 
         El grafo estático conserva su diagnóstico explícito. Un snapshot por
         alias vuelve a leer únicamente las incorporaciones, sin sobrescribir
@@ -284,13 +313,14 @@ class ModuleGraph:
             if name in node.depends and node.name in self._nodes:
                 if log_dependents:
                     _logger.info(
-                        'module %s: its direct/indirect dependency is skipped, skipped',
+                        'module %s: its direct/indirect dependency is skipped,'
+                        ' skipped',
                         another,
                     )
                 self._remove(another)
 
     def _update_depends(self, names: Iterable[str]) -> None:
-        """Enlaza dependencias presentes y poda las que no pueden resolverse."""
+        """Enlaza dependencias presentes y poda las que no se resuelven."""
         for name in names:
             node = self._nodes.get(name)
             if node is None:
@@ -302,7 +332,8 @@ class ModuleGraph:
                 missing = [dep for dep in depends if dep not in self._nodes]
                 _logger.warning(
                     'module %s: some depends are not loaded (%s), skipped',
-                    name, ', '.join(missing),
+                    name,
+                    ', '.join(missing),
                 )
                 self._remove(name)
             else:
@@ -317,7 +348,9 @@ class ModuleGraph:
             try:
                 _ = node.depth
             except (ModuleGraphCycle, RecursionError):
-                _logger.warning('module %s: in a dependency loop, skipped', name)
+                _logger.warning(
+                    'module %s: in a dependency loop, skipped', name
+                )
                 self._remove(name)
 
     def missing(self) -> dict[str, list[str]]:
@@ -328,10 +361,9 @@ class ModuleGraph:
         abortar.
 
         El criterio es la **existencia del addon**
-        (``get_module_path() is None``), no la del manifest: hoy 58 de 59 addons
-        no tienen manifest y son perfectamente reales. Confundir "no declara
-        manifest" con "no existe" haría que este método señalara casi todo el
-        árbol — la ceguera de instrumento de ``metrica-decide-la-conclusion``.
+        (``get_module_path() is None``), no la del manifest. La ausencia de
+        ese archivo no demuestra que el addon no exista; este diagnóstico
+        conserva ambas situaciones separadas.
         """
         out = {}
         for node in self._nodes.values():
@@ -397,9 +429,11 @@ class ModuleGraph:
                 auto = node.manifest.get('auto_install', False)
                 if auto is False or not node.manifest.get('installable', True):
                     continue
-                required = node.depends if auto is True else [
-                    d for d in node.depends if d in auto
-                ]
+                required = (
+                    node.depends
+                    if auto is True
+                    else [d for d in node.depends if d in auto]
+                )
                 if all(d in selected for d in required):
                     newly_selected.append(node.name)
             if not newly_selected:

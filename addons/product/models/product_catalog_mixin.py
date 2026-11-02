@@ -12,7 +12,8 @@ Clase Python, no modelo abstracto de Django
 
 La referencia lo declara ``models.AbstractModel``, pero **no tiene ni un
 campo**: son nueve métodos y ninguna columna. Aquí eso es una clase Python a
-secas, igual que ``BusListenerMixin`` (``bus/models/bus_listener_mixin.py:61``),
+secas, igual que ``BusListenerMixin``
+(``bus/models/bus_listener_mixin.py:61``),
 y **no** un ``Meta: abstract = True`` como ``AvatarMixin``
 (``base/models/avatar_mixin.py:53-65``), que sí aporta campos.
 
@@ -69,7 +70,8 @@ donde está la causa.
 Qué NO se porta, con su medición
 ================================
 
-- **``action_add_from_catalog`` y ``_get_action_add_from_catalog_extra_context``**:
+- **``action_add_from_catalog`` y
+  ``_get_action_add_from_catalog_extra_context``**:
   construyen un ``ir.actions.act_window`` que abre dos vistas XML por
   referencia externa. Lo que falta **no** es la acción: ``IrActionsActWindow``
   está portada (``base/models/ir_actions.py:218``, tabla ``ir_act_window``).
@@ -86,6 +88,7 @@ Qué NO se porta, con su medición
 - **``@api.readonly``**: marca la acción como no-mutante para el enrutado de
   lecturas de Odoo. No tiene análogo; en DRF lo expresa el verbo HTTP.
 """
+
 import models
 
 from addons.product.models.product_product import ProductProduct
@@ -144,9 +147,8 @@ class ProductCatalogMixin:
         if company is None:
             company_scope = models.Q(company__isnull=True)
         else:
-            company_scope = (
-                models.Q(company__isnull=True)
-                | models.Q(company__in=company.parent_ids)
+            company_scope = models.Q(company__isnull=True) | models.Q(
+                company__in=company.parent_ids
             )
         return company_scope & ~models.Q(type=TYPE_COMBO)
 
@@ -186,7 +188,10 @@ class ProductCatalogMixin:
         }
 
     def _get_product_catalog_order_line_info(
-        self, product_ids, child_field=False, **kwargs,
+        self,
+        product_ids,
+        child_field=False,
+        **kwargs,
     ):
         """Lo que la pantalla muestra por producto: lo que hay y lo que falta.
 
@@ -198,17 +203,21 @@ class ProductCatalogMixin:
         order_line_info = {}
 
         record_lines = self._get_product_catalog_record_lines(
-            product_ids, child_field=child_field, **kwargs)
+            product_ids, child_field=child_field, **kwargs
+        )
         for product, lines in record_lines.items():
             info = {
                 **lines._get_product_catalog_lines_data(
-                    parent_record=self, **kwargs),
+                    parent_record=self, **kwargs
+                ),
                 'productType': product.type,
                 'code': product.code_for(kwargs.get('partner')) or '',
             }
             # Sólo si la línea no trajo la suya: puede estar en otra unidad.
             if not info.get('uomDisplayName'):
-                info['uomDisplayName'] = str(product.uom) if product.uom else ''
+                info['uomDisplayName'] = (
+                    str(product.uom) if product.uom else ''
+                )
             order_line_info[product.pk] = info
 
         default_data = self._default_order_line_values(child_field)
@@ -217,7 +226,7 @@ class ProductCatalogMixin:
 
         for product_id, data in product_data.items():
             if product_id in order_line_info:
-                continue        # lo negociado gana sobre la ficha de catálogo
+                continue  # lo negociado gana sobre la ficha de catálogo
             order_line_info[product_id] = {**default_data, **data}
 
         return order_line_info

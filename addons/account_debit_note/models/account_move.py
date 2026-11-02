@@ -52,6 +52,7 @@ mismo origen puede tener varias notas de débito. Por eso ``move`` es
 ``OneToOneField`` (la nota de débito misma — una fila de vínculo por nota) y
 ``origin`` es ``ForeignKey`` (el origen — varias notas pueden compartirlo).
 """
+
 from addons.base.models import TimeStampedModel
 import fields
 import models
@@ -66,15 +67,20 @@ class AccountMoveDebitNote(TimeStampedModel):
     """
 
     move = models.OneToOneField(
-        'account.AccountMove', on_delete=models.CASCADE,
+        'account.AccountMove',
+        on_delete=models.CASCADE,
         related_name='debit_note_link',
-        help_text='La nota de débito misma (Odoo debit_origin_id vive en '
-                  'este registro — el Many2one de la referencia, leído '
-                  'desde el lado de la nota).',
+        help_text=(
+            'La nota de débito misma (Odoo debit_origin_id vive en '
+            'este registro — el Many2one de la referencia, leído '
+            'desde el lado de la nota).'
+        ),
     )
     origin = fields.Many2one(
-        'account.AccountMove', on_delete=models.PROTECT,
-        related_name='debit_notes', db_index=True,
+        'account.AccountMove',
+        on_delete=models.PROTECT,
+        related_name='debit_notes',
+        db_index=True,
         help_text='Factura original debitada (Odoo debit_origin_id).',
     )
 
@@ -88,10 +94,16 @@ class AccountMoveDebitNote(TimeStampedModel):
 
     @classmethod
     def origin_for(cls, move):
-        """La factura que ``move`` debita, o ``None`` — ≙ ``debit_origin_id``."""
+        """
+        La factura que ``move`` debita, o ``None`` — ≙ ``debit_origin_id``.
+        """
         if move is None or move.pk is None:
             return None
-        link = cls.objects.filter(move_id=move.pk).select_related('origin').first()
+        link = (
+            cls.objects.filter(move_id=move.pk)
+            .select_related('origin')
+            .first()
+        )
         return link.origin if link else None
 
     @classmethod

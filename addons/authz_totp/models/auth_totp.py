@@ -74,6 +74,7 @@ mecanismo que este árbol no tiene. Así que las dos constantes se declaran
 **aquí**, junto a su único consumidor, y el controlador que ponga la cookie las
 importa de este módulo. Una sola declaración; sólo se invierte la dirección.
 """
+
 import logging
 
 from django.apps import apps as django_apps
@@ -132,23 +133,27 @@ class AuthTotpDevice(_ResUsersApikeysBase):
     _auto = False
 
     user = fields.Many2one(
-        'base.ResUsers', on_delete=models.CASCADE, db_index=True,
+        'base.ResUsers',
+        on_delete=models.CASCADE,
+        db_index=True,
         related_name='totp_trusted_devices',
         help_text='Odoo user_id — el dueño del dispositivo de confianza.',
     )
 
     class Meta:
-        db_table            = 'auth_totp_device'
-        ordering            = ['-id']
-        verbose_name        = 'Dispositivo de confianza'
+        db_table = 'auth_totp_device'
+        ordering = ['-id']
+        verbose_name = 'Dispositivo de confianza'
         verbose_name_plural = 'Dispositivos de confianza'
         indexes = [
             # El ``init()`` de la clave de API usa ``%(table)s``, así que el
             # hijo por prototipo crea el mismo índice sobre SU tabla. El nombre
             # sigue la convención de la fuente, con su rama de truncamiento
             # incluida — ver ``index_name_for``.
-            models.Index(fields=['user', 'index'],
-                         name=index_name_for('auth_totp_device')),
+            models.Index(
+                fields=['user', 'index'],
+                name=index_name_for('auth_totp_device'),
+            ),
         ]
         constraints = [
             # Misma forma que el padre, y por la misma razón: Django no
@@ -180,7 +185,8 @@ class AuthTotpDevice(_ResUsersApikeysBase):
 
     @classmethod
     def _get_trusted_device_age(cls):
-        """≙ ``_get_trusted_device_age`` (``:25-37``) — la duración, en segundos.
+        """
+        ≙ ``_get_trusted_device_age`` (``:25-37``) — la duración, en segundos.
 
         Lee ``auth_totp.trusted_device_age`` del parámetro de sistema y cae al
         default ante los **dos** modos de fallo que la fuente distingue con el
@@ -193,8 +199,11 @@ class AuthTotpDevice(_ResUsersApikeysBase):
         """
         icp = django_apps.get_model('base', 'SystemParameter')
         try:
-            nbr_days = int(icp.get_param('auth_totp.trusted_device_age',
-                                         TRUSTED_DEVICE_AGE_DAYS))
+            nbr_days = int(
+                icp.get_param(
+                    'auth_totp.trusted_device_age', TRUSTED_DEVICE_AGE_DAYS
+                )
+            )
             if nbr_days <= 0:
                 nbr_days = None
         except (TypeError, ValueError):
@@ -203,14 +212,17 @@ class AuthTotpDevice(_ResUsersApikeysBase):
         if nbr_days is None:
             _logger.warning(
                 "Invalid value for 'auth_totp.trusted_device_age', "
-                "using default value.")
+                "using default value."
+            )
             nbr_days = TRUSTED_DEVICE_AGE_DAYS
 
         return nbr_days * 86400  # segundos
 
 
 def revoke_all_devices(user=None):
-    """≙ ``_revoke_all_devices`` (``:209-210``) — retira los dispositivos de un usuario.
+    """
+    ≙ ``_revoke_all_devices`` (``:209-210``) — retira los dispositivos de un
+    usuario.
 
     La fuente declara **dos** métodos sobre ``res.users``: el público
     ``revoke_all_devices`` con ``@check_identity`` y el interno

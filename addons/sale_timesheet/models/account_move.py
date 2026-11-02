@@ -26,7 +26,8 @@ Porte símbolo por símbolo
      - **portado como property** — ``compute`` sin ``store`` en la fuente
        (:30-35).
    * - ``timesheet_encode_uom_id`` (:7)
-     - **portado como property** — ``related='company_id.timesheet_encode_uom_id'``
+     - **portado como property** —
+       ``related='company_id.timesheet_encode_uom_id'``
        (columna colgada por ``hr_timesheet`` sobre ``res.company``).
    * - ``timesheet_total_duration`` (:8-10)
      - **portado como property** — ``compute`` sin ``store``, con la
@@ -72,6 +73,7 @@ Porte símbolo por símbolo
        tarea que ``_link_timesheets_to_invoice`` — son las dos mitades del
        mismo enlace.
 """
+
 from orm.method_chain import chain_method
 from orm.model_classes import extend_model
 
@@ -110,11 +112,16 @@ def timesheet_total_duration(self):
         total += entry.unit_amount or 0.0
 
     company = self.company if self.company_id else None
-    source_uom = getattr(company, 'project_time_mode_id', None) if company else None
-    target_uom = getattr(company, 'timesheet_encode_uom_id', None) if company else None
+    source_uom = (
+        getattr(company, 'project_time_mode_id', None) if company else None
+    )
+    target_uom = (
+        getattr(company, 'timesheet_encode_uom_id', None) if company else None
+    )
     if source_uom is not None and target_uom is not None:
         total = source_uom.compute_quantity(
-            total, target_uom, rounding_method='HALF-UP')
+            total, target_uom, rounding_method='HALF-UP'
+        )
     return round(total)
 
 
@@ -147,7 +154,8 @@ def apply_sale_timesheet_account_move_extensions():
     ``models/hr_timesheet.py``.
     """
     extend_model(
-        'account', 'AccountMove',
+        'account',
+        'AccountMove',
         propiedades={
             'timesheet_encode_uom': timesheet_encode_uom,
             'timesheet_count': timesheet_count,

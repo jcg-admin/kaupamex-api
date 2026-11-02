@@ -2,17 +2,21 @@
 
 Los endpoints exponen el motor de facturación recurrente:
 
-- ``GET  /api/v2/platform/billing/runs/``           — lista de corridas (lectura).
-- ``POST /api/v2/platform/billing/runs/``           — dispara una corrida (emite
+- ``GET  /api/v2/platform/billing/runs/``           — lista de corridas
+  (lectura).
+- ``POST /api/v2/platform/billing/runs/``           — dispara una corrida
+  (emite
   facturas); gateado con ``platform.billing`` → 202.
 - ``GET  /api/v2/platform/companies/{id}/invoices/`` — facturas de una company.
 - ``POST /api/v2/platform/invoices/{id}/retry/``    — reintenta una factura
   ``failed``; gateado con ``platform.billing``.
 
 Autorización data-driven (``HasCapability``, NO ``is_staff``): lectura
-``platform.view``, cobro/disparo ``platform.billing``. El usuario de prueba NO es
+``platform.view``, cobro/disparo ``platform.billing``. El usuario de prueba NO
+es
 superadmin, así que el candado se evalúa de verdad.
 """
+
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -47,10 +51,12 @@ def _user_with_caps(email, codes):
     for code in codes:
         domain = code.split('.', 1)[0]
         module, _ = Module.objects.get_or_create(
-            code=domain, defaults={'name': domain},
+            code=domain,
+            defaults={'name': domain},
         )
         cap, _ = Capability.objects.get_or_create(
-            code=code, defaults={'module': module, 'name': code},
+            code=code,
+            defaults={'module': module, 'name': code},
         )
         caps.append(cap)
     role, _ = Role.objects.get_or_create(
@@ -58,7 +64,9 @@ def _user_with_caps(email, codes):
         defaults={'name': 'Test billing role'},
     )
     role.capabilities.set(caps)
-    u = get_user_model().objects.create_user(login=email, password='TestPass123!')
+    u = get_user_model().objects.create_user(
+        login=email, password='TestPass123!'
+    )
     RoleAssignment.objects.create(user=u, role=role)
     return u
 
@@ -66,9 +74,11 @@ def _user_with_caps(email, codes):
 def _active_priced_sub(company, code, price):
     m = Module.objects.create(code=code, name=code)
     sub = CompanyModuleSubscription(
-        company=company, module=m,
+        company=company,
+        module=m,
         status=CompanyModuleSubscription.Status.ACTIVE,
-        billing_cycle='monthly', price=Decimal(price),
+        billing_cycle='monthly',
+        price=Decimal(price),
     )
     sub.save()
     return sub
@@ -95,8 +105,12 @@ class TestBillingRunsEndpoint:
         # platform.view NO alcanza para disparar el cobro.
         viewer = _user_with_caps('viewer2@kaupamex.mx', ['platform.view'])
         api_client.force_login(viewer)
-        assert api_client.post(RUNS_URL, {'period': '2026-08'},
-                               format='json').status_code == 403
+        assert (
+            api_client.post(
+                RUNS_URL, {'period': '2026-08'}, format='json'
+            ).status_code
+            == 403
+        )
         # platform.billing → 202 + emite la factura del periodo.
         biller = _user_with_caps('biller@kaupamex.mx', ['platform.billing'])
         api_client.force_login(biller)
@@ -115,7 +129,10 @@ class TestCompanyInvoicesEndpoint:
         sub = _active_priced_sub(c, 'catalogue', '199.00')
         run = SubscriptionBillingRun.objects.create(period='2026-08')
         SubscriptionInvoice.objects.create(
-            company=c, subscription=sub, run=run, period='2026-08',
+            company=c,
+            subscription=sub,
+            run=run,
+            period='2026-08',
             amount=sub.price,
         )
         # Sin capacidad → 403.
@@ -141,8 +158,12 @@ class TestRetryInvoiceEndpoint:
         sub = _active_priced_sub(company, 'catalogue', '199.00')
         run = SubscriptionBillingRun.objects.create(period='2026-08')
         return SubscriptionInvoice.objects.create(
-            company=company, subscription=sub, run=run, period='2026-08',
-            amount=sub.price, status=SubscriptionInvoice.Status.FAILED,
+            company=company,
+            subscription=sub,
+            run=run,
+            period='2026-08',
+            amount=sub.price,
+            status=SubscriptionInvoice.Status.FAILED,
         )
 
     def test_retry_requires_platform_billing(self, api_client, db):
@@ -152,8 +173,9 @@ class TestRetryInvoiceEndpoint:
         api_client.force_login(viewer)
         assert api_client.post(_retry_url(inv.id)).status_code == 403
 
-    def test_retry_failed_invoice_charges_and_pays(self, api_client, db,
-                                                   monkeypatch):
+    def test_retry_failed_invoice_charges_and_pays(
+        self, api_client, db, monkeypatch
+    ):
         c = ResCompany.objects.create(code='acme', name='Acme')
         inv = self._failed_invoice(c)
         monkeypatch.setattr(services, 'charge_invoice', lambda invoice: True)

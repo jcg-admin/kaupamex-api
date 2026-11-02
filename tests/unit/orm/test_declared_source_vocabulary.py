@@ -33,7 +33,8 @@ atributo, medidas por AST sobre los 3328 archivos de modelo de ``odoo19c``:
 ===============  =====  ==========================================
 atributo         nº     ejemplo
 ===============  =====  ==========================================
-``readonly``     645    ``l10n_id_efaktur_coretax/models/efaktur_document.py:15``
+``readonly``     645
+``l10n_id_efaktur_coretax/models/efaktur_document.py:15``
 ``inverse``      35     ``l10n_latam_base/models/res_partner.py:9``
 ``recursive``    3      ``odoo/addons/test_orm/models/test_orm.py:28``
 ``compute_sudo`` 1      ``website_hr_recruitment/models/hr_department.py:10``
@@ -55,12 +56,12 @@ aserciones de :class:`TestTheDeclarationLandsOnAPlainField` y
 :class:`TestTheComputedPathStillWorks` se mueve — ése es el control de
 anulación, y su asimetría es lo que lo hace discriminar.
 """
+
 import pytest
 from django.db import models
 
 import fields
 from orm.fields_nonstored import NonStored, apply_source_defaults
-
 
 #: Los cuatro que la rama llana pierde, con un valor DISTINTO del default de
 #: clase: si el caso declarara el default, un «quedó == default» no separaría
@@ -88,20 +89,26 @@ UNCONDITIONAL_IN_ATTRS = ['compute', 'inverse', 'precompute', 'store']
 #: El universo del control de no-estampado: lo que el arreglo trajo más lo que
 #: el filtro retiene. ``inverse`` cae en los dos.
 NOT_STAMPED_WITHOUT_DECLARATION = sorted(
-    {a for a, _, _ in LOST_ON_A_PLAIN_FIELD} | set(UNCONDITIONAL_IN_ATTRS))
+    {a for a, _, _ in LOST_ON_A_PLAIN_FIELD} | set(UNCONDITIONAL_IN_ATTRS)
+)
 
 
 class TestTheDeclarationLandsOnAPlainField:
     """El campo con columna conserva lo que su autor declaró."""
 
-    @pytest.mark.parametrize('attribute,declared,default', LOST_ON_A_PLAIN_FIELD)
+    @pytest.mark.parametrize(
+        'attribute,declared,default', LOST_ON_A_PLAIN_FIELD
+    )
     def test_it_keeps_the_declared_value(self, attribute, declared, default):
         field = fields.Char(**{attribute: declared})
         assert getattr(field, attribute) == declared
 
-    @pytest.mark.parametrize('attribute,declared,default', LOST_ON_A_PLAIN_FIELD)
-    def test_the_case_discriminates_from_the_class_default(self, attribute,
-                                                           declared, default):
+    @pytest.mark.parametrize(
+        'attribute,declared,default', LOST_ON_A_PLAIN_FIELD
+    )
+    def test_the_case_discriminates_from_the_class_default(
+        self, attribute, declared, default
+    ):
         """El control del control: cada caso pide algo que el default NO da."""
         assert declared != default
 
@@ -125,22 +132,36 @@ class TestItAlsoLandsAfterContributeToClass:
 
     @pytest.fixture(scope='class')
     def model_class(self):
-        return type('DeclaredVocabularyProbe', (models.Model,), {
-            #: El modelo de la sonda declara SU módulo, no el del árbol.
-            #: ``test_domain_in_required`` fija su población por
-            #: ``__module__.startswith('addons.base.models')`` justamente para
-            #: que un modelo de pruebas no la engorde; declararlo ahí lo
-            #: colaba dentro y su conteo pasaba de 27 a 28.
-            '__module__': __name__,
-            'label': fields.Char(max_length=64, readonly=True,
-                                 compute_sudo=True, inverse='_inverse_label',
-                                 recursive=True),
-            'Meta': type('Meta', (), {'app_label': 'base', 'managed': False}),
-        })
+        return type(
+            'DeclaredVocabularyProbe',
+            (models.Model,),
+            {
+                #: El modelo de la sonda declara SU módulo, no el del árbol.
+                #: ``test_domain_in_required`` fija su población por
+                #: ``__module__.startswith('addons.base.models')``
+                #: justamente para
+                #: que un modelo de pruebas no la engorde; declararlo ahí lo
+                #: colaba dentro y su conteo pasaba de 27 a 28.
+                '__module__': __name__,
+                'label': fields.Char(
+                    max_length=64,
+                    readonly=True,
+                    compute_sudo=True,
+                    inverse='_inverse_label',
+                    recursive=True,
+                ),
+                'Meta': type(
+                    'Meta', (), {'app_label': 'base', 'managed': False}
+                ),
+            },
+        )
 
-    @pytest.mark.parametrize('attribute,declared,default', LOST_ON_A_PLAIN_FIELD)
-    def test_the_contributed_field_keeps_it(self, model_class, attribute,
-                                            declared, default):
+    @pytest.mark.parametrize(
+        'attribute,declared,default', LOST_ON_A_PLAIN_FIELD
+    )
+    def test_the_contributed_field_keeps_it(
+        self, model_class, attribute, declared, default
+    ):
         field = model_class._meta.get_field('label')
         assert getattr(field, attribute) == declared
 
@@ -158,13 +179,16 @@ class TestTheClassDefaultIsNotStamped:
     @pytest.mark.parametrize('attribute', NOT_STAMPED_WITHOUT_DECLARATION)
     def test_an_undeclared_attribute_stays_on_the_class(self, attribute):
         field = fields.Char()
-        assert attribute not in field.__dict__, (
-            f'{attribute} se anotó en la instancia sin que nadie lo declarara')
+        assert (
+            attribute not in field.__dict__
+        ), f'{attribute} se anotó en la instancia sin que nadie lo declarara'
 
-    @pytest.mark.parametrize('attribute,_declared,default',
-                             LOST_ON_A_PLAIN_FIELD)
-    def test_and_the_class_still_answers_the_default(self, attribute, _declared,
-                                                     default):
+    @pytest.mark.parametrize(
+        'attribute,_declared,default', LOST_ON_A_PLAIN_FIELD
+    )
+    def test_and_the_class_still_answers_the_default(
+        self, attribute, _declared, default
+    ):
         assert getattr(fields.Char(), attribute) == default
 
     @pytest.mark.parametrize('attribute', UNCONDITIONAL_IN_ATTRS)
@@ -177,14 +201,16 @@ class TestTheClassDefaultIsNotStamped:
         attrs = apply_source_defaults(None, {})
         assert attribute in attrs, (
             f'{attribute} ya no viaja en attrs: el control de no-estampado '
-            f'dejó de medirlo')
+            'dejó de medirlo'
+        )
 
 
 class TestTheContractOfTheEndpointDoesNotMove:
     """Lo que el arreglo NO cambia, medido en los dos árboles.
 
     ``editable=False`` para un ``readonly=True`` llano es **anterior** al
-    arreglo: la inyección de ``apply_source_defaults`` lee ``attrs['readonly']``,
+    arreglo: la inyección de ``apply_source_defaults`` lee
+    ``attrs['readonly']``,
     y esa clave ya la ponía la rama ``elif not declared['compute']``. Medido
     sobre ``HEAD`` y sobre el árbol con el arreglo::
 
@@ -209,8 +235,12 @@ class TestTheComputedPathStillWorks:
     """Regresión: la rama que YA anotaba sigue anotando."""
 
     def test_a_computed_field_keeps_its_vocabulary(self):
-        field = fields.Char(store=False, compute='_compute_label',
-                            inverse='_inverse_label', recursive=True)
+        field = fields.Char(
+            store=False,
+            compute='_compute_label',
+            inverse='_inverse_label',
+            recursive=True,
+        )
         assert field.compute == '_compute_label'
         assert field.inverse == '_inverse_label'
         assert field.recursive is True

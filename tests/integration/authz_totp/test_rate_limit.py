@@ -53,7 +53,8 @@ Los controles que exige el sub-patrón D de ``metrica-decide-la-conclusion.md``
     Qué lo haría fallar: poner el ``except AccessDenied`` **después** del
     ``except UserError``. ``AccessDenied`` hereda de ``UserError``, así que el
     orden inverso lo traga y el agotamiento de cuota sale como *"el envío
-    falló"* con 400 — y un cliente que lee eso reintenta, que es justo lo que el
+    falló"* con 400 — y un cliente que lee eso reintenta, que es justo lo que
+    el
     freno existe para impedir. El caso separa las dos lecturas por su código y
     por su ``codigo_error``.
 
@@ -63,6 +64,7 @@ Los controles que exige el sub-patrón D de ``metrica-decide-la-conclusion.md``
     de la suite entera con un ``AssertionError`` sin contexto; con él, falla un
     caso que dice cuál es el invariante y por qué.
 """
+
 import base64
 
 import pytest
@@ -80,13 +82,15 @@ from addons.authz_totp.models.auth_totp_rate_limit_log import (
     GC_MAX_AGE_SECONDS,
 )
 from addons.authz_totp.models.res_users import (
-    RATE_LIMIT_DESCRIPTIONS, TOTP_RATE_LIMITS,
+    RATE_LIMIT_DESCRIPTIONS,
+    TOTP_RATE_LIMITS,
 )
 from addons.authz_totp.models.totp import TIMESTEP, hotp
 from addons.authz_totp.services import begin_setup, confirm_setup
 from addons.authz_totp_mail.data import seed as seed_totp_mail
 from addons.authz_totp_mail.models.res_users import (
-    _get_totp_mail_code, _send_totp_mail_code,
+    _get_totp_mail_code,
+    _send_totp_mail_code,
 )
 
 User = get_user_model()
@@ -122,8 +126,10 @@ def _wrong_code(secret):
 def enrolled(db):
     """Usuario con 2FA de app confirmado; devuelve ``(user, secret)``."""
     user = User.objects.create_user(
-        login='con.freno@kaupamex.mx', password=PASSWORD,
-        name='Usuario Con Freno')
+        login='con.freno@kaupamex.mx',
+        password=PASSWORD,
+        name='Usuario Con Freno',
+    )
     secret, _uri = begin_setup(user)
     assert confirm_setup(user, _code_for(secret, offset=-1)), 'el alta falló'
     return user, secret
@@ -133,8 +139,9 @@ def _burn(user, secret, veces):
     """Gasta ``veces`` intentos fallidos de ``code_check``, uno a uno."""
     for _ in range(veces):
         with pytest.raises(AccessDenied):
-            user._check_credentials(_credential(_wrong_code(secret)),
-                                    {'interactive': True})
+            user._check_credentials(
+                _credential(_wrong_code(secret)), {'interactive': True}
+            )
 
 
 class TestCodeCheck:
@@ -146,12 +153,14 @@ class TestCodeCheck:
         _burn(user, secret, LIMIT_CODE_CHECK)
 
         with pytest.raises(AccessDenied) as excinfo:
-            user._check_credentials(_credential(_wrong_code(secret)),
-                                    {'interactive': True})
+            user._check_credentials(
+                _credential(_wrong_code(secret)), {'interactive': True}
+            )
         assert str(excinfo.value) == RATE_LIMIT_DESCRIPTIONS['code_check']
 
     def test_the_attempts_below_the_limit_fail_for_the_other_reason(
-            self, enrolled):
+        self, enrolled
+    ):
         """CONTROL de la dirección contraria — el freno no se adelanta.
 
         Sin él este caso pasaría igual; con un freno demasiado temprano —de
@@ -162,8 +171,9 @@ class TestCodeCheck:
         user, secret = enrolled
         for _ in range(LIMIT_CODE_CHECK):
             with pytest.raises(AccessDenied) as excinfo:
-                user._check_credentials(_credential(_wrong_code(secret)),
-                                        {'interactive': True})
+                user._check_credentials(
+                    _credential(_wrong_code(secret)), {'interactive': True}
+                )
             assert str(excinfo.value) != RATE_LIMIT_DESCRIPTIONS['code_check']
 
     def test_a_success_gives_the_whole_quota_back(self, enrolled):
@@ -171,18 +181,24 @@ class TestCodeCheck:
         user, secret = enrolled
         _burn(user, secret, LIMIT_CODE_CHECK - 1)
 
-        resultado = user._check_credentials(_credential(_code_for(secret)),
-                                            {'interactive': True})
+        resultado = user._check_credentials(
+            _credential(_code_for(secret)), {'interactive': True}
+        )
         assert resultado['auth_method'] == 'totp'
-        assert AuthTotpRateLimitLog.objects.filter(
-            user_id_id=user.pk, limit_type='code_check').count() == 0
+        assert (
+            AuthTotpRateLimitLog.objects.filter(
+                user_id_id=user.pk, limit_type='code_check'
+            ).count()
+            == 0
+        )
 
         # La cuota entera está de vuelta: los cinco siguientes fallan por
         # código, no por freno.
         for _ in range(LIMIT_CODE_CHECK):
             with pytest.raises(AccessDenied) as excinfo:
-                user._check_credentials(_credential(_wrong_code(secret)),
-                                        {'interactive': True})
+                user._check_credentials(
+                    _credential(_wrong_code(secret)), {'interactive': True}
+                )
             assert str(excinfo.value) != RATE_LIMIT_DESCRIPTIONS['code_check']
 
     def test_an_attempt_outside_the_interval_does_not_count(self, enrolled):
@@ -192,13 +208,16 @@ class TestCodeCheck:
         # ``created_at`` es ``auto_now_add``: se envejece con UPDATE, que es la
         # única vía que no vuelve a pasar por el default del campo.
         viejo = timezone.now() - timezone.timedelta(
-            seconds=INTERVAL_CODE_CHECK + 60)
+            seconds=INTERVAL_CODE_CHECK + 60
+        )
         AuthTotpRateLimitLog.objects.filter(user_id_id=user.pk).update(
-            created_at=viejo)
+            created_at=viejo
+        )
 
         with pytest.raises(AccessDenied) as excinfo:
-            user._check_credentials(_credential(_wrong_code(secret)),
-                                    {'interactive': True})
+            user._check_credentials(
+                _credential(_wrong_code(secret)), {'interactive': True}
+            )
         assert str(excinfo.value) != RATE_LIMIT_DESCRIPTIONS['code_check']
 
     def test_the_two_counters_are_separate(self, enrolled):
@@ -206,11 +225,16 @@ class TestCodeCheck:
         user, _secret = enrolled
         for _ in range(LIMIT_SEND_EMAIL + 3):
             AuthTotpRateLimitLog.objects.create(
-                user_id_id=user.pk, ip='', limit_type='send_email')
+                user_id_id=user.pk, ip='', limit_type='send_email'
+            )
 
         user._totp_rate_limit('code_check')  # no levanta
-        assert AuthTotpRateLimitLog.objects.filter(
-            user_id_id=user.pk, limit_type='code_check').count() == 1
+        assert (
+            AuthTotpRateLimitLog.objects.filter(
+                user_id_id=user.pk, limit_type='code_check'
+            ).count()
+            == 1
+        )
 
 
 class TestMailCode:
@@ -220,8 +244,10 @@ class TestMailCode:
     def mail_user(self, db):
         seed_totp_mail()
         user = User.objects.create_user(
-            login='freno.correo@kaupamex.mx', password=PASSWORD,
-            name='Usuario Con Freno De Correo')
+            login='freno.correo@kaupamex.mx',
+            password=PASSWORD,
+            name='Usuario Con Freno De Correo',
+        )
         django_mail.outbox.clear()
         return user
 
@@ -241,17 +267,25 @@ class TestMailCode:
         """La fuente purga los DOS al acertar, no sólo el que gastó."""
         for _ in range(LIMIT_SEND_EMAIL):
             _send_totp_mail_code(mail_user)
-        assert AuthTotpRateLimitLog.objects.filter(
-            user_id_id=mail_user.pk, limit_type='send_email').count() == \
-            LIMIT_SEND_EMAIL
+        assert (
+            AuthTotpRateLimitLog.objects.filter(
+                user_id_id=mail_user.pk, limit_type='send_email'
+            ).count()
+            == LIMIT_SEND_EMAIL
+        )
 
         code, _expiration = _get_totp_mail_code(mail_user)
         resultado = mail_user._check_credentials(
-            {'type': 'totp_mail', 'token': code}, {'interactive': True})
+            {'type': 'totp_mail', 'token': code}, {'interactive': True}
+        )
         assert resultado['auth_method'] == 'totp_mail'
 
-        assert AuthTotpRateLimitLog.objects.filter(
-            user_id_id=mail_user.pk).count() == 0
+        assert (
+            AuthTotpRateLimitLog.objects.filter(
+                user_id_id=mail_user.pk
+            ).count()
+            == 0
+        )
         # Y la prueba de que la purga sirve para algo: se puede volver a pedir.
         _send_totp_mail_code(mail_user)
 
@@ -267,12 +301,15 @@ class TestSweep:
         """
         user, _secret = enrolled
         vieja = AuthTotpRateLimitLog.objects.create(
-            user_id_id=user.pk, ip='', limit_type='code_check')
+            user_id_id=user.pk, ip='', limit_type='code_check'
+        )
         reciente = AuthTotpRateLimitLog.objects.create(
-            user_id_id=user.pk, ip='', limit_type='code_check')
+            user_id_id=user.pk, ip='', limit_type='code_check'
+        )
         AuthTotpRateLimitLog.objects.filter(pk=vieja.pk).update(
-            created_at=timezone.now() - timezone.timedelta(
-                seconds=GC_MAX_AGE_SECONDS + 60))
+            created_at=timezone.now()
+            - timezone.timedelta(seconds=GC_MAX_AGE_SECONDS + 60)
+        )
 
         AuthTotpRateLimitLog._gc_rate_limit_log()
 
@@ -295,8 +332,10 @@ class TestSendCodeEndpoint:
         """CONTROL — el orden de los dos ``except`` de la vista."""
         seed_totp_mail()
         user = User.objects.create_user(
-            login='freno.vista@kaupamex.mx', password=PASSWORD,
-            name='Usuario Del Endpoint Con Freno')
+            login='freno.vista@kaupamex.mx',
+            password=PASSWORD,
+            name='Usuario Del Endpoint Con Freno',
+        )
         # account.security viaja en los roles sembrados (DEC-ENF-01), igual
         # que en ``tests/integration/authz_totp_mail/test_authz_totp_mail.py``.
         call_command('seed_authz')

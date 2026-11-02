@@ -39,7 +39,9 @@ Este archivo NO existe en la referencia, y ``src/orm`` es una raíz espejada
 ==========================================================================
 
 Medido contra ``odoo19c: odoo/orm/`` — ``find`` por nombre y ``grep`` por
-símbolo, los dos a **0**. La referencia no lo necesita: su ``fields.Char(store=False, ...)`` ya declara un campo sin columna. Este mecanismo existe porque en Django todo ``models.Field`` **es** una columna.
+símbolo, los dos a **0**. La referencia no lo necesita: su
+``fields.Char(store=False, ...)`` ya declara un campo sin columna. Este
+mecanismo existe porque en Django todo ``models.Field`` **es** una columna.
 
 Eso lo hace legítimo como **mecanismo construido**
 (``porte-completo-no-parcial.md``: *si el stack no trae el mecanismo, se
@@ -56,14 +58,20 @@ y hasta este pase sólo ``checks`` lo declaraba.
 El veredicto por archivo —quedarse aquí con la divergencia declarada, o mudarse
 a una raíz propia como ``src/core``— es la tarea **#121**.
 """
+
 import inspect
 import types
 import warnings
 
 from django.db import models
 
-__all__ = ['NonStored', 'non_stored_fields', 'apply_source_defaults',
-           'annotate_related', 'derive_source_attrs']
+__all__ = [
+    'NonStored',
+    'non_stored_fields',
+    'apply_source_defaults',
+    'annotate_related',
+    'derive_source_attrs',
+]
 
 
 class NonStored:
@@ -76,8 +84,17 @@ class NonStored:
     dejaría el descriptor sin saber su propio nombre.
     """
 
-    def __init__(self, *args, default=None, help_text='', search=None,
-                 related=None, verbose_name=None, compute=None, **_ignored):
+    def __init__(
+        self,
+        *args,
+        default=None,
+        help_text='',
+        search=None,
+        related=None,
+        verbose_name=None,
+        compute=None,
+        **_ignored,
+    ):
         self.default = default
         self.help_text = help_text
         #: ≙ ``Field.string`` (``odoo19c: odoo/orm/fields.py:264``) — la
@@ -218,8 +235,9 @@ class NonStored:
         if target is None:
             return
         #: ``:731`` verbatim — ambos reales o ambos nuevos.
-        if bool(getattr(target, 'pk', None)) != bool(getattr(instance, 'pk',
-                                                             None)):
+        if bool(getattr(target, 'pk', None)) != bool(
+            getattr(instance, 'pk', None)
+        ):
             return
         held = getattr(type(target), last_name, None)
         if isinstance(held, NonStored):
@@ -349,14 +367,25 @@ _UNSET = object()
 #: defaults, y sin la lista no habría cómo distinguir «el autor lo escribió»
 #: de «el bloque lo dedujo» — que es lo que :func:`annotate_related` necesita
 #: para no colgar un atributo de instancia por cada clave sobre un campo llano.
-SOURCE_VOCABULARY_KEYS = frozenset({
-    'compute', 'inverse', 'recursive', 'precompute', 'compute_sudo',
-    'related_sudo', 'readonly', 'store', 'copy', 'related',
-})
+SOURCE_VOCABULARY_KEYS = frozenset(
+    {
+        'compute',
+        'inverse',
+        'recursive',
+        'precompute',
+        'compute_sudo',
+        'related_sudo',
+        'readonly',
+        'store',
+        'copy',
+        'related',
+    }
+)
 
 
 def derive_source_attrs(attrs, many_to_many=False, field_label=''):
-    """Los tres bloques de derivación de la fuente, sobre ``attrs``, en su orden.
+    """
+    Los tres bloques de derivación de la fuente, sobre ``attrs``, en su orden.
 
     ≙ ``odoo19c: odoo/orm/fields.py:443-465``. Es **una sola copia**, y ése es
     el punto: la tenían duplicada :func:`apply_source_defaults` —que deriva en
@@ -392,8 +421,9 @@ def derive_source_attrs(attrs, many_to_many=False, field_label=''):
         # copia y es de sólo lectura. Va DESPUÉS del bloque de ``compute`` y
         # lo pisa: un ``related=`` con ``compute=`` acaba con forma de related.
         attrs['store'] = store = attrs.get('store', False)
-        attrs['compute_sudo'] = attrs.get('compute_sudo',
-                                          attrs.get('related_sudo', True))
+        attrs['compute_sudo'] = attrs.get(
+            'compute_sudo', attrs.get('related_sudo', True)
+        )
         attrs['copy'] = attrs.get('copy', False)
         attrs['readonly'] = attrs.get('readonly', True)
     if attrs.get('precompute'):
@@ -403,13 +433,17 @@ def derive_source_attrs(attrs, many_to_many=False, field_label=''):
         suffix = f' {field_label}' if field_label else ''
         if not attrs.get('compute') and not attrs.get('related'):
             warnings.warn(
-                f"precompute attribute doesn't make any sense on non computed "
-                f"field{suffix}", stacklevel=2)
+                "precompute attribute doesn't make any sense on non computed "
+                f"field{suffix}",
+                stacklevel=2,
+            )
             attrs['precompute'] = False
         elif not attrs.get('store'):
             warnings.warn(
-                f"precompute attribute has no impact on non stored "
-                f"field{suffix}", stacklevel=2)
+                "precompute attribute has no impact on non stored "
+                f"field{suffix}",
+                stacklevel=2,
+            )
             attrs['precompute'] = False
         elif many_to_many:
             # El tercer caso es NUESTRO, y es de stack. Un muchos-a-muchos no
@@ -420,15 +454,18 @@ def derive_source_attrs(attrs, many_to_many=False, field_label=''):
             # declara ``tag_ids`` con ``precompute=True``
             # (``odoo19c: account_account.py:107``).
             warnings.warn(
-                f"precompute attribute has no impact on a many2many field: "
-                f"its join table needs the pk of a row that does not exist "
-                f"yet{suffix}", stacklevel=2)
+                "precompute attribute has no impact on a many2many field: "
+                "its join table needs the pk of a row that does not exist "
+                f"yet{suffix}",
+                stacklevel=2,
+            )
             attrs['precompute'] = False
     return attrs
 
 
-def apply_source_defaults(related, kwargs, many_to_many=False,
-                          company_dependent=False):
+def apply_source_defaults(
+    related, kwargs, many_to_many=False, company_dependent=False
+):
     """Lo que ``compute=`` y ``related=`` implican, resuelto al declarar.
 
     Deriva con :func:`derive_source_attrs` —la única copia de los tres bloques
@@ -468,7 +505,8 @@ def apply_source_defaults(related, kwargs, many_to_many=False,
     if company_dependent and not attrs['store']:
         raise ValueError(
             'store=False y company_dependent=True son excluyentes: un '
-            'campo sin columna no tiene jsonb donde repartir el valor.')
+            'campo sin columna no tiene jsonb donde repartir el valor.'
+        )
 
     #: ``editable=False`` es la forma NATIVA de Django de decir «esto no lo
     #: escribe el cliente», y es la que DRF ya consume: ``get_field_kwargs``
@@ -518,9 +556,13 @@ def annotate_related(field, related, attrs):
     #: ``None`` y el mapa saldría vacío — que es lo que el censo midió antes de
     #: este porte (44 métodos, 0 campos, 0 aristas).
     declared_keys = attrs.get('declared_keys', frozenset())
-    landing = (attrs if (related or attrs.get('compute'))
-               else {key: value for key, value in attrs.items()
-                     if key in declared_keys})
+    landing = (
+        attrs
+        if (related or attrs.get('compute'))
+        else {
+            key: value for key, value in attrs.items() if key in declared_keys
+        }
+    )
     for attribute, value in landing.items():
         #: Contabilidad del mecanismo, no vocabulario de la fuente: viaja en el
         #: diccionario para que esta función sepa qué declaró el autor, y no
@@ -541,8 +583,10 @@ def annotate_related(field, related, attrs):
 def _bind_search_related(field):
     """``_search_related`` ligado a ``field`` — el invocable que ``search``
     espera: ``(records, operator, value) -> Domain``."""
+
     def search(records, operator, value):
         return models.Field._search_related(field, records, operator, value)
+
     return search
 
 
@@ -551,7 +595,8 @@ class _RegistryCache:
 
     El recorrido cuesta lo suyo y :meth:`~orm.models.FieldSqlMixin._fields` lo
     hace en cada acceso, incluido el camino de composición de SQL. Medido sobre
-    ``ResPartner`` —16 clases en el MRO, 17 campos sin columna— el recorrido son
+    ``ResPartner`` —16 clases en el MRO, 17 campos sin columna— el recorrido
+    son
     **20.9 us** contra **4.6 us** del mapa de ``_meta``: sin memoria, el
     registro del modelo pasa de 4.6 a 26.4 us por lectura.
 
@@ -621,12 +666,15 @@ def non_stored_fields(cls):
     convención y ve también a un descriptor que no la siga.
 
     **Dos poblaciones, un solo registro (TASK-API-0417).** Desde que las nueve
-    fachadas dejaron de enrutar por ``store``, la forma sin columna dominante ya
+    fachadas dejaron de enrutar por ``store``, la forma sin columna dominante
+    ya
     no es :class:`NonStored` sino un ``models.Field`` corriente que la costura
     contribuyó con ``private_only=True`` — ``_field_contribute_to_class``
-    (``orm/fields.py``) lo refuerza con ``private_only or self.store is False``,
+    (``orm/fields.py``) lo refuerza con ``private_only or self.store is
+    False``,
     así que aterriza en ``_meta.private_fields`` y no en ``local_fields``. Este
-    recorrido las junta porque el registro que publica es el de la FUENTE, donde
+    recorrido las junta porque el registro que publica es el de la FUENTE,
+    donde
     ``store`` es un atributo y nunca un tipo distinto
     (``odoo19c: odoo/orm/fields.py:455``). Mirar sólo una de las dos dejaría al
     registro estrictamente más estrecho que el de la referencia, que es el
@@ -634,7 +682,8 @@ def non_stored_fields(cls):
 
     El filtro sobre ``private_fields`` es ``store is False`` y no la mera
     pertenencia: Django también contribuye ahí ``GenericForeignKey`` y los
-    campos de contenido genérico, que sí tienen columna asociada y no son campos
+    campos de contenido genérico, que sí tienen columna asociada y no son
+    campos
     sin almacenamiento de la fuente. Preguntar por la pertenencia mediría la
     tubería de Django y concluiría sobre el vocabulario de la referencia.
 

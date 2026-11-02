@@ -3,6 +3,7 @@
 Adaptación fiel de Odoo fleet/models/fleet_vehicle_assignation_log.py
 (odoo-tools@622ddc2a, odoo19c:, LGPL-3).
 """
+
 import fields
 import models
 
@@ -10,17 +11,25 @@ from addons.base.models import TimeStampedModel
 
 
 class FleetVehicleAssignationLog(TimeStampedModel):
-    """``fleet.vehicle.assignation.log`` — quién condujo qué vehículo y cuándo."""
+    """
+    ``fleet.vehicle.assignation.log`` — quién condujo qué vehículo y cuándo.
+    """
 
     vehicle = fields.Many2one(
-        'fleet.FleetVehicle', on_delete=models.CASCADE,
-        related_name='assignation_logs', help_text='Odoo vehicle_id (required).',
+        'fleet.FleetVehicle',
+        on_delete=models.CASCADE,
+        related_name='assignation_logs',
+        help_text='Odoo vehicle_id (required).',
     )
     driver = fields.Many2one(
-        'base.ResPartner', on_delete=models.PROTECT,
-        related_name='fleet_assignation_logs', help_text='Odoo driver_id (required).',
+        'base.ResPartner',
+        on_delete=models.PROTECT,
+        related_name='fleet_assignation_logs',
+        help_text='Odoo driver_id (required).',
     )
-    date_start = fields.Date(null=True, blank=True, help_text='Odoo date_start.')
+    date_start = fields.Date(
+        null=True, blank=True, help_text='Odoo date_start.'
+    )
     date_end = fields.Date(null=True, blank=True, help_text='Odoo date_end.')
 
     class Meta:

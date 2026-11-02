@@ -1,4 +1,5 @@
-"""Contrato de ``CertificateCertificate`` — puerto de ``certificate.certificate``
+"""
+Contrato de ``CertificateCertificate`` — puerto de ``certificate.certificate``
 (Odoo 19c).
 
 Adaptación de Odoo certificate/models/certificate.py (odoo-tools@622ddc2a,
@@ -8,6 +9,7 @@ certificate``), la detección/creación de la llave privada
 (``issuer_cert`` / ``_get_certificate_chain``), la auto-creación de CAs
 faltantes y las invariantes de compatibilidad llave/certificado.
 """
+
 import datetime
 
 import pytest
@@ -43,11 +45,18 @@ def _private_pem(private_key):
     )
 
 
-def _self_signed_cert(private_key, common_name, days_valid=365,
-                       not_before_delta=-1, extensions=True):
-    subject = issuer = x509.Name([
-        x509.NameAttribute(NameOID.COMMON_NAME, common_name),
-    ])
+def _self_signed_cert(
+    private_key,
+    common_name,
+    days_valid=365,
+    not_before_delta=-1,
+    extensions=True,
+):
+    subject = issuer = x509.Name(
+        [
+            x509.NameAttribute(NameOID.COMMON_NAME, common_name),
+        ]
+    )
     now = datetime.datetime.now(datetime.timezone.utc)
     builder = (
         x509.CertificateBuilder()
@@ -59,23 +68,34 @@ def _self_signed_cert(private_key, common_name, days_valid=365,
         .not_valid_after(now + datetime.timedelta(days=days_valid))
     )
     if extensions:
-        ski = x509.SubjectKeyIdentifier.from_public_key(private_key.public_key())
+        ski = x509.SubjectKeyIdentifier.from_public_key(
+            private_key.public_key()
+        )
         builder = builder.add_extension(ski, critical=False)
         builder = builder.add_extension(
-            x509.AuthorityKeyIdentifier.from_issuer_subject_key_identifier(ski),
+            x509.AuthorityKeyIdentifier.from_issuer_subject_key_identifier(
+                ski
+            ),
             critical=False,
         )
     return builder.sign(private_key, hashes.SHA256())
 
 
-def _signed_cert(subject_private_key, common_name, issuer_private_key,
-                  issuer_cert, days_valid=365):
+def _signed_cert(
+    subject_private_key,
+    common_name,
+    issuer_private_key,
+    issuer_cert,
+    days_valid=365,
+):
     subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)])
     now = datetime.datetime.now(datetime.timezone.utc)
     subject_ski = x509.SubjectKeyIdentifier.from_public_key(
-        subject_private_key.public_key())
+        subject_private_key.public_key()
+    )
     issuer_ski = issuer_cert.extensions.get_extension_for_class(
-        x509.SubjectKeyIdentifier).value
+        x509.SubjectKeyIdentifier
+    ).value
     builder = (
         x509.CertificateBuilder()
         .subject_name(subject)
@@ -116,7 +136,8 @@ class TestComputePemCertificateDer:
         assert row.serial_number == str(cert.serial_number)
         assert row.loading_error == ''
         assert bytes(row.pem_certificate).startswith(
-            b'-----BEGIN CERTIFICATE-----')
+            b'-----BEGIN CERTIFICATE-----'
+        )
 
     def test_date_start_and_date_end_are_timezone_aware(self):
         """Divergencia deliberada vs. la referencia: aquí quedan aware (UTC),
@@ -125,7 +146,8 @@ class TestComputePemCertificateDer:
         priv = _rsa_key()
         cert = _self_signed_cert(priv, 'tz-leaf')
         row = CertificateCertificate(
-            name='c', company=acme,
+            name='c',
+            company=acme,
             content=cert.public_bytes(serialization.Encoding.DER),
         )
         row.save()
@@ -134,7 +156,9 @@ class TestComputePemCertificateDer:
 
 
 class TestComputePemCertificatePem:
-    def test_pem_bundle_with_private_key_detects_leaf_and_links_private_key(self):
+    def test_pem_bundle_with_private_key_detects_leaf_and_links_private_key(
+        self,
+    ):
         acme = _company('acme-cert-pem-1')
         priv = _rsa_key()
         cert = _self_signed_cert(priv, 'pem-leaf')
@@ -156,8 +180,11 @@ class TestComputePemCertificatePkcs12:
         priv = _rsa_key()
         cert = _self_signed_cert(priv, 'p12-leaf')
         p12_bytes = pkcs12.serialize_key_and_certificates(
-            name=b'p12-leaf', key=priv, cert=cert,
-            cas=None, encryption_algorithm=serialization.NoEncryption(),
+            name=b'p12-leaf',
+            key=priv,
+            cert=cert,
+            cas=None,
+            encryption_algorithm=serialization.NoEncryption(),
         )
 
         row = CertificateCertificate(name='c', company=acme, content=p12_bytes)
@@ -170,12 +197,14 @@ class TestComputePemCertificatePkcs12:
 
 class TestLoadingError:
     def test_garbage_content_computes_no_pem_and_is_not_valid(self):
-        """Sólo el cómputo (sin ``save()``): fiel a ``_compute_pem_certificate``
+        """
+        Sólo el cómputo (sin ``save()``): fiel a ``_compute_pem_certificate``
         (certificate.py:208-249) en aislamiento, antes de que el constrain
         de la siguiente prueba lo rechace."""
         acme = _company('acme-cert-bad-1')
         row = CertificateCertificate(
-            name='bad', company=acme, content=b'no es un certificado')
+            name='bad', company=acme, content=b'no es un certificado'
+        )
         row._compute_pem_certificate()
         assert row.pem_certificate is None
         assert row.content_format == ''
@@ -183,10 +212,12 @@ class TestLoadingError:
 
     def test_save_rejects_content_that_failed_to_load(self):
         """``@api.constrains('content', 'pem_certificate')`` (certificate.py
-        :304-310): ``content`` puesto pero no cargado → rechazado en escritura."""
+        :304-310): ``content`` puesto pero no cargado → rechazado en escritura.
+        """
         acme = _company('acme-cert-bad-2')
         row = CertificateCertificate(
-            name='bad', company=acme, content=b'no es un certificado')
+            name='bad', company=acme, content=b'no es un certificado'
+        )
         with pytest.raises(ValidationError):
             row.save()
 
@@ -196,9 +227,11 @@ class TestIsValid:
         acme = _company('acme-cert-expired-1')
         priv = _rsa_key()
         cert = _self_signed_cert(
-            priv, 'expired-leaf', days_valid=-1, not_before_delta=-30)
+            priv, 'expired-leaf', days_valid=-1, not_before_delta=-30
+        )
         row = CertificateCertificate.objects.create(
-            name='c', company=acme,
+            name='c',
+            company=acme,
             content=cert.public_bytes(serialization.Encoding.DER),
         )
         assert row.is_valid is False
@@ -208,7 +241,8 @@ class TestIsValid:
         priv = _rsa_key()
         cert = _self_signed_cert(priv, 'valid-leaf')
         row = CertificateCertificate.objects.create(
-            name='c', company=acme,
+            name='c',
+            company=acme,
             content=cert.public_bytes(serialization.Encoding.DER),
         )
         assert row.is_valid is True
@@ -220,14 +254,16 @@ class TestIssuerChain:
         root_priv = _rsa_key()
         root_cert = _self_signed_cert(root_priv, 'root-ca')
         root_row = CertificateCertificate.objects.create(
-            name='root', company=acme,
+            name='root',
+            company=acme,
             content=root_cert.public_bytes(serialization.Encoding.DER),
         )
 
         leaf_priv = _rsa_key()
         leaf_cert = _signed_cert(leaf_priv, 'leaf', root_priv, root_cert)
         leaf_row = CertificateCertificate.objects.create(
-            name='leaf', company=acme,
+            name='leaf',
+            company=acme,
             content=leaf_cert.public_bytes(serialization.Encoding.DER),
         )
 
@@ -240,13 +276,15 @@ class TestIssuerChain:
         root_priv = _rsa_key()
         root_cert = _self_signed_cert(root_priv, 'root-ca-2')
         root_row = CertificateCertificate.objects.create(
-            name='root', company=acme,
+            name='root',
+            company=acme,
             content=root_cert.public_bytes(serialization.Encoding.DER),
         )
         leaf_priv = _rsa_key()
         leaf_cert = _signed_cert(leaf_priv, 'leaf-2', root_priv, root_cert)
         leaf_row = CertificateCertificate.objects.create(
-            name='leaf', company=acme,
+            name='leaf',
+            company=acme,
             content=leaf_cert.public_bytes(serialization.Encoding.DER),
         )
 
@@ -258,7 +296,8 @@ class TestIssuerChain:
         priv = _rsa_key()
         cert = _self_signed_cert(priv, 'self-signed')
         row = CertificateCertificate.objects.create(
-            name='c', company=acme,
+            name='c',
+            company=acme,
             content=cert.public_bytes(serialization.Encoding.DER),
         )
         # El propio certificado es su emisor por DN pero la referencia lo
@@ -279,16 +318,24 @@ class TestAutoCaCreation:
 
         bundle = _private_pem(leaf_priv) + _pem(leaf_cert) + _pem(root_cert)
         leaf_row = CertificateCertificate.objects.create(
-            name='leaf', company=acme, content=bundle)
+            name='leaf', company=acme, content=bundle
+        )
 
-        created_root = CertificateCertificate.objects.filter(
-            company=acme, subject_common_name='auto-root',
-        ).exclude(pk=leaf_row.pk).first()
+        created_root = (
+            CertificateCertificate.objects.filter(
+                company=acme,
+                subject_common_name='auto-root',
+            )
+            .exclude(pk=leaf_row.pk)
+            .first()
+        )
 
         assert created_root is not None
         assert created_root.active is False
-        assert created_root.issuer_cert is None or \
-            created_root.issuer_cert.pk == created_root.pk
+        assert (
+            created_root.issuer_cert is None
+            or created_root.issuer_cert.pk == created_root.pk
+        )
 
     def test_auto_ca_creation_is_idempotent_across_two_certificates(self):
         """Dos hojas emitidas por la misma CA no duplican la CA (fiel a la
@@ -301,12 +348,16 @@ class TestAutoCaCreation:
         for cn in ('leaf-a', 'leaf-b'):
             leaf_priv = _rsa_key()
             leaf_cert = _signed_cert(leaf_priv, cn, root_priv, root_cert)
-            bundle = _private_pem(leaf_priv) + _pem(leaf_cert) + _pem(root_cert)
+            bundle = (
+                _private_pem(leaf_priv) + _pem(leaf_cert) + _pem(root_cert)
+            )
             CertificateCertificate.objects.create(
-                name=cn, company=acme, content=bundle)
+                name=cn, company=acme, content=bundle
+            )
 
         root_count = CertificateCertificate.objects.filter(
-            company=acme, subject_common_name='auto-root-shared',
+            company=acme,
+            subject_common_name='auto-root-shared',
         ).count()
         assert root_count == 1
 
@@ -321,10 +372,12 @@ class TestCertificateKeyCompatibility:
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
         pub_key_row = CertificateKey.objects.create(
-            name='pub', company=acme, content=pub_pem)
+            name='pub', company=acme, content=pub_pem
+        )
 
         row = CertificateCertificate(
-            name='c', company=acme,
+            name='c',
+            company=acme,
             content=cert.public_bytes(serialization.Encoding.DER),
             public_key=pub_key_row,
         )
@@ -342,10 +395,12 @@ class TestCertificateKeyCompatibility:
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
         mismatched_key = CertificateKey.objects.create(
-            name='pub-otra', company=acme, content=other_pub_pem)
+            name='pub-otra', company=acme, content=other_pub_pem
+        )
 
         row = CertificateCertificate(
-            name='c', company=acme,
+            name='c',
+            company=acme,
             content=cert.public_bytes(serialization.Encoding.DER),
             public_key=mismatched_key,
         )
@@ -379,11 +434,13 @@ class TestCompanyMismatch:
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
         other_company_key = CertificateKey.objects.create(
-            name='k', company=globex, content=pub_pem)
+            name='k', company=globex, content=pub_pem
+        )
 
         cert = _self_signed_cert(priv, 'clean-leaf')
         row = CertificateCertificate(
-            name='c', company=acme,
+            name='c',
+            company=acme,
             content=cert.public_bytes(serialization.Encoding.DER),
             public_key=other_company_key,
         )
@@ -400,11 +457,13 @@ class TestCompanyMismatch:
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
         own_key = CertificateKey.objects.create(
-            name='k', company=acme, content=pub_pem)
+            name='k', company=acme, content=pub_pem
+        )
 
         cert = _self_signed_cert(priv, 'clean-leaf-ok')
         row = CertificateCertificate(
-            name='c', company=acme,
+            name='c',
+            company=acme,
             content=cert.public_bytes(serialization.Encoding.DER),
             public_key=own_key,
         )
@@ -413,24 +472,30 @@ class TestCompanyMismatch:
 
 
 class TestBusinessMethods:
-    def test_get_der_certificate_bytes_roundtrips_to_the_same_certificate(self):
+    def test_get_der_certificate_bytes_roundtrips_to_the_same_certificate(
+        self,
+    ):
         acme = _company('acme-cert-der-bytes-1')
         priv = _rsa_key()
         cert = _self_signed_cert(priv, 'der-bytes-leaf')
         row = CertificateCertificate.objects.create(
-            name='c', company=acme,
+            name='c',
+            company=acme,
             content=cert.public_bytes(serialization.Encoding.DER),
         )
         der_out = row._get_der_certificate_bytes(formatting='raw')
-        assert x509.load_der_x509_certificate(der_out).serial_number == \
-            cert.serial_number
+        assert (
+            x509.load_der_x509_certificate(der_out).serial_number
+            == cert.serial_number
+        )
 
     def test_get_fingerprint_bytes_matches_manual_fingerprint(self):
         acme = _company('acme-cert-fp-1')
         priv = _rsa_key()
         cert = _self_signed_cert(priv, 'fp-leaf')
         row = CertificateCertificate.objects.create(
-            name='c', company=acme,
+            name='c',
+            company=acme,
             content=cert.public_bytes(serialization.Encoding.DER),
         )
         fp = row._get_fingerprint_bytes(formatting='raw')
@@ -442,7 +507,8 @@ class TestBusinessMethods:
         cert = _self_signed_cert(priv, 'sign-leaf')
         bundle = _private_pem(priv) + _pem(cert)
         row = CertificateCertificate.objects.create(
-            name='c', company=acme, content=bundle)
+            name='c', company=acme, content=bundle
+        )
 
         signature = row._sign(b'documento')
         assert len(signature) > 0
@@ -452,7 +518,8 @@ class TestBusinessMethods:
         priv = _rsa_key()
         cert = _self_signed_cert(priv, 'sign-leaf-2')
         row = CertificateCertificate.objects.create(
-            name='c', company=acme,
+            name='c',
+            company=acme,
             content=cert.public_bytes(serialization.Encoding.DER),
         )
         assert row.private_key is None
@@ -463,10 +530,12 @@ class TestBusinessMethods:
         acme = _company('acme-cert-sign-3')
         priv = _rsa_key()
         cert = _self_signed_cert(
-            priv, 'sign-leaf-expired', days_valid=-1, not_before_delta=-30)
+            priv, 'sign-leaf-expired', days_valid=-1, not_before_delta=-30
+        )
         bundle = _private_pem(priv) + _pem(cert)
         row = CertificateCertificate.objects.create(
-            name='c', company=acme, content=bundle)
+            name='c', company=acme, content=bundle
+        )
         with pytest.raises(UserError):
             row._sign(b'documento')
 
@@ -477,7 +546,8 @@ class TestMeta:
         priv = _rsa_key()
         cert = _self_signed_cert(priv, 'str-leaf')
         row = CertificateCertificate.objects.create(
-            name='mi-certificado', company=acme,
+            name='mi-certificado',
+            company=acme,
             content=cert.public_bytes(serialization.Encoding.DER),
         )
         assert str(row) == 'mi-certificado'
@@ -487,7 +557,8 @@ class TestMeta:
         priv = _rsa_key()
         cert = _self_signed_cert(priv, 'country-leaf')
         row = CertificateCertificate.objects.create(
-            name='c', company=acme,
+            name='c',
+            company=acme,
             content=cert.public_bytes(serialization.Encoding.DER),
         )
         assert row.country_code == acme.country_code
@@ -526,19 +597,23 @@ class TestSearchIsValid:
         acme = _company('acme-cert-search-1')
         priv = _rsa_key()
         vigente = CertificateCertificate.objects.create(
-            name='vigente', company=acme,
+            name='vigente',
+            company=acme,
             content=_self_signed_cert(priv, 'search-vigente').public_bytes(
-                serialization.Encoding.DER),
+                serialization.Encoding.DER
+            ),
         )
         CertificateCertificate.objects.create(
-            name='vencido', company=acme,
+            name='vencido',
+            company=acme,
             content=_self_signed_cert(
-                priv, 'search-vencido', days_valid=-1,
-                not_before_delta=-30).public_bytes(serialization.Encoding.DER),
+                priv, 'search-vencido', days_valid=-1, not_before_delta=-30
+            ).public_bytes(serialization.Encoding.DER),
         )
 
         encontrados = CertificateCertificate._search_is_valid().filter(
-            company=acme)
+            company=acme
+        )
         assert list(encontrados) == [vigente]
 
     def test_a_certificate_with_a_loading_error_is_excluded(self):
@@ -557,15 +632,18 @@ class TestSearchIsValid:
         acme = _company('acme-cert-search-2')
         priv = _rsa_key()
         fila = CertificateCertificate.objects.create(
-            name='con-error', company=acme,
+            name='con-error',
+            company=acme,
             content=_self_signed_cert(priv, 'search-con-error').public_bytes(
-                serialization.Encoding.DER),
+                serialization.Encoding.DER
+            ),
         )
         # Los otros tres términos se cumplen: entra en la búsqueda.
         assert fila in CertificateCertificate._search_is_valid()
 
         CertificateCertificate.objects.filter(pk=fila.pk).update(
-            loading_error='no se pudo cargar')
+            loading_error='no se pudo cargar'
+        )
         assert fila not in CertificateCertificate._search_is_valid()
 
     def test_a_certificate_not_yet_in_force_is_excluded(self):
@@ -579,10 +657,11 @@ class TestSearchIsValid:
         acme = _company('acme-cert-search-4')
         priv = _rsa_key()
         futuro = CertificateCertificate.objects.create(
-            name='aun-no-vigente', company=acme,
+            name='aun-no-vigente',
+            company=acme,
             content=_self_signed_cert(
-                priv, 'search-futuro', days_valid=365,
-                not_before_delta=10).public_bytes(serialization.Encoding.DER),
+                priv, 'search-futuro', days_valid=365, not_before_delta=10
+            ).public_bytes(serialization.Encoding.DER),
         )
         assert futuro.date_start > timezone.now()
         assert futuro.date_end > timezone.now()
@@ -602,14 +681,17 @@ class TestSearchIsValid:
         acme = _company('acme-cert-search-5')
         priv = _rsa_key()
         fila = CertificateCertificate.objects.create(
-            name='sin-pem', company=acme,
+            name='sin-pem',
+            company=acme,
             content=_self_signed_cert(priv, 'search-sin-pem').public_bytes(
-                serialization.Encoding.DER),
+                serialization.Encoding.DER
+            ),
         )
         assert fila in CertificateCertificate._search_is_valid()
 
         CertificateCertificate.objects.filter(pk=fila.pk).update(
-            pem_certificate=None)
+            pem_certificate=None
+        )
         assert fila not in CertificateCertificate._search_is_valid()
 
     def test_an_unsupported_operator_returns_not_implemented(self):
@@ -630,11 +712,14 @@ class TestSearchIsValid:
         priv = _rsa_key()
         for label, days in (('uno', 365), ('dos', -1), ('tres', 30)):
             CertificateCertificate.objects.create(
-                name=label, company=acme,
+                name=label,
+                company=acme,
                 content=_self_signed_cert(
-                    priv, f'search-{label}', days_valid=days,
-                    not_before_delta=-30).public_bytes(
-                        serialization.Encoding.DER),
+                    priv,
+                    f'search-{label}',
+                    days_valid=days,
+                    not_before_delta=-30,
+                ).public_bytes(serialization.Encoding.DER),
             )
         del priv
 
@@ -642,6 +727,8 @@ class TestSearchIsValid:
         by_compute = {r.pk for r in todas if r._compute_is_valid()}
         by_search = set(
             CertificateCertificate._search_is_valid()
-            .filter(company=acme).values_list('pk', flat=True))
+            .filter(company=acme)
+            .values_list('pk', flat=True)
+        )
         assert by_compute == by_search
         assert by_compute  # el conjunto no es vacío: el acuerdo no es trivial

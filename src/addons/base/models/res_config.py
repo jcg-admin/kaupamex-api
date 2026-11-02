@@ -1,4 +1,6 @@
-"""``res.config`` y ``res.config.settings`` — el motor de configuración por convención.
+"""
+``res.config`` y ``res.config.settings`` — el motor de configuración por
+convención.
 
 Adaptación de ``odoo/addons/base/models/res_config.py``
 (``odoo-tools@bf077302``, ``odoo19c:``, 567 líneas). Dos clases:
@@ -81,7 +83,8 @@ Qué NO se porta, con su medición
   ``_install_modules`` llama a ``button_immediate_install``, y
   ``ir_module.py`` ya declara que este árbol **no tiene instalador**: su
   ``state`` sale de ``INSTALLED_APPS`` y sólo admite tres valores
-  (``uninstallable`` / ``uninstalled`` / ``installed``, ``ir_module.py:87-94``),
+  (``uninstallable`` / ``uninstalled`` / ``installed``,
+  ``ir_module.py:87-94``),
   frente a los seis de la referencia. Sin ``to install`` / ``to upgrade`` no
   hay transición que disparar. La categoría ``module`` **sí** se clasifica y
   **sí** se lee (``default_get`` refleja si está instalado); lo que no existe
@@ -106,6 +109,7 @@ Qué NO se porta, con su medición
 - **``action_open_template_user``**: abre la ficha de un usuario plantilla
   resolviendo dos ``xml_id``. Mismo bloqueo que arriba.
 """
+
 import logging
 import re
 
@@ -130,7 +134,13 @@ FIELD_CATEGORIES = ('default', 'group', 'module', 'config', 'other')
 
 #: Tipos admitidos en un campo con ``config_parameter``, verbatim.
 CONFIG_PARAMETER_TYPES = (
-    'boolean', 'integer', 'float', 'char', 'selection', 'many2one', 'datetime',
+    'boolean',
+    'integer',
+    'float',
+    'char',
+    'selection',
+    'many2one',
+    'datetime',
 )
 
 
@@ -174,7 +184,8 @@ class ResConfig(models.CopyMixin, models.Model):
         configuración que no declara su efecto es un botón que no hace nada.
         """
         raise NotImplementedError(
-            'Un paso de configuración debe implementar execute().')
+            'Un paso de configuración debe implementar execute().'
+        )
 
     def cancel(self):
         """``cancel`` — qué hace el botón "Omitir". No-op por defecto."""
@@ -212,14 +223,17 @@ class ResConfigSettings(ResConfig):
 
     @classmethod
     def attrs_for(cls, fname):
-        """Atributos extra declarados para ``fname`` (dict, posiblemente vacío)."""
+        """
+        Atributos extra declarados para ``fname`` (dict, posiblemente vacío).
+        """
         return cls.field_attrs.get(fname, {})
 
     @classmethod
     def settings_field_names(cls):
         """Los campos concretos del formulario, sin la clave primaria."""
         return [
-            field.name for field in cls._meta.get_fields()
+            field.name
+            for field in cls._meta.get_fields()
             if getattr(field, 'concrete', False) and not field.primary_key
         ]
 
@@ -250,14 +264,18 @@ class ResConfigSettings(ResConfig):
                 if not model:
                     raise ValueError(
                         f'El campo {name} no declara "default_model" en '
-                        f'field_attrs.')
-                classified['default'].append((name, model, name[len('default_'):]))
+                        'field_attrs.'
+                    )
+                classified['default'].append(
+                    (name, model, name[len('default_'):])
+                )
             elif name.startswith('group_'):
                 implied = attrs.get('implied_group')
                 if not implied:
                     raise ValueError(
                         f'El campo {name} no declara "implied_group" en '
-                        f'field_attrs.')
+                        'field_attrs.'
+                    )
                 groups = [
                     part.strip()
                     for part in attrs.get('group', DEFAULT_GROUP).split(',')
@@ -304,7 +322,8 @@ class ResConfigSettings(ResConfig):
         for name, module_name in classified['module']:
             module = IrModule.objects.filter(name=module_name).first()
             values[name] = (
-                module is not None and module.state == IrModule.STATE_INSTALLED)
+                module is not None and module.state == IrModule.STATE_INSTALLED
+            )
 
         for name, param in classified['config']:
             values[name] = SystemParameter.get_param(param)
@@ -339,7 +358,9 @@ class ResConfigSettings(ResConfig):
     # --- Escritura del efecto --------------------------------------------
 
     def set_values(self):
-        """``set_values`` — efecto de los campos sin categoría. Sobreescribible."""
+        """
+        ``set_values`` — efecto de los campos sin categoría. Sobreescribible.
+        """
         return None
 
     def apply_values(self):
@@ -365,7 +386,8 @@ class ResConfigSettings(ResConfig):
         # el conjunto de grupos en el mismo estado con independencia del
         # orden de declaración de los campos.
         for name, group_refs, implied_ref in sorted(
-                classified['group'], key=lambda item: bool(getattr(self, item[0]))):
+            classified['group'], key=lambda item: bool(getattr(self, item[0]))
+        ):
             value = bool(getattr(self, name))
             if current.get(name) == value:
                 continue
@@ -373,7 +395,9 @@ class ResConfigSettings(ResConfig):
             if implied is None:
                 _logger.warning(
                     'El campo %s implica el grupo %r, que no existe.',
-                    name, implied_ref)
+                    name,
+                    implied_ref,
+                )
                 continue
             for group in ResGroups.objects.filter(name__in=group_refs):
                 if value:
@@ -417,7 +441,9 @@ class ResConfigSettings(ResConfig):
         try:
             field = cls._meta.get_field(field_name)
         except Exception:
-            _logger.warning('Campo desconocido en un aviso: %r', full_field_name)
+            _logger.warning(
+                'Campo desconocido en un aviso: %r', full_field_name
+            )
             return field_name
         return str(getattr(field, 'verbose_name', '') or field_name)
 
@@ -440,5 +466,7 @@ class ResConfigSettings(ResConfig):
                 values[item] = cls.option_name(ref)
             else:
                 menu_ref = ref
-                values[item] = f'%({item})s'   # se deja tal cual
-        return ConfigWarning(msg % values if values else msg, menu_ref=menu_ref)
+                values[item] = f'%({item})s'  # se deja tal cual
+        return ConfigWarning(
+            msg % values if values else msg, menu_ref=menu_ref
+        )

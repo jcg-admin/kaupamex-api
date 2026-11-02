@@ -1,4 +1,8 @@
-"""Configuración experimental de un proceso; no settings productivos ni cambio por request."""
+"""
+Configuración experimental de un proceso; no settings productivos ni cambio por
+request.
+"""
+
 import os
 from config.settings.testing import *
 from modules.module_graph import ModuleGraph
@@ -17,5 +21,8 @@ if os.environ.get('ORM_PROBE_RESOLVE_DEPENDENCIES') == '1':
             break
         closure.extend(tuple(automatic))
     PROBE_MODULES = frozenset(selected)
-INSTALLED_APPS = tuple(app for app in INSTALLED_APPS
-                       if not app.startswith('addons.') or app.split('.')[1] in PROBE_MODULES)
+INSTALLED_APPS = tuple(
+    app
+    for app in INSTALLED_APPS
+    if not app.startswith('addons.') or app.split('.')[1] in PROBE_MODULES
+)

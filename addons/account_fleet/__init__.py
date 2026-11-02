@@ -46,7 +46,8 @@ ese módulo): este agente tiene prohibido escribir fuera de
    ``tests/unit/account_qr_code_emv/test_res_bank.py``.
 3. La migración de **datos** (semilla del tipo de servicio «Vendor Bill»,
    ``migrations/0001_seed_fleet_service_type_vendor_bill.py``) sí vive **en
-   este addon** — no agrega columnas, sólo una fila en ``fleet.FleetServiceType``
+   este addon** — no agrega columnas, sólo una fila en
+   ``fleet.FleetServiceType``
    (tabla ya existente) + su identificador externo en ``ir.model.data`` (tabla
    de ``base``) — y no depende del wiring anterior para EXISTIR, sólo para
    ejecutarse (Django no corre migraciones de una app fuera de

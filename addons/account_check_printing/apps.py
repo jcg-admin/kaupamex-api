@@ -13,6 +13,7 @@ addon también extiende ``ResCurrency.amount_to_text`` o
 ``AccountPaymentMethod._get_payment_method_information``, la cadena preserva
 ambos en vez de que gane el que instale ``INSTALLED_APPS`` primero.
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -33,10 +34,14 @@ class AccountCheckPrintingConfig(AppConfig):
     #: referencia NO declara ``ir_sequence.py`` en este addon —lo consume, no
     #: lo extiende (siete addons de ``odoo19c`` lo llaman). Ver H-API-792.
     _EXTENSIONES = (
-        ('addons.account_check_printing.models.res_currency',
-         'apply_account_check_printing_currency_extensions'),
-        ('addons.account_check_printing.models.account_payment_method',
-         'apply_account_check_printing_payment_method_extensions'),
+        (
+            'addons.account_check_printing.models.res_currency',
+            'apply_account_check_printing_currency_extensions',
+        ),
+        (
+            'addons.account_check_printing.models.account_payment_method',
+            'apply_account_check_printing_payment_method_extensions',
+        ),
     )
 
     def ready(self):
@@ -45,7 +50,8 @@ class AccountCheckPrintingConfig(AppConfig):
         ``importlib.import_module`` y no un ``import`` al top — excepción #4
         de ``no-lazy-imports.md``: es una llamada de función, no un
         statement ``import``, así que el gate AST la deja pasar. Mismo
-        patrón que ``AccountConfig.ready()``/``AccountDebitNoteConfig.ready()``.
+        patrón que
+        ``AccountConfig.ready()``/``AccountDebitNoteConfig.ready()``.
         """
         for ruta, funcion in self._EXTENSIONES:
             getattr(importlib.import_module(ruta), funcion)()
@@ -58,9 +64,12 @@ class AccountCheckPrintingConfig(AppConfig):
         # ``account/models/res_company.py::apply_account_extensions`` usa
         # para ``load_chart_for_new_company``.
         account_journal = importlib.import_module(
-            'addons.account_check_printing.models.account_journal')
+            'addons.account_check_printing.models.account_journal'
+        )
         post_save.connect(
             account_journal.on_journal_saved,
             sender=account_journal.AccountJournal,
-            dispatch_uid='account_check_printing.sync_bank_journal_check_sequence',
+            dispatch_uid=(
+                'account_check_printing.sync_bank_journal_check_sequence'
+            ),
         )

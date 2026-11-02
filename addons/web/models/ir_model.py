@@ -42,9 +42,11 @@ existe la pieza que hacía falta. **Actualizado tras la tarea #204**: ese
 chequeo lo resuelve ahora ``IrModelAccess._get_access_groups`` —la expresión
 de grupos de la fuente— preguntada con ``matches`` contra
 ``ResUsers._get_group_ids``. Antes se componía a mano con
-``has_global_access`` más la clausura de ``ResGroups._closure``/``implied_ids``,
+``has_global_access`` más la clausura de
+``ResGroups._closure``/``implied_ids``,
 porque el álgebra no estaba portada; esa composición cubría dos de los tres
-desenlaces de la fuente y así lo declaraba. ``self.env.user._is_internal()`` tiene destino
+desenlaces de la fuente y así lo declaraba. ``self.env.user._is_internal()``
+tiene destino
 real y exacto: ``ResUsers._is_internal()`` (``base/models/res_users.py:430``),
 que YA resuelve el eje interno/portal/público por ``user_type`` de grupo.
 
@@ -79,6 +81,7 @@ funciones aceptan ``user`` explícito, mismo patrón que
 sobre un registro concreto, igual que ``IrModel._reflect_models``, que ya es
 ``classmethod`` en ``base``).
 """
+
 from addons.base.models.ir_model import IrModel, IrModelAccess
 from orm.method_chain import chain_method
 
@@ -136,8 +139,7 @@ def _display_name_for(cls, model_names):
     """
     rows = cls.objects.filter(model__in=model_names).values('name', 'model')
     return [
-        {'display_name': row['name'], 'model': row['model']}
-        for row in rows
+        {'display_name': row['name'], 'model': row['model']} for row in rows
     ]
 
 
@@ -155,7 +157,9 @@ def display_name_for(cls, user, model_names):
         if _is_valid_for_model_selector(cls, user, model_name):
             accessible.append(model_name)
         else:
-            not_accessible.append({'display_name': model_name, 'model': model_name})
+            not_accessible.append(
+                {'display_name': model_name, 'model': model_name}
+            )
     return _display_name_for(cls, accessible) + not_accessible
 
 
@@ -166,7 +170,8 @@ def get_available_models(cls, user):
     con su nombre visible.
     """
     accessible = [
-        row.model for row in cls.objects.all()
+        row.model
+        for row in cls.objects.all()
         if _is_valid_for_model_selector(cls, user, row.model)
     ]
     return _display_name_for(cls, accessible)
@@ -186,9 +191,9 @@ def apply_web_extensions():
     arreglar ``chain_method`` para descriptores (:ref:`h-api-381`, #222).
     """
     for name, func in (
-            ('display_name_for', display_name_for),
-            ('_display_name_for', _display_name_for),
-            ('_is_valid_for_model_selector', _is_valid_for_model_selector),
-            ('get_available_models', get_available_models),
+        ('display_name_for', display_name_for),
+        ('_display_name_for', _display_name_for),
+        ('_is_valid_for_model_selector', _is_valid_for_model_selector),
+        ('get_available_models', get_available_models),
     ):
         chain_method(IrModel, name, classmethod(func))

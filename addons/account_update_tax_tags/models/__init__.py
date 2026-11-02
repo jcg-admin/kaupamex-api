@@ -1,4 +1,6 @@
-"""Modelos del addon ``account_update_tax_tags`` — puentes hacia ``account.move.line``.
+"""
+Modelos del addon ``account_update_tax_tags`` — puentes hacia
+``account.move.line``.
 
 Ninguno existe en la referencia (``odoo19c: addons/account_update_tax_tags/``
 no trae ``models/`` — sólo ``wizard/``): son la infraestructura que este
@@ -16,6 +18,7 @@ que no hay riesgo de ``AppRegistryNotReady``. Mismo criterio que
 ``AccountMoveDebitNote``/``JournalDebitSequence``, que también declaran FK
 por *string* hacia modelos de otro app sin necesitar ``ready()``.
 """
+
 from .account_move_line_tax_link import (
     AccountMoveLineTag,
     AccountMoveLineTax,

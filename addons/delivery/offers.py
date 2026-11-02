@@ -14,7 +14,8 @@ Reglas soportadas por paquetería (cualquiera puede ser None = sin límite):
 
 - ``max_package_weight_kg`` — peso máximo por paquete.
 - ``max_length_cm`` / ``max_width_cm`` / ``max_height_cm`` — límite por eje
-  (FedEx: 120×80×80). Para "cualquier dimensión ≤ N" (DSV: 100) se fija el mismo
+  (FedEx: 120×80×80). Para "cualquier dimensión ≤ N" (DSV: 100) se fija el
+  mismo
   N en los tres ejes.
 - ``max_total_value`` — valor total del envío.
 - ``max_total_weight_kg`` — peso total del envío.
@@ -23,6 +24,7 @@ Reglas soportadas por paquetería (cualquiera puede ser None = sin límite):
 Costo = ``base_cost + cost_per_kg × peso_total``. Ranking: costo asc → tránsito
 asc → rating ambiental desc.
 """
+
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Optional
@@ -52,14 +54,19 @@ def _d(value) -> Decimal:
 
 
 def _package_reasons(pkg, rc: RateCard):
-    """Motivos por los que un paquete viola las reglas de ``rc`` (lista vacía si
+    """
+    Motivos por los que un paquete viola las reglas de ``rc`` (lista vacía si
     cumple)."""
     reasons = []
     weight = _d(pkg['weight'])
-    if rc.max_package_weight_kg is not None and weight > rc.max_package_weight_kg:
+    if (
+        rc.max_package_weight_kg is not None
+        and weight > rc.max_package_weight_kg
+    ):
         reasons.append(
             f'{rc.carrier}: paquete de {weight}kg supera el máximo de '
-            f'{rc.max_package_weight_kg}kg por paquete.')
+            f'{rc.max_package_weight_kg}kg por paquete.'
+        )
     axis_limits = (
         ('length', rc.max_length_cm),
         ('width', rc.max_width_cm),
@@ -69,7 +76,8 @@ def _package_reasons(pkg, rc: RateCard):
         if limit is not None and _d(pkg[axis]) > limit:
             reasons.append(
                 f'{rc.carrier}: {axis} de {_d(pkg[axis])}cm supera el máximo '
-                f'de {limit}cm.')
+                f'de {limit}cm.'
+            )
     if not rc.allows_hazardous and pkg.get('hazardous'):
         reasons.append(f'{rc.carrier}: no acepta material peligroso.')
     return reasons
@@ -83,11 +91,16 @@ def _shipment_reasons(packages, rc: RateCard):
     if rc.max_total_value is not None and total_value > rc.max_total_value:
         reasons.append(
             f'{rc.carrier}: valor total {total_value} supera el máximo de '
-            f'{rc.max_total_value}.')
-    if rc.max_total_weight_kg is not None and total_weight > rc.max_total_weight_kg:
+            f'{rc.max_total_value}.'
+        )
+    if (
+        rc.max_total_weight_kg is not None
+        and total_weight > rc.max_total_weight_kg
+    ):
         reasons.append(
             f'{rc.carrier}: peso total {total_weight}kg supera el máximo de '
-            f'{rc.max_total_weight_kg}kg.')
+            f'{rc.max_total_weight_kg}kg.'
+        )
     return reasons
 
 
@@ -117,22 +130,29 @@ def build_offers(packages, rate_cards):
             ineligible.append({'carrier': rc.carrier, 'reasons': reasons})
             continue
 
-        cost = (rc.base_cost + rc.cost_per_kg * total_weight).quantize(Decimal('0.01'))
-        offers.append({
-            'carrier': rc.carrier,
-            'total_cost': cost,
-            'transit_days': rc.transit_days,
-            'environmental': rc.environmental,
-            'rationale': (
-                f'Costo = base {rc.base_cost} + {rc.cost_per_kg}/kg × '
-                f'{total_weight}kg = {cost}. Tránsito {rc.transit_days} día(s), '
-                f'ambiental {rc.environmental}.'),
-        })
+        cost = (rc.base_cost + rc.cost_per_kg * total_weight).quantize(
+            Decimal('0.01')
+        )
+        offers.append(
+            {
+                'carrier': rc.carrier,
+                'total_cost': cost,
+                'transit_days': rc.transit_days,
+                'environmental': rc.environmental,
+                'rationale': (
+                    f'Costo = base {rc.base_cost} + {rc.cost_per_kg}/kg ×'
+                    f' {total_weight}kg = {cost}. Tránsito'
+                    f' {rc.transit_days} día(s), ambiental {rc.environmental}.'
+                ),
+            }
+        )
 
     # Ranking: costo asc, tránsito asc, ambiental desc (mayor rating primero).
-    offers.sort(key=lambda o: (
-        o['total_cost'],
-        o['transit_days'],
-        -ENV_ORDER.get(o['environmental'], 0),
-    ))
+    offers.sort(
+        key=lambda o: (
+            o['total_cost'],
+            o['transit_days'],
+            -ENV_ORDER.get(o['environmental'], 0),
+        )
+    )
     return {'offers': offers, 'ineligible': ineligible}

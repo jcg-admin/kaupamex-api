@@ -13,7 +13,8 @@ distingue dos envíos sin que nadie los bautice a mano.
 
 Divergencias declaradas (las mismas que ``utm_medium.py``, más una):
 
-- ``create`` → ``save()``; ``@api.ondelete`` → método conservado + ``delete()``.
+- ``create`` → ``save()``; ``@api.ondelete`` → método conservado +
+  ``delete()``.
 - ``copy_data`` de la fuente construye los valores de la copia y deja que el
   ORM cree; aquí se conserva con esa misma forma —devuelve la lista de
   valores— porque quien copia es quien decide con qué crearlos. Django no
@@ -24,6 +25,7 @@ Divergencias declaradas (las mismas que ``utm_medium.py``, más una):
   guarda se conserva sobre el ``update()`` del queryset, que es donde este
   stack sí puede escribir muchos de una vez.
 """
+
 from django.utils import timezone
 
 import fields
@@ -43,7 +45,8 @@ class UtmSource(TimeStampedModel):
 
     # ≙ ``name`` (requerido).
     name = fields.Char(
-        max_length=255, verbose_name='Nombre de la fuente',
+        max_length=255,
+        verbose_name='Nombre de la fuente',
         help_text='Nombre de la fuente del enlace.',
     )
 
@@ -55,7 +58,8 @@ class UtmSource(TimeStampedModel):
             # ≙ ``_unique_name = models.Constraint('UNIQUE(name)', 'The name
             # must be unique')`` (``odoo19c: :13-16``).
             models.UniqueConstraint(
-                fields=['name'], name='utm_source_unique_name',
+                fields=['name'],
+                name='utm_source_unique_name',
                 violation_error_message='The name must be unique',
             ),
         ]
@@ -71,10 +75,15 @@ class UtmSource(TimeStampedModel):
         La fuente «Referral» la citan otros módulos por identificador externo.
         """
         utm_source_referral = IrModelData.ref(
-            'utm.utm_source_referral', raise_if_not_found=False)
-        if utm_source_referral is not None and utm_source_referral.pk == self.pk:
+            'utm.utm_source_referral', raise_if_not_found=False
+        )
+        if (
+            utm_source_referral is not None
+            and utm_source_referral.pk == self.pk
+        ):
             raise ValidationError(
-                _("You cannot delete the 'Referral' UTM source record."))
+                _("You cannot delete the 'Referral' UTM source record.")
+            )
 
     def delete(self, *args, **kwargs):
         """El punto donde este stack ejecuta la guarda de ``@api.ondelete``."""
@@ -84,7 +93,9 @@ class UtmSource(TimeStampedModel):
     # -- persistencia --------------------------------------------------------
 
     def save(self, *args, **kwargs):
-        """≙ ``create`` (``odoo19c: :25-30``) — numera el nombre al insertar."""
+        """
+        ≙ ``create`` (``odoo19c: :25-30``) — numera el nombre al insertar.
+        """
         if self._state.adding:
             self.name = UtmMixin._get_unique_names(self._name, [self.name])[0]
         return super().save(*args, **kwargs)
@@ -112,15 +123,21 @@ class UtmSource(TimeStampedModel):
             content = f'{content[:20]}...'
 
         # ``created_at`` es el ``create_date`` de la fuente
-        # (``TimeStampedModel``); ``timezone.now()`` su ``fields.Datetime.today()``.
+        # (``TimeStampedModel``); ``timezone.now()`` su
+        # ``fields.Datetime.today()``.
         create_date = getattr(record, 'created_at', None) or timezone.now()
-        model_description = getattr(type(record), '_description', type(record).__name__)
-        return str(_(
-            '%(content)s (%(model_description)s created on %(create_date)s)',
-            content=content,
-            model_description=model_description,
-            create_date=create_date.date().isoformat(),
-        ))
+        model_description = getattr(
+            type(record), '_description', type(record).__name__
+        )
+        return str(
+            _(
+                '%(content)s (%(model_description)s created on'
+                ' %(create_date)s)',
+                content=content,
+                model_description=model_description,
+                create_date=create_date.date().isoformat(),
+            )
+        )
 
 
 class UtmSourceMixin(models.Model):
@@ -135,7 +152,9 @@ class UtmSourceMixin(models.Model):
 
     # ≙ ``source_id`` (requerido, ``ondelete=restrict``, ``copy=False``).
     source_id = fields.Many2one(
-        'utm.UtmSource', on_delete=models.PROTECT, related_name='+',
+        'utm.UtmSource',
+        on_delete=models.PROTECT,
+        related_name='+',
         verbose_name='Fuente',
         help_text='Fuente UTM asociada a este registro.',
         db_column='source_id',
@@ -162,15 +181,23 @@ class UtmSourceMixin(models.Model):
 
     @classmethod
     def default_get(cls, field_names, values=None):
-        """≙ ``default_get`` (``odoo19c: :61-64``) — ``name`` fuera de los defaults.
+        """
+        ≙ ``default_get`` (``odoo19c: :61-64``) — ``name`` fuera de los
+        defaults.
 
         La fuente lo excluye para que un ``default_name`` del contexto no se
         cuele como nombre del registro: el nombre lo genera ``create`` a
         partir del contenido.
         """
-        return dict(values or {}) if 'name' not in field_names else {
-            key: value for key, value in dict(values or {}).items() if key != 'name'
-        }
+        return (
+            dict(values or {})
+            if 'name' not in field_names
+            else {
+                key: value
+                for key, value in dict(values or {}).items()
+                if key != 'name'
+            }
+        )
 
     def save(self, *args, **kwargs):
         """≙ ``create`` (``:66-89``) + ``write`` (``:91-104``).
@@ -191,8 +218,10 @@ class UtmSourceMixin(models.Model):
             new_name = UtmSource._generate_name(self, content)
             if new_name:
                 self.source_id.name = UtmMixin._get_unique_names(
-                    'utm.source', [new_name],
-                    skip_record_ids=[self.source_id_id])[0]
+                    'utm.source',
+                    [new_name],
+                    skip_record_ids=[self.source_id_id],
+                )[0]
                 self.source_id.save(update_fields=['name'])
 
         return super().save(*args, **kwargs)
@@ -208,5 +237,6 @@ class UtmSourceMixin(models.Model):
         default_name = default.get('name')
         vals = dict(default)
         vals['name'] = UtmMixin._get_unique_names(
-            'utm.source', [default_name or self.name])[0]
+            'utm.source', [default_name or self.name]
+        )[0]
         return [vals]

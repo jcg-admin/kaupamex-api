@@ -64,6 +64,7 @@ declarativo** de qué archivo se añade a qué bundle y en qué orden — que es
 información que un addon del backend puede querer declarar y que el `ui`
 puede consumir— más el álgebra que la ordena.
 """
+
 import logging
 import os
 import re
@@ -72,9 +73,13 @@ from urllib.parse import urlparse
 import fields
 import models
 from django.core.cache import cache
-from tools.constants import (ASSET_EXTENSIONS, EXTERNAL_ASSET,
-                             SCRIPT_EXTENSIONS, STYLE_EXTENSIONS,
-                             TEMPLATE_EXTENSIONS)
+from tools.constants import (
+    ASSET_EXTENSIONS,
+    EXTERNAL_ASSET,
+    SCRIPT_EXTENSIONS,
+    STYLE_EXTENSIONS,
+    TEMPLATE_EXTENSIONS,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -168,7 +173,8 @@ class AssetPaths:
         archivo inexistente se nota, que es el comportamiento de la fuente.
         """
         paths = {
-            path for path, _full_path, _last_modified in paths_to_remove
+            path
+            for path, _full_path, _last_modified in paths_to_remove
             if path in self.memo
         }
         if paths:
@@ -177,15 +183,23 @@ class AssetPaths:
             return
         if paths_to_remove:
             self._raise_not_found(
-                [path for path, _fp, _lm in paths_to_remove], bundle)
+                [path for path, _fp, _lm in paths_to_remove], bundle
+            )
 
     def _raise_not_found(self, path, bundle):
         raise ValueError(
-            'Archivo(s) %s no encontrado(s) en el bundle %s' % (path, bundle))
+            'Archivo(s) %s no encontrado(s) en el bundle %s' % (path, bundle)
+        )
 
 
-def apply_directive(asset_paths, bundle, directive, paths, target_paths=None,
-                    bundle_start_index=0):
+def apply_directive(
+    asset_paths,
+    bundle,
+    directive,
+    paths,
+    target_paths=None,
+    bundle_start_index=0,
+):
     """Aplica una directiva sobre ``asset_paths`` — tabla de ``_process_path``.
 
     Es la semántica del vocabulario de siete directivas. ``include`` no se
@@ -248,20 +262,26 @@ class IrAsset(models.Model):
 
     name = fields.Char(max_length=255, verbose_name='Nombre')
     bundle = fields.Char(
-        max_length=255, db_index=True, verbose_name='Nombre del bundle')
+        max_length=255, db_index=True, verbose_name='Nombre del bundle'
+    )
     directive = fields.Selection(
-        max_length=16, choices=DIRECTIVE_CHOICES, default=APPEND_DIRECTIVE,
+        max_length=16,
+        choices=DIRECTIVE_CHOICES,
+        default=APPEND_DIRECTIVE,
         verbose_name='Directiva',
     )
-    path = fields.Char(
-        max_length=512, verbose_name='Ruta (o patrón glob)')
+    path = fields.Char(max_length=512, verbose_name='Ruta (o patrón glob)')
     target = fields.Char(
-        max_length=512, blank=True, default='', verbose_name='Objetivo',
+        max_length=512,
+        blank=True,
+        default='',
+        verbose_name='Objetivo',
         help_text='Odoo target; sólo lo usan after, before y replace.',
     )
     active = fields.Boolean(default=True, verbose_name='Activo')
     sequence = fields.Integer(
-        default=DEFAULT_SEQUENCE, verbose_name='Secuencia')
+        default=DEFAULT_SEQUENCE, verbose_name='Secuencia'
+    )
 
     class Meta:
         db_table = 'ir_asset'
@@ -278,7 +298,9 @@ class IrAsset(models.Model):
         cache.delete(ASSET_CACHE_KEY)
 
     def delete(self, *args, **kwargs):
-        """El borrado también invalida — la referencia lo hace en ``unlink``."""
+        """
+        El borrado también invalida — la referencia lo hace en ``unlink``.
+        """
         result = super().delete(*args, **kwargs)
         cache.delete(ASSET_CACHE_KEY)
         return result
@@ -303,7 +325,7 @@ class IrAsset(models.Model):
         while i < len(pattern):
             char = pattern[i]
             if char == '*':
-                if pattern[i:i + 2] == '**':
+                if pattern[i: i + 2] == '**':
                     out.append('.*')
                     i += 2
                     continue
@@ -315,7 +337,7 @@ class IrAsset(models.Model):
                 if close == -1:
                     out.append(re.escape(char))
                 else:
-                    out.append('[' + pattern[i + 1:close] + ']')
+                    out.append('[' + pattern[i + 1: close] + ']')
                     i = close + 1
                     continue
             else:

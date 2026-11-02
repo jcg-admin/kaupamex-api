@@ -9,6 +9,7 @@ referencia (``digits='Product Price'``) sobre Django.
 Los cinco símbolos de la fuente están aquí: ``precision_get`` con su caché,
 ``create``, ``write``, ``unlink`` y ``_onchange_digits_warning``.
 """
+
 import api
 import fields
 import models
@@ -29,12 +30,14 @@ class DecimalPrecision(models.OriginMixin, models.Model):
     _name = 'decimal.precision'
     _description = 'Decimal Precision'
 
-    name   = fields.Char(
-        max_length=128, unique=True,
+    name = fields.Char(
+        max_length=128,
+        unique=True,
         help_text='Uso (Odoo name, p. ej. "Product Price"). Único.',
     )
     digits = fields.Integer(
-        default=2, help_text='Número de decimales (Odoo digits).',
+        default=2,
+        help_text='Número de decimales (Odoo digits).',
     )
 
     class Meta:
@@ -48,7 +51,8 @@ class DecimalPrecision(models.OriginMixin, models.Model):
             # se conserva, prefijado por la tabla como exige el namespace
             # global de constraints de PostgreSQL.
             django_models.UniqueConstraint(
-                fields=['name'], name='decimal_precision_name_uniq',
+                fields=['name'],
+                name='decimal_precision_name_uniq',
                 violation_error_message=(
                     'Only one value can be defined for each given usage!'
                 ),
@@ -80,7 +84,11 @@ class DecimalPrecision(models.OriginMixin, models.Model):
         usan. ``@api.model`` se conserva encima: la marca que la fuente pone
         sigue estando, y ``ormcache`` lee ``_name`` igual del ``cls``.
         """
-        fila = cls.objects.filter(name=application).values_list('digits', flat=True).first()
+        fila = (
+            cls.objects.filter(name=application)
+            .values_list('digits', flat=True)
+            .first()
+        )
         return fila if fila is not None else 2
 
     @classmethod
@@ -133,7 +141,9 @@ class DecimalPrecision(models.OriginMixin, models.Model):
 
     @api.onchange('digits')
     def _onchange_digits_warning(self):
-        """≙ ``_onchange_digits_warning`` (``odoo19c: decimal_precision.py:45-59``).
+        """
+        ≙ ``_onchange_digits_warning`` (``odoo19c:
+        decimal_precision.py:45-59``).
 
         Avisa cuando la precisión **baja**: los datos ya escritos no se
         reescriben, así que reducir decimales en una base viva puede descuadrar
@@ -143,12 +153,18 @@ class DecimalPrecision(models.OriginMixin, models.Model):
             return {
                 'warning': {
                     'title': _("Warning for %s") % self.name,
-                    'message': _(
-                        "The precision has been reduced for %s.\n"
-                        "Note that existing data WON'T be updated by this change.\n\n"
-                        "As decimal precisions impact the whole system, this may cause critical issues.\n"
-                        "E.g. reducing the precision could disturb your financial balance.\n\n"
-                        "Therefore, changing decimal precisions in a running database is not recommended."
-                    ) % self.name,
+                    'message': (
+                        _(
+                            "The precision has been reduced for %s.\nNote that"
+                            " existing data WON'T be updated by this"
+                            " change.\n\nAs decimal precisions impact the"
+                            " whole system, this may cause critical"
+                            " issues.\nE.g. reducing the precision could"
+                            " disturb your financial balance.\n\nTherefore,"
+                            " changing decimal precisions in a running"
+                            " database is not recommended."
+                        )
+                        % self.name
+                    ),
                 }
             }

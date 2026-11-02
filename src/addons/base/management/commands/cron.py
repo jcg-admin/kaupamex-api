@@ -1,8 +1,10 @@
 """``cron`` — el ``WorkerCron`` de la referencia, como subcomando (SOL-096,
 H-BASE-01 C-2).
 
-Equivalente de ``odoo19c: odoo/service/server.py`` (``class WorkerCron(Worker)``,
-líneas 1404-1489) y de ``cron_database_list`` (línea 99, ``odoo-tools@622ddc2a``).
+Equivalente de ``odoo19c: odoo/service/server.py`` (``class
+WorkerCron(Worker)``,
+líneas 1404-1489) y de ``cron_database_list`` (línea 99,
+``odoo-tools@622ddc2a``).
 
 Por qué subcomando y no un worker de Gunicorn
 ----------------------------------------------
@@ -94,6 +96,7 @@ Gunicorn + systemd)
   bases notificadas primero): sin LISTEN/NOTIFY no hay orden de prioridad que
   aplicar; cada pasada recorre las bases en el mismo orden.
 """
+
 import logging
 import os
 import signal
@@ -123,14 +126,19 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--interval', type=float, default=_DEFAULT_INTERVAL,
+            '--interval',
+            type=float,
+            default=_DEFAULT_INTERVAL,
             help=(
                 'Segundos entre pasadas (default: %d, == SLEEP_INTERVAL de '
-                'la referencia).' % _DEFAULT_INTERVAL
-            ),
+                'la referencia).'
+            )
+            % _DEFAULT_INTERVAL,
         )
         parser.add_argument(
-            '--max-age', type=float, default=0,
+            '--max-age',
+            type=float,
+            default=0,
             help=(
                 'Segundos de vida máxima del worker antes de salir '
                 '(0 = sin límite, == limit_time_worker_cron de la '
@@ -138,7 +146,8 @@ class Command(BaseCommand):
             ),
         )
         parser.add_argument(
-            '--once', action='store_true',
+            '--once',
+            action='store_true',
             help=(
                 'Procesa una sola pasada sobre todas las bases y sale (para '
                 'invocación externa vía cron del SO, o para tests).'
@@ -149,8 +158,10 @@ class Command(BaseCommand):
         self._alive = True
         signal.signal(signal.SIGTERM, self._stop)
         signal.signal(signal.SIGINT, self._stop)
-        # Anuncio de disponibilidad — ≙ ``_logger.info("Worker %s (%s) alive")``
-        # (``odoo19c: odoo/service/server.py:1303``), que la referencia emite en
+        # Anuncio de disponibilidad — ≙ ``_logger.info("Worker %s (%s)
+        # alive")``
+        # (``odoo19c: odoo/service/server.py:1303``), que la referencia
+        # emite en
         # ``Worker.start()`` por la misma razón: hasta esta línea el proceso
         # existe pero NO atiende señales, así que un SIGTERM anterior lo mata
         # con la disposición por defecto. Quien supervise al worker —un test,
@@ -171,7 +182,8 @@ class Command(BaseCommand):
                 break
             if max_age > 0 and (time.monotonic() - start) >= max_age:
                 self.stdout.write(
-                    'cron: edad maxima (%ss) alcanzada, saliendo' % max_age)
+                    'cron: edad maxima (%ss) alcanzada, saliendo' % max_age
+                )
                 break
             if not self._alive:
                 break
@@ -212,7 +224,10 @@ class Command(BaseCommand):
         company_dbs = list_company_db_names(using=DEFAULT_DB_ALIAS)
         if company_dbs:
             install_company_aliases(
-                connections.databases, names=company_dbs, using=DEFAULT_DB_ALIAS)
+                connections.databases,
+                names=company_dbs,
+                using=DEFAULT_DB_ALIAS,
+            )
         for db_name in [DEFAULT_DB_ALIAS] + company_dbs:
             self._process_database(db_name)
 
@@ -231,4 +246,5 @@ class Command(BaseCommand):
             return
         if processed:
             self.stdout.write(
-                'cron: %d job(s) procesados en %s' % (processed, db_name))
+                'cron: %d job(s) procesados en %s' % (processed, db_name)
+            )

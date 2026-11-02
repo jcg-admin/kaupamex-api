@@ -1,4 +1,5 @@
-"""Extensiones de la familia ``analytic`` que escribe ``sale`` — ≙ ``_inherit``.
+"""
+Extensiones de la familia ``analytic`` que escribe ``sale`` — ≙ ``_inherit``.
 
 Origen: ``odoo19c: sale/models/analytic.py`` (LGPL-3 según su
 ``__manifest__.py``, así que el mecanismo es copia + adaptación con
@@ -35,6 +36,7 @@ Este archivo cierra un bloqueo raíz declarado: ``analytic/migrations/0004``
 decía verbatim *"so_line no existe en este árbol"* al portar el ``order`` de
 ``sale_timesheet``, que es ``related=so_line.order_id``.
 """
+
 import fields
 import models
 
@@ -78,7 +80,8 @@ BUSINESS_DOMAIN_SELECTION_ADD = [
     ('sale_order', 'Pedido de venta'),
 ]
 
-#: ≙ ``ondelete={'sale_order': 'cascade'}`` (``odoo19c: sale/models/analytic.py:20``).
+#: ≙ ``ondelete={'sale_order': 'cascade'}`` (``odoo19c:
+#: sale/models/analytic.py:20``).
 #: ``business_domain`` es ``required=True`` en la raíz
 #: (``odoo19c: analytic/models/analytic_plan.py:416``), y la fuente rechaza un
 #: valor nuevo sin política sobre un campo requerido: dejarlo vacío no sería un
@@ -95,25 +98,30 @@ def apply_sale_analytic_extensions():
     hasta que la clase destino exista.
     """
     extend_model(
-        'analytic', 'AccountAnalyticLine',
+        'analytic',
+        'AccountAnalyticLine',
         campos={
             'so_line': fields.Many2one(
-                'sale.SaleOrderLine', null=True, blank=True,
+                'sale.SaleOrderLine',
+                null=True,
+                blank=True,
                 on_delete=models.SET_NULL,
                 related_name='analytic_lines',
                 verbose_name='Línea de pedido de venta',
-                help_text='Odoo so_line ("Sales Order Item"). Acotado a las '
-                          'líneas con qty_delivered_method=analytic; ver '
-                          'SO_LINE_DOMAIN. El índice parcial que la fuente '
-                          'pide con index=btree_not_null lo declara la '
-                          'migración de analytic.',
+                help_text=(
+                    'Odoo so_line ("Sales Order Item"). Acotado a las '
+                    'líneas con qty_delivered_method=analytic; ver '
+                    'SO_LINE_DOMAIN. El índice parcial que la fuente '
+                    'pide con index=btree_not_null lo declara la '
+                    'migración de analytic.'
+                ),
             ),
         },
         indexes=[SO_LINE_INDEX],
     )
     extend_model(
-        'analytic', 'AccountAnalyticApplicability',
+        'analytic',
+        'AccountAnalyticApplicability',
         selection_add={'business_domain': BUSINESS_DOMAIN_SELECTION_ADD},
         ondelete={'business_domain': BUSINESS_DOMAIN_ONDELETE},
     )
-

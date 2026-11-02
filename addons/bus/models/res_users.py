@@ -1,4 +1,6 @@
-"""``res.users`` extendido por ``bus`` — un usuario emite en el canal de su partner.
+"""
+``res.users`` extendido por ``bus`` — un usuario emite en el canal de su
+partner.
 
 Adaptación de ``addons/bus/models/res_users.py``
 (``odoo-tools@bf077302``, ``odoo19c:``, 11 líneas). La referencia declara
@@ -18,6 +20,7 @@ Es una de las tres delegaciones que hacen útil el recorrido hasta el punto
 fijo de ``_bus_send`` — las otras dos son ``ir_attachment`` y
 ``res_users_settings``.
 """
+
 from addons.bus.models.bus_listener_mixin import register_channel
 
 

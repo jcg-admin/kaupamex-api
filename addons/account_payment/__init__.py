@@ -1,4 +1,6 @@
-"""``account_payment`` — puente Contabilidad ↔ Framework de pagos (Odoo ``account_payment``).
+"""
+``account_payment`` — puente Contabilidad ↔ Framework de pagos (Odoo
+``account_payment``).
 
 Adaptación de ``odoo19c: addons/account_payment/`` (``odoo-tools@622ddc2aa
 5563d12295b4ab7d3eb438a43eb31de``, LGPL-3 — atribución y aviso de licencia
@@ -75,17 +77,26 @@ Cobertura medida (conteo de símbolos de la referencia, por archivo)
 ===================================  =========  =========  ===================
 Archivo                                Símbolos   Portados   No portados
 ===================================  =========  =========  ===================
-``models/account_payment.py``               18          8  10 (token/electrónico/action_post — ver docstring)
+``models/account_payment.py``               18          8  10
+(token/electrónico/action_post — ver docstring)
 ``models/account_payment_method.py``          1          1  0
-``models/account_payment_method_line.py``     6          4  2 (auto-link por journal, acción UI)
-``models/account_journal.py``                 2          2  0 (reconstruidos: no hay base que extender)
-``models/account_bank_statement_line.py``     1          0  1 (base ausente + campo ausente)
-``models/account_move.py``                   16          5  11 (sin estado authorized/portal/QR/UI)
-``models/payment_provider.py``               10          2  8 (auto-link método↔journal, chart_template)
-``controllers/payment.py``                    5          0  5 (portal Odoo, sin contraparte DRF)
-``controllers/portal.py``                     5          0  5 (portal Odoo, sin contraparte DRF)
+``models/account_payment_method_line.py``     6          4  2 (auto-link por
+journal, acción UI)
+``models/account_journal.py``                 2          2  0 (reconstruidos:
+no hay base que extender)
+``models/account_bank_statement_line.py``     1          0  1 (base ausente +
+campo ausente)
+``models/account_move.py``                   16          5  11 (sin estado
+authorized/portal/QR/UI)
+``models/payment_provider.py``               10          2  8 (auto-link
+método↔journal, chart_template)
+``controllers/payment.py``                    5          0  5 (portal Odoo, sin
+contraparte DRF)
+``controllers/portal.py``                     5          0  5 (portal Odoo, sin
+contraparte DRF)
 ``data/ir_config_parameter.xml``              1          1  0
-``security/ir.model.access.csv``              3          0  3 (ACL de grupo; aquí autorización por capacidad)
+``security/ir.model.access.csv``              3          0  3 (ACL de grupo;
+aquí autorización por capacidad)
 ``security/ir_rules.xml``                     1          0  1 (idem)
 ===================================  =========  =========  ===================
 

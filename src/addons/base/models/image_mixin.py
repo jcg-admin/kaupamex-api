@@ -20,6 +20,7 @@ dentro de la columna (``fields.Image`` es un ``Binary`` con adjunto). Aquí son
 la convención del árbol —el resto de modelos con imagen ya la usa— y evita
 cargar un blob de 1920px en cada consulta.
 """
+
 from io import BytesIO
 
 from django.core.files.base import ContentFile
@@ -59,24 +60,38 @@ class ImageMixin(models.Model):
     """
 
     image_1920 = models.ImageField(
-        upload_to='images/original/', null=True, blank=True,
+        upload_to='images/original/',
+        null=True,
+        blank=True,
         verbose_name='Imagen',
         help_text='Odoo image_1920. Original; las derivadas salen de aquí.',
     )
     image_1024 = models.ImageField(
-        upload_to='images/1024/', null=True, blank=True, editable=False,
+        upload_to='images/1024/',
+        null=True,
+        blank=True,
+        editable=False,
         verbose_name='Imagen 1024',
     )
     image_512 = models.ImageField(
-        upload_to='images/512/', null=True, blank=True, editable=False,
+        upload_to='images/512/',
+        null=True,
+        blank=True,
+        editable=False,
         verbose_name='Imagen 512',
     )
     image_256 = models.ImageField(
-        upload_to='images/256/', null=True, blank=True, editable=False,
+        upload_to='images/256/',
+        null=True,
+        blank=True,
+        editable=False,
         verbose_name='Imagen 256',
     )
     image_128 = models.ImageField(
-        upload_to='images/128/', null=True, blank=True, editable=False,
+        upload_to='images/128/',
+        null=True,
+        blank=True,
+        editable=False,
         verbose_name='Imagen 128',
     )
 
@@ -98,12 +113,16 @@ class ImageMixin(models.Model):
             if getattr(self, field):
                 continue
             name = self.image_1920.name.rsplit('/', 1)[-1]
-            getattr(self, field).save(name, _resize(self.image_1920, box), save=False)
+            getattr(self, field).save(
+                name, _resize(self.image_1920, box), save=False
+            )
             changed = True
         if changed:
             super().save(update_fields=list(_DERIVED_SIZES))
 
     def _clear_derived_images(self):
-        """Vacía las derivadas para forzar su regeneración en el próximo save."""
+        """
+        Vacía las derivadas para forzar su regeneración en el próximo save.
+        """
         for field in _DERIVED_SIZES:
             setattr(self, field, None)

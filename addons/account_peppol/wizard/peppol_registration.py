@@ -13,7 +13,8 @@ Qué es en la referencia
 
 El asistente que da de alta a la empresa como participante Peppol: recoge
 identificador (EAS + endpoint), correo, teléfono, decide si usa la conexión de
-la empresa matriz, negocia con el proxy (``can_connect`` → ``create_connection``)
+la empresa matriz, negocia con el proxy (``can_connect`` →
+``create_connection``)
 y deja creado el usuario de proxy. Declara **24 campos** y **21 métodos**.
 
 Por qué está bloqueado — la arista raíz, medida

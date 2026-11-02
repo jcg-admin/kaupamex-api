@@ -15,7 +15,8 @@ Cobertura: 3 métodos + 2 campos — **3 portados, 0 bloqueados**
      - Nota
    * - ``use_leads`` (campo, ``:10``)
      - portado
-     - ``compute`` sin ``store`` → ``property`` (``extend_model(propiedades=)``)
+     - ``compute`` sin ``store`` → ``property``
+       (``extend_model(propiedades=)``)
    * - ``crm_lead_count`` (campo, ``:11``)
      - portado
      - ídem; su ``groups=`` es la guarda del compute, ver abajo
@@ -47,12 +48,14 @@ Divergencias declaradas
   ``has_group`` devuelve ``False`` y el conteo sale 0 — fail-closed, que es el
   desenlace correcto de un permiso que no se puede afirmar. Sucesor: tarea
   **#157**.
-- **``_for_xml_id`` no se resuelve.** ``action_redirect_to_leads_opportunities``
+- **``_for_xml_id`` no se resuelve.**
+  ``action_redirect_to_leads_opportunities``
   devuelve el diccionario con la clave ``xml_id`` en vez del ``act_window``
   materializado: sin las vistas XML de la fuente no hay ventana que abrir. Es
   la misma forma que ``CrmLostReason.action_lost_leads`` y
   ``CrmLead.action_schedule_meeting`` ya usan en este addon.
 """
+
 from django.db.models import Count
 
 import models
@@ -96,15 +99,21 @@ def _compute_crm_lead_count(self):
     if not _user_has_group(GROUP_SALE_SALESMAN):
         return 0
     CrmLead = models.apps.get_model('crm', 'CrmLead')
-    grouped = dict(CrmLead.objects.filter(campaign_id=self.pk)
-                   .values_list('campaign_id')
-                   .annotate(n=Count('pk')))
+    grouped = dict(
+        CrmLead.objects.filter(campaign_id=self.pk)
+        .values_list('campaign_id')
+        .annotate(n=Count('pk'))
+    )
     return grouped.get(self.pk, 0)
 
 
 def action_redirect_to_leads_opportunities(self):
     """≙ ``action_redirect_to_leads_opportunities`` (``:24-30``)."""
-    view = 'crm.crm_lead_all_leads' if self.use_leads else 'crm.crm_lead_opportunities'
+    view = (
+        'crm.crm_lead_all_leads'
+        if self.use_leads
+        else 'crm.crm_lead_opportunities'
+    )
     return {
         'name': _('Iniciativas'),
         'type': 'ir.actions.act_window',
@@ -127,7 +136,8 @@ def apply_crm_extensions():
         metodos={
             '_compute_use_leads': _compute_use_leads,
             '_compute_crm_lead_count': _compute_crm_lead_count,
-            'action_redirect_to_leads_opportunities':
-                action_redirect_to_leads_opportunities,
+            'action_redirect_to_leads_opportunities': (
+                action_redirect_to_leads_opportunities
+            ),
         },
     )

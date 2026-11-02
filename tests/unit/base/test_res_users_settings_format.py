@@ -8,11 +8,11 @@ clases con ``_inherit = 'res.users.settings'``.
 
 Referencia: ``odoo19c: odoo/addons/base/models/res_users_settings.py:20-55``.
 """
+
 import pytest
 from django.contrib.auth import get_user_model
 
 from addons.base.models.res_users_settings import ResUsersSettings
-
 
 pytestmark = pytest.mark.django_db
 
@@ -20,7 +20,8 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def user():
     return get_user_model().objects.create_user(
-        login='dueno.de.preferencias', password='X9v!kQ2mZr4t')
+        login='dueno.de.preferencias', password='X9v!kQ2mZr4t'
+    )
 
 
 def test_the_blacklist_names_what_is_never_formatted():
@@ -42,7 +43,9 @@ def test_the_default_format_carries_id_and_the_user_reference(user):
 
 
 def test_the_audit_columns_stay_out_of_the_default_format(user):
-    """Las magic columns de la referencia son aquí ``created_at``/``updated_at``."""
+    """
+    Las magic columns de la referencia son aquí ``created_at``/``updated_at``.
+    """
     settings = ResUsersSettings._find_or_create_for_user(user)
     formatted = settings._res_users_settings_format()
     assert 'created_at' not in formatted

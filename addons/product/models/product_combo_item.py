@@ -58,6 +58,7 @@ Qué NO se porta, con su razón
   ``sale``, no aquí, y necesita ``ResCurrency._convert``, que no está portado
   (misma limitación anotada en ``product_combo.py``).
 """
+
 import decimal
 
 import fields
@@ -76,30 +77,51 @@ class ProductComboItem(TimeStampedModel):
     """``product.combo.item`` — una opción ofrecida dentro de una elección."""
 
     combo = fields.Many2one(
-        ProductCombo, on_delete=models.CASCADE, db_index=True,
-        related_name='combo_item_ids', verbose_name='Elección',
-        help_text='La elección que ofrece esta opción. Al borrarla se borran '
-                  'sus opciones (Odoo ondelete=cascade).',
+        ProductCombo,
+        on_delete=models.CASCADE,
+        db_index=True,
+        related_name='combo_item_ids',
+        verbose_name='Elección',
+        help_text=(
+            'La elección que ofrece esta opción. Al borrarla se borran '
+            'sus opciones (Odoo ondelete=cascade).'
+        ),
     )
     product = fields.Many2one(
-        ProductProduct, on_delete=models.PROTECT, db_index=True,
-        related_name='combo_item_ids', verbose_name='Opción',
-        help_text='Odoo string="Options", ondelete=restrict: no se borra un '
-                  'producto que alguna elección todavía ofrece.',
+        ProductProduct,
+        on_delete=models.PROTECT,
+        db_index=True,
+        related_name='combo_item_ids',
+        verbose_name='Opción',
+        help_text=(
+            'Odoo string="Options", ondelete=restrict: no se borra un '
+            'producto que alguna elección todavía ofrece.'
+        ),
     )
     extra_price = fields.Monetary(
-        max_digits=16, decimal_places=2, default=decimal.Decimal('0.00'),
+        max_digits=16,
+        decimal_places=2,
+        default=decimal.Decimal('0.00'),
         verbose_name='Precio adicional',
-        help_text='Sobrecoste de elegir esta opción. En la referencia es '
-                  'Float; aquí Monetary porque se suma a list_price, que ya '
-                  'divergió a Monetary (ver el docstring del módulo).',
+        help_text=(
+            'Sobrecoste de elegir esta opción. En la referencia es '
+            'Float; aquí Monetary porque se suma a list_price, que ya '
+            'divergió a Monetary (ver el docstring del módulo).'
+        ),
     )
     company = fields.Many2one(
-        ResCompany, on_delete=models.CASCADE, null=True, blank=True,
-        db_index=True, editable=False, related_name='combo_item_ids',
+        ResCompany,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_index=True,
+        editable=False,
+        related_name='combo_item_ids',
         verbose_name='Compañía',
-        help_text='Denormalizada desde la elección (Odoo related + store=True '
-                  '+ precompute=True). Se fija en save(), no se captura.',
+        help_text=(
+            'Denormalizada desde la elección (Odoo related + store=True '
+            '+ precompute=True). Se fija en save(), no se captura.'
+        ),
     )
 
     class Meta:
@@ -114,7 +136,8 @@ class ProductComboItem(TimeStampedModel):
     def save(self, *args, **kwargs):
         """Propaga la compañía de la elección — el ``precompute`` de la fuente.
 
-        La referencia la calcula antes de escribir la fila (``precompute=True``)
+        La referencia la calcula antes de escribir la fila
+        (``precompute=True``)
         para que el registro nazca con su compañía ya puesta, no en un segundo
         paso. Aquí ocurre lo mismo: la columna se llena en el ``save()`` que
         crea la fila.
@@ -127,7 +150,9 @@ class ProductComboItem(TimeStampedModel):
 
     @property
     def lst_price(self):
-        """``related='product_id.lst_price'`` — el precio de catálogo de la opción.
+        """
+        ``related='product_id.lst_price'`` — el precio de catálogo de la
+        opción.
 
         Es lo que ``ProductCombo.base_price`` mira para tomar el mínimo. No
         incluye ``extra_price``: aquel es el sobrecoste de **elegir** esta
@@ -163,4 +188,5 @@ class ProductComboItem(TimeStampedModel):
         if self.product_id and self.product.type == TYPE_COMBO:
             raise ValidationError(
                 'Una elección de combo no puede ofrecer productos de tipo '
-                'combo.')
+                'combo.'
+            )

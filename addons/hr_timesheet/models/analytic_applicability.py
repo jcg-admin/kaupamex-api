@@ -25,6 +25,7 @@ analytic/models/analytic_plan.py`` (``AccountAnalyticApplicability``, cuyo
 addons de Odoo extienden la selección — no aplica aquí"*). Este archivo es
 ese "otro addon".
 """
+
 from addons.analytic.models import AccountAnalyticApplicability
 from orm.model_classes import extend_selection_choices
 
@@ -44,13 +45,16 @@ def _extend_selection_choices(model, field_name, extra_choices):
     hace lo mismo **y** acepta el ``ondelete`` que la fuente declara junto al
     ``selection_add``, que es lo que la tarea **#205** construyó.
 
-    La política es la medida en ``odoo19c: hr_timesheet/models/analytic_applicability.py:14``:
+    La política es la medida en ``odoo19c:
+    hr_timesheet/models/analytic_applicability.py:14``:
     ``{'timesheet': 'cascade'}``. Sin ella los registros que
     guardaban el valor quedaban huérfanos al borrarlo.
     """
     return extend_selection_choices(
-        model, field_name, extra_choices,
-        ondelete={'timesheet': 'cascade'})
+        model, field_name, extra_choices, ondelete={'timesheet': 'cascade'}
+    )
+
+
 def apply_hr_timesheet_analytic_applicability_extensions():
     """Amplía ``business_domain`` con ``'timesheet'`` sobre
     ``analytic.AccountAnalyticApplicability``.
@@ -58,5 +62,7 @@ def apply_hr_timesheet_analytic_applicability_extensions():
     La llama ``HrTimesheetConfig.ready()``.
     """
     _extend_selection_choices(
-        AccountAnalyticApplicability, 'business_domain', _BUSINESS_DOMAIN_EXTRA,
+        AccountAnalyticApplicability,
+        'business_domain',
+        _BUSINESS_DOMAIN_EXTRA,
     )

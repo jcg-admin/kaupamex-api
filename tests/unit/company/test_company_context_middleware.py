@@ -4,6 +4,7 @@ Puebla ``current_company`` desde ``request.user.company`` durante el request y
 lo limpia al salir. El operador L0 (``company=None``) y el anónimo no fijan
 scope.
 """
+
 import pytest
 
 from orm.environments import get_current_company
@@ -25,7 +26,9 @@ class _AnonUser:
 
 
 def _run(user):
-    """Corre el middleware con un get_response que captura el contexto dentro."""
+    """
+    Corre el middleware con un get_response que captura el contexto dentro.
+    """
     seen = {}
 
     def get_response(request):

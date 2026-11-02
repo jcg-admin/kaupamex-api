@@ -1,4 +1,7 @@
-"""URLs — addons.authz_totp (gestión del 2FA del usuario, /api/v2/authz/totp/)."""
+"""
+URLs — addons.authz_totp (gestión del 2FA del usuario, /api/v2/authz/totp/).
+"""
+
 from django.urls import path
 
 from addons.authz_totp.controllers.main import (

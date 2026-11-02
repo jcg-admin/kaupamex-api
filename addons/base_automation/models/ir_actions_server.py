@@ -69,13 +69,16 @@ Se instala desde ``BaseAutomationConfig.ready()`` (excepción #4 de
 propio ``chain_method(...)`` de abajo corre una sola vez, al importarse
 este módulo.
 """
+
 from fields import Domain
 from tools.json import scriptsafe
 from tools.translate import _
 
 from addons.base.models import IrActionsServer, IrCron
 from addons.base_automation.models.base_automation import (
-    BaseAutomationAction, get_webhook_request_payload)
+    BaseAutomationAction,
+    get_webhook_request_payload,
+)
 from orm.method_chain import chain_method, extend_list, wrap_method
 from orm.model_classes import extend_selection_choices
 
@@ -113,7 +116,8 @@ def _warning_depends(cls):
     """≙ ``_warning_depends`` (``odoo19c: :20-25``) — ACUMULA sobre la base.
 
     La fuente escribe ``super()._warning_depends() + ['model_id',
-    'base_automation_id']``. Aquí la acumulación la hace ``combine=extend_list``
+    'base_automation_id']``. Aquí la acumulación la hace
+    ``combine=extend_list``
     de :mod:`orm.method_chain`, que es el mecanismo de este árbol para el
     ``super() + [...]`` de la referencia.
 
@@ -140,10 +144,14 @@ def _get_warning_messages(self, previous, seen=None):
     warnings = previous(seen=seen)
     automation = _automation_of(self)
     if automation is not None and self.model_name != automation.model_name:
-        warnings.append(_(
-            'El modelo de la acción %(action_name)s debería coincidir con el '
-            'de la regla automatizada %(rule_name)s.',
-            action_name=self.name, rule_name=automation.name))
+        warnings.append(
+            _(
+                'El modelo de la acción %(action_name)s debería coincidir con'
+                ' el de la regla automatizada %(rule_name)s.',
+                action_name=self.name,
+                rule_name=automation.name,
+            )
+        )
     return warnings
 
 
@@ -153,7 +161,8 @@ def _get_children_domain(cls, previous):
     *"As automation rules' actions does not have a parent, we make sure multi
     actions can not link to automation rules' actions."*
 
-    La fuente lo escribe ``super() & Domain("base_automation_id", "=", False)``.
+    La fuente lo escribe ``super() & Domain("base_automation_id", "=",
+    False)``.
     Aquí la liga es la relación inversa ``base_automation_link``, así que la
     condición se expresa sobre ella: una acción **sin** liga es la que puede
     ser hija. El conjunto que selecciona es el mismo.
@@ -180,14 +189,18 @@ def _compute_available_model_ids(self, previous):
     if self.usage != USAGE_BASE_AUTOMATION:
         return available
     automation = _automation_of(self)
-    rule_model = getattr(automation, 'model_id_id', None) if automation else None
+    rule_model = (
+        getattr(automation, 'model_id_id', None) if automation else None
+    )
     if rule_model is not None and rule_model in available:
         return [rule_model]
     return []
 
 
 def _get_eval_context(self, previous, action=None):
-    """≙ ``_get_eval_context`` (``:55-62``) — ``json`` y ``payload`` en modo código.
+    """
+    ≙ ``_get_eval_context`` (``:55-62``) — ``json`` y ``payload`` en modo
+    código.
 
     La fuente añade dos claves al contexto que su evaluador restringido recibe:
     ``json`` (el ``dumps`` seguro para incrustar en una etiqueta ``<script>``)
@@ -217,19 +230,31 @@ def add_base_automation_usage():
     guardaban el valor si el valor desaparece.
     """
     extend_selection_choices(
-        IrActionsServer, 'usage',
+        IrActionsServer,
+        'usage',
         [(USAGE_BASE_AUTOMATION, 'Automation Rule')],
-        ondelete={USAGE_BASE_AUTOMATION: 'cascade'})
+        ondelete={USAGE_BASE_AUTOMATION: 'cascade'},
+    )
 
 
 add_base_automation_usage()
-chain_method(IrActionsServer, 'action_open_automation', _action_open_automation)
+chain_method(
+    IrActionsServer, 'action_open_automation', _action_open_automation
+)
 chain_method(IrCron, 'action_open_automation', _ircron_action_open_automation)
-chain_method(IrActionsServer, '_warning_depends',
-             classmethod(_warning_depends), combine=extend_list)
+chain_method(
+    IrActionsServer,
+    '_warning_depends',
+    classmethod(_warning_depends),
+    combine=extend_list,
+)
 wrap_method(IrActionsServer, '_get_warning_messages', _get_warning_messages)
-wrap_method(IrActionsServer, '_get_children_domain',
-            classmethod(_get_children_domain))
-wrap_method(IrActionsServer, '_compute_available_model_ids',
-            _compute_available_model_ids)
+wrap_method(
+    IrActionsServer, '_get_children_domain', classmethod(_get_children_domain)
+)
+wrap_method(
+    IrActionsServer,
+    '_compute_available_model_ids',
+    _compute_available_model_ids,
+)
 wrap_method(IrActionsServer, '_get_eval_context', _get_eval_context)

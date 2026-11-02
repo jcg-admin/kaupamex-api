@@ -139,6 +139,7 @@ Qué se conserva del porte anterior
   por argumento.
 - **``TemplateError`` / ``TemplateErrorInfo``** — el error con su contexto.
 """
+
 import base64
 import fnmatch
 import hashlib
@@ -173,10 +174,26 @@ from tools.translate import FORMAT_REGEX
 _logger = logging.getLogger(__name__)
 
 #: Elementos HTML sin etiqueta de cierre — verbatim de la fuente.
-VOID_ELEMENTS = frozenset([
-    'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'keygen',
-    'link', 'menuitem', 'meta', 'param', 'source', 'track', 'wbr',
-])
+VOID_ELEMENTS = frozenset(
+    [
+        'area',
+        'base',
+        'br',
+        'col',
+        'embed',
+        'hr',
+        'img',
+        'input',
+        'keygen',
+        'link',
+        'menuitem',
+        'meta',
+        'param',
+        'source',
+        'track',
+        'wbr',
+    ]
+)
 
 #: Palabras clave admitidas al compilar una expresión, además de los objetos
 #: disponibles — verbatim de la fuente, ``_BUILTINS`` incluido.
@@ -186,10 +203,23 @@ VOID_ELEMENTS = frozenset([
 #: la tarea #140: ``src/tools/safe_eval.py`` lo porta entero. Sin los builtins
 #: una expresión tan corriente como ``t-if="len(docs) > 1"`` compilaría a
 #: ``values.get('len')`` y evaluaría a ``None``.
-ALLOWED_KEYWORD = frozenset([
-    'False', 'None', 'True', 'and', 'as', 'elif', 'else', 'for', 'if', 'in',
-    'is', 'not', 'or',
-]) | set(_BUILTINS)
+ALLOWED_KEYWORD = frozenset(
+    [
+        'False',
+        'None',
+        'True',
+        'and',
+        'as',
+        'elif',
+        'else',
+        'for',
+        'if',
+        'in',
+        'is',
+        'not',
+        'or',
+    ]
+) | set(_BUILTINS)
 
 #: Atributos usados fuera del contexto de QWeb.
 SPECIAL_DIRECTIVES = frozenset({'t-translation', 't-ignore', 't-title'})
@@ -212,7 +242,8 @@ WHITESPACE_REGEX = re.compile(r'[\s\x00-\x08\x0B\x0C\x0E-\x19]+')
 #: Verbatim de la fuente; ver el docstring del módulo sobre por qué esta
 #: primitiva vale con o sin QWeb.
 MALICIOUS_SCHEMES = re.compile(
-    r'javascript:(?!((window\.)?)history\.back\(\)$)', re.I).findall
+    r'javascript:(?!((window\.)?)history\.back\(\)$)', re.I
+).findall
 
 #: Tipo de token propio del compilador — verbatim de la fuente (``:418-419``).
 #: ``_compile_expr_tokens`` colapsa cada nivel de paréntesis ya compilado en un
@@ -232,49 +263,80 @@ token.tok_name[token.QWEB] = 'QWEB'
 #: "adaptada". Los nombres cubren varias versiones de CPython a propósito: un
 #: opcode que no existe en la versión en curso lo descarta ``to_opcodes``, así
 #: que sobra pero no estorba; uno que falte **bloquea una plantilla legítima**.
-_SAFE_QWEB_OPCODES = _EXPR_OPCODES.union(to_opcodes([
-    'MAKE_FUNCTION', 'CALL_FUNCTION', 'CALL_FUNCTION_KW', 'CALL_FUNCTION_EX',
-    'CALL_METHOD', 'LOAD_METHOD',
-
-    'GET_ITER', 'FOR_ITER', 'YIELD_VALUE',
-    'JUMP_FORWARD', 'JUMP_ABSOLUTE', 'JUMP_BACKWARD',
-    'JUMP_IF_FALSE_OR_POP', 'JUMP_IF_TRUE_OR_POP',
-    'POP_JUMP_IF_FALSE', 'POP_JUMP_IF_TRUE',
-
-    'LOAD_NAME', 'LOAD_ATTR',
-    'LOAD_FAST', 'STORE_FAST', 'UNPACK_SEQUENCE',
-    'STORE_SUBSCR',
-    'LOAD_GLOBAL',
-    'EXTENDED_ARG',
-    # Añadidos en 3.11
-    'RESUME',
-    'CALL',
-    'PRECALL',
-    'PUSH_NULL',
-    'KW_NAMES',
-    'FORMAT_VALUE', 'BUILD_STRING',
-    'RETURN_GENERATOR',
-    'SWAP',
-    'POP_JUMP_FORWARD_IF_FALSE', 'POP_JUMP_FORWARD_IF_TRUE',
-    'POP_JUMP_BACKWARD_IF_FALSE', 'POP_JUMP_BACKWARD_IF_TRUE',
-    'POP_JUMP_FORWARD_IF_NONE', 'POP_JUMP_FORWARD_IF_NOT_NONE',
-    'POP_JUMP_BACKWARD_IF_NONE', 'POP_JUMP_BACKWARD_IF_NOT_NONE',
-    # Añadidos en 3.12
-    'END_FOR',
-    'LOAD_FAST_AND_CLEAR',
-    'POP_JUMP_IF_NOT_NONE', 'POP_JUMP_IF_NONE',
-    'RERAISE',
-    'CALL_INTRINSIC_1',
-    'STORE_SLICE',
-    # Añadidos en 3.13
-    'CALL_KW', 'LOAD_FAST_LOAD_FAST',
-    'STORE_FAST_STORE_FAST', 'STORE_FAST_LOAD_FAST',
-    'CONVERT_VALUE', 'FORMAT_SIMPLE', 'FORMAT_WITH_SPEC',
-    'SET_FUNCTION_ATTRIBUTE',
-    # Añadidos en 3.14
-    'LOAD_FAST_BORROW', 'LOAD_FAST_BORROW_LOAD_FAST_BORROW',
-    'POP_ITER', 'LOAD_COMMON_CONSTANT', 'NOT_TAKEN',
-])) - _BLACKLIST
+_SAFE_QWEB_OPCODES = (
+    _EXPR_OPCODES.union(
+        to_opcodes(
+            [
+                'MAKE_FUNCTION',
+                'CALL_FUNCTION',
+                'CALL_FUNCTION_KW',
+                'CALL_FUNCTION_EX',
+                'CALL_METHOD',
+                'LOAD_METHOD',
+                'GET_ITER',
+                'FOR_ITER',
+                'YIELD_VALUE',
+                'JUMP_FORWARD',
+                'JUMP_ABSOLUTE',
+                'JUMP_BACKWARD',
+                'JUMP_IF_FALSE_OR_POP',
+                'JUMP_IF_TRUE_OR_POP',
+                'POP_JUMP_IF_FALSE',
+                'POP_JUMP_IF_TRUE',
+                'LOAD_NAME',
+                'LOAD_ATTR',
+                'LOAD_FAST',
+                'STORE_FAST',
+                'UNPACK_SEQUENCE',
+                'STORE_SUBSCR',
+                'LOAD_GLOBAL',
+                'EXTENDED_ARG',
+                # Añadidos en 3.11
+                'RESUME',
+                'CALL',
+                'PRECALL',
+                'PUSH_NULL',
+                'KW_NAMES',
+                'FORMAT_VALUE',
+                'BUILD_STRING',
+                'RETURN_GENERATOR',
+                'SWAP',
+                'POP_JUMP_FORWARD_IF_FALSE',
+                'POP_JUMP_FORWARD_IF_TRUE',
+                'POP_JUMP_BACKWARD_IF_FALSE',
+                'POP_JUMP_BACKWARD_IF_TRUE',
+                'POP_JUMP_FORWARD_IF_NONE',
+                'POP_JUMP_FORWARD_IF_NOT_NONE',
+                'POP_JUMP_BACKWARD_IF_NONE',
+                'POP_JUMP_BACKWARD_IF_NOT_NONE',
+                # Añadidos en 3.12
+                'END_FOR',
+                'LOAD_FAST_AND_CLEAR',
+                'POP_JUMP_IF_NOT_NONE',
+                'POP_JUMP_IF_NONE',
+                'RERAISE',
+                'CALL_INTRINSIC_1',
+                'STORE_SLICE',
+                # Añadidos en 3.13
+                'CALL_KW',
+                'LOAD_FAST_LOAD_FAST',
+                'STORE_FAST_STORE_FAST',
+                'STORE_FAST_LOAD_FAST',
+                'CONVERT_VALUE',
+                'FORMAT_SIMPLE',
+                'FORMAT_WITH_SPEC',
+                'SET_FUNCTION_ATTRIBUTE',
+                # Añadidos en 3.14
+                'LOAD_FAST_BORROW',
+                'LOAD_FAST_BORROW_LOAD_FAST_BORROW',
+                'POP_ITER',
+                'LOAD_COMMON_CONSTANT',
+                'NOT_TAKEN',
+            ]
+        )
+    )
+    - _BLACKLIST
+)
 
 
 class TemplateErrorInfo:
@@ -308,8 +370,11 @@ class TemplateError(Exception):
     """Error de plantilla con su contexto (``TemplateError`` de la fuente)."""
 
     def __init__(self, info):
-        self.info = info if isinstance(info, TemplateErrorInfo) \
+        self.info = (
+            info
+            if isinstance(info, TemplateErrorInfo)
             else TemplateErrorInfo(str(info))
+        )
         super().__init__(str(self.info))
 
 
@@ -339,7 +404,8 @@ def keep_query(current_params=None, *keep_params, **additional_params):
                 continue
             value = current_params[name]
             params[name] = (
-                list(value) if isinstance(value, (list, tuple)) else [value])
+                list(value) if isinstance(value, (list, tuple)) else [value]
+            )
     return urlencode(params, doseq=True)
 
 
@@ -358,10 +424,15 @@ class QwebJSON(JSON):
 
     def dumps(self, *args, **kwargs):
         prev_default = kwargs.pop('default', lambda obj: obj)
-        return super().dumps(*args, **kwargs, default=(
-            lambda obj: prev_default(
-                str(obj) if hasattr(obj, '__html__') else obj)
-        ))
+        return super().dumps(
+            *args,
+            **kwargs,
+            default=(
+                lambda obj: prev_default(
+                    str(obj) if hasattr(obj, '__html__') else obj
+                )
+            ),
+        )
 
 
 #: ≙ ``qwebJSON = QwebJSON()`` (``:680``).
@@ -369,7 +440,8 @@ qwebJSON = QwebJSON()
 
 
 class IrTemplateExpressions:
-    """El compilador de expresiones y el catálogo de directivas — **no** el motor.
+    """
+    El compilador de expresiones y el catálogo de directivas — **no** el motor.
 
     El nombre de la clase dice lo que hay, no lo que hay en la referencia:
     aquí ``render`` levanta (ver abajo), así que llamarla «motor de
@@ -423,10 +495,14 @@ class IrTemplateExpressions:
         ``t-inner-content`` se excluyen porque son directivas **técnicas**
         que el propio compilador añade, no del autor de la plantilla.
         """
-        return el.tag != 't' and 'groups' not in el.attrib and not any(
-            att.startswith('t-')
-            and att not in ('t-tag-open', 't-inner-content')
-            for att in el.attrib
+        return (
+            el.tag != 't'
+            and 'groups' not in el.attrib
+            and not any(
+                att.startswith('t-')
+                and att not in ('t-tag-open', 't-inner-content')
+                for att in el.attrib
+            )
         )
 
     def _compile_format(self, expr):
@@ -443,7 +519,7 @@ class IrTemplateExpressions:
         formateo final lo consumiría como marcador.
         """
         values = [
-            f'self._compile_to_str('
+            'self._compile_to_str('
             f'{self._compile_expr(m.group(1) or m.group(2))})'
             for m in FORMAT_REGEX.finditer(expr)
         ]
@@ -453,8 +529,9 @@ class IrTemplateExpressions:
         code += f' % ({", ".join(values)},)'
         return code
 
-    def _compile_expr_tokens(self, tokens, allowed_keys, argument_names=None,
-                             raise_on_missing=False):
+    def _compile_expr_tokens(
+        self, tokens, allowed_keys, argument_names=None, raise_on_missing=False
+    ):
         """≙ ``_compile_expr_tokens`` (``odoo19c: :1419``).
 
         Convierte la lista de tokens en una instrucción de Python en forma de
@@ -506,10 +583,12 @@ class IrTemplateExpressions:
                             break
                         elif t.exact_type == token.EQUAL:
                             raise NotImplementedError(
-                                'Lambda default values are not supported')
+                                'Lambda default values are not supported'
+                            )
                         else:
                             raise NotImplementedError(
-                                'This lambda code style is not implemented.')
+                                'This lambda code style is not implemented.'
+                            )
                 elif string == 'for':
                     for i in range(index + 1, len(tokens)):
                         t = tokens[i]
@@ -517,12 +596,16 @@ class IrTemplateExpressions:
                             if t.string == 'in':
                                 break
                             argument_names.append(t.string)
-                        elif t.exact_type in (token.COMMA, token.LPAR,
-                                              token.RPAR):
+                        elif t.exact_type in (
+                            token.COMMA,
+                            token.LPAR,
+                            token.RPAR,
+                        ):
                             pass
                         else:
                             raise NotImplementedError(
-                                'This loop code style is not implemented.')
+                                'This loop code style is not implemented.'
+                            )
 
         # Segunda pasada: compilar recursivamente cada sub-ámbito y colapsarlo
         # en un token QWEB, con los nombres locales ya recogidos arriba.
@@ -541,16 +624,21 @@ class IrTemplateExpressions:
                 bracket_depth -= 1
                 if bracket_depth == 0:
                     code = self._compile_expr_tokens(
-                        tokens[open_bracket_index + 1:index],
+                        tokens[open_bracket_index + 1: index],
                         list(allowed_keys),
                         list(argument_names),
                         raise_on_missing,
                     )
                     code = tokens[open_bracket_index].string + code + t.string
-                    tokens[open_bracket_index:index + 1] = [
+                    tokens[open_bracket_index: index + 1] = [
                         tokenize.TokenInfo(
-                            token.QWEB, code,
-                            tokens[open_bracket_index].start, t.end, '')]
+                            token.QWEB,
+                            code,
+                            tokens[open_bracket_index].start,
+                            t.end,
+                            '',
+                        )
+                    ]
                     index = open_bracket_index
 
             index += 1
@@ -559,7 +647,7 @@ class IrTemplateExpressions:
         # cada nombre que no sea local ni palabra clave permitida.
         code = []
         index = 0
-        pos = tokens and tokens[0].start   # conserva el nivel en multilínea
+        pos = tokens and tokens[0].start  # conserva el nivel en multilínea
         while index < len(tokens):
             t = tokens[index]
             string = t.string
@@ -575,14 +663,17 @@ class IrTemplateExpressions:
                 if '__' in string:
                     raise SyntaxError(
                         "Using variable names with '__' is not allowed: "
-                        f'{string!r}')
+                        f"{string!r}"
+                    )
                 if string == 'lambda':
                     code.append('lambda ')
                     index += 1
                     while index < len(tokens):
                         t = tokens[index]
-                        if (t.exact_type == token.NAME
-                                and t.string in argument_names):
+                        if (
+                            t.exact_type == token.NAME
+                            and t.string in argument_names
+                        ):
                             code.append(argument_name % t.string)
                         if t.exact_type in (token.COMMA, token.COLON):
                             code.append(t.string)
@@ -597,24 +688,33 @@ class IrTemplateExpressions:
                     code.append(argument_name % t.string)
                 elif string in allowed_keys:
                     code.append(string)
-                elif (index + 1 < len(tokens)
-                        and tokens[index + 1].exact_type == token.EQUAL):
-                    code.append(string)          # argumento por nombre
-                elif (index > 0 and tokens[index - 1]
-                        and tokens[index - 1].exact_type == token.DOT):
-                    code.append(string)          # atributo tras un punto
+                elif (
+                    index + 1 < len(tokens)
+                    and tokens[index + 1].exact_type == token.EQUAL
+                ):
+                    code.append(string)  # argumento por nombre
+                elif (
+                    index > 0
+                    and tokens[index - 1]
+                    and tokens[index - 1].exact_type == token.DOT
+                ):
+                    code.append(string)  # atributo tras un punto
                 elif raise_on_missing or (
-                        index + 1 < len(tokens)
-                        and tokens[index + 1].exact_type in (
-                            token.DOT, token.LPAR, token.LSQB, token.QWEB)):
+                    index + 1 < len(tokens)
+                    and tokens[index + 1].exact_type
+                    in (token.DOT, token.LPAR, token.LSQB, token.QWEB)
+                ):
                     # ``values['product'].price`` para que el error nombre el
                     # valor que falta, no el atributo del ``None``.
                     code.append(f'values[{string!r}]')
                 else:
                     # sólo lectura: no se admite asignación
                     code.append(f'values.get({string!r})')
-            elif t.type not in (tokenize.ENCODING, token.ENDMARKER,
-                                token.DEDENT):
+            elif t.type not in (
+                tokenize.ENCODING,
+                token.ENDMARKER,
+                token.DEDENT,
+            ):
                 code.append(string)
 
             if t.end[0] != pos[0]:
@@ -648,15 +748,18 @@ class IrTemplateExpressions:
             raise ValueError(f'Can not compile expression: {expr}')
 
         expression = self._compile_expr_tokens(
-            tokens, ALLOWED_KEYWORD, raise_on_missing=raise_on_missing)
+            tokens, ALLOWED_KEYWORD, raise_on_missing=raise_on_missing
+        )
 
         assert_valid_codeobj(
-            _SAFE_QWEB_OPCODES, compile(expression, '<>', 'eval'), expr)
+            _SAFE_QWEB_OPCODES, compile(expression, '<>', 'eval'), expr
+        )
 
         return f'({expression})'
 
     def _compile_bool(self, attr, default=False):
-        """≙ ``_compile_bool`` (``odoo19c: :1603``) — el atributo como booleano.
+        """
+        ≙ ``_compile_bool`` (``odoo19c: :1603``) — el atributo como booleano.
 
         El vocabulario es el de un atributo XML, no el de Python: ``'false'`` y
         ``'0'`` son falsos, ``'true'`` y ``'1'`` verdaderos, y cualquier otra
@@ -674,7 +777,8 @@ class IrTemplateExpressions:
         return bool(default)
 
     def _compile_to_str(self, expr):
-        """≙ ``_compile_to_str`` (``odoo19c: :1615``) — texto de cualquier valor.
+        """
+        ≙ ``_compile_to_str`` (``odoo19c: :1615``) — texto de cualquier valor.
 
         ``None`` y ``False`` dan cadena vacía; ``bytes`` se decodifica; el
         resto pasa por ``str``. La distinción de ``False`` es deliberada: un
@@ -708,18 +812,22 @@ class IrTemplateExpressions:
           ``foreach`` que envuelve a un ``if``, y no al revés.
         """
         return [
-            'elif',   # primero: lo compila el ``if`` anterior
-            'else',   # primero: lo compila el ``if`` anterior
+            'elif',  # primero: lo compila el ``if`` anterior
+            'else',  # primero: lo compila el ``if`` anterior
             'debug',
             'groups',
-            'as', 'foreach',
+            'as',
+            'foreach',
             'if',
             'call-assets',
             'lang',
             'options',
             'call',
             'att',
-            'field', 'esc', 'raw', 'out',
+            'field',
+            'esc',
+            'raw',
+            'out',
             'tag-open',
             'set',
             'inner-content',
@@ -754,8 +862,13 @@ class IrTemplateExpressions:
         consulta (:ref:`h-api-819`); hasta este pase el docstring del módulo
         lo daba por portado y no existía.
         """
-        return ['lang', 'inherit_branding', 'inherit_branding_auto',
-                'edit_translations', 'profile']
+        return [
+            'lang',
+            'inherit_branding',
+            'inherit_branding_auto',
+            'edit_translations',
+            'profile',
+        ]
 
     def _get_converted_image_data_uri(self, base64_source):
         """≙ ``_get_converted_image_data_uri`` (``odoo19c: :1269-1291``).
@@ -772,15 +885,17 @@ class IrTemplateExpressions:
             if 'webp' in mimetype:
                 bin_source = base64.b64decode(base64_source)
                 checksum = hashlib.sha1(bin_source).hexdigest()
-                origins = list(IrAttachment.objects
-                               .filter(checksum=checksum)
-                               .values_list('pk', flat=True))
+                origins = list(
+                    IrAttachment.objects.filter(checksum=checksum).values_list(
+                        'pk', flat=True
+                    )
+                )
                 if origins:
-                    converted = (IrAttachment.objects
-                                 .filter(res_model='ir.attachment',
-                                         res_id__in=origins,
-                                         mimetype='image/jpeg')
-                                 .first())
+                    converted = IrAttachment.objects.filter(
+                        res_model='ir.attachment',
+                        res_id__in=origins,
+                        mimetype='image/jpeg',
+                    ).first()
                     if converted is not None and converted.datas:
                         with converted.datas.open('rb') as handle:
                             base64_source = base64.b64encode(handle.read())

@@ -35,6 +35,7 @@ No portado (declarado, no improvisado):
   (``_get_sdd_payment_method_code``): utilidades de UI/onboarding sin
   consumidor en este núcleo.
 """
+
 import api
 import fields
 import models
@@ -48,15 +49,17 @@ class AccountPaymentMethod(models.Model):
         ('outbound', 'Saliente'),
     ]
 
-    name         = fields.Char(
-        max_length=255, help_text='Nombre del método (Odoo name, requerido).',
+    name = fields.Char(
+        max_length=255,
+        help_text='Nombre del método (Odoo name, requerido).',
     )
-    code         = fields.Char(
+    code = fields.Char(
         max_length=64,
         help_text='Identificación interna (Odoo code, requerido).',
     )
     payment_type = fields.Selection(
-        max_length=8, choices=PAYMENT_TYPES,
+        max_length=8,
+        choices=PAYMENT_TYPES,
         help_text='Tipo de pago (Odoo payment_type, requerido).',
     )
 
@@ -77,7 +80,9 @@ class AccountPaymentMethod(models.Model):
 
     @api.model
     def _get_payment_method_information(self):
-        """Info de inicialización por código (Odoo ``_get_payment_method_information``).
+        """
+        Info de inicialización por código (Odoo
+        ``_get_payment_method_information``).
 
         Sólo el caso base ``manual`` (``mode`` multi, sin restricción de
         moneda/país) — los métodos electrónicos de proveedores de pago no
@@ -94,30 +99,43 @@ class AccountPaymentMethod(models.Model):
 
 
 class AccountPaymentMethodLine(models.Model):
-    """``account.payment.method.line`` — método de pago habilitado en un diario."""
+    """
+    ``account.payment.method.line`` — método de pago habilitado en un diario.
+    """
 
-    name              = fields.Char(
-        max_length=255, blank=True, default='',
+    name = fields.Char(
+        max_length=255,
+        blank=True,
+        default='',
         help_text='Nombre visible (Odoo name, computado del método si vacío).',
-        compute='_compute_name', store=True,
+        compute='_compute_name',
+        store=True,
         readonly=False,
     )
-    sequence          = fields.Integer(
-        default=10, help_text='Orden de presentación (Odoo sequence).',
+    sequence = fields.Integer(
+        default=10,
+        help_text='Orden de presentación (Odoo sequence).',
     )
-    payment_method    = fields.Many2one(
-        'account.AccountPaymentMethod', on_delete=models.CASCADE,
+    payment_method = fields.Many2one(
+        'account.AccountPaymentMethod',
+        on_delete=models.CASCADE,
         related_name='method_line_ids',
         help_text='Método de pago (Odoo payment_method_id, requerido).',
     )
-    payment_account   = fields.Many2one(
-        'account.AccountAccount', on_delete=models.PROTECT,
-        related_name='payment_method_lines', null=True, blank=True,
+    payment_account = fields.Many2one(
+        'account.AccountAccount',
+        on_delete=models.PROTECT,
+        related_name='payment_method_lines',
+        null=True,
+        blank=True,
         help_text='Cuenta de contrapartida (Odoo payment_account_id).',
     )
-    journal           = fields.Many2one(
-        'account.AccountJournal', on_delete=models.CASCADE,
-        related_name='payment_method_lines', null=True, blank=True,
+    journal = fields.Many2one(
+        'account.AccountJournal',
+        on_delete=models.CASCADE,
+        related_name='payment_method_lines',
+        null=True,
+        blank=True,
         help_text='Diario donde queda habilitado (Odoo journal_id).',
     )
 
@@ -139,7 +157,9 @@ class AccountPaymentMethodLine(models.Model):
 
     @property
     def payment_type(self):
-        """Odoo ``payment_type`` (``related="payment_method_id.payment_type"``)."""
+        """
+        Odoo ``payment_type`` (``related="payment_method_id.payment_type"``).
+        """
         return self.payment_method.payment_type
 
     @property
@@ -149,7 +169,10 @@ class AccountPaymentMethodLine(models.Model):
 
     @property
     def default_account(self):
-        """Odoo ``default_account_id`` (``related="journal_id.default_account_id"``)."""
+        """
+        Odoo ``default_account_id``
+        (``related="journal_id.default_account_id"``).
+        """
         return self.journal.default_account if self.journal_id else None
 
     @api.depends('payment_method.name')

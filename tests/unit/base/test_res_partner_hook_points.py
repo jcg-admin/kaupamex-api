@@ -30,6 +30,7 @@ existan en el modelo.
 *Ciega a:* si algo las **consume** — hoy la sincronización padre-hijo no está
 cableada a estas listas. Son el punto de enganche, no su aplicación.
 """
+
 import pytest
 
 from addons.base.models.res_partner import ResPartner
@@ -56,7 +57,9 @@ def test_every_address_field_exists_in_the_model(db):
 
 def test_formatting_delegates_to_the_synced_list(db):
     """≙ ``return self._address_fields()`` (``odoo19c: :667``)."""
-    assert ResPartner._formatting_address_fields() == ResPartner._address_fields()
+    assert (
+        ResPartner._formatting_address_fields() == ResPartner._address_fields()
+    )
 
 
 def test_synced_is_a_strict_subset_of_commercial(db):
@@ -69,8 +72,10 @@ def test_synced_is_a_strict_subset_of_commercial(db):
 def test_commercial_names_only_fields_that_exist(db):
     """La fuente añade dos campos que este árbol no tiene; no se fabrican.
 
-    ``company_registry`` sólo aparece en ``_rec_names_search`` sin campo detrás,
-    e ``industry_id`` necesita ``res.partner.industry``, sin portar (tarea #48).
+    ``company_registry`` sólo aparece en ``_rec_names_search`` sin campo
+    detrás,
+    e ``industry_id`` necesita ``res.partner.industry``, sin portar (tarea
+    #48).
     """
     declarados = {f.name for f in ResPartner._meta.get_fields()}
     assert set(ResPartner._commercial_fields()) <= declarados

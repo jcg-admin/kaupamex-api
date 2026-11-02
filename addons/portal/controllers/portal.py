@@ -18,9 +18,11 @@ otras dos funciones sueltas que la referencia declara en este mismo archivo,
 bajo su encabezado ``Misc tools`` (``odoo19c: addons/portal/controllers/
 portal.py:22`` y ``:96``). Se portan aquí y no en ``website`` porque ése es su
 hogar en la fuente: ``website.py:25`` las importa con
-``from odoo.addons.portal.controllers.portal import pager``, y ``Website.pager``
+``from odoo.addons.portal.controllers.portal import pager``, y
+``Website.pager``
 es una delegación de una línea.
 """
+
 import math
 from urllib.parse import urlencode
 
@@ -28,8 +30,9 @@ from exceptions import AccessDenied, MissingError
 from tools.misc import consteq
 
 
-def document_check_access(model, document_id, user, access_token=None,
-                          can_read=None):
+def document_check_access(
+    model, document_id, user, access_token=None, can_read=None
+):
     """≙ ``_document_check_access`` (portal.py:961-980).
 
     :param model: la clase del modelo del documento (debe tener
@@ -54,12 +57,14 @@ def document_check_access(model, document_id, user, access_token=None,
 
     # Sin permiso normal: sólo un token válido (comparación en tiempo
     # constante) concede el acceso — igual que la referencia.
-    if (access_token and document.access_token
-            and consteq(document.access_token, access_token)):
+    if (
+        access_token
+        and document.access_token
+        and consteq(document.access_token, access_token)
+    ):
         return document
 
-    raise AccessDenied(
-        'You are not allowed to access this document.')
+    raise AccessDenied('You are not allowed to access this document.')
 
 
 def pager(url, total, page=1, step=30, scope=5, url_args=None):
@@ -115,7 +120,11 @@ def pager(url, total, page=1, step=30, scope=5, url_args=None):
         page_list = [1, "…", page - 1, page, page + 1, "…", page_count]
 
     pages = [
-        {"num": p, "url": get_url(p) if p != "…" else None, "is_current": p == page}
+        {
+            "num": p,
+            "url": get_url(p) if p != "…" else None,
+            "is_current": p == page,
+        }
         for p in page_list
     ]
 
@@ -159,19 +168,29 @@ def get_records_pager(ids, current):
     if current.pk not in ids or not has_url:
         return None
 
-    attr_name = 'access_url' if hasattr(current, 'access_url') else 'website_url'
+    attr_name = (
+        'access_url' if hasattr(current, 'access_url') else 'website_url'
+    )
     manager = type(current).objects
     index = ids.index(current.pk)
-    prev_record = manager.filter(pk=ids[index - 1]).first() if index != 0 else None
-    next_record = (manager.filter(pk=ids[index + 1]).first()
-                   if index < len(ids) - 1 else None)
+    prev_record = (
+        manager.filter(pk=ids[index - 1]).first() if index != 0 else None
+    )
+    next_record = (
+        manager.filter(pk=ids[index + 1]).first()
+        if index < len(ids) - 1
+        else None
+    )
 
     def url_of(record):
         if record is None:
             return None
         value = getattr(record, attr_name, None)
         if value and attr_name == 'access_url':
-            return '%s?access_token=%s' % (value, record._portal_ensure_token())
+            return '%s?access_token=%s' % (
+                value,
+                record._portal_ensure_token(),
+            )
         return value or record
 
     return {

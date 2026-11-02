@@ -10,6 +10,7 @@ Veredicto por el criterio de las dos categorias: no aplica. Aqui no se
 construye nada; se comprueba que lo construido en #273 recibe lo declarado en
 #305. Es el control de integracion entre las dos tareas.
 """
+
 from datetime import date
 from decimal import Decimal
 
@@ -19,7 +20,6 @@ from django.apps import apps
 from orm import registry
 from orm.environments import env, transaction_scope
 from orm.utils import model_field_registry
-
 
 AccountAccount = apps.get_model('account', 'AccountAccount')
 AccountJournal = apps.get_model('account', 'AccountJournal')
@@ -42,17 +42,25 @@ def move(db):
     """
     company = ResCompany.objects.create(code='wiring-305', name='Wiring 305')
     journal = AccountJournal.objects.create(
-        name='Ventas', code='W05', type='sale', company=company)
+        name='Ventas', code='W05', type='sale', company=company
+    )
     return AccountMove.objects.create(
-        move_type='out_invoice', date=date(2026, 1, 1),
-        journal=journal, company=company, state='draft')
+        move_type='out_invoice',
+        date=date(2026, 1, 1),
+        journal=journal,
+        company=company,
+        state='draft',
+    )
 
 
 @pytest.fixture
 def account(move):
     return AccountAccount.objects.create(
-        code='105', name='Clientes', account_type='asset_receivable',
-        company=move.company)
+        code='105',
+        name='Clientes',
+        account_type='asset_receivable',
+        company=move.company,
+    )
 
 
 def field_of(model, name):
@@ -60,8 +68,9 @@ def field_of(model, name):
 
 
 def dependents(model, name):
-    return sorted(f.name for f in
-                  registry.get_dependent_fields(field_of(model, name)))
+    return sorted(
+        f.name for f in registry.get_dependent_fields(field_of(model, name))
+    )
 
 
 class TestTheDeclarationReachesTheGraph:
@@ -71,7 +80,8 @@ class TestTheDeclarationReachesTheGraph:
         """Ninguna cadena punteada nombra un campo que no existe.
 
         Es el control mas barato del cableado entero: el porte estricto de
-        ``resolve_depends`` lanza ``ValueError`` ante un nombre desconocido, asi
+        ``resolve_depends`` lanza ``ValueError`` ante un nombre desconocido,
+        asi
         que este caso recorre TODO el arbol y falla nombrando el culpable. Ya
         encontro dos: ``@api.depends('create_date')`` sobre un modelo cuya
         columna de auditoria se llama ``created_at``.
@@ -93,7 +103,8 @@ class TestTheDeclarationReachesTheGraph:
 
     def test_a_line_price_reaches_the_ORDER_totals_through_the_relation(self):
         """El cierre transitivo de la capa B sobre modelos del producto: el
-        precio de una linea alcanza el total de SU orden, que es otro modelo."""
+        precio de una linea alcanza el total de SU orden, que es otro modelo.
+        """
         assert 'amount_total' in dependents(SaleOrderLine, 'price_unit')
 
     def test_the_partner_of_a_lead_reaches_its_derived_fields(self):
@@ -111,12 +122,15 @@ class TestTheDeclarationReachesTheGraph:
 class TestTheWiringIsStoredAndNotEditable:
     """El campo conserva su columna y deja de ser escribible desde el API."""
 
-    @pytest.mark.parametrize('model,name', [
-        (AccountMoveLine, 'balance'),
-        (SaleOrder, 'amount_total'),
-        (SaleOrderLine, 'price_subtotal'),
-        (CrmLead, 'email_from'),
-    ])
+    @pytest.mark.parametrize(
+        'model,name',
+        [
+            (AccountMoveLine, 'balance'),
+            (SaleOrder, 'amount_total'),
+            (SaleOrderLine, 'price_subtotal'),
+            (CrmLead, 'email_from'),
+        ],
+    )
     def test_it_keeps_its_column(self, model, name):
         """``store=True`` va explicito en las 36 declaraciones porque el bloque
         ``compute`` de la fuente pone ``store=False`` por defecto: sin el, el
@@ -125,15 +139,19 @@ class TestTheWiringIsStoredAndNotEditable:
         assert field.store is True
         assert field.column_type
 
-    @pytest.mark.parametrize('model,name', [
-        (SaleOrder, 'amount_total'),
-        (SaleOrder, 'amount_untaxed'),
-        (SaleOrderLine, 'price_subtotal'),
-        (CrmLead, 'date_open'),
-        (CrmLead, 'won_status'),
-    ])
+    @pytest.mark.parametrize(
+        'model,name',
+        [
+            (SaleOrder, 'amount_total'),
+            (SaleOrder, 'amount_untaxed'),
+            (SaleOrderLine, 'price_subtotal'),
+            (CrmLead, 'date_open'),
+            (CrmLead, 'won_status'),
+        ],
+    )
     def test_the_one_the_source_leaves_readonly_is_not_editable(
-            self, model, name):
+        self, model, name
+    ):
         """El carril nativo de DRF: un campo no editable sale ``read_only`` del
         ``ModelSerializer`` sin que ningun serializer lo declare
         (``rest_framework/utils/field_mapping.py:124-128``).
@@ -144,17 +162,21 @@ class TestTheWiringIsStoredAndNotEditable:
         """
         assert field_of(model, name).editable is False
 
-    @pytest.mark.parametrize('model,name', [
-        (AccountMoveLine, 'balance'),
-        (AccountAccount, 'account_type'),
-        (SaleOrder, 'validity_date'),
-        (CrmLead, 'name'),
-        (CrmLead, 'contact_name'),
-        (CrmLead, 'email_from'),
-        (CrmLead, 'phone'),
-    ])
+    @pytest.mark.parametrize(
+        'model,name',
+        [
+            (AccountMoveLine, 'balance'),
+            (AccountAccount, 'account_type'),
+            (SaleOrder, 'validity_date'),
+            (CrmLead, 'name'),
+            (CrmLead, 'contact_name'),
+            (CrmLead, 'email_from'),
+            (CrmLead, 'phone'),
+        ],
+    )
     def test_the_one_the_source_declares_writable_stays_editable(
-            self, model, name):
+        self, model, name
+    ):
         """El control que discrimina, y el que este cableado se habia comido.
 
         La fuente declara ``readonly=False`` en 15 de los 36: ahi el computo
@@ -167,10 +189,13 @@ class TestTheWiringIsStoredAndNotEditable:
         """
         assert field_of(model, name).editable is True
 
-    @pytest.mark.parametrize('model,name,method', [
-        (CrmLead, 'email_from', '_inverse_email_from'),
-        (CrmLead, 'phone', '_inverse_phone'),
-    ])
+    @pytest.mark.parametrize(
+        'model,name,method',
+        [
+            (CrmLead, 'email_from', '_inverse_email_from'),
+            (CrmLead, 'phone', '_inverse_phone'),
+        ],
+    )
     def test_the_two_with_an_inverse_declare_it(self, model, name, method):
         """Los dos que la fuente declara inversibles. El metodo ya existia en
         el arbol (``crm_lead.py:839`` y ``:867``) y ninguna declaracion lo
@@ -178,13 +203,16 @@ class TestTheWiringIsStoredAndNotEditable:
         assert field_of(model, name).inverse == method
         assert callable(getattr(model, method))
 
-    @pytest.mark.parametrize('model,name', [
-        (AccountAccount, 'account_type'),
-        (AccountMoveLine, 'balance'),
-        (SaleOrder, 'validity_date'),
-        (SaleOrderLine, 'price_subtotal'),
-        (CrmLead, 'team_id'),
-    ])
+    @pytest.mark.parametrize(
+        'model,name',
+        [
+            (AccountAccount, 'account_type'),
+            (AccountMoveLine, 'balance'),
+            (SaleOrder, 'validity_date'),
+            (SaleOrderLine, 'price_subtotal'),
+            (CrmLead, 'team_id'),
+        ],
+    )
     def test_the_nine_the_source_precomputes_declare_it(self, model, name):
         """``precompute=True`` no es decoracion: ``resolve_depends`` valida la
         cadena y desactiva el adelanto cuando un precomputado depende de un
@@ -196,19 +224,25 @@ class TestTheCycleReachesTheColumn:
     """De punta a punta sobre una tabla del producto."""
 
     def test_touching_debit_recomputes_the_balance_into_the_column(
-            self, move, account):
+        self, move, account
+    ):
         line = AccountMoveLine.objects.create(
-            move=move, account=account,
-            debit=Decimal('100.00'), credit=Decimal('40.00'))
+            move=move,
+            account=account,
+            debit=Decimal('100.00'),
+            credit=Decimal('40.00'),
+        )
         AccountMoveLine.objects.filter(pk=line.pk).update(
-            balance=Decimal('0.00'))
+            balance=Decimal('0.00')
+        )
         line.refresh_from_db()
         assert line.balance == Decimal('0.00')
 
         with transaction_scope():
             line.modified(['debit'])
             assert line.pk in env().records_to_compute(
-                field_of(AccountMoveLine, 'balance'))
+                field_of(AccountMoveLine, 'balance')
+            )
             line.flush_recordset(['balance'])
 
         line.refresh_from_db()
@@ -218,10 +252,14 @@ class TestTheCycleReachesTheColumn:
         """El control que discrimina: sin ``modified``, el mismo volcado no
         escribe. Lo que mueve el valor es la marca, no el ``flush``."""
         line = AccountMoveLine.objects.create(
-            move=move, account=account,
-            debit=Decimal('100.00'), credit=Decimal('40.00'))
+            move=move,
+            account=account,
+            debit=Decimal('100.00'),
+            credit=Decimal('40.00'),
+        )
         AccountMoveLine.objects.filter(pk=line.pk).update(
-            balance=Decimal('0.00'))
+            balance=Decimal('0.00')
+        )
         line.refresh_from_db()
 
         with transaction_scope():

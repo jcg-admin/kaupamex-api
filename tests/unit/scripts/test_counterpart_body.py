@@ -15,8 +15,10 @@ Los casos usan positivos REALES del arbol, no fabricados
 (``hallazgo-abierto-genera-sucesor.md``): quien escribe el instrumento no puede
 validarlo con su propio encuadre.
 
-Medicion que los sostiene: ``scripts/workbench/orm-body-axis-blindness-20260911T021435/``.
+Medicion que los sostiene:
+``scripts/workbench/orm-body-axis-blindness-20260911T021435/``.
 """
+
 import importlib.util
 import pathlib
 import sys
@@ -28,7 +30,9 @@ _SCRIPTS = pathlib.Path(__file__).resolve().parents[3] / 'scripts'
 
 def _load(name):
     """Carga un guion de ``scripts/`` por ruta: no es un paquete importable."""
-    spec = importlib.util.spec_from_file_location(name, _SCRIPTS / f'{name}.py')
+    spec = importlib.util.spec_from_file_location(
+        name, _SCRIPTS / f'{name}.py'
+    )
     module = importlib.util.module_from_spec(spec)
     sys.modules[name] = module
     spec.loader.exec_module(module)
@@ -59,11 +63,15 @@ DISSOLVED_BASE = pathlib.Path('src/orm/models.py')
 def _pairs(path):
     reference = counterpart_body.counterpart(path)
     assert reference is not None and reference.is_file(), path
-    return {p.key: p for p in counterpart_body.pair_declarations(path, reference)}
+    return {
+        p.key: p for p in counterpart_body.pair_declarations(path, reference)
+    }
 
 
 class TestTheCollapseByNameComparesTheWrongBody:
-    """El defecto que el emparejamiento nuevo cierra, medido antes de cerrarlo."""
+    """
+    El defecto que el emparejamiento nuevo cierra, medido antes de cerrarlo.
+    """
 
     def test_todays_collapse_keeps_a_different_owner_on_each_side(self):
         # Este caso describe el ESTADO ACTUAL de ``methods_of`` y seguira
@@ -72,10 +80,16 @@ class TestTheCollapseByNameComparesTheWrongBody:
         reference = counterpart_body.counterpart(MISPAIRED)
         ours = counterpart_body.methods_of(MISPAIRED)['__init__']
         theirs = counterpart_body.methods_of(reference)['__init__']
-        our_owner = {d.owner for d in counterpart_body.declarations_of(MISPAIRED)
-                     if d.kind == 'function' and d.lineno == ours.lineno}
-        their_owner = {d.owner for d in counterpart_body.declarations_of(reference)
-                       if d.kind == 'function' and d.lineno == theirs.lineno}
+        our_owner = {
+            d.owner
+            for d in counterpart_body.declarations_of(MISPAIRED)
+            if d.kind == 'function' and d.lineno == ours.lineno
+        }
+        their_owner = {
+            d.owner
+            for d in counterpart_body.declarations_of(reference)
+            if d.kind == 'function' and d.lineno == theirs.lineno
+        }
         assert our_owner == {'PropertiesDefinition'}, our_owner
         assert their_owner == {'Property'}, their_owner
 
@@ -83,8 +97,10 @@ class TestTheCollapseByNameComparesTheWrongBody:
         pair = _pairs(MISPAIRED)['Property.__init__']
         assert pair.route == counterpart_body.BY_OWNER
         # Nuestro ``Property.__init__``, no el de ``PropertiesDefinition``.
-        assert pair.ours.lineno != counterpart_body.methods_of(
-            MISPAIRED)['__init__'].lineno
+        assert (
+            pair.ours.lineno
+            != counterpart_body.methods_of(MISPAIRED)['__init__'].lineno
+        )
 
     def test_the_sibling_gets_its_own_pair_or_none_at_all(self):
         # ``PropertiesDefinition`` no tiene contraparte con ese nombre en la
@@ -111,8 +127,9 @@ class TestTheDissolvedBaseKeepsItsPairs:
 
     @pytest.mark.parametrize('symbol', ['create', 'copy'])
     def test_the_mixin_still_pairs_against_base_model(self, symbol):
-        matched = [p for p in _pairs(DISSOLVED_BASE).values()
-                   if p.name == symbol]
+        matched = [
+            p for p in _pairs(DISSOLVED_BASE).values() if p.name == symbol
+        ]
         assert matched, symbol
         assert matched[0].route == counterpart_body.BY_NAME
 
@@ -122,9 +139,13 @@ class TestTheScopePublishesEachRoute:
 
     def test_the_three_routes_sum_to_the_compared_pairs(self):
         _, scope = check_write_path.scan_with_scope(
-            list(counterpart_body.tree_files(['src/orm', 'src/tools'])))
-        assert (scope.pairs_by_owner + scope.pairs_module_level
-                + scope.pairs_by_name) == scope.pairs_compared, scope
+            list(counterpart_body.tree_files(['src/orm', 'src/tools']))
+        )
+        assert (
+            scope.pairs_by_owner
+            + scope.pairs_module_level
+            + scope.pairs_by_name
+        ) == scope.pairs_compared, scope
 
 
 class TestTheKeyCarriesTheOwner:
@@ -132,12 +153,22 @@ class TestTheKeyCarriesTheOwner:
 
     def test_a_class_symbol_is_keyed_by_owner_and_name(self):
         finding = counterpart_body.Finding(
-            path='src/orm/models.py', symbol='create', owner='DefaultGetMixin',
-            ours='a', theirs='b', direction='x')
+            path='src/orm/models.py',
+            symbol='create',
+            owner='DefaultGetMixin',
+            ours='a',
+            theirs='b',
+            direction='x',
+        )
         assert finding.key == 'src/orm/models.py::DefaultGetMixin.create'
 
     def test_a_module_symbol_keeps_the_bare_name(self):
         finding = counterpart_body.Finding(
-            path='src/tools/sql.py', symbol='create_column', owner='',
-            ours='a', theirs='b', direction='x')
+            path='src/tools/sql.py',
+            symbol='create_column',
+            owner='',
+            ours='a',
+            theirs='b',
+            direction='x',
+        )
         assert finding.key == 'src/tools/sql.py::create_column'

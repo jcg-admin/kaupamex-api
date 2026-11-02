@@ -1,8 +1,11 @@
-"""``fleet.service.type`` — catálogo de tipos de servicio/contrato (Odoo ``fleet``).
+"""
+``fleet.service.type`` — catálogo de tipos de servicio/contrato (Odoo
+``fleet``).
 
 Adaptación fiel de Odoo fleet/models/fleet_service_type.py
 (odoo-tools@622ddc2a, odoo19c:, LGPL-3).
 """
+
 import fields
 
 from addons.base.models import TimeStampedModel
@@ -20,13 +23,18 @@ class FleetServiceType(TimeStampedModel):
 
     name = fields.Char(
         max_length=150,
-        help_text='Nombre del tipo de servicio (Odoo name, translate=True '
-                   'en la referencia; i18n no portado).',
+        help_text=(
+            'Nombre del tipo de servicio (Odoo name, translate=True '
+            'en la referencia; i18n no portado).'
+        ),
     )
     category = fields.Selection(
-        max_length=10, choices=CATEGORIES,
-        help_text='Si el tipo aplica a contratos, a servicios, o a ambos '
-                   '(Odoo category).',
+        max_length=10,
+        choices=CATEGORIES,
+        help_text=(
+            'Si el tipo aplica a contratos, a servicios, o a ambos '
+            '(Odoo category).'
+        ),
     )
 
     class Meta:

@@ -9,12 +9,16 @@ comportamiento cableado en las vistas. Verifica:
 - cerrar la bandera L2 hace que ``RegisterView`` devuelva 403 SIGNUP_CLOSED;
 - cerrar el reset hace que ``PasswordResetRequestView`` devuelva 403.
 """
+
 import pytest
 from rest_framework.test import APIClient
 
 from addons.base.models import SystemParameter
 from orm.registry import clear_cache
-from addons.authz_signup.models.policy import password_reset_enabled, signup_open
+from addons.authz_signup.models.policy import (
+    password_reset_enabled,
+    signup_open,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -41,7 +45,9 @@ def test_defaults_seeded_open_not_hardcoded():
 
 
 def test_register_open_by_default_not_403():
-    """Con el default abierto, el gate NO bloquea (payload vacío -> 400, no 403)."""
+    """
+    Con el default abierto, el gate NO bloquea (payload vacío -> 400, no 403).
+    """
     resp = APIClient().post(REGISTER_URL, {}, format='json')
     assert resp.status_code != 403
 

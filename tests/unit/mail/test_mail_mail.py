@@ -3,10 +3,13 @@ fiel de ``notifications.EmailTask`` en disolucion.
 
 Verifica el contrato del modelo portado: los 5 estados Odoo (outgoing/sent/
 received/exception/cancel), el default ``outgoing``, el enqueue de la cola de
-reintento, y las transiciones ``mark_sent``/``mark_exception``. La adaptacion de
-proyecto (``attempts``/``max_attempts`` para el reintento sin broker) se ejercita
+reintento, y las transiciones ``mark_sent``/``mark_exception``. La adaptacion
+de
+proyecto (``attempts``/``max_attempts`` para el reintento sin broker) se
+ejercita
 via ``should_retry`` y ``pending``.
 """
+
 import pytest
 from django.utils import timezone
 
@@ -28,8 +31,10 @@ class TestMailMailStates:
 
     def test_enqueue_creates_outgoing_row(self, db):
         m = MailMail.enqueue(
-            to='a@x.com,b@x.com', subject='Promo',
-            body_html='<p>hi</p>', email_from='no-reply@kaupamex.com',
+            to='a@x.com,b@x.com',
+            subject='Promo',
+            body_html='<p>hi</p>',
+            email_from='no-reply@kaupamex.com',
         )
         assert m.pk is not None
         assert m.state == MailMail.STATE_OUTGOING
@@ -84,5 +89,5 @@ class TestMailMailRetryQueue:
 
         pending_pks = set(MailMail.pending().values_list('pk', flat=True))
         assert due_now.pk in pending_pks
-        assert future.pk not in pending_pks   # scheduled_date en el futuro
-        assert sent.pk not in pending_pks      # ya enviado
+        assert future.pk not in pending_pks  # scheduled_date en el futuro
+        assert sent.pk not in pending_pks  # ya enviado

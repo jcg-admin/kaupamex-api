@@ -1,6 +1,7 @@
 """``res.config.settings`` — declarado NO PORTADO, con su medición.
 
-Adaptación de ``odoo19c: addons/base_geolocalize/models/res_config_settings.py``
+Adaptación de ``odoo19c:
+addons/base_geolocalize/models/res_config_settings.py``
 (``odoo-tools@622ddc2a``, LGPL-3 — atribución y aviso de licencia preservados,
 DEC-KX-03):
 

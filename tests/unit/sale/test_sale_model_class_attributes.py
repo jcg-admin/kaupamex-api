@@ -35,15 +35,13 @@ instrumento; aquí sólo se mide la cabecera.
 import ast
 import pathlib
 import sys
-
 import pytest
+import reference_roots
+
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[3]
 _SCRIPTS_DIR = str(REPO_ROOT / 'scripts')
-if _SCRIPTS_DIR not in sys.path:
-    sys.path.insert(0, _SCRIPTS_DIR)
 
-import reference_roots  # noqa: E402  (sys.path se ajusta arriba, no top-level real)
 
 REFERENCE_19C = reference_roots.tree('odoo19c')
 REFERENCE_SALE_MODELS = REFERENCE_19C / 'addons' / 'sale' / 'models'
@@ -123,15 +121,23 @@ NAME_OWNING_CLASSES = [
 #: como propiedad — comparar su VALOR estático no aplica a ninguno de los
 #: dos lados; existe otro test (``test_sale_order_rec_names_search_is_a_
 #: property_here_too``) que sí lo cubre.
-HEADER_ATTRS_TO_COMPARE = ('_name', '_inherit', '_description', '_order',
-                           '_check_company_auto')
+HEADER_ATTRS_TO_COMPARE = (
+    '_name',
+    '_inherit',
+    '_description',
+    '_order',
+    '_check_company_auto',
+)
 
 
 @pytest.mark.parametrize('filename,ref_class,our_class', NAME_OWNING_CLASSES)
 def test_name_owning_class_ports_every_header_attribute(
-        filename, ref_class, our_class):
+    filename, ref_class, our_class
+):
     """Cada atributo simple que la referencia declara está, con su valor."""
-    ref_attrs = _class_header_attrs(REFERENCE_SALE_MODELS / filename)[ref_class]
+    ref_attrs = _class_header_attrs(REFERENCE_SALE_MODELS / filename)[
+        ref_class
+    ]
     our_attrs = _class_header_attrs(OUR_SALE_MODELS / filename)[our_class]
 
     faltantes = []
@@ -155,7 +161,8 @@ def test_name_owning_class_ports_every_header_attribute(
 
 
 def test_sale_order_rec_names_search_is_a_property_here_too():
-    """``_rec_names_search`` de ``SaleOrder`` es ``@property`` en los dos lados.
+    """
+    ``_rec_names_search`` de ``SaleOrder`` es ``@property`` en los dos lados.
 
     La referencia lo declara como propiedad dinámica (depende de
     ``sale_show_partner_name`` en el contexto), no como ``ast.Assign`` — un
@@ -163,24 +170,32 @@ def test_sale_order_rec_names_search_is_a_property_here_too():
     verifica por AST que ambos lados lo declaran como método decorado con
     ``@property``, y que el nuestro nombra el mismo contexto.
     """
+
     def _has_property_rec_names_search(source_path, class_name):
         tree = ast.parse(source_path.read_text())
         for node in tree.body:
-            if not (isinstance(node, ast.ClassDef) and node.name == class_name):
+            if not (
+                isinstance(node, ast.ClassDef) and node.name == class_name
+            ):
                 continue
             for stmt in node.body:
-                if (isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef))
-                        and stmt.name == '_rec_names_search'
-                        and any(
-                            isinstance(d, ast.Name) and d.id == 'property'
-                            for d in stmt.decorator_list)):
+                if (
+                    isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and stmt.name == '_rec_names_search'
+                    and any(
+                        isinstance(d, ast.Name) and d.id == 'property'
+                        for d in stmt.decorator_list
+                    )
+                ):
                     return True
         return False
 
     assert _has_property_rec_names_search(
-        REFERENCE_SALE_MODELS / 'sale_order.py', 'SaleOrder')
+        REFERENCE_SALE_MODELS / 'sale_order.py', 'SaleOrder'
+    )
     assert _has_property_rec_names_search(
-        OUR_SALE_MODELS / 'sale_order.py', 'SaleOrder')
+        OUR_SALE_MODELS / 'sale_order.py', 'SaleOrder'
+    )
 
     source = (OUR_SALE_MODELS / 'sale_order.py').read_text()
     assert 'sale_show_partner_name' in source, (
@@ -191,21 +206,24 @@ def test_sale_order_rec_names_search_is_a_property_here_too():
 
 @pytest.mark.parametrize('filename,ref_class,our_class', NAME_OWNING_CLASSES)
 def test_db_table_matches_name_replace_dot_underscore(
-        filename, ref_class, our_class):
+    filename, ref_class, our_class
+):
     """``Meta.db_table`` == ``_name.replace('.', '_')`` — el default de la
     referencia (``odoo19c: odoo/orm/model_classes.py:266``), que aquí es una
     declaración humana y puede divergir sin que nada avise si no se mide.
     """
     tree = ast.parse((OUR_SALE_MODELS / filename).read_text())
     class_node = next(
-        n for n in tree.body
+        n
+        for n in tree.body
         if isinstance(n, ast.ClassDef) and n.name == our_class
     )
     attrs = _class_header_attrs(OUR_SALE_MODELS / filename)[our_class]
     name = attrs['_name']
 
     meta_node = next(
-        n for n in class_node.body
+        n
+        for n in class_node.body
         if isinstance(n, ast.ClassDef) and n.name == 'Meta'
     )
     db_table = None
@@ -229,38 +247,53 @@ def test_db_table_matches_name_replace_dot_underscore(
 #: constante nuestra}). El nombre de la constante varía porque un archivo
 #: puede extender más de un modelo (analytic.py extiende dos).
 EXTENSION_ONLY_CLASSES = [
-    ('analytic.py', 'AccountAnalyticLine',
-     {'_inherit': '_INHERIT_ACCOUNT_ANALYTIC_LINE'}),
-    ('analytic.py', 'AccountAnalyticApplicability',
-     {'_inherit': '_INHERIT_ACCOUNT_ANALYTIC_APPLICABILITY',
-      '_description': '_DESCRIPTION_ACCOUNT_ANALYTIC_APPLICABILITY'}),
+    (
+        'analytic.py',
+        'AccountAnalyticLine',
+        {'_inherit': '_INHERIT_ACCOUNT_ANALYTIC_LINE'},
+    ),
+    (
+        'analytic.py',
+        'AccountAnalyticApplicability',
+        {
+            '_inherit': '_INHERIT_ACCOUNT_ANALYTIC_APPLICABILITY',
+            '_description': '_DESCRIPTION_ACCOUNT_ANALYTIC_APPLICABILITY',
+        },
+    ),
     ('ir_actions_report.py', 'IrActionsReport', {'_inherit': '_inherit'}),
     ('ir_config_parameter.py', 'IrConfigParameter', {'_inherit': '_inherit'}),
     ('payment_provider.py', 'PaymentProvider', {'_inherit': '_inherit'}),
     ('product_document.py', 'ProductDocument', {'_inherit': '_inherit'}),
-    ('product_pricelist_item.py', 'ProductPricelistItem',
-     {'_inherit': '_inherit'}),
+    (
+        'product_pricelist_item.py',
+        'ProductPricelistItem',
+        {'_inherit': '_inherit'},
+    ),
     ('res_company.py', 'ResCompany', {'_inherit': '_inherit'}),
     ('res_partner.py', 'ResPartner', {'_inherit': '_inherit'}),
 ]
 
 
 @pytest.mark.parametrize(
-    'filename,ref_class,attr_map', EXTENSION_ONLY_CLASSES,
+    'filename,ref_class,attr_map',
+    EXTENSION_ONLY_CLASSES,
     ids=[f'{f}::{c}' for f, c, _ in EXTENSION_ONLY_CLASSES],
 )
 def test_extension_only_file_declares_the_header_as_module_constant(
-        filename, ref_class, attr_map):
+    filename, ref_class, attr_map
+):
     """La cabecera que la referencia declara EN LA CLASE existe aquí como
     constante de módulo, con el mismo valor — porque el archivo no tiene
     clase Django que la lleve (extiende con ``extend_model``).
     """
-    ref_attrs = _class_header_attrs(REFERENCE_SALE_MODELS / filename)[ref_class]
+    ref_attrs = _class_header_attrs(REFERENCE_SALE_MODELS / filename)[
+        ref_class
+    ]
     our_module = _module_level_assigns(OUR_SALE_MODELS / filename)
 
     for ref_attr, our_name in attr_map.items():
         assert ref_attr in ref_attrs, (
-            f'la lista de atributos a comparar está desalineada con la '
+            'la lista de atributos a comparar está desalineada con la '
             f'referencia: {ref_class} no declara {ref_attr}'
         )
         assert our_name in our_module, (
@@ -300,6 +333,6 @@ def test_no_extension_only_class_is_missing_from_the_parametrization():
                     missing.append((our_file.name, class_name))
 
     assert not missing, (
-        f'clases con cabecera en la referencia y sin cobertura en este '
+        'clases con cabecera en la referencia y sin cobertura en este '
         f'archivo: {missing}'
     )

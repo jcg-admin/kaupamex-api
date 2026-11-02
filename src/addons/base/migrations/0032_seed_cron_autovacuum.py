@@ -12,6 +12,7 @@ de recolección que no amerita su propio job se marca y el colector lo recoge.
 Por eso ``observability`` retira el suyo en su ``0004`` — la purga de logs pasó
 a ser uno de los métodos recogidos, no un job aparte.
 """
+
 from django.db import migrations
 
 from addons.base.data import CRON_AUTOVACUUM, sembrar_cron
@@ -22,15 +23,21 @@ def sembrar(apps, schema_editor):
 
 
 def retirar(apps, schema_editor):
-    """Retira el par acción + cron. El cron primero: su FK apunta a la acción."""
+    """
+    Retira el par acción + cron. El cron primero: su FK apunta a la acción.
+    """
     alias = schema_editor.connection.alias
     IrActionsServer = apps.get_model('base', 'IrActionsServer')
     IrCron = apps.get_model('base', 'IrCron')
 
-    accion = IrActionsServer.objects.using(alias).filter(
-        model_name=CRON_AUTOVACUUM['model_name'],
-        method_name=CRON_AUTOVACUUM['method_name'],
-    ).first()
+    accion = (
+        IrActionsServer.objects.using(alias)
+        .filter(
+            model_name=CRON_AUTOVACUUM['model_name'],
+            method_name=CRON_AUTOVACUUM['method_name'],
+        )
+        .first()
+    )
     if accion is None:
         return
     IrCron.objects.using(alias).filter(ir_actions_server=accion).delete()

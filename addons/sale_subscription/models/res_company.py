@@ -11,6 +11,7 @@ igual que ``_inherit`` los aporta al cargar el addon.
 Los métodos existen sólo con ``sale_subscription`` instalado — exactamente
 la semántica de ``_inherit``.
 """
+
 from django.utils import timezone
 
 from addons.base.models import ResCompany, ResCurrency
@@ -34,19 +35,26 @@ def active_module_codes(self, now=None):
 
 
 def get_system(cls):
-    """La compañía de sistema del operador (``is_system``), sembrándola si falta."""
+    """
+    La compañía de sistema del operador (``is_system``), sembrándola si falta.
+    """
     company = cls.objects.filter(code=SYSTEM_COMPANY_CODE).first()
     if company is not None:
         return company
     return cls.create_company(
-        'Kaupamex (plataforma)', currency=_seed_currency(),
-        code=SYSTEM_COMPANY_CODE, status=cls.Status.ACTIVE, is_system=True)
+        'Kaupamex (plataforma)',
+        currency=_seed_currency(),
+        code=SYSTEM_COMPANY_CODE,
+        status=cls.Status.ACTIVE,
+        is_system=True,
+    )
 
 
 def _seed_currency():
     """MXN — la moneda de la semilla (``res_currency_data.xml`` la declara)."""
     currency, _ = ResCurrency.objects.get_or_create(
-        name='MXN', defaults={'symbol': '$'})
+        name='MXN', defaults={'symbol': '$'}
+    )
     return currency
 
 

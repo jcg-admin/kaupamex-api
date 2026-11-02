@@ -6,6 +6,7 @@ escapa— sino el **falso positivo**: absolver un bloqueo vivo porque su destino
 se parece a algo que existe. Por eso los casos de abajo miden las dos
 direcciones, y los dos extremos salen del repo, no de un fixture inventado.
 """
+
 import importlib.util
 import os
 import pathlib
@@ -41,7 +42,9 @@ class TestTheDestinationResolvesInBothDirections:
         assert gate.resolve('account.edi.common')[0] == 'existe'
 
     def test_a_model_that_does_not_exist_keeps_the_marker_alive(self, gate):
-        """``mail.ice.server`` es uno de los tres bloqueos vivos de html_editor."""
+        """
+        ``mail.ice.server`` es uno de los tres bloqueos vivos de html_editor.
+        """
         assert 'mail.ice.server' not in gate.declared_model_names()
         assert gate.resolve('mail.ice.server')[0] == 'falta'
 
@@ -53,7 +56,9 @@ class TestTheDestinationResolvesInBothDirections:
 
 
 class TestAPathResolvesOnlyTowardsAlive:
-    """Que una ruta exista NO levanta el bloqueo, y ése fue el primer falso positivo.
+    """
+    Que una ruta exista NO levanta el bloqueo, y ése fue el primer falso
+    positivo.
 
     La marca de ``html_editor/models/ir_attachment.py`` nombra
     ``src/addons/base/migrations``, que existe desde siempre: su bloqueo es de
@@ -69,20 +74,24 @@ class TestAPathResolvesOnlyTowardsAlive:
 
 
 class TestProseIsDeclaredNotMeasurable:
-    """Un destino que no es un nombre resoluble sale aparte, nunca como caducado.
+    """
+    Un destino que no es un nombre resoluble sale aparte, nunca como caducado.
 
     Publicar el conteo de no medibles es lo que impide leer el cero de
     caducadas como cobertura: sin él, un guion que no resolviera nada
     publicaría el mismo cero que uno que lo resolviera todo.
     """
 
-    @pytest.mark.parametrize('destino', [
-        'el motor de compute',
-        'super()',
-        'self.env',
-        'ResConfigSettings',
-        'so_line',
-    ])
+    @pytest.mark.parametrize(
+        'destino',
+        [
+            'el motor de compute',
+            'super()',
+            'self.env',
+            'ResConfigSettings',
+            'so_line',
+        ],
+    )
     def test_it_is_neither_expired_nor_alive(self, gate, destino):
         assert gate.resolve(destino)[0] == 'no-medible'
 
@@ -117,11 +126,16 @@ class TestTheSymbolIsLookedUpInItsOwnModel:
         assert '_render_template' not in gate.symbols_of_model('ir.ui.view')
         assert '_render_template' in gate.symbols_of_model('ir.actions.report')
         assert gate.resolve('ir.ui.view._render_template')[0] == 'falta'
-        assert gate.resolve(
-            'ir.actions.report._render_qweb_pdf_prepare_streams')[0] == 'existe'
+        assert (
+            gate.resolve('ir.actions.report._render_qweb_pdf_prepare_streams')[
+                0
+            ]
+            == 'existe'
+        )
 
     def test_a_symbol_installed_by_extend_model_counts(self, gate):
-        """El símbolo no tiene por qué estar en una ``class``: basta instalarlo.
+        """
+        El símbolo no tiene por qué estar en una ``class``: basta instalarlo.
 
         ``html_editor`` cuelga los suyos sobre ``ir.ui.view`` con
         ``extend_model``, sin declarar la clase. Mirar sólo los ``def`` de un

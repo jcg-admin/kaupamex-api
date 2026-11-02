@@ -1667,7 +1667,15 @@
         "owner": "codex-module-lifecycle",
         "status": "partial",
         "acceptance": "not_verified",
-        "limitations": "Imported-module diagnostic exception and full runtime consumer acceptance pending"
+        "limitations": "Imported-module diagnostic exception and full runtime consumer acceptance pending",
+        "root_diagnostics_followup": {
+          "contract": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/graph-diagnostics-contract-14.json",
+          "consumer_sha256": "19cd47248783c8bce0e2120cb47f04bd17886a8a2c77241e4826bcbee26a2882",
+          "verification": "22 casos del grafo y48 vecinos PASS;6 contrastes de cuerpos fijados PASS;4 RED iniciales discriminan la omisión",
+          "acceptance": "not_verified",
+          "integration": "working tree; no commit, merge o cambio de estado",
+          "remaining": "imported producer/exception and full loader unchanged"
+        }
       },
       {
         "responsibility": "Demo dependency eligibility",
@@ -2196,7 +2204,15 @@
           }
         },
         "acceptance": "not_verified",
-        "remaining": "Effective per-base composition, full loader/hook/version/state cycle and installed module provenance remain not_verified; no unaccepted isolation state fabricated"
+        "remaining": "Effective per-base composition, full loader/hook/version/state cycle and installed module provenance remain not_verified; no unaccepted isolation state fabricated",
+        "root_diagnostics_followup": {
+          "contract": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/graph-diagnostics-contract-14.json",
+          "consumer_sha256": "19cd47248783c8bce0e2120cb47f04bd17886a8a2c77241e4826bcbee26a2882",
+          "verification": "22 casos del grafo y48 vecinos PASS;6 contrastes de cuerpos fijados PASS;4 RED iniciales discriminan la omisión",
+          "acceptance": "not_verified",
+          "integration": "working tree; no commit, merge o cambio de estado",
+          "remaining": "imported producer/exception and full loader unchanged"
+        }
       }
     },
     "authority": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/contractual-additional-ownership-assignment.json and contractual-ownership-assignment.json",

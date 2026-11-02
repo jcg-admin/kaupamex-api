@@ -38,6 +38,7 @@ no hay un segundo modelo con el que poder doble-contar. La clase
 ``TestElEspejoNoSeContamina`` que lo verificaba se eliminó de este archivo
 en la migración post-retiro.
 """
+
 from decimal import Decimal
 from uuid import uuid4
 
@@ -60,34 +61,44 @@ from tests.factories.product_factory import make_category, make_product
 pytestmark = pytest.mark.django_db
 
 ADDR = {
-    'recipient_name': 'E1bis', 'street': 'Calle 2', 'city': 'CDMX',
-    'state': 'CDMX', 'zip_code': '01000',
+    'recipient_name': 'E1bis',
+    'street': 'Calle 2',
+    'city': 'CDMX',
+    'state': 'CDMX',
+    'zip_code': '01000',
 }
 
 
 @pytest.fixture
 def producto():
     cat = make_category(name='Cat M')
-    return make_product(name='Prod M', price=Decimal('100.00'), stock=9, categ=cat)
+    return make_product(
+        name='Prod M', price=Decimal('100.00'), stock=9, categ=cat
+    )
 
 
 @pytest.fixture
 def metodo():
     return ShippingMethod.objects.create(
-        name='Estándar', cost=Decimal('99.00'), estimated_days=3)
+        name='Estándar', cost=Decimal('99.00'), estimated_days=3
+    )
 
 
 @pytest.fixture
 def voucher_20():
     return Voucher.objects.create(
-        code='E1BIS20', voucher_type=Voucher.TYPE_FIXED,
-        discount_value=Decimal('20.00'), is_active=True,
-        valid_from=timezone.now())
+        code='E1BIS20',
+        voucher_type=Voucher.TYPE_FIXED,
+        discount_value=Decimal('20.00'),
+        is_active=True,
+        valid_from=timezone.now(),
+    )
 
 
 def _draft(producto, carrier=None):
     draft = SaleOrder.objects.create(
-        state=SaleOrder.STATE_DRAFT, cart_token=uuid4(), carrier=carrier)
+        state=SaleOrder.STATE_DRAFT, cart_token=uuid4(), carrier=carrier
+    )
     add_item_to_draft(draft, producto, quantity=1)
     return draft
 
@@ -96,9 +107,12 @@ def _checkout(draft, shipping_cost=Decimal('0.00')):
     """Reproduce el orden del checkout real: materializar, luego confirmar."""
     set_delivery_line(draft, shipping_cost)
     set_reward_line(draft)
-    return confirm_draft_order(draft, address_data=dict(ADDR),
-                               guest_email='m@test.mx',
-                               shipping_cost=shipping_cost)
+    return confirm_draft_order(
+        draft,
+        address_data=dict(ADDR),
+        guest_email='m@test.mx',
+        shipping_cost=shipping_cost,
+    )
 
 
 class TestLineOfShipping:
@@ -119,14 +133,19 @@ class TestLineOfShipping:
         assert draft.amount_total == Decimal('199.00')
 
     def test_la_linea_apunta_al_producto_de_servicio_del_metodo(
-            self, producto, metodo):
+        self, producto, metodo
+    ):
         draft = _draft(producto, carrier=metodo)
         set_delivery_line(draft, Decimal('99.00'))
         linea = draft.order_line.get(is_delivery=True)
-        assert linea.product.default_code == f'{ShippingMethod.SERVICE_SKU_PREFIX}{metodo.pk}'
+        assert (
+            linea.product.default_code
+            == f'{ShippingMethod.SERVICE_SKU_PREFIX}{metodo.pk}'
+        )
 
     def test_sin_carrier_tambien_hay_linea_con_producto_generico(
-            self, producto):
+        self, producto
+    ):
         """Corregido en E5-pre (H-API-42) — antes esto era una degradación.
 
         La versión original de E1-bis omitía la línea cuando la orden no traía
@@ -141,7 +160,7 @@ class TestLineOfShipping:
         draft.refresh_from_db()
         linea = draft.order_line.get(is_delivery=True)
         assert linea.price_unit == Decimal('50.00')
-        assert linea.product.default_code == 'SRV-ENVIO'     # producto genérico
+        assert linea.product.default_code == 'SRV-ENVIO'  # producto genérico
         assert linea.name == 'Envío'
         assert draft.amount_total == Decimal('150.00')
 
@@ -149,7 +168,8 @@ class TestLineOfShipping:
 class TestLineaDeRecompensa:
 
     def test_el_descuento_nace_como_linea_negativa(
-            self, producto, metodo, voucher_20):
+        self, producto, metodo, voucher_20
+    ):
         draft = _draft(producto, carrier=metodo)
         apply_voucher_to_draft(draft, voucher_20.code)
         set_reward_line(draft)
@@ -170,13 +190,16 @@ class TestLineaDeRecompensa:
         assert draft.order_line.filter(is_reward=True).count() == 0
 
     def test_el_importe_no_lo_dicta_el_llamador(
-            self, producto, metodo, voucher_20):
+        self, producto, metodo, voucher_20
+    ):
         """``set_reward_line`` no recibe monto: lo calcula del cupón, así que
         el llamador no puede desincronizarse de la regla de descuento."""
         draft = _draft(producto, carrier=metodo)
         apply_voucher_to_draft(draft, voucher_20.code)
         set_reward_line(draft)
-        assert draft.order_line.get(is_reward=True).price_unit == Decimal('-20.00')
+        assert draft.order_line.get(is_reward=True).price_unit == Decimal(
+            '-20.00'
+        )
 
 
 class TestMecanismoABorrarYRecrear:
@@ -198,7 +221,8 @@ class TestMecanismoABorrarYRecrear:
         assert draft.order_line.filter(is_delivery=True).count() == 0
 
     def test_re_materializar_la_recompensa_deja_una_sola_linea(
-            self, producto, metodo, voucher_20):
+        self, producto, metodo, voucher_20
+    ):
         draft = _draft(producto, carrier=metodo)
         apply_voucher_to_draft(draft, voucher_20.code)
         set_reward_line(draft)
@@ -207,19 +231,25 @@ class TestMecanismoABorrarYRecrear:
 
 
 class TestBaseDelDescuento:
-    """El descuento es sobre producto: el orden de materialización no lo mueve."""
+    """
+    El descuento es sobre producto: el orden de materialización no lo mueve.
+    """
 
     def test_el_envio_no_entra_en_la_base_del_descuento(
-            self, producto, metodo, voucher_20):
+        self, producto, metodo, voucher_20
+    ):
         draft = _draft(producto, carrier=metodo)
         apply_voucher_to_draft(draft, voucher_20.code)
         set_delivery_line(draft, Decimal('99.00'))
         set_reward_line(draft)
-        assert draft.order_line.get(is_reward=True).price_unit == Decimal('-20.00')
+        assert draft.order_line.get(is_reward=True).price_unit == Decimal(
+            '-20.00'
+        )
         assert draft.amount_total == Decimal('179.00')
 
     def test_el_orden_inverso_da_el_mismo_total(
-            self, producto, metodo, voucher_20):
+        self, producto, metodo, voucher_20
+    ):
         draft = _draft(producto, carrier=metodo)
         apply_voucher_to_draft(draft, voucher_20.code)
         set_reward_line(draft)
@@ -230,7 +260,8 @@ class TestBaseDelDescuento:
 class TestVoucherEndToEnd:
 
     def test_checkout_con_voucher_materializa_ambas_lineas(
-            self, producto, metodo, voucher_20):
+        self, producto, metodo, voucher_20
+    ):
         draft = _draft(producto, carrier=metodo)
         apply_voucher_to_draft(draft, voucher_20.code)
         _checkout(draft, Decimal('99.00'))

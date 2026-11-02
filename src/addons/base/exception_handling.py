@@ -45,6 +45,7 @@ Dos consecuencias declaradas, no efectos colaterales
 - **No bloqueante (DEC-LOG-04):** la emisión va en ``try/except`` que traga el
   error; si el logging falla, la respuesta al cliente NO se altera.
 """
+
 import logging
 
 from rest_framework.views import exception_handler as drf_exception_handler
@@ -60,7 +61,9 @@ _logger = logging.getLogger('django.request')
 
 
 def custom_exception_handler(exc, context):
-    """Envuelve el handler de DRF y emite el error a ``ir.logging`` (ADR-019)."""
+    """
+    Envuelve el handler de DRF y emite el error a ``ir.logging`` (ADR-019).
+    """
     response = drf_exception_handler(exc, context)
     try:
         _emit(exc, context, response)
@@ -88,6 +91,10 @@ def _emit(exc, context, response):
     _logger.log(
         logging.ERROR if is_server_error else logging.WARNING,
         '%s %s -> %s %s: %s',
-        method, path, status_code, type(exc).__name__, scrub(str(exc)),
+        method,
+        path,
+        status_code,
+        type(exc).__name__,
+        scrub(str(exc)),
         exc_info=exc if is_server_error else None,
     )

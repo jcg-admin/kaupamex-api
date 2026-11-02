@@ -30,6 +30,7 @@ Qué haría fallar a cada control
     —cambie o no— es lo que la fuente evita por reentrada, y sin este caso
     quitar el filtro no rompería nada visible.
 """
+
 import pytest
 
 from addons.base.models.res_partner import ResPartner
@@ -46,15 +47,16 @@ class TestCleanWebsite:
 
     def test_one_that_already_has_it_is_untouched(self):
         """CONTROL — anteponerlo dos veces produce basura."""
-        assert ResPartner._clean_website(
-            'https://kaupamex.mx/a') == 'https://kaupamex.mx/a'
+        assert (
+            ResPartner._clean_website('https://kaupamex.mx/a')
+            == 'https://kaupamex.mx/a'
+        )
 
     def test_empty_stays_empty(self):
         assert ResPartner._clean_website('') == ''
 
     def test_it_runs_on_save(self, db):
-        who = ResPartner.objects.create(name='Con web',
-                                        website='kaupamex.mx')
+        who = ResPartner.objects.create(name='Con web', website='kaupamex.mx')
         who.refresh_from_db()
         assert who.website == 'http://kaupamex.mx'
 
@@ -68,10 +70,12 @@ class TestCompanyName:
     """
 
     def test_setting_a_parent_clears_it(self, db):
-        company = ResPartner.objects.create(name='Kaupamex SA',
-                                            is_company=True)
-        who = ResPartner.objects.create(name='Ana',
-                                        company_name='Escrita a mano')
+        company = ResPartner.objects.create(
+            name='Kaupamex SA', is_company=True
+        )
+        who = ResPartner.objects.create(
+            name='Ana', company_name='Escrita a mano'
+        )
         assert who.company_name == 'Escrita a mano'
         who.parent = company
         who.save()
@@ -80,38 +84,49 @@ class TestCompanyName:
 
     def test_without_a_parent_it_survives(self, db):
         """CONTROL — el borrado es por el padre, no por guardar."""
-        who = ResPartner.objects.create(name='Ana',
-                                        company_name='Escrita a mano')
+        who = ResPartner.objects.create(
+            name='Ana', company_name='Escrita a mano'
+        )
         who.save()
         who.refresh_from_db()
         assert who.company_name == 'Escrita a mano'
 
 
 class TestWiring:
-    """``save()`` llama a ``_fields_sync`` — la ausencia que este porte cierra."""
+    """
+    ``save()`` llama a ``_fields_sync`` — la ausencia que este porte cierra.
+    """
 
     def test_creating_a_contact_takes_the_company_address(self, db):
         company = ResPartner.objects.create(
-            name='Kaupamex SA', is_company=True,
-            street='Av. Vallarta 1300', city='Guadalajara')
+            name='Kaupamex SA',
+            is_company=True,
+            street='Av. Vallarta 1300',
+            city='Guadalajara',
+        )
         who = ResPartner.objects.create(
-            name='Ana', parent=company, type=ResPartner.TYPE_CONTACT)
+            name='Ana', parent=company, type=ResPartner.TYPE_CONTACT
+        )
         who.refresh_from_db()
         assert who.city == 'Guadalajara'
 
     def test_creating_a_contact_takes_the_company_rfc(self, db):
         company = ResPartner.objects.create(
-            name='Kaupamex SA', is_company=True, vat='KAU010101AAA')
+            name='Kaupamex SA', is_company=True, vat='KAU010101AAA'
+        )
         who = ResPartner.objects.create(
-            name='Ana', parent=company, type=ResPartner.TYPE_CONTACT)
+            name='Ana', parent=company, type=ResPartner.TYPE_CONTACT
+        )
         who.refresh_from_db()
         assert who.vat == 'KAU010101AAA'
 
     def test_editing_the_company_address_reaches_its_contacts(self, db):
         company = ResPartner.objects.create(
-            name='Kaupamex SA', is_company=True, city='Guadalajara')
+            name='Kaupamex SA', is_company=True, city='Guadalajara'
+        )
         who = ResPartner.objects.create(
-            name='Ana', parent=company, type=ResPartner.TYPE_CONTACT)
+            name='Ana', parent=company, type=ResPartner.TYPE_CONTACT
+        )
         company.city = 'Zapopan'
         company.save()
         who.refresh_from_db()
@@ -120,10 +135,14 @@ class TestWiring:
     def test_a_delivery_child_is_left_alone(self, db):
         """CONTROL — la frontera del tipo sigue en pie con el cableado."""
         company = ResPartner.objects.create(
-            name='Kaupamex SA', is_company=True, city='Guadalajara')
+            name='Kaupamex SA', is_company=True, city='Guadalajara'
+        )
         bodega = ResPartner.objects.create(
-            name='Bodega', parent=company, type=ResPartner.TYPE_DELIVERY,
-            city='Tlaquepaque')
+            name='Bodega',
+            parent=company,
+            type=ResPartner.TYPE_DELIVERY,
+            city='Tlaquepaque',
+        )
         company.city = 'Zapopan'
         company.save()
         bodega.refresh_from_db()
@@ -135,21 +154,27 @@ class TestSkipFlag:
 
     def test_inside_the_scope_nothing_is_synced(self, db):
         company = ResPartner.objects.create(
-            name='Kaupamex SA', is_company=True, city='Guadalajara')
+            name='Kaupamex SA', is_company=True, city='Guadalajara'
+        )
         with context_scope(_partners_skip_fields_sync=True):
             who = ResPartner.objects.create(
-                name='Ana', parent=company, type=ResPartner.TYPE_CONTACT)
+                name='Ana', parent=company, type=ResPartner.TYPE_CONTACT
+            )
         who.refresh_from_db()
         assert not who.city, 'la bandera debe apagar la sincronizacion'
 
     def test_outside_it_syncs_again(self, db):
-        """CONTROL — la bandera no deja residuo: fuera del bloque, sincroniza."""
+        """
+        CONTROL — la bandera no deja residuo: fuera del bloque, sincroniza.
+        """
         company = ResPartner.objects.create(
-            name='Kaupamex SA', is_company=True, city='Guadalajara')
+            name='Kaupamex SA', is_company=True, city='Guadalajara'
+        )
         with context_scope(_partners_skip_fields_sync=True):
             pass
         who = ResPartner.objects.create(
-            name='Ana', parent=company, type=ResPartner.TYPE_CONTACT)
+            name='Ana', parent=company, type=ResPartner.TYPE_CONTACT
+        )
         who.refresh_from_db()
         assert who.city == 'Guadalajara'
 
@@ -163,9 +188,11 @@ class TestLoopGuard:
 
     def test_saving_without_changes_does_not_pull_the_child_back(self, db):
         company = ResPartner.objects.create(
-            name='Kaupamex SA', is_company=True, city='Guadalajara')
+            name='Kaupamex SA', is_company=True, city='Guadalajara'
+        )
         who = ResPartner.objects.create(
-            name='Ana', parent=company, type=ResPartner.TYPE_CONTACT)
+            name='Ana', parent=company, type=ResPartner.TYPE_CONTACT
+        )
         # El hijo diverge por una via que no pasa por save()
         ResPartner.objects.filter(pk=who.pk).update(city='Tlaquepaque')
         # Guardar la empresa sin tocar nada NO debe re-sincronizar
@@ -176,9 +203,11 @@ class TestLoopGuard:
     def test_but_a_real_change_does_reach_it(self, db):
         """CONTROL — el filtro no debe apagar la sincronizacion de verdad."""
         company = ResPartner.objects.create(
-            name='Kaupamex SA', is_company=True, city='Guadalajara')
+            name='Kaupamex SA', is_company=True, city='Guadalajara'
+        )
         who = ResPartner.objects.create(
-            name='Ana', parent=company, type=ResPartner.TYPE_CONTACT)
+            name='Ana', parent=company, type=ResPartner.TYPE_CONTACT
+        )
         ResPartner.objects.filter(pk=who.pk).update(city='Tlaquepaque')
         company.city = 'Zapopan'
         company.save()

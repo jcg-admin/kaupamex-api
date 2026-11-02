@@ -54,6 +54,7 @@ sobre el framework de dominios en memoria del ORM fuente. Y
 depende del sistema de columna por plan de ``analytic_plan.py``.
 
 """
+
 from collections import defaultdict
 
 from django.core.exceptions import ValidationError
@@ -74,7 +75,9 @@ class AnalyticMixin(models.Model):
     """``analytic.mixin`` — distribución analítica libre (N cuentas, %)."""
 
     analytic_distribution = fields.Json(
-        null=True, blank=True, default=dict,
+        null=True,
+        blank=True,
+        default=dict,
         verbose_name='Distribución analítica',
         help_text='Odoo analytic_distribution: {"id1,id2,...": porcentaje}.',
     )
@@ -86,8 +89,10 @@ class AnalyticMixin(models.Model):
     def analytic_precision(self):
         """Los digitos con que se redondea el porcentaje -- ≙ ``:22-25``.
 
-        La fuente lo declara ``fields.Integer(store=False, default=lambda ...)``.
-        Un campo no persistido cuyo valor sale de otra tabla es una ``property``
+        La fuente lo declara ``fields.Integer(store=False, default=lambda
+        ...)``.
+        Un campo no persistido cuyo valor sale de otra tabla es una
+        ``property``
         aqui; el ``default`` invocable de la fuente se vuelve el cuerpo.
         """
         precision = DecimalPrecision.objects.filter(
@@ -99,7 +104,9 @@ class AnalyticMixin(models.Model):
 
     @classmethod
     def _query_analytic_accounts(cls, table=None):
-        """El arreglo de IDs de cuenta que la distribucion contiene -- ≙ ``:42-47``.
+        """
+        El arreglo de IDs de cuenta que la distribucion contiene -- ≙
+        ``:42-47``.
 
         Verbatim de la fuente: ``jsonb_path_query_array`` extrae las claves del
         objeto y ``regexp_split_to_array`` parte la clave compuesta
@@ -134,8 +141,10 @@ class AnalyticMixin(models.Model):
     def _compute_analytic_distribution(self):
         """≙ ``_compute_analytic_distribution`` (``:77-78``) -- cuerpo vacio.
 
-        La fuente lo declara para que el campo sea ``compute=`` + ``store=True``
-        + ``readonly=False``: el compute no calcula nada, existe para que el ORM
+        La fuente lo declara para que el campo sea ``compute=`` +
+        ``store=True``
+        + ``readonly=False``: el compute no calcula nada, existe para que el
+        ORM
         acepte la escritura manual sobre un campo almacenado. Aqui el campo es
         editable por construccion, asi que el simbolo se porta con el mismo
         cuerpo que la fuente le da.
@@ -154,22 +163,31 @@ class AnalyticMixin(models.Model):
           operador colapsa a ``in``/``not in``, como en la fuente.
 
         La rama negativa incluye ``OR analytic_distribution IS NULL`` porque el
-        solapamiento de un NULL no es falso sino nulo -- verbatim de ``:118-123``.
+        solapamiento de un NULL no es falso sino nulo -- verbatim de
+        ``:118-123``.
         """
         if operator in ('ilike', 'not ilike'):
-            ids = list(AccountAnalyticAccount.objects.filter(
-                name__icontains=value).values_list('pk', flat=True))
+            ids = list(
+                AccountAnalyticAccount.objects.filter(
+                    name__icontains=value
+                ).values_list('pk', flat=True)
+            )
             operator = 'not in' if operator.startswith('not') else 'in'
         elif operator in ('in', 'not in'):
             ids = []
             for item in value:
                 if isinstance(item, str):
-                    ids.extend(AccountAnalyticAccount.objects.filter(
-                        name=item).values_list('pk', flat=True))
+                    ids.extend(
+                        AccountAnalyticAccount.objects.filter(
+                            name=item
+                        ).values_list('pk', flat=True)
+                    )
                 else:
                     ids.append(item)
         else:
-            raise ValueError(f'ANALYTIC_DISTRIBUTION_OPERATOR_NOT_SUPPORTED: {operator}')
+            raise ValueError(
+                f'ANALYTIC_DISTRIBUTION_OPERATOR_NOT_SUPPORTED: {operator}'
+            )
 
         if not ids:
             # ≙ ``return Domain(operator == 'not in')`` (``:110-112``) -- la
@@ -186,13 +204,18 @@ class AnalyticMixin(models.Model):
         )
         if operator == 'in':
             return Q(RawSQL(overlap, [keys], output_field=BooleanField()))
-        return Q(RawSQL(
-            f'(NOT {overlap} OR {column} IS NULL)',
-            [keys], output_field=BooleanField(),
-        ))
+        return Q(
+            RawSQL(
+                f'(NOT {overlap} OR {column} IS NULL)',
+                [keys],
+                output_field=BooleanField(),
+            )
+        )
 
     @classmethod
-    def _search_distribution_analytic_account_ids(cls, operator, value, table=None):
+    def _search_distribution_analytic_account_ids(
+        cls, operator, value, table=None
+    ):
         """≙ ``_search_distribution_analytic_account_ids`` (``:66-75``).
 
         La fuente traduce los operadores de subconsulta (``any``/``not any``)
@@ -201,8 +224,11 @@ class AnalyticMixin(models.Model):
         """
         if operator in ('any', 'not any'):
             if isinstance(value, Q):
-                value = list(AccountAnalyticAccount.objects.filter(
-                    value).values_list('pk', flat=True))
+                value = list(
+                    AccountAnalyticAccount.objects.filter(value).values_list(
+                        'pk', flat=True
+                    )
+                )
             elif isinstance(value, models.QuerySet):
                 value = list(value.values_list('pk', flat=True))
             else:
@@ -225,7 +251,9 @@ class AnalyticMixin(models.Model):
                 for key in (distribution or {})
                 for _id in key.split(',')
             }
-        return {int(_id) for key in (distributions or {}) for _id in key.split(',')}
+        return {
+            int(_id) for key in (distributions or {}) for _id in key.split(',')
+        }
 
     @property
     def distribution_analytic_account_ids(self):
@@ -234,7 +262,7 @@ class AnalyticMixin(models.Model):
         módulo)."""
         ids = []
         seen = set()
-        for key in (self.analytic_distribution or {}):
+        for key in self.analytic_distribution or {}:
             for raw_id in key.split(','):
                 if raw_id.isdigit() and int(raw_id) not in seen:
                     seen.add(int(raw_id))
@@ -260,7 +288,8 @@ class AnalyticMixin(models.Model):
         self.analytic_distribution = {
             account_id: (
                 round(distribution, digits)
-                if account_id != '__update__' else distribution
+                if account_id != '__update__'
+                else distribution
             )
             for account_id, distribution in self.analytic_distribution.items()
         }
@@ -272,9 +301,13 @@ class AnalyticMixin(models.Model):
                 if account_id == '__update__':
                     continue
                 if not isinstance(pct, (int, float)):
-                    raise ValidationError({
-                        'analytic_distribution': 'ANALYTIC_DISTRIBUTION_PERCENT_NOT_NUMERIC',
-                    })
+                    raise ValidationError(
+                        {
+                            'analytic_distribution': (
+                                'ANALYTIC_DISTRIBUTION_PERCENT_NOT_NUMERIC'
+                            ),
+                        }
+                    )
 
     # -- fusión de distribuciones ---------------------------------------------
 
@@ -283,7 +316,9 @@ class AnalyticMixin(models.Model):
         """Fiel a ``_modifiying_distribution_values`` (odoo19c: líneas
         207-242) — ver docstring del módulo para la adaptación de
         ``__update__`` (PKs de plan raíz, no nombres de columna)."""
-        root_plan_ids_to_update = set(new_distribution.pop('__update__', ()) or ())
+        root_plan_ids_to_update = set(
+            new_distribution.pop('__update__', ()) or ()
+        )
         old_distribution = dict(old_distribution or {})
         old_distribution.pop('__update__', None)
 
@@ -294,10 +329,13 @@ class AnalyticMixin(models.Model):
             accounts = AccountAnalyticAccount.objects.filter(
                 pk__in=account_ids,
             ).select_related('plan')
-            remaining_key = tuple(sorted(
-                account.pk for account in accounts
-                if account.plan.root.pk not in root_plan_ids_to_update
-            ))
+            remaining_key = tuple(
+                sorted(
+                    account.pk
+                    for account in accounts
+                    if account.plan.root.pk not in root_plan_ids_to_update
+                )
+            )
             if remaining_key:
                 non_changing_values[remaining_key] += old_val
                 non_changing_amount += old_val
@@ -309,15 +347,23 @@ class AnalyticMixin(models.Model):
             accounts = AccountAnalyticAccount.objects.filter(
                 pk__in=account_ids,
             ).select_related('plan')
-            remaining_key = tuple(sorted(
-                account.pk for account in accounts
-                if account.plan.root.pk in root_plan_ids_to_update
-            ))
+            remaining_key = tuple(
+                sorted(
+                    account.pk
+                    for account in accounts
+                    if account.plan.root.pk in root_plan_ids_to_update
+                )
+            )
             if remaining_key:
                 changing_values[remaining_key] += new_val
                 changing_amount += new_val
 
-        return non_changing_values, changing_values, non_changing_amount, changing_amount
+        return (
+            non_changing_values,
+            changing_values,
+            non_changing_amount,
+            changing_amount,
+        )
 
     @staticmethod
     def _merge_distribution(old_distribution, new_distribution):
@@ -325,11 +371,14 @@ class AnalyticMixin(models.Model):
         if '__update__' not in (new_distribution or {}):
             return new_distribution  # actualiza todo por defecto
 
-        (non_changing_values, changing_values,
-         non_changing_amount, changing_amount) = (
-            AnalyticMixin._modifiying_distribution_values(
-                old_distribution, new_distribution,
-            )
+        (
+            non_changing_values,
+            changing_values,
+            non_changing_amount,
+            changing_amount,
+        ) = AnalyticMixin._modifiying_distribution_values(
+            old_distribution,
+            new_distribution,
         )
 
         if non_changing_amount > changing_amount:
@@ -352,7 +401,9 @@ class AnalyticMixin(models.Model):
             additional_vals = {}
 
         merged = {
-            ','.join(map(str, old_key + new_key)): ratio * old_val * new_val / non_changing_amount
+            ','.join(map(str, old_key + new_key)): (
+                ratio * old_val * new_val / non_changing_amount
+            )
             for old_key, old_val in non_changing_values.items()
             for new_key, new_val in changing_values.items()
         }

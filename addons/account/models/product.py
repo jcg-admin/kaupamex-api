@@ -107,11 +107,16 @@ el tercero —``(self.company_id or self.env.company).income_account_id``— cae
 en el mismo hueco del Bloque 1. Queda como ``None`` con el hueco anotado en el
 propio método, no silenciado.
 """
+
 import fields
 from django.db import models as dj_models
 from django.db.models import signals as dj_signals
 
-from addons.product.models import ProductCategory, ProductProduct, ProductTemplate
+from addons.product.models import (
+    ProductCategory,
+    ProductProduct,
+    ProductTemplate,
+)
 
 
 def _property_account(help_text):
@@ -122,7 +127,9 @@ def _property_account(help_text):
     """
     return fields.Many2one(
         'account.AccountAccount',
-        null=True, blank=True, on_delete=dj_models.PROTECT,
+        null=True,
+        blank=True,
+        on_delete=dj_models.PROTECT,
         related_name='+',
         help_text=help_text,
     )
@@ -176,12 +183,15 @@ def get_product_accounts(self, fiscal_pos=None):
     cuentas = _get_product_accounts(self)
     if fiscal_pos is None:
         return cuentas
-    return {clave: fiscal_pos.map_account(cuenta)
-            for clave, cuenta in cuentas.items()}
+    return {
+        clave: fiscal_pos.map_account(cuenta)
+        for clave, cuenta in cuentas.items()
+    }
 
 
 def _get_variant_product_accounts(self):
-    """≙ ``ProductProduct._get_product_accounts`` (``odoo19c: product.py:219``).
+    """
+    ≙ ``ProductProduct._get_product_accounts`` (``odoo19c: product.py:219``).
 
     La variante delega en su plantilla: la cuenta contable es del producto,
     no de la combinación de atributos.
@@ -217,8 +227,10 @@ def _inherit_company_default_taxes(sender, instance, created, **kwargs):
     company = instance.company
     if company is None:
         return
-    for field_name, default_attr in (('taxes', 'account_sale_tax'),
-                                     ('supplier_taxes', 'account_purchase_tax')):
+    for field_name, default_attr in (
+        ('taxes', 'account_sale_tax'),
+        ('supplier_taxes', 'account_purchase_tax'),
+    ):
         relation = getattr(instance, field_name, None)
         if relation is None or relation.exists():
             continue
@@ -235,62 +247,85 @@ def apply_account_extensions():
     """
     # --- product.category (2 campos) ---------------------------------------
     _add_if_absent(
-        ProductCategory, 'property_account_income_categ',
+        ProductCategory,
+        'property_account_income_categ',
         _property_account(
             'Cuenta de ingreso de la categoría, usada al validar una factura '
             'de cliente cuando el producto no declara la suya (Odoo '
-            'property_account_income_categ_id).'),
+            'property_account_income_categ_id).'
+        ),
     )
     _add_if_absent(
-        ProductCategory, 'property_account_expense_categ',
+        ProductCategory,
+        'property_account_expense_categ',
         _property_account(
             'Cuenta de gasto de la categoría, usada al validar una factura de '
             'proveedor cuando el producto no declara la suya (Odoo '
-            'property_account_expense_categ_id).'),
+            'property_account_expense_categ_id).'
+        ),
     )
 
     # --- product.template (5 de 7 campos; ver docstring) -------------------
     _add_if_absent(
-        ProductTemplate, 'taxes',
+        ProductTemplate,
+        'taxes',
         fields.Many2many(
-            'account.AccountTax', blank=True,
+            'account.AccountTax',
+            blank=True,
             related_name='product_templates_sale',
             db_table='product_taxes_rel',
-            help_text='Impuestos por defecto al VENDER el producto (Odoo '
-                      'taxes_id; type_tax_use=sale). Si se crea vacío, hereda '
-                      'ResCompany.account_sale_tax (ver el receptor de abajo).'),
+            help_text=(
+                'Impuestos por defecto al VENDER el producto (Odoo '
+                'taxes_id; type_tax_use=sale). Si se crea vacío, hereda '
+                'ResCompany.account_sale_tax (ver el receptor de abajo).'
+            ),
+        ),
     )
     _add_if_absent(
-        ProductTemplate, 'supplier_taxes',
+        ProductTemplate,
+        'supplier_taxes',
         fields.Many2many(
-            'account.AccountTax', blank=True,
+            'account.AccountTax',
+            blank=True,
             related_name='product_templates_purchase',
             db_table='product_supplier_taxes_rel',
-            help_text='Impuestos por defecto al COMPRAR el producto (Odoo '
-                      'supplier_taxes_id; type_tax_use=purchase). Hereda '
-                      'ResCompany.account_purchase_tax igual que taxes.'),
+            help_text=(
+                'Impuestos por defecto al COMPRAR el producto (Odoo '
+                'supplier_taxes_id; type_tax_use=purchase). Hereda '
+                'ResCompany.account_purchase_tax igual que taxes.'
+            ),
+        ),
     )
     _add_if_absent(
-        ProductTemplate, 'property_account_income',
+        ProductTemplate,
+        'property_account_income',
         _property_account(
             'Cuenta de ingreso del producto. Vacía = se usa la de la '
-            'categoría (Odoo property_account_income_id).'),
+            'categoría (Odoo property_account_income_id).'
+        ),
     )
     _add_if_absent(
-        ProductTemplate, 'property_account_expense',
+        ProductTemplate,
+        'property_account_expense',
         _property_account(
             'Cuenta de gasto del producto. Vacía = se usa la de la categoría '
-            '(Odoo property_account_expense_id).'),
+            '(Odoo property_account_expense_id).'
+        ),
     )
     _add_if_absent(
-        ProductTemplate, 'account_tags',
+        ProductTemplate,
+        'account_tags',
         fields.Many2many(
-            'account.AccountAccountTag', blank=True,
+            'account.AccountAccountTag',
+            blank=True,
             related_name='product_templates',
             db_table='product_template_account_tag_rel',
-            help_text='Etiquetas a poner en los apuntes de base e impuesto '
-                      'generados por este producto (Odoo account_tag_ids; '
-                      'applicability=products).'),
+            help_text=(
+                'Etiquetas a poner en los apuntes de base e impuesto '
+                'generados por este producto (Odoo account_tag_ids; '
+                'applicability=products).'
+            ),
+        ),
     )
 
     # --- el default de los dos M2M (Odoo ``default=lambda …``) -------------
@@ -313,14 +348,20 @@ def apply_account_extensions():
 
     # --- métodos (no son campos: se cuelgan directo) ------------------------
     for modelo, metodos in (
-        (ProductTemplate, {
-            '_get_product_accounts': _get_product_accounts,
-            '_get_category_account': _get_category_account,
-            'get_product_accounts': get_product_accounts,
-        }),
-        (ProductProduct, {
-            '_get_product_accounts': _get_variant_product_accounts,
-        }),
+        (
+            ProductTemplate,
+            {
+                '_get_product_accounts': _get_product_accounts,
+                '_get_category_account': _get_category_account,
+                'get_product_accounts': get_product_accounts,
+            },
+        ),
+        (
+            ProductProduct,
+            {
+                '_get_product_accounts': _get_variant_product_accounts,
+            },
+        ),
     ):
         for nombre, funcion in metodos.items():
             if not hasattr(modelo, nombre):

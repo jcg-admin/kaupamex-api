@@ -5,6 +5,7 @@ El fanout es sincrono: AdminManualNotificationCreateView llama
 dispatch_manual_fanout() directamente (cnst-arquitectura T6:
 Celery prohibido, alternativa Cron + Management Commands).
 """
+
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -15,7 +16,6 @@ from addons.sale.models import SaleOrderLine
 
 import pytest
 from tests.factories.order_factory import make_order
-
 
 ADMIN_MANUAL_URL = '/api/v2/admin/notifications/'
 
@@ -59,31 +59,45 @@ class TestManualFanoutSync:
 
     def test_fanout_usuario_individual(self, admin_client, user, db):
         """POST manual para USER crea ManualNotification y Notification."""
-        res = admin_client.post(ADMIN_MANUAL_URL, {
-            'recipient_type': 'USER',
-            'recipient_identifier': user.email,
-            'subject': 'Test individual',
-            'message': 'Mensaje de prueba.',
-        }, format='json')
+        res = admin_client.post(
+            ADMIN_MANUAL_URL,
+            {
+                'recipient_type': 'USER',
+                'recipient_identifier': user.email,
+                'subject': 'Test individual',
+                'message': 'Mensaje de prueba.',
+            },
+            format='json',
+        )
 
         assert res.status_code == 201
         data = res.json()
         assert data['recipients_count'] == 1
-        assert Notification.objects.filter(
-            user=user, subject='Test individual',
-        ).count() == 1
-        assert ManualNotification.objects.filter(subject='Test individual').exists()
+        assert (
+            Notification.objects.filter(
+                user=user,
+                subject='Test individual',
+            ).count()
+            == 1
+        )
+        assert ManualNotification.objects.filter(
+            subject='Test individual'
+        ).exists()
 
     def test_fanout_product_buyers(self, admin_client, db):
         """POST manual para PRODUCT_BUYERS crea Notification por comprador."""
         user_ids, product_id = _create_buyers(3)
 
-        res = admin_client.post(ADMIN_MANUAL_URL, {
-            'recipient_type': 'PRODUCT_BUYERS',
-            'product_id': product_id,
-            'subject': 'Notif compradores',
-            'message': 'Para todos los compradores.',
-        }, format='json')
+        res = admin_client.post(
+            ADMIN_MANUAL_URL,
+            {
+                'recipient_type': 'PRODUCT_BUYERS',
+                'product_id': product_id,
+                'subject': 'Notif compradores',
+                'message': 'Para todos los compradores.',
+            },
+            format='json',
+        )
 
         assert res.status_code == 201
         assert res.json()['recipients_count'] == 3
@@ -92,20 +106,34 @@ class TestManualFanoutSync:
         assert set(created.values_list('user_id', flat=True)) == set(user_ids)
 
     def test_fanout_sin_destinatarios_status_failed(
-        self, admin_client, db,
+        self,
+        admin_client,
+        db,
     ):
-        """POST manual con recipient inexistente: recipients_count=0, status=FAILED."""
-        res = admin_client.post(ADMIN_MANUAL_URL, {
-            'recipient_type': 'USER',
-            'recipient_identifier': 'inexistente-usuario-xyz',
-            'subject': 'Sin destinatarios',
-            'message': 'Mensaje sin destino.',
-        }, format='json')
+        """
+        POST manual con recipient inexistente: recipients_count=0,
+        status=FAILED.
+        """
+        res = admin_client.post(
+            ADMIN_MANUAL_URL,
+            {
+                'recipient_type': 'USER',
+                'recipient_identifier': 'inexistente-usuario-xyz',
+                'subject': 'Sin destinatarios',
+                'message': 'Mensaje sin destino.',
+            },
+            format='json',
+        )
 
         assert res.status_code == 201
         data = res.json()
         assert data['recipients_count'] == 0
-        manual = ManualNotification.objects.filter(subject='Sin destinatarios').first()
+        manual = ManualNotification.objects.filter(
+            subject='Sin destinatarios'
+        ).first()
         assert manual is not None
         assert manual.status == ManualNotification.Status.FAILED
-        assert Notification.objects.filter(subject='Sin destinatarios').count() == 0
+        assert (
+            Notification.objects.filter(subject='Sin destinatarios').count()
+            == 0
+        )

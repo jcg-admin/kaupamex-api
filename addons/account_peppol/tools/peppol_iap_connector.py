@@ -40,6 +40,7 @@ Divergencias declaradas
 2. **``requests`` sí está** — medido en ``uv.lock`` (paquete declarado). Se usa
    tal cual, con el mismo ``timeout``.
 """
+
 import logging
 
 import requests
@@ -92,32 +93,63 @@ class PeppolIAPConnector:
         response_vals = {}
         try:
             response = requests.request(
-                method, url, json=data, params=params, timeout=TIMEOUT, headers=headers,
+                method,
+                url,
+                json=data,
+                params=params,
+                timeout=TIMEOUT,
+                headers=headers,
             )
             response_vals = response.json()
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             if response_vals and 'code' in response_vals:
                 raise UserError(get_peppol_error_message(response_vals))
-            _logger.debug('Falló la conexión con el proxy Peppol de Odoo %s, %s', endpoint, e)
-            raise UserError(_('Falló la conexión con el proxy Peppol de Odoo.'))
+            _logger.debug(
+                'Falló la conexión con el proxy Peppol de Odoo %s, %s',
+                endpoint,
+                e,
+            )
+            raise UserError(
+                _('Falló la conexión con el proxy Peppol de Odoo.')
+            )
         return response_vals
 
-    def can_connect(self, *, peppol_identifier, db_uuid, callback_url, connect_token,
-                    contact_email=None, webhook_url=None):
-        """≙ ``can_connect`` (``odoo19c: :44-52``) — ¿puede esta base conectarse
+    def can_connect(
+        self,
+        *,
+        peppol_identifier,
+        db_uuid,
+        callback_url,
+        connect_token,
+        contact_email=None,
+        webhook_url=None,
+    ):
+        """
+        ≙ ``can_connect`` (``odoo19c: :44-52``) — ¿puede esta base conectarse
         con ese identificador Peppol?"""
-        return self.request_public_http('GET', '/api/peppol/2/can_connect', params={
-            'dbuuid': db_uuid,
-            'peppol_identifier': peppol_identifier,
-            'callback_url': callback_url,
-            'connect_token': connect_token,
-            'contact_email': contact_email,
-            'webhook_url': webhook_url,
-        })
+        return self.request_public_http(
+            'GET',
+            '/api/peppol/2/can_connect',
+            params={
+                'dbuuid': db_uuid,
+                'peppol_identifier': peppol_identifier,
+                'callback_url': callback_url,
+                'connect_token': connect_token,
+                'contact_email': contact_email,
+                'webhook_url': webhook_url,
+            },
+        )
 
-    def create_connection(self, *, peppol_identifier, db_uuid, public_key,
-                          auth_token=None, **company_details):
+    def create_connection(
+        self,
+        *,
+        peppol_identifier,
+        db_uuid,
+        public_key,
+        auth_token=None,
+        **company_details,
+    ):
         """≙ ``create_connection`` (``odoo19c: :54-64``) — da de alta la
         conexión y devuelve las credenciales del usuario de proxy."""
         params = {
@@ -128,7 +160,9 @@ class PeppolIAPConnector:
             'auth_token': auth_token,
             **company_details,
         }
-        return self.request_public_http('POST', '/api/peppol/2/connect', data=params)
+        return self.request_public_http(
+            'POST', '/api/peppol/2/connect', data=params
+        )
 
 
 __all__ = ['PEPPOL_PROXY_URLS', 'PeppolIAPConnector', 'TIMEOUT']

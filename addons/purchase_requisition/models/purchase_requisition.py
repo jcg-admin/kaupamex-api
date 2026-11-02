@@ -60,7 +60,8 @@ la tercera degradación de esta lista: se portaba **sólo la rama de respaldo**
 por cantidad y fecha no existía en este árbol.
 
 Ya existe: ``ProductProduct._select_seller`` se portó con su cadena completa
-(``_prepare_sellers`` → ``_get_filtered_sellers`` → ``_select_seller``), así que
+(``_prepare_sellers`` → ``_get_filtered_sellers`` → ``_select_seller``), así
+que
 la rama de tarifa **se resuelve** y el precio sugerido de una plantilla de
 compra sale del acuerdo con ese proveedor, no del costo estándar. Ver
 :ref:`h-api-998`.
@@ -106,6 +107,7 @@ columna que el ORM mantiene sincronizada. Sin ese motor, mantenerla al día
 sería trabajo manual y silencioso; se declara **``property``** que lee la del
 acuerdo. Es la misma lectura y no puede desincronizarse.
 """
+
 from datetime import datetime
 
 from django.apps import apps
@@ -175,65 +177,101 @@ class PurchaseRequisition(TimeStampedModel):
     STATE_CHOICES = STATE_CHOICES
 
     name = fields.Char(
-        max_length=64, default=_default_requisition_name,
+        max_length=64,
+        default=_default_requisition_name,
         verbose_name='Acuerdo',
-        help_text='Referencia del acuerdo; la asigna la secuencia al crearlo '
-                  '(Odoo name, readonly + copy=False).',
+        help_text=(
+            'Referencia del acuerdo; la asigna la secuencia al crearlo '
+            '(Odoo name, readonly + copy=False).'
+        ),
     )
     active = fields.Boolean(
         default=True,
-        help_text='Si se desmarca, el acuerdo se oculta sin borrarlo '
-                  '(Odoo active).',
+        help_text=(
+            'Si se desmarca, el acuerdo se oculta sin borrarlo (Odoo active).'
+        ),
     )
     reference = fields.Char(
-        max_length=64, blank=True, default='',
+        max_length=64,
+        blank=True,
+        default='',
         help_text='Referencia libre del acuerdo (Odoo reference).',
     )
     vendor = fields.Many2one(
-        'base.ResPartner', null=True, blank=True, on_delete=models.PROTECT,
-        related_name='purchase_requisition_ids', verbose_name='Proveedor',
-        help_text='Proveedor con el que se pacta el acuerdo (Odoo vendor_id, '
-                  'check_company=True).',
+        'base.ResPartner',
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name='purchase_requisition_ids',
+        verbose_name='Proveedor',
+        help_text=(
+            'Proveedor con el que se pacta el acuerdo (Odoo vendor_id, '
+            'check_company=True).'
+        ),
     )
     requisition_type = fields.Selection(
-        max_length=20, choices=REQUISITION_TYPE_CHOICES,
-        default=TYPE_BLANKET_ORDER, verbose_name='Tipo de acuerdo',
-        help_text='Pedido abierto (precio pactado) o plantilla de compra '
-                  '(lista que se copia) — Odoo requisition_type.',
+        max_length=20,
+        choices=REQUISITION_TYPE_CHOICES,
+        default=TYPE_BLANKET_ORDER,
+        verbose_name='Tipo de acuerdo',
+        help_text=(
+            'Pedido abierto (precio pactado) o plantilla de compra '
+            '(lista que se copia) — Odoo requisition_type.'
+        ),
     )
     date_start = fields.Date(
-        null=True, blank=True, verbose_name='Fecha de inicio',
-        help_text='Odoo date_start. La referencia lo declara tracking=True; '
-                  'ver D-2 del docstring del módulo.',
+        null=True,
+        blank=True,
+        verbose_name='Fecha de inicio',
+        help_text=(
+            'Odoo date_start. La referencia lo declara tracking=True; '
+            'ver D-2 del docstring del módulo.'
+        ),
     )
     date_end = fields.Date(
-        null=True, blank=True, verbose_name='Fecha de fin',
+        null=True,
+        blank=True,
+        verbose_name='Fecha de fin',
         help_text='Odoo date_end (tracking=True en la referencia, D-2).',
     )
     user = fields.Many2one(
-        settings.AUTH_USER_MODEL, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name='purchase_requisition_ids',
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='purchase_requisition_ids',
         verbose_name='Responsable de compras',
         help_text='Odoo user_id, con el usuario en curso por defecto.',
     )
     description = fields.Html(
-        blank=True, default='',
+        blank=True,
+        default='',
         help_text='Descripción del acuerdo (Odoo description).',
     )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE,
-        related_name='purchase_requisition_ids', verbose_name='Empresa',
+        'base.ResCompany',
+        on_delete=models.CASCADE,
+        related_name='purchase_requisition_ids',
+        verbose_name='Empresa',
         help_text='Odoo company_id (required).',
     )
     currency = fields.Many2one(
-        'base.ResCurrency', null=True, blank=True, on_delete=models.PROTECT,
-        related_name='purchase_requisition_ids', verbose_name='Moneda',
-        help_text='Moneda del acuerdo (Odoo currency_id, compute+store con '
-                  'readonly=False). La calcula _compute_currency_id al '
-                  'guardar.',
+        'base.ResCurrency',
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name='purchase_requisition_ids',
+        verbose_name='Moneda',
+        help_text=(
+            'Moneda del acuerdo (Odoo currency_id, compute+store con '
+            'readonly=False). La calcula _compute_currency_id al '
+            'guardar.'
+        ),
     )
     state = fields.Selection(
-        max_length=16, choices=STATE_CHOICES, default=STATE_DRAFT,
+        max_length=16,
+        choices=STATE_CHOICES,
+        default=STATE_DRAFT,
         verbose_name='Estado',
         help_text='Odoo state (tracking=True en la referencia, D-2).',
     )
@@ -251,7 +289,8 @@ class PurchaseRequisition(TimeStampedModel):
 
     @property
     def order_count(self):
-        """≙ ``order_count`` + ``_compute_orders_number`` (``:19``, ``:72-75``).
+        """
+        ≙ ``order_count`` + ``_compute_orders_number`` (``:19``, ``:72-75``).
         ``compute`` sin ``store`` — D-4."""
         return self._compute_orders_number()
 
@@ -279,7 +318,9 @@ class PurchaseRequisition(TimeStampedModel):
         que es lo que la fuente hace cuando el proveedor no la tiene fijada.
         Se declara en vez de callarse: es una degradación, no una equivalencia.
         """
-        vendor_currency = getattr(self.vendor, 'property_purchase_currency', None)
+        vendor_currency = getattr(
+            self.vendor, 'property_purchase_currency', None
+        )
         if vendor_currency is not None:
             return vendor_currency
         return self.company.currency if self.company_id else None
@@ -294,16 +335,22 @@ class PurchaseRequisition(TimeStampedModel):
         if self.vendor_id is None:
             return None
         existing = PurchaseRequisition.objects.filter(
-            vendor=self.vendor, state=STATE_CONFIRMED,
-            requisition_type=TYPE_BLANKET_ORDER, company=self.company,
+            vendor=self.vendor,
+            state=STATE_CONFIRMED,
+            requisition_type=TYPE_BLANKET_ORDER,
+            company=self.company,
         ).exclude(pk=self.pk)
         if not existing.exists():
             return None
-        return {'warning': {
-            'title': f'Aviso sobre {self.vendor.name}',
-            'message': 'Ya hay un pedido abierto con este proveedor. Conviene '
-                       'completarlo en vez de crear otro.',
-        }}
+        return {
+            'warning': {
+                'title': f'Aviso sobre {self.vendor.name}',
+                'message': (
+                    'Ya hay un pedido abierto con este proveedor. Conviene '
+                    'completarlo en vez de crear otro.'
+                ),
+            }
+        }
 
     # -- validación y persistencia ------------------------------------------
 
@@ -313,10 +360,15 @@ class PurchaseRequisition(TimeStampedModel):
         La fecha de fin no puede ser anterior a la de inicio.
         """
         super().clean()
-        if self.date_end and self.date_start and self.date_end < self.date_start:
+        if (
+            self.date_end
+            and self.date_start
+            and self.date_end < self.date_start
+        ):
             raise ValidationError(
                 'La fecha de fin no puede ser anterior a la de inicio. Revisa '
-                f'las fechas del acuerdo: {self.name}')
+                f'las fechas del acuerdo: {self.name}'
+            )
 
     def save(self, *args, **kwargs):
         """≙ ``create`` (``:85-95``) + ``write`` (``:97-111``) — D-3.
@@ -334,12 +386,14 @@ class PurchaseRequisition(TimeStampedModel):
         if not creating:
             previous = type(self).objects.filter(pk=self.pk).first()
             if previous is not None and (
-                    previous.requisition_type != self.requisition_type
-                    or previous.company_id != self.company_id):
+                previous.requisition_type != self.requisition_type
+                or previous.company_id != self.company_id
+            ):
                 if previous.state != STATE_DRAFT:
                     raise ValidationError(
                         'No se puede cambiar el tipo de acuerdo ni la empresa '
-                        'de un acuerdo que ya no está en borrador.')
+                        'de un acuerdo que ya no está en borrador.'
+                    )
                 if self.requisition_type == TYPE_PURCHASE_TEMPLATE:
                     self.date_start = self.date_end = None
                 self.name = self._next_name()
@@ -360,11 +414,15 @@ class PurchaseRequisition(TimeStampedModel):
         el campo vacío.
         """
         code = SEQUENCE_CODE_BY_TYPE[self.requisition_type]
-        return IrSequence.next_by_code(code, company=self.company) \
-            or self.name or _default_requisition_name()
+        return (
+            IrSequence.next_by_code(code, company=self.company)
+            or self.name
+            or _default_requisition_name()
+        )
 
     def delete(self, *args, **kwargs):
-        """≙ ``unlink`` (``odoo19c: :113-116``) + ``_unlink_if_draft_or_cancel``
+        """
+        ≙ ``unlink`` (``odoo19c: :113-116``) + ``_unlink_if_draft_or_cancel``
         (``:158-161``) — D-3.
 
         Los dos van juntos porque la fuente los ejecuta en el mismo borrado: el
@@ -380,10 +438,13 @@ class PurchaseRequisition(TimeStampedModel):
         return super().delete(*args, **kwargs)
 
     def _unlink_if_draft_or_cancel(self):
-        """≙ ``_unlink_if_draft_or_cancel`` (``odoo19c: :158-161``) — verbatim."""
+        """
+        ≙ ``_unlink_if_draft_or_cancel`` (``odoo19c: :158-161``) — verbatim.
+        """
         if self.state not in (STATE_DRAFT, STATE_CANCEL):
             raise ValidationError(
-                'Sólo se pueden borrar acuerdos en borrador o cancelados.')
+                'Sólo se pueden borrar acuerdos en borrador o cancelados.'
+            )
 
     # -- acciones -----------------------------------------------------------
 
@@ -394,7 +455,8 @@ class PurchaseRequisition(TimeStampedModel):
         las solicitudes de cotización que siguen en borrador.
 
         **D-1 declarada:** la fuente publica además una nota en cada orden
-        cancelada (``:126``, ``po.message_post(...)``). Aquí no: el mecanismo de
+        cancelada (``:126``, ``po.message_post(...)``). Aquí no: el mecanismo
+        de
         bitácora no cubre ``purchase.order`` en este árbol. La cancelación sí
         ocurre; lo que falta es su rastro en la conversación.
         """
@@ -418,17 +480,20 @@ class PurchaseRequisition(TimeStampedModel):
         if not self.line_ids.exists():
             raise ValidationError(
                 f"No se puede confirmar el acuerdo '{self.name}': no tiene "
-                'líneas de producto.')
+                "líneas de producto."
+            )
         if self.requisition_type == TYPE_BLANKET_ORDER:
             for line in self.line_ids.all():
                 if line.price_unit <= 0.0:
                     raise ValidationError(
                         'No se puede confirmar un pedido abierto con líneas '
-                        'sin precio.')
+                        'sin precio.'
+                    )
                 if line.product_qty <= 0.0:
                     raise ValidationError(
                         'No se puede confirmar un pedido abierto con líneas '
-                        'sin cantidad.')
+                        'sin cantidad.'
+                    )
                 line._create_supplier_info()
         self.state = STATE_CONFIRMED
         self.save(update_fields=['state', 'updated_at'])
@@ -441,7 +506,8 @@ class PurchaseRequisition(TimeStampedModel):
     def action_done(self):
         """≙ ``action_done`` (``odoo19c: :146-156``).
 
-        Cierra el acuerdo y retira sus tarifas. La fuente rehúsa cerrar mientras
+        Cierra el acuerdo y retira sus tarifas. La fuente rehúsa cerrar
+        mientras
         queden solicitudes de cotización vivas, y su comentario dice por qué:
         *«Imagine the mess if someone confirms these duplicates: double the
         order, double the trouble»*.
@@ -449,7 +515,8 @@ class PurchaseRequisition(TimeStampedModel):
         if self.purchase_ids.filter(state__in=['draft', 'sent']).exists():
             raise ValidationError(
                 'Para cerrar este acuerdo, cancela primero las solicitudes de '
-                'cotización relacionadas.')
+                'cotización relacionadas.'
+            )
         for line in self.line_ids.all():
             line.supplier_info_ids.all().delete()
         self.state = STATE_DONE
@@ -460,7 +527,8 @@ class PurchaseRequisitionLine(AnalyticMixin, TimeStampedModel):
     """``purchase.requisition.line`` — «Purchase Requisition Line»."""
 
     # Atributos de clase de modelo — los CUATRO que la fuente declara
-    # (``odoo19c: :165-168``), verbatim. ``_inherit = ['analytic.mixin']`` SÍ se
+    # (``odoo19c: :165-168``), verbatim. ``_inherit =
+    # ['analytic.mixin']`` SÍ se
     # hereda aquí: ``AnalyticMixin`` existe (``addons/analytic/models/
     # analytic_mixin.py:81``) y aporta ``analytic_distribution``, que
     # ``_prepare_purchase_order_line`` lee.
@@ -470,32 +538,49 @@ class PurchaseRequisitionLine(AnalyticMixin, TimeStampedModel):
     _rec_name = 'product_id'
 
     product = fields.Many2one(
-        'product.ProductProduct', on_delete=models.PROTECT,
-        related_name='purchase_requisition_line_ids', verbose_name='Producto',
+        'product.ProductProduct',
+        on_delete=models.PROTECT,
+        related_name='purchase_requisition_line_ids',
+        verbose_name='Producto',
         help_text="Odoo product_id, con domain [('purchase_ok', '=', True)].",
     )
     product_uom = fields.Many2one(
-        'uom.Uom', null=True, blank=True, on_delete=models.PROTECT,
-        related_name='purchase_requisition_line_ids', verbose_name='Unidad',
-        help_text='Odoo product_uom_id (compute+store, readonly=False). La '
-                  'calcula _compute_product_uom_id al guardar.',
+        'uom.Uom',
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name='purchase_requisition_line_ids',
+        verbose_name='Unidad',
+        help_text=(
+            'Odoo product_uom_id (compute+store, readonly=False). La '
+            'calcula _compute_product_uom_id al guardar.'
+        ),
     )
     product_qty = fields.Float(
-        default=0.0, verbose_name='Cantidad',
+        default=0.0,
+        verbose_name='Cantidad',
         help_text="Odoo product_qty (digits='Product Unit').",
     )
     product_description_variants = fields.Char(
-        max_length=255, blank=True, default='', verbose_name='Descripción',
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='Descripción',
         help_text='Odoo product_description_variants.',
     )
     price_unit = fields.Float(
-        default=0.0, verbose_name='Precio unitario',
-        help_text='Odoo price_unit (compute+store, readonly=False). Lo calcula '
-                  '_compute_price_unit al guardar.',
+        default=0.0,
+        verbose_name='Precio unitario',
+        help_text=(
+            'Odoo price_unit (compute+store, readonly=False). Lo calcula '
+            '_compute_price_unit al guardar.'
+        ),
     )
     requisition = fields.Many2one(
-        'purchase_requisition.PurchaseRequisition', on_delete=models.CASCADE,
-        db_index=True, related_name='line_ids',
+        'purchase_requisition.PurchaseRequisition',
+        on_delete=models.CASCADE,
+        db_index=True,
+        related_name='line_ids',
         verbose_name='Acuerdo de compra',
         help_text="Odoo requisition_id (required, ondelete='cascade').",
     )
@@ -513,13 +598,15 @@ class PurchaseRequisitionLine(AnalyticMixin, TimeStampedModel):
 
     @property
     def company(self):
-        """≙ ``company_id`` (``:181``) — ``related='requisition_id.company_id'``.
+        """
+        ≙ ``company_id`` (``:181``) — ``related='requisition_id.company_id'``.
         D-5 del docstring del módulo: ``property``, no columna espejo."""
         return self.requisition.company if self.requisition_id else None
 
     @property
     def qty_ordered(self):
-        """≙ ``qty_ordered`` + ``_compute_ordered_qty`` (``:179``, ``:184-199``).
+        """
+        ≙ ``qty_ordered`` + ``_compute_ordered_qty`` (``:179``, ``:184-199``).
         ``compute`` sin ``store`` — D-4."""
         return self._compute_ordered_qty()
 
@@ -542,20 +629,26 @@ class PurchaseRequisitionLine(AnalyticMixin, TimeStampedModel):
         cantidades se suman en la unidad en que estén, y se declara aquí en vez
         de fingir una conversión.
         """
-        first_line = self.requisition.line_ids.filter(
-            product=self.product).order_by('pk').first()
+        first_line = (
+            self.requisition.line_ids.filter(product=self.product)
+            .order_by('pk')
+            .first()
+        )
         if first_line is not None and first_line.pk != self.pk:
             return 0.0
         POL = apps.get_model('purchase', 'PurchaseOrderLine')
         total = 0.0
         for po_line in POL.objects.filter(
-                order__requisition=self.requisition, order__state='purchase',
-                product=self.product):
+            order__requisition=self.requisition,
+            order__state='purchase',
+            product=self.product,
+        ):
             total += float(po_line.product_qty)
         return total
 
     def _compute_product_uom_id(self):
-        """≙ ``_compute_product_uom_id`` (``odoo19c: :201-204``) — la unidad del
+        """
+        ≙ ``_compute_product_uom_id`` (``odoo19c: :201-204``) — la unidad del
         producto."""
         return self.product.uom if self.product_id else None
 
@@ -576,11 +669,13 @@ class PurchaseRequisitionLine(AnalyticMixin, TimeStampedModel):
         ocurre. Ver :ref:`h-api-998`.
         """
         requisition = self.requisition
-        if (requisition is None
-                or requisition.state != STATE_DRAFT
-                or requisition.requisition_type != TYPE_PURCHASE_TEMPLATE
-                or requisition.vendor_id is None
-                or self.product_id is None):
+        if (
+            requisition is None
+            or requisition.state != STATE_DRAFT
+            or requisition.requisition_type != TYPE_PURCHASE_TEMPLATE
+            or requisition.vendor_id is None
+            or self.product_id is None
+        ):
             return self.price_unit
         seller = self.product._select_seller(
             partner_id=requisition.vendor,
@@ -609,7 +704,9 @@ class PurchaseRequisitionLine(AnalyticMixin, TimeStampedModel):
         previous_price = None
         if not creating:
             previous = type(self).objects.filter(pk=self.pk).first()
-            previous_price = previous.price_unit if previous is not None else None
+            previous_price = (
+                previous.price_unit if previous is not None else None
+            )
 
         if self.product_uom_id is None:
             self.product_uom = self._compute_product_uom_id()
@@ -617,26 +714,39 @@ class PurchaseRequisitionLine(AnalyticMixin, TimeStampedModel):
             self.price_unit = self._compute_price_unit()
 
         requisition = self.requisition
-        confirmed = (requisition is not None
-                      and requisition.requisition_type == TYPE_BLANKET_ORDER
-                      and requisition.state not in (STATE_DRAFT, STATE_CANCEL,
-                                                    STATE_DONE))
+        confirmed = (
+            requisition is not None
+            and requisition.requisition_type == TYPE_BLANKET_ORDER
+            and requisition.state
+            not in (STATE_DRAFT, STATE_CANCEL, STATE_DONE)
+        )
         if confirmed and self.price_unit <= 0.0:
             raise ValidationError(
                 'No se puede tener un precio unitario de 0 o negativo en un '
-                'pedido abierto ya confirmado.')
+                'pedido abierto ya confirmado.'
+            )
 
         result = super().save(*args, **kwargs)
 
         if creating and confirmed:
-            ProductSupplierinfo = apps.get_model('product', 'ProductSupplierinfo')
-            already_there = ProductSupplierinfo.objects.filter(
-                product=self.product, partner=requisition.vendor,
-            ).exclude(purchase_requisition_line__isnull=True).exists()
+            ProductSupplierinfo = apps.get_model(
+                'product', 'ProductSupplierinfo'
+            )
+            already_there = (
+                ProductSupplierinfo.objects.filter(
+                    product=self.product,
+                    partner=requisition.vendor,
+                )
+                .exclude(purchase_requisition_line__isnull=True)
+                .exists()
+            )
             if not already_there:
                 self._create_supplier_info()
-        elif not creating and previous_price is not None \
-                and previous_price != self.price_unit:
+        elif (
+            not creating
+            and previous_price is not None
+            and previous_price != self.price_unit
+        ):
             self.supplier_info_ids.all().update(price=self.price_unit)
         return result
 
@@ -649,7 +759,10 @@ class PurchaseRequisitionLine(AnalyticMixin, TimeStampedModel):
         """
         requisition = self.requisition
         if requisition is not None and requisition.state not in (
-                STATE_DRAFT, STATE_CANCEL, STATE_DONE):
+            STATE_DRAFT,
+            STATE_CANCEL,
+            STATE_DONE,
+        ):
             self.supplier_info_ids.all().delete()
         return super().delete(*args, **kwargs)
 
@@ -663,7 +776,10 @@ class PurchaseRequisitionLine(AnalyticMixin, TimeStampedModel):
         el acuerdo llega al precio de las compras posteriores.
         """
         requisition = self.requisition
-        if requisition is None or requisition.requisition_type != TYPE_BLANKET_ORDER:
+        if (
+            requisition is None
+            or requisition.requisition_type != TYPE_BLANKET_ORDER
+        ):
             return None
         if requisition.vendor_id is None:
             return None
@@ -678,8 +794,9 @@ class PurchaseRequisitionLine(AnalyticMixin, TimeStampedModel):
             purchase_requisition_line=self,
         )
 
-    def _prepare_purchase_order_line(self, name, product_qty=0.0,
-                                     price_unit=0.0, taxes_ids=False):
+    def _prepare_purchase_order_line(
+        self, name, product_qty=0.0, price_unit=0.0, taxes_ids=False
+    ):
         """≙ ``_prepare_purchase_order_line`` (``odoo19c: :263-279``).
 
         Los valores con los que el acuerdo siembra una línea de orden de
@@ -697,8 +814,9 @@ class PurchaseRequisitionLine(AnalyticMixin, TimeStampedModel):
             name = f'{name}\n{self.product_description_variants}'
         date_planned = datetime.now()
         if self.requisition.date_start:
-            start_dt = datetime.combine(self.requisition.date_start,
-                                      datetime.min.time())
+            start_dt = datetime.combine(
+                self.requisition.date_start, datetime.min.time()
+            )
             date_planned = max(date_planned, start_dt)
         return {
             'name': name,

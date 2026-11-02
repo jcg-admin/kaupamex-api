@@ -1,4 +1,5 @@
-"""Censa la deuda congelada de identificadores en espanol, por palabra y por raiz.
+"""
+Censa la deuda congelada de identificadores en espanol, por palabra y por raiz.
 
 La pregunta la fija ``manifest.json``: si la deuda se puede barrer con el
 instrumento que ya existe. La respuesta sale de agrupar el baseline por la
@@ -8,9 +9,11 @@ traduce palabra a palabra, y ese es el mapa que el reescritor consume.
 
 *Metrica:* entradas ``archivo::identificador`` del baseline, agrupadas.
 *Ciega a:* si dos entradas con el mismo nombre son la misma ligadura; al
-identificador que el lexico del gate no sabe ver (el baseline es cota inferior);
+identificador que el lexico del gate no sabe ver (el baseline es cota
+inferior);
 y a la colision de una traduccion con un nombre ya ligado en ese ambito.
 """
+
 import argparse
 import collections
 import json
@@ -33,10 +36,12 @@ def load_lexicon():
     try:
         from check_identifier_language import spanish_words_in
     except ImportError as exc:
-        print('ERROR — no se pudo cargar el lexico del gate '
-              f'(scripts/check_identifier_language.py): {exc}\n'
-              'NO se emite conteo: un 0 aqui seria un verde falso.',
-              file=sys.stderr)
+        print(
+            'ERROR — no se pudo cargar el lexico del gate '
+            f'(scripts/check_identifier_language.py): {exc}\n'
+            'NO se emite conteo: un 0 aqui seria un verde falso.',
+            file=sys.stderr,
+        )
         raise SystemExit(2) from exc
     return spanish_words_in
 
@@ -69,10 +74,17 @@ def census(entries, spanish_words_in):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--json', action='store_true',
-                        help='emite el censo como JSON en vez de tabla')
-    parser.add_argument('--top', type=int, default=25,
-                        help='cuantas filas mostrar en cada corte')
+    parser.add_argument(
+        '--json',
+        action='store_true',
+        help='emite el censo como JSON en vez de tabla',
+    )
+    parser.add_argument(
+        '--top',
+        type=int,
+        default=25,
+        help='cuantas filas mostrar en cada corte',
+    )
     args = parser.parse_args(argv)
 
     spanish_words_in = load_lexicon()
@@ -80,17 +92,25 @@ def main(argv=None):
     by_root, by_file, by_word = census(entries, spanish_words_in)
 
     if args.json:
-        print(json.dumps({
-            'entries': len(entries),
-            'distinct_names': len({n for _, n in entries}),
-            'files': len(by_file),
-            'by_root': dict(by_root.most_common()),
-            'by_word': dict(by_word.most_common()),
-        }, ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                {
+                    'entries': len(entries),
+                    'distinct_names': len({n for _, n in entries}),
+                    'files': len(by_file),
+                    'by_root': dict(by_root.most_common()),
+                    'by_word': dict(by_word.most_common()),
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
         return 0
 
-    print(f'entradas: {len(entries)} · nombres distintos: '
-          f'{len({n for _, n in entries})} · archivos: {len(by_file)}')
+    print(
+        f'entradas: {len(entries)} · nombres distintos: '
+        f'{len({n for _, n in entries})} · archivos: {len(by_file)}'
+    )
     print('\npor raiz:')
     for raiz, cuantas in by_root.most_common():
         print(f'  {cuantas:5d}  {raiz}')

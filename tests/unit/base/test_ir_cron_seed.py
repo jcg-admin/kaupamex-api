@@ -18,7 +18,8 @@ Por qué el test siembra en vez de leer lo que sembró la migración
 La primera versión afirmaba sobre las filas que dejan las cuatro
 data-migrations. **Eso no es verificable en la suite**, y el fallo enseñó por
 qué: 13 archivos de tests usan ``django_db(transaction=True)``, y el
-``_fixture_teardown`` de ``TransactionTestCase`` hace ``flush`` de **todas** las
+``_fixture_teardown`` de ``TransactionTestCase`` hace ``flush`` de **todas**
+las
 tablas. Las filas creadas por una migración se truncan con el resto, y no
 vuelven — la migración ya consta en ``django_migrations``, así que su
 ``RunPython`` no se re-ejecuta. Medido tras una corrida completa:
@@ -35,6 +36,7 @@ Lo que este test NO cubre, en consecuencia: que la migración se haya ejecutado
 de verdad al desplegar. Eso se verifica en el despliegue
 (``manage.py migrate`` + un conteo), no aquí. Registrado como la tarea #138.
 """
+
 import pytest
 from django.apps import apps
 
@@ -83,8 +85,8 @@ def test_cada_job_resuelve_a_un_metodo_real(sembrados):
         accion = cron.ir_actions_server
         modelo = apps.get_model(accion.model_name)
         assert hasattr(modelo, accion.method_name), (
-            f'{accion.model_name} no tiene {accion.method_name}() — la fila de '
-            f'ir.cron apunta a un método inexistente'
+            f'{accion.model_name} no tiene {accion.method_name}() — la fila de'
+            ' ir.cron apunta a un método inexistente'
         )
         assert callable(getattr(modelo, accion.method_name))
 

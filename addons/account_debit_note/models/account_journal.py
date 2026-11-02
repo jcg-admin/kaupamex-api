@@ -1,4 +1,5 @@
-"""``account.journal`` — lo que ``account_debit_note`` le cuelga (≙ ``_inherit``).
+"""
+``account.journal`` — lo que ``account_debit_note`` le cuelga (≙ ``_inherit``).
 
 Adaptación de ``odoo19c: addons/account_debit_note/models/account_journal.py``
 (``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``, LGPL-3 — atribución
@@ -47,6 +48,7 @@ recompute automático.
 **efectivo** del flag exista o no la fila override — es lo que
 ``models/account_move_sequence.py`` consulta para decidir la numeración.
 """
+
 from addons.base.models import TimeStampedModel
 import fields
 import models
@@ -65,15 +67,18 @@ class JournalDebitSequence(TimeStampedModel):
     DEFAULT_TYPES = ('sale', 'purchase')
 
     journal = models.OneToOneField(
-        'account.AccountJournal', on_delete=models.CASCADE,
+        'account.AccountJournal',
+        on_delete=models.CASCADE,
         related_name='debit_sequence_setting',
         help_text='Diario al que pertenece (Odoo _inherit account.journal).',
     )
     debit_sequence = fields.Boolean(
         default=False,
         verbose_name='Secuencia dedicada de nota de débito',
-        help_text='No compartir la secuencia de facturas y notas de débito '
-                  'de este diario (Odoo debit_sequence).',
+        help_text=(
+            'No compartir la secuencia de facturas y notas de débito '
+            'de este diario (Odoo debit_sequence).'
+        ),
     )
 
     class Meta:

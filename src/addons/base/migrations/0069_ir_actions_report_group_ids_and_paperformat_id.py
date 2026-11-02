@@ -11,7 +11,8 @@ cierre.** Se pagan aquí porque el pase toca este archivo, que es el criterio
 prospectivo del gate ``api: scripts/check_fk_naming.py``: una declaración
 listada en su baseline no bloquea, y se corrige al tocar su archivo. Lo que
 queda, agrupado por addon, lo publica
-``docs: .claude/eventos/barrido-fk-forma-c-20260828T184007/pendientes_forma_c.py``
+``docs:
+.claude/eventos/barrido-fk-forma-c-20260828T184007/pendientes_forma_c.py``
 — tras este commit, **654 en 61 raíces**.
 
 **La base no cambia**, y por eso la migración es de estado y no de esquema:
@@ -51,6 +52,7 @@ Los dos ``AlterField`` del final no mueven nada tampoco: recogen el
 mención al nombre de la fuente cuando el símbolo pasó a ser ese nombre. Sin
 ellos, ``makemigrations --check`` seguiría proponiendo una migración.
 """
+
 import django.db.models.deletion
 from django.db import migrations
 
@@ -81,12 +83,16 @@ class Migration(migrations.Migration):
                     model_name='iractionsreport',
                     name='group_ids',
                     field=fields.Many2many(
-                        'base.resgroups', blank=True,
+                        'base.resgroups',
+                        blank=True,
                         db_table='res_groups_report_rel',
-                        related_name='report_ids', verbose_name='Grupos',
-                        help_text='Vacío = sin restricción por grupo. La '
-                                  'autorización efectiva sigue siendo por '
-                                  'capacidad (DEC-11).',
+                        related_name='report_ids',
+                        verbose_name='Grupos',
+                        help_text=(
+                            'Vacío = sin restricción por grupo. La '
+                            'autorización efectiva sigue siendo por '
+                            'capacidad (DEC-11).'
+                        ),
                     ),
                 ),
                 migrations.AlterField(
@@ -95,12 +101,17 @@ class Migration(migrations.Migration):
                     field=fields.Many2one(
                         'base.reportpaperformat',
                         on_delete=django.db.models.deletion.SET_NULL,
-                        null=True, blank=True, db_index=True,
-                        db_column='paperformat_id', related_name='report_ids',
+                        null=True,
+                        blank=True,
+                        db_index=True,
+                        db_column='paperformat_id',
+                        related_name='report_ids',
                         verbose_name='Formato de papel',
-                        help_text='Este related_name es el One2many que '
-                                  'report_paperformat.py dejó anotado como '
-                                  'pendiente.',
+                        help_text=(
+                            'Este related_name es el One2many que '
+                            'report_paperformat.py dejó anotado como '
+                            'pendiente.'
+                        ),
                     ),
                 ),
             ],

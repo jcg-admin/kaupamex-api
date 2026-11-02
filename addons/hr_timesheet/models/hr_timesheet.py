@@ -95,17 +95,20 @@ sin análogo en este stack:**
 ``_search_message_partner_ids``, ``_compute_message_partner_ids``,
 ``_compute_display_name``, ``_is_readonly``, ``_compute_readonly_timesheet``,
 ``_compute_encoding_uom_id``, ``_compute_partner_id``, ``_compute_project_id``
-(≙ el receptor ``pre_save``), ``_compute_task_id`` (ídem), ``_onchange_project_id``
+(≙ el receptor ``pre_save``), ``_compute_task_id`` (ídem),
+``_onchange_project_id``
 (sin motor de onchange), ``_compute_user_id``, ``_compute_department_id``
 (≙ el receptor ``pre_save``), ``_compute_calendar_display_name``,
 ``_check_can_write``, ``_check_can_create``, ``create``/``write``
 (sobrescritos — la referencia resuelve ``employee_id`` desde el usuario
 ambiental cuando falta; aquí el llamador lo declara explícito),
-``get_views``, ``_timesheet_get_portal_domain``, ``_timesheet_preprocess_get_accounts``
+``get_views``, ``_timesheet_get_portal_domain``,
+``_timesheet_preprocess_get_accounts``
 (depende de ``_get_mandatory_plans``, mecanismo de planes analíticos
 obligatorios no verificado en este pase), ``_timesheet_postprocess``,
 ``_timesheet_postprocess_values`` (reemplazado por el receptor),
-``_is_timesheet_encode_uom_day``, ``_ensure_uom_hours``, ``_show_portal_timesheets``,
+``_is_timesheet_encode_uom_day``, ``_ensure_uom_hours``,
+``_show_portal_timesheets``,
 ``action_open_timesheet_view_portal``, ``get_unusual_days``,
 ``get_import_templates``, ``get_views``.
 
@@ -140,6 +143,7 @@ Divergencias declaradas
    patrón que ``account_bank_statement_line.py`` (``journal``/``company``
    denormalizados, sincronizados en ``save()``).
 """
+
 from decimal import Decimal
 
 import fields
@@ -177,12 +181,16 @@ def _hourly_cost(self):
     return self_employee.hourly_cost
 
 
-@receiver(pre_save, sender=AccountAnalyticLine,
-          dispatch_uid='hr_timesheet.sync_timesheet_derived_fields')
+@receiver(
+    pre_save,
+    sender=AccountAnalyticLine,
+    dispatch_uid='hr_timesheet.sync_timesheet_derived_fields',
+)
 def _sync_timesheet_derived_fields(sender, instance, **kwargs):
     """Sincroniza ``project``/``department``/``manager``/``amount`` desde
     ``task``/``employee`` — ≙ ``_compute_project_id`` + ``_compute_task_id``
-    + ``_compute_department_id`` + fragmento de ``_timesheet_postprocess_values``
+    + ``_compute_department_id`` + fragmento de
+    ``_timesheet_postprocess_values``
     (``odoo19c: hr_timesheet.py:138-165, 445-475``).
 
     Un ``pre_save`` corre en cada ``.save()``, que es el mismo disparador que
@@ -204,45 +212,91 @@ def _sync_timesheet_derived_fields(sender, instance, **kwargs):
         # ``unit_amount`` es Float (odoo19c: analytic_line.py); ``amount`` es
         # Decimal (fields.Monetary → DecimalField). Aritmética Decimal para
         # evitar el TypeError de mezclar float y Decimal directamente.
-        instance.amount = -Decimal(str(instance.unit_amount)) * _hourly_cost(instance)
+        instance.amount = -Decimal(str(instance.unit_amount)) * _hourly_cost(
+            instance
+        )
 
 
 def apply_hr_timesheet_extensions():
-    """Cuelga los 5 campos + la property sobre ``analytic.AccountAnalyticLine``.
+    """
+    Cuelga los 5 campos + la property sobre ``analytic.AccountAnalyticLine``.
 
     La llama ``HrTimesheetConfig.ready()``; los tests la invocan
     explícitamente (mismo criterio que ``account_fleet``).
     """
-    _add_if_absent(AccountAnalyticLine, 'task', fields.Many2one(
-        ProjectTask, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='timesheets',
-        help_text='Odoo task_id. Tarea sobre la que se registra la hora.',
-    ))
-    _add_if_absent(AccountAnalyticLine, 'project', fields.Many2one(
-        Project, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='timesheets',
-        help_text='Odoo project_id. Proyecto sobre el que se registra la '
-                  'hora — sincronizado desde task en pre_save cuando task '
-                  'está presente.',
-    ))
-    _add_if_absent(AccountAnalyticLine, 'employee', fields.Many2one(
-        HrEmployee, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='timesheets',
-        help_text='Odoo employee_id. Empleado que registra la hora — '
-                  'define un hourly_cost en el empleado para valorizarla.',
-    ))
-    _add_if_absent(AccountAnalyticLine, 'department', fields.Many2one(
-        HrDepartment, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='timesheets',
-        help_text='Odoo department_id (compute, store=True) — sincronizado '
-                  'desde employee.department en pre_save.',
-    ))
-    _add_if_absent(AccountAnalyticLine, 'manager', fields.Many2one(
-        HrEmployee, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='managed_timesheets',
-        help_text='Odoo manager_id (related=employee_id.parent_id, '
-                  'store=True) — sincronizado en pre_save.',
-    ))
+    _add_if_absent(
+        AccountAnalyticLine,
+        'task',
+        fields.Many2one(
+            ProjectTask,
+            on_delete=models.SET_NULL,
+            null=True,
+            blank=True,
+            related_name='timesheets',
+            help_text='Odoo task_id. Tarea sobre la que se registra la hora.',
+        ),
+    )
+    _add_if_absent(
+        AccountAnalyticLine,
+        'project',
+        fields.Many2one(
+            Project,
+            on_delete=models.SET_NULL,
+            null=True,
+            blank=True,
+            related_name='timesheets',
+            help_text=(
+                'Odoo project_id. Proyecto sobre el que se registra la '
+                'hora — sincronizado desde task en pre_save cuando task '
+                'está presente.'
+            ),
+        ),
+    )
+    _add_if_absent(
+        AccountAnalyticLine,
+        'employee',
+        fields.Many2one(
+            HrEmployee,
+            on_delete=models.SET_NULL,
+            null=True,
+            blank=True,
+            related_name='timesheets',
+            help_text=(
+                'Odoo employee_id. Empleado que registra la hora — '
+                'define un hourly_cost en el empleado para valorizarla.'
+            ),
+        ),
+    )
+    _add_if_absent(
+        AccountAnalyticLine,
+        'department',
+        fields.Many2one(
+            HrDepartment,
+            on_delete=models.SET_NULL,
+            null=True,
+            blank=True,
+            related_name='timesheets',
+            help_text=(
+                'Odoo department_id (compute, store=True) — sincronizado '
+                'desde employee.department en pre_save.'
+            ),
+        ),
+    )
+    _add_if_absent(
+        AccountAnalyticLine,
+        'manager',
+        fields.Many2one(
+            HrEmployee,
+            on_delete=models.SET_NULL,
+            null=True,
+            blank=True,
+            related_name='managed_timesheets',
+            help_text=(
+                'Odoo manager_id (related=employee_id.parent_id, '
+                'store=True) — sincronizado en pre_save.'
+            ),
+        ),
+    )
     if not hasattr(AccountAnalyticLine, 'job_title'):
         AccountAnalyticLine.job_title = property(job_title)
     if not hasattr(AccountAnalyticLine, '_hourly_cost'):

@@ -4,14 +4,15 @@ Contrato adaptado de ``odoo19c: addons/web/controllers/session.py``
 (``odoo-tools@622ddc2a``). Lo que se verifica es la frontera: quién puede
 abrir sesión, qué devuelve al abrirla, y que cerrarla la cierra de verdad.
 """
+
 import pytest
 
 pytestmark = pytest.mark.integration
 
 AUTHENTICATE = '/api/v2/web/session/authenticate/'
-SESSION      = '/api/v2/web/session/'
-DESTROY      = '/api/v2/web/session/destroy/'
-LOGOUT       = '/api/v2/web/session/logout/'
+SESSION = '/api/v2/web/session/'
+DESTROY = '/api/v2/web/session/destroy/'
+LOGOUT = '/api/v2/web/session/logout/'
 
 
 class TestSessionAuthenticate:
@@ -21,7 +22,8 @@ class TestSessionAuthenticate:
         r = api_client.post(
             AUTHENTICATE,
             {'login': user.login, 'password': 'TestPass123!'},
-            format='json')
+            format='json',
+        )
         assert r.status_code == 200
         assert r.data['uid'] == user.pk
         assert r.data['login'] == user.login
@@ -38,7 +40,8 @@ class TestSessionAuthenticate:
         api_client.post(
             AUTHENTICATE,
             {'login': user.login, 'password': 'TestPass123!'},
-            format='json')
+            format='json',
+        )
         r = api_client.get(SESSION)
         assert r.status_code == 200
         assert r.data['uid'] == user.pk
@@ -47,22 +50,25 @@ class TestSessionAuthenticate:
         r = api_client.post(
             AUTHENTICATE,
             {'login': user.login, 'password': 'WrongPass999!'},
-            format='json')
+            format='json',
+        )
         assert r.status_code == 401
         assert r.data['codigo_error'] == 'INVALID_CREDENTIAL'
 
     def test_unknown_login_returns_same_code(self, api_client, db):
-        """Mismo código que la contraseña errónea — no revela qué logins existen."""
+        """
+        Mismo código que la contraseña errónea — no revela qué logins existen.
+        """
         r = api_client.post(
             AUTHENTICATE,
             {'login': 'nobody@kaupamex.mx', 'password': 'TestPass123!'},
-            format='json')
+            format='json',
+        )
         assert r.status_code == 401
         assert r.data['codigo_error'] == 'INVALID_CREDENTIAL'
 
     def test_missing_password_returns_400(self, api_client, db):
-        r = api_client.post(
-            AUTHENTICATE, {'login': 'a@b.mx'}, format='json')
+        r = api_client.post(AUTHENTICATE, {'login': 'a@b.mx'}, format='json')
         assert r.status_code == 400
         assert r.data['codigo_error'] == 'CREDENTIAL_REQUIRED'
 
@@ -71,7 +77,8 @@ class TestSessionAuthenticate:
         r = api_client.post(
             AUTHENTICATE,
             {'login': user.login, 'password': 'TestPass123!'},
-            format='json')
+            format='json',
+        )
         assert 'password' not in r.data
 
 

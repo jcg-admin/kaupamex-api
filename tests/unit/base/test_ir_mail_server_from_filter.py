@@ -30,6 +30,7 @@ Qué haría fallar a cada control
     (servidor, remitente), y el remitente cambia según el paso. Un puerto que
     devolviera sólo el servidor pasaría los demás casos.
 """
+
 import pytest
 
 from addons.base.models.ir_mail_server import IrMailServer
@@ -38,10 +39,16 @@ pytestmark = pytest.mark.django_db
 
 
 def _server(from_filter='', sequence=10, active=True):
-    """Un servidor **sin guardar**: la cascada acepta la lista por argumento."""
-    return IrMailServer(name=f'smtp-{sequence}', smtp_host='localhost',
-                        from_filter=from_filter, sequence=sequence,
-                        active=active)
+    """
+    Un servidor **sin guardar**: la cascada acepta la lista por argumento.
+    """
+    return IrMailServer(
+        name=f'smtp-{sequence}',
+        smtp_host='localhost',
+        from_filter=from_filter,
+        sequence=sequence,
+        active=active,
+    )
 
 
 class TestMatchFromFilter:
@@ -53,20 +60,34 @@ class TestMatchFromFilter:
         assert IrMailServer.match_from_filter('ana@kaupamex.mx', None) is True
 
     def test_a_full_address_matches_itself(self):
-        assert IrMailServer.match_from_filter(
-            'Ana <ANA@Kaupamex.MX>', 'ana@kaupamex.mx') is True
+        assert (
+            IrMailServer.match_from_filter(
+                'Ana <ANA@Kaupamex.MX>', 'ana@kaupamex.mx'
+            )
+            is True
+        )
 
     def test_a_domain_filter_matches_any_address_of_that_domain(self):
-        assert IrMailServer.match_from_filter(
-            'quien.sea@kaupamex.mx', 'KAUPAMEX.MX') is True
+        assert (
+            IrMailServer.match_from_filter(
+                'quien.sea@kaupamex.mx', 'KAUPAMEX.MX'
+            )
+            is True
+        )
 
     def test_another_domain_does_not_match(self):
-        assert IrMailServer.match_from_filter(
-            'ana@otra.mx', 'kaupamex.mx') is False
+        assert (
+            IrMailServer.match_from_filter('ana@otra.mx', 'kaupamex.mx')
+            is False
+        )
 
     def test_a_comma_separated_filter_matches_any_of_its_parts(self):
-        assert IrMailServer.match_from_filter(
-            'ana@otra.mx', 'kaupamex.mx, otra.mx') is True
+        assert (
+            IrMailServer.match_from_filter(
+                'ana@otra.mx', 'kaupamex.mx, otra.mx'
+            )
+            is True
+        )
 
     def test_an_invalid_sender_does_not_match_a_domain_filter(self):
         """El eje: dos valores falsos NO se declaran iguales.
@@ -76,23 +97,33 @@ class TestMatchFromFilter:
         lados en el mismo valor falso, este servidor aceptaría cualquier
         remitente irreconocible.
         """
-        assert IrMailServer.match_from_filter(
-            'no soy un correo', 'kaupamex.mx') is False
+        assert (
+            IrMailServer.match_from_filter('no soy un correo', 'kaupamex.mx')
+            is False
+        )
 
     def test_an_invalid_sender_does_not_match_an_address_filter(self):
-        assert IrMailServer.match_from_filter(
-            'no soy un correo', 'ana@kaupamex.mx') is False
+        assert (
+            IrMailServer.match_from_filter(
+                'no soy un correo', 'ana@kaupamex.mx'
+            )
+            is False
+        )
 
 
 class TestFindMailServer:
-    """≙ ``_find_mail_server`` — la cascada de cinco pasos, con su remitente."""
+    """
+    ≙ ``_find_mail_server`` — la cascada de cinco pasos, con su remitente.
+    """
 
     def test_the_exact_address_wins_over_the_domain(self):
         by_domain = _server(from_filter='kaupamex.mx', sequence=1)
         exact = _server(from_filter='ana@kaupamex.mx', sequence=2)
         server, sender = IrMailServer.find_mail_server(
-            'ana@kaupamex.mx', servers=[by_domain, exact],
-            notifications_email='')
+            'ana@kaupamex.mx',
+            servers=[by_domain, exact],
+            notifications_email='',
+        )
         assert server is exact
         assert sender == 'ana@kaupamex.mx'
 
@@ -100,8 +131,10 @@ class TestFindMailServer:
         """CONTROL — el par: en los pasos 1 y 2 el remitente NO se suplanta."""
         by_domain = _server(from_filter='kaupamex.mx')
         server, sender = IrMailServer.find_mail_server(
-            'Ana <ana@KAUPAMEX.mx>', servers=[by_domain],
-            notifications_email='')
+            'Ana <ana@KAUPAMEX.mx>',
+            servers=[by_domain],
+            notifications_email='',
+        )
         assert server is by_domain
         assert sender == 'Ana <ana@KAUPAMEX.mx>'
 
@@ -109,23 +142,28 @@ class TestFindMailServer:
         """El paso 3 SÍ suplanta: se envía como el buzón de notificaciones."""
         operator_server = _server(from_filter='avisos@kaupamex.mx')
         server, sender = IrMailServer.find_mail_server(
-            'ana@otra.mx', servers=[operator_server],
-            notifications_email='avisos@kaupamex.mx')
+            'ana@otra.mx',
+            servers=[operator_server],
+            notifications_email='avisos@kaupamex.mx',
+        )
         assert server is operator_server
         assert sender == 'avisos@kaupamex.mx'
 
     def test_an_unfiltered_server_is_the_fourth_step(self):
         unfiltered = _server(from_filter='')
         server, sender = IrMailServer.find_mail_server(
-            'ana@otra.mx', servers=[unfiltered],
-            notifications_email='avisos@kaupamex.mx')
+            'ana@otra.mx',
+            servers=[unfiltered],
+            notifications_email='avisos@kaupamex.mx',
+        )
         assert server is unfiltered
         assert sender == 'avisos@kaupamex.mx'
 
     def test_the_last_step_uses_any_server_even_if_it_does_not_match(self):
         foreign = _server(from_filter='tercera.mx')
         server, sender = IrMailServer.find_mail_server(
-            'ana@otra.mx', servers=[foreign], notifications_email='')
+            'ana@otra.mx', servers=[foreign], notifications_email=''
+        )
         assert server is foreign
         assert sender == 'ana@otra.mx'
 
@@ -133,12 +171,14 @@ class TestFindMailServer:
         """CONTROL — el paso 0. Sin él, el archivado ganaría por el paso 1."""
         archived = _server(from_filter='ana@kaupamex.mx', active=False)
         server, _sender = IrMailServer.find_mail_server(
-            'ana@kaupamex.mx', servers=[archived], notifications_email='')
+            'ana@kaupamex.mx', servers=[archived], notifications_email=''
+        )
         assert server is None
 
     def test_without_rows_it_falls_back_to_the_global_config(self):
         """Sin servidores, ``None`` significa «usa la configuración global»."""
         server, sender = IrMailServer.find_mail_server(
-            'ana@kaupamex.mx', servers=[], notifications_email='')
+            'ana@kaupamex.mx', servers=[], notifications_email=''
+        )
         assert server is None
         assert sender == 'ana@kaupamex.mx'

@@ -1,4 +1,5 @@
-r"""``res.config.settings`` — el interruptor de alternativas de compra: NO PORTADO.
+r"""
+``res.config.settings`` — el interruptor de alternativas de compra: NO PORTADO.
 
 Adaptación de Odoo ``purchase_requisition/models/res_config_settings.py``
 (``odoo19c: addons/purchase_requisition/models/res_config_settings.py``, 9

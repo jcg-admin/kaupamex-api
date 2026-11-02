@@ -10,6 +10,7 @@ password); el nombre humano y el resto de la identidad viven en
 
 BD: kaupamex_core_qa
 """
+
 import pytest
 from django.contrib.auth import get_user_model
 
@@ -27,7 +28,8 @@ class TestCredentialCreation:
 
     def test_create_user_with_login(self, db):
         user = User.objects.create_user(
-            login='nestor@kaupamex.mx', password='Pass1234!',
+            login='nestor@kaupamex.mx',
+            password='Pass1234!',
         )
         assert user.pk is not None
         assert user.login == 'nestor@kaupamex.mx'
@@ -38,14 +40,16 @@ class TestCredentialCreation:
 
     def test_create_user_stores_hashed_password(self, db):
         user = User.objects.create_user(
-            login='a@kaupamex.mx', password='Pass1234!',
+            login='a@kaupamex.mx',
+            password='Pass1234!',
         )
         assert user.password != 'Pass1234!'
         assert user.check_password('Pass1234!') is True
 
     def test_str_returns_login(self, db):
         user = User.objects.create_user(
-            login='str@kaupamex.mx', password='Pass1234!',
+            login='str@kaupamex.mx',
+            password='Pass1234!',
         )
         assert str(user) == 'str@kaupamex.mx'
 
@@ -53,7 +57,8 @@ class TestCredentialCreation:
         """El manager crea el partner minimo cuando no se pasa uno
         (Odoo res.users.create, replicado en ResUsersManager._create_user)."""
         user = User.objects.create_user(
-            login='sinpartner@kaupamex.mx', password='Pass1234!',
+            login='sinpartner@kaupamex.mx',
+            password='Pass1234!',
         )
         assert user.partner_id is not None
         assert user.partner.email == 'sinpartner@kaupamex.mx'
@@ -64,7 +69,8 @@ class TestPartnerDelegation:
 
     def test_name_delegates_to_partner(self, db):
         user = User.objects.create_user(
-            login='wp@kaupamex.mx', password='Pass1234!',
+            login='wp@kaupamex.mx',
+            password='Pass1234!',
             name='Nestor Garcia',
         )
         assert user.name == 'Nestor Garcia'
@@ -72,7 +78,8 @@ class TestPartnerDelegation:
 
     def test_phone_delegates_to_partner(self, db):
         user = User.objects.create_user(
-            login='ph@kaupamex.mx', password='Pass1234!',
+            login='ph@kaupamex.mx',
+            password='Pass1234!',
         )
         user.partner.phone = '5512345678'
         user.partner.save(update_fields=['phone'])
@@ -82,7 +89,8 @@ class TestPartnerDelegation:
         """La referencia relaciona ``email`` al del partner (res_users.py:253);
         aqui el login sirve de fallback cuando el partner no trae uno."""
         user = User.objects.create_user(
-            login='fallback@kaupamex.mx', password='Pass1234!',
+            login='fallback@kaupamex.mx',
+            password='Pass1234!',
         )
         user.partner.email = ''
         user.partner.save(update_fields=['email'])
@@ -90,7 +98,8 @@ class TestPartnerDelegation:
 
     def test_get_short_name_returns_first_word(self, db):
         user = User.objects.create_user(
-            login='short@kaupamex.mx', password='Pass1234!',
+            login='short@kaupamex.mx',
+            password='Pass1234!',
             name='Nestor Garcia',
         )
         assert user.get_short_name() == 'Nestor'
@@ -102,7 +111,8 @@ class TestDeactivation:
 
     def test_deactivate_sets_active_false_and_reason(self, db):
         user = User.objects.create_user(
-            login='deact@kaupamex.mx', password='Pass1234!',
+            login='deact@kaupamex.mx',
+            password='Pass1234!',
         )
         user.deactivate(User.DEACTIVATION_SUSPENDED)
         user.refresh_from_db()
@@ -137,11 +147,15 @@ class TestModelClassAttributes:
         assert User._inherits == {'res.partner': 'partner'}
 
     def test_the_source_order_is_declared_verbatim(self):
-        """``_order = 'name, login'`` — el nombre viene del partner delegado."""
+        """
+        ``_order = 'name, login'`` — el nombre viene del partner delegado.
+        """
         assert User._order == 'name, login'
 
     def test_the_model_refuses_privileged_commands(self):
-        """``_allow_sudo_commands = False`` — la fuente lo declara explícito."""
+        """
+        ``_allow_sudo_commands = False`` — la fuente lo declara explícito.
+        """
         assert User._allow_sudo_commands is False
 
     def test_the_django_ordering_derives_from_the_source_order(self):

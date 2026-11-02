@@ -9,6 +9,7 @@ correcto para probarlos no es la mutación del código, sino **retirar la
 restricción de la base**. Este archivo lo hace y lo mide, y por eso vive en el
 árbol en vez de en un turno: el control tiene que poder volver a correrse.
 """
+
 import pytest
 
 from django.db import IntegrityError, connection, transaction
@@ -22,10 +23,13 @@ CONSTRAINT = 'res_currency_rounding_gt_zero'
 
 @pytest.fixture
 def without_the_constraint(db):
-    """Retira la restricción, cede el control, y la restaura pase lo que pase."""
+    """
+    Retira la restricción, cede el control, y la restaura pase lo que pase.
+    """
     with connection.cursor() as cursor:
         cursor.execute(
-            f'ALTER TABLE res_currency DROP CONSTRAINT IF EXISTS {CONSTRAINT}')
+            f'ALTER TABLE res_currency DROP CONSTRAINT IF EXISTS {CONSTRAINT}'
+        )
     try:
         yield
     finally:
@@ -42,7 +46,8 @@ def without_the_constraint(db):
             cursor.execute('SET CONSTRAINTS ALL IMMEDIATE')
             cursor.execute(
                 f'ALTER TABLE res_currency ADD CONSTRAINT {CONSTRAINT} '
-                f'CHECK (rounding > 0)')
+                'CHECK (rounding > 0)'
+            )
 
 
 def test_the_constraint_is_what_refuses_a_zero_rounding(db):
@@ -53,7 +58,8 @@ def test_the_constraint_is_what_refuses_a_zero_rounding(db):
 
 
 def test_without_the_constraint_a_zero_rounding_is_stored(
-        without_the_constraint):
+    without_the_constraint,
+):
     """Sin ella: la fila **entra**, y ése es el hecho que la restricción cubre.
 
     Es el control que la mutación del código no puede dar. Si este caso

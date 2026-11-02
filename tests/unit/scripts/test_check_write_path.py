@@ -11,6 +11,7 @@ Los casos usan positivos REALES del arbol, no fabricados: quien escribe el
 patron no puede validarlo con su propio encuadre
 (``hallazgo-abierto-genera-sucesor.md``).
 """
+
 import ast
 import importlib.util
 import pathlib
@@ -20,7 +21,8 @@ import pytest
 
 _SCRIPTS = pathlib.Path(__file__).resolve().parents[3] / 'scripts'
 _SPEC = importlib.util.spec_from_file_location(
-    'check_write_path', _SCRIPTS / 'check_write_path.py')
+    'check_write_path', _SCRIPTS / 'check_write_path.py'
+)
 check_write_path = importlib.util.module_from_spec(_SPEC)
 sys.modules['check_write_path'] = check_write_path
 _SPEC.loader.exec_module(check_write_path)
@@ -43,28 +45,45 @@ def _body(code):
 class TestTheClassifierSeparatesTheTwoPaths:
     """Lo que decide no es la llamada literal sino si pasa por el enganche."""
 
-    @pytest.mark.parametrize('code, expected', [
-        ('def f(self):\n    self.objects.bulk_create([x])', BELOW_ORM),
-        ('def f(self):\n    Model.objects.filter(pk=1).update(a=2)', BELOW_ORM),
-        ('def f(self):\n    row.save()', VIA_ORM),
-        ('def f(self):\n    Model.objects.update_or_create(a=1)', VIA_ORM),
-        ('def f(self):\n    return 1 + 1', NO_WRITE),
-    ])
+    @pytest.mark.parametrize(
+        'code, expected',
+        [
+            ('def f(self):\n    self.objects.bulk_create([x])', BELOW_ORM),
+            (
+                'def f(self):\n    Model.objects.filter(pk=1).update(a=2)',
+                BELOW_ORM,
+            ),
+            ('def f(self):\n    row.save()', VIA_ORM),
+            ('def f(self):\n    Model.objects.update_or_create(a=1)', VIA_ORM),
+            ('def f(self):\n    return 1 + 1', NO_WRITE),
+        ],
+    )
     def test_our_vocabulary(self, code, expected):
         assert classify(_body(code), OURS) == expected
 
-    @pytest.mark.parametrize('code, expected', [
-        ('def f(self):\n    upsert_en(self, cols, rows, ["model"])', BELOW_ORM),
-        ('def f(self):\n    self.env.execute_query(SQL("UPDATE x"))', BELOW_ORM),
-        ('def f(self):\n    self.create(vals)', VIA_ORM),
-        ('def f(self):\n    record.write(vals)', VIA_ORM),
-        ('def f(self):\n    return self.name', NO_WRITE),
-    ])
+    @pytest.mark.parametrize(
+        'code, expected',
+        [
+            (
+                'def f(self):\n    upsert_en(self, cols, rows, ["model"])',
+                BELOW_ORM,
+            ),
+            (
+                'def f(self):\n    self.env.execute_query(SQL("UPDATE x"))',
+                BELOW_ORM,
+            ),
+            ('def f(self):\n    self.create(vals)', VIA_ORM),
+            ('def f(self):\n    record.write(vals)', VIA_ORM),
+            ('def f(self):\n    return self.name', NO_WRITE),
+        ],
+    )
     def test_reference_vocabulary(self, code, expected):
         assert classify(_body(code), REFERENCE) == expected
 
     def test_a_method_using_both_is_not_silently_one_of_them(self):
-        both = _body('def f(self):\n    row.save()\n    Q.objects.bulk_create([])')
+        both = _body(
+            'def f(self):\n    row.save()\n    Q.objects.bulk_create([])'
+        )
         assert classify(both, OURS) == check_write_path.MIXED
 
 
@@ -73,10 +92,16 @@ class TestTheDirectionIsNotSymmetric:
 
     def test_crossing_a_guard_the_source_avoids(self):
         # El caso de H-API-1058: la fuente esquiva su write a proposito.
-        assert check_write_path.direction(VIA_ORM, BELOW_ORM) == check_write_path.CROSSES_GUARD
+        assert (
+            check_write_path.direction(VIA_ORM, BELOW_ORM)
+            == check_write_path.CROSSES_GUARD
+        )
 
     def test_skipping_a_hook_the_source_uses(self):
-        assert check_write_path.direction(BELOW_ORM, VIA_ORM) == check_write_path.SKIPS_HOOK
+        assert (
+            check_write_path.direction(BELOW_ORM, VIA_ORM)
+            == check_write_path.SKIPS_HOOK
+        )
 
     def test_agreement_is_not_a_finding(self):
         assert check_write_path.direction(VIA_ORM, VIA_ORM) is None
@@ -100,14 +125,16 @@ class TestTheGateSeesTheRealPositive:
     """
 
     def test_it_flags_reschedule_asap(self):
-        findings = check_write_path.scan([
-            pathlib.Path('src/addons/base/models/ir_cron.py')])
+        findings = check_write_path.scan(
+            [pathlib.Path('src/addons/base/models/ir_cron.py')]
+        )
         flagged = {f.symbol for f in findings}
         assert '_reschedule_asap' in flagged, sorted(flagged)
 
     def test_the_flagged_direction_is_the_dangerous_one(self):
-        findings = check_write_path.scan([
-            pathlib.Path('src/addons/base/models/ir_cron.py')])
+        findings = check_write_path.scan(
+            [pathlib.Path('src/addons/base/models/ir_cron.py')]
+        )
         one = next(f for f in findings if f.symbol == '_reschedule_asap')
         assert one.direction == check_write_path.CROSSES_GUARD
 
@@ -122,11 +149,14 @@ class TestTheAlignedReflectionsStayAligned:
     este caso se pone rojo — que es exactamente lo que tiene que pasar.
     """
 
-    @pytest.mark.parametrize('symbol', [
-        '_reflect_constraint', '_reflect_relation', '_reflect_inherits'])
+    @pytest.mark.parametrize(
+        'symbol',
+        ['_reflect_constraint', '_reflect_relation', '_reflect_inherits'],
+    )
     def test_no_longer_crosses_a_guard_the_source_avoids(self, symbol):
-        findings = check_write_path.scan([
-            pathlib.Path('src/addons/base/models/ir_model.py')])
+        findings = check_write_path.scan(
+            [pathlib.Path('src/addons/base/models/ir_model.py')]
+        )
         flagged = {f.symbol for f in findings}
         assert symbol not in flagged, sorted(flagged)
 
@@ -138,34 +168,40 @@ class TestTheInstrumentDeclaresWhatItCannotDecide:
     por dos mecanismos para dos operaciones distintas: la fuente de
     ``_update_selection`` inserta con ``query_insert`` —por debajo— y borra con
     ``unlink`` —por el enganche—. Nosotros insertamos por debajo y borramos con
-    ``QuerySet.delete()``, que es el enganche de este stack. No hay divergencia,
+    ``QuerySet.delete()``, que es el enganche de este stack. No hay
+    divergencia,
     y con la granularidad del metodo tampoco hay forma de afirmarlo: el
     instrumento lo declara indeterminado en vez de inventar un hallazgo.
     """
 
     def test_a_contained_category_is_indeterminate_not_a_finding(self):
         assert check_write_path.direction(
-            check_write_path.BELOW_ORM, check_write_path.MIXED) == (
-                counterpart_body.INDETERMINATE)
+            check_write_path.BELOW_ORM, check_write_path.MIXED
+        ) == (counterpart_body.INDETERMINATE)
         assert check_write_path.direction(
-            check_write_path.MIXED, check_write_path.VIA_ORM) == (
-                counterpart_body.INDETERMINATE)
+            check_write_path.MIXED, check_write_path.VIA_ORM
+        ) == (counterpart_body.INDETERMINATE)
 
     def test_the_scope_counts_them_apart(self):
         # Contarlos como acuerdo publicaria un verde que no discrimina.
-        findings, scope = check_write_path.scan_with_scope([
-            pathlib.Path('src/addons/base/models/ir_model.py')])
+        findings, scope = check_write_path.scan_with_scope(
+            [pathlib.Path('src/addons/base/models/ir_model.py')]
+        )
         assert scope.pairs_indeterminate >= 2, scope
-        assert not [f for f in findings
-                    if f.direction == counterpart_body.INDETERMINATE]
+        assert not [
+            f
+            for f in findings
+            if f.direction == counterpart_body.INDETERMINATE
+        ]
 
 
 class TestTheGateDeclaresWhatItMeasured:
     """Un conteo sin denominador no es un resultado."""
 
     def test_the_report_carries_its_scope(self):
-        findings, scope = check_write_path.scan_with_scope([
-            pathlib.Path('src/addons/base/models/ir_model.py')])
+        findings, scope = check_write_path.scan_with_scope(
+            [pathlib.Path('src/addons/base/models/ir_model.py')]
+        )
         assert scope.pairs_compared > 0
         assert scope.files_with_counterpart > 0
         assert len(findings) <= scope.pairs_compared

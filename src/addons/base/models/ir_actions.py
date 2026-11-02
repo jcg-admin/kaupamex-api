@@ -30,9 +30,11 @@ Modelo de la referencia      Tabla                   Aquí
 ``ir.actions.act_url``       ``ir_act_url``          ``IrActionsActUrl``
 ``ir.actions.client``        ``ir_act_client``       ``IrActionsClient``
 ``ir.actions.server``        ``ir_act_server``       ``IrActionsServer``
-``ir.actions.act_window.view`` ``ir_act_window_view`` ``IrActionsActWindowView``
+``ir.actions.act_window.view`` ``ir_act_window_view``
+``IrActionsActWindowView``
 ``ir.actions.todo``          ``ir_actions_todo``     ``IrActionsTodo``
-``ir.actions.act_window_close`` ``ir_actions``       **proxy** de ``IrActionsActions``
+``ir.actions.act_window_close`` ``ir_actions``       **proxy** de
+``IrActionsActions``
 ===========================  ======================  =====================
 
 La última fila es el caso interesante: ``act_window_close`` **comparte tabla**
@@ -148,6 +150,7 @@ Qué NO se porta, con su medición
   ``params_store`` como ``Json``, que es lo que de verdad guarda, en vez de un
   binario opaco: aquí no hay que preservar el formato de pickle de nadie.
 """
+
 import json
 import logging
 import re
@@ -166,15 +169,17 @@ from django.db import transaction
 from django.db.models import Count
 
 from addons.base.models.ir_model import (
-    IrModel, IrModelFields, IrModelFieldsSelection)
+    IrModel,
+    IrModelFields,
+    IrModelFieldsSelection,
+)
 from addons.base.models.ir_sequence import IrSequence
 from addons.base.models.res_groups import ResGroups
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import UserError
 from fields import Command, Domain
 from addons.base.models.ir_model import IrModelData
-from orm.environments import (context_scope, get_context,
-                              get_current_user, sudo)
+from orm.environments import context_scope, get_context, get_current_user, sudo
 from orm.models_transient import TransientModel
 from orm.registry import model_by_key
 from tools.misc import get_diff, get_lang, unquote
@@ -209,14 +214,19 @@ BINDING_TYPE_CHOICES = [
 ]
 
 
-class IrActionsBase(models.DefaultGetMixin, models.CopyMixin, models.OriginMixin,
-                    TimeStampedModel):
+class IrActionsBase(
+    models.DefaultGetMixin,
+    models.CopyMixin,
+    models.OriginMixin,
+    TimeStampedModel,
+):
     """Campos comunes de toda acción — el ``_inherit`` de la referencia.
 
     Abstracto porque allá la herencia es **por prototipo**: cada subtipo copia
     estos campos a su propia tabla en vez de compartirla.
 
-    ``models.CopyMixin`` y ``models.OriginMixin`` entran aquí y no en un subtipo
+    ``models.CopyMixin`` y ``models.OriginMixin`` entran aquí y no en un
+    subtipo
     suelto porque allá ``copy``, ``copy_data`` y ``_origin`` viven en
     ``BaseModel``: **todo** modelo los tiene. Aquí son mixins explícitos, así
     que el sitio fiel es el abstracto que las siete acciones comparten, no la
@@ -228,31 +238,48 @@ class IrActionsBase(models.DefaultGetMixin, models.CopyMixin, models.OriginMixin
     name = fields.Char(max_length=255, verbose_name='Nombre de la acción')
     type = fields.Char(max_length=64, verbose_name='Tipo de acción')
     path = fields.Char(
-        max_length=64, blank=True, default=None, unique=True, null=True,
+        max_length=64,
+        blank=True,
+        default=None,
+        unique=True,
+        null=True,
         verbose_name='Ruta en la URL',
-        help_text='Debe ser única (Odoo _path_unique). default=None, no '
-                  "'': la referencia declara el campo sin default "
-                  '(``path = fields.Char(...)``, odoo19c: ir_actions.py:70) '
-                  'y un Char sin valor se escribe NULL en Odoo, no cadena '
-                  'vacía — con NULL el UNIQUE admite múltiples acciones sin '
-                  'ruta (H-API-332: default=\'\' colisionaba en la segunda '
-                  'ir.actions.server creada sin path explícito).',
+        help_text=(
+            'Debe ser única (Odoo _path_unique). default=None, no '
+            '\'\': la referencia declara el campo sin default '
+            '(``path = fields.Char(...)``, odoo19c: ir_actions.py:70) '
+            'y un Char sin valor se escribe NULL en Odoo, no cadena '
+            'vacía — con NULL el UNIQUE admite múltiples acciones sin '
+            'ruta (H-API-332: default=\'\' colisionaba en la segunda '
+            'ir.actions.server creada sin path explícito).'
+        ),
     )
     help = fields.Html(
-        blank=True, default='', verbose_name='Descripción de la acción',
+        blank=True,
+        default='',
+        verbose_name='Descripción de la acción',
         help_text='Texto de ayuda opcional que describe la vista destino.',
     )
     binding_model_name = fields.Char(
-        max_length=120, blank=True, default='', db_index=True,
+        max_length=120,
+        blank=True,
+        default='',
+        db_index=True,
         verbose_name='Modelo de anclaje',
-        help_text='Odoo binding_model_id. Con valor, la acción aparece en la '
-                  'barra lateral de ese modelo.',
+        help_text=(
+            'Odoo binding_model_id. Con valor, la acción aparece en la '
+            'barra lateral de ese modelo.'
+        ),
     )
     binding_type = fields.Selection(
-        max_length=16, choices=BINDING_TYPE_CHOICES, default='action',
-        verbose_name='Tipo de anclaje')
+        max_length=16,
+        choices=BINDING_TYPE_CHOICES,
+        default='action',
+        verbose_name='Tipo de anclaje',
+    )
     binding_view_types = fields.Char(
-        max_length=64, default='list,form', verbose_name='Vistas de anclaje')
+        max_length=64, default='list,form', verbose_name='Vistas de anclaje'
+    )
 
     class Meta:
         abstract = True
@@ -273,9 +300,12 @@ class IrActionsBase(models.DefaultGetMixin, models.CopyMixin, models.OriginMixin
         registro de modelos.
         """
         record = IrModelData.ref(full_xml_id)
-        assert isinstance(record, type(self)), (
-            'Se esperaba una accion de tipo %s, llego %s'
-            % (type(self).__name__, type(record).__name__))
+        assert isinstance(
+            record, type(self)
+        ), 'Se esperaba una accion de tipo %s, llego %s' % (
+            type(self).__name__,
+            type(record).__name__,
+        )
         return record._get_action_dict()
 
     def _get_action_dict(self):
@@ -316,8 +346,15 @@ class IrActionsBase(models.DefaultGetMixin, models.CopyMixin, models.OriginMixin
         tenía a quién llamar (:ref:`h-api-921`).
         """
         return {
-            'binding_model_id', 'binding_type', 'binding_view_types',
-            'display_name', 'help', 'id', 'name', 'type', 'xml_id',
+            'binding_model_id',
+            'binding_type',
+            'binding_view_types',
+            'display_name',
+            'help',
+            'id',
+            'name',
+            'type',
+            'xml_id',
             'path',
         }
 
@@ -352,7 +389,8 @@ class IrActionsBase(models.DefaultGetMixin, models.CopyMixin, models.OriginMixin
         if self.path == RESERVED_PATH_WORD:
             raise ValidationError(
                 "'%s' está reservada y no se puede usar como ruta."
-                % RESERVED_PATH_WORD)
+                % RESERVED_PATH_WORD
+            )
 
 
 class IrActionsActions(IrActionsBase):
@@ -397,47 +435,77 @@ class IrActionsActWindow(IrActionsBase):
     ]
 
     domain = fields.Char(
-        max_length=1024, blank=True, default='', verbose_name='Dominio',
-        help_text='Filtrado opcional del destino, como expresión Python. '
-                  'Este archivo NO lo evalúa — ver el docstring del módulo.',
+        max_length=1024,
+        blank=True,
+        default='',
+        verbose_name='Dominio',
+        help_text=(
+            'Filtrado opcional del destino, como expresión Python. '
+            'Este archivo NO lo evalúa — ver el docstring del módulo.'
+        ),
     )
     context = fields.Json(
-        default=dict, verbose_name='Contexto',
-        help_text='Odoo context. Allá es texto de una expresión Python; aquí '
-                  'es JSON, que es lo que de verdad se guarda.',
+        default=dict,
+        verbose_name='Contexto',
+        help_text=(
+            'Odoo context. Allá es texto de una expresión Python; aquí '
+            'es JSON, que es lo que de verdad se guarda.'
+        ),
     )
     res_id = fields.Integer(
-        null=True, blank=True, verbose_name='ID del registro',
+        null=True,
+        blank=True,
+        verbose_name='ID del registro',
         help_text="Sólo cuando view_mode es 'form'.",
     )
     res_model = fields.Char(
-        max_length=120, db_index=True, verbose_name='Modelo destino')
+        max_length=120, db_index=True, verbose_name='Modelo destino'
+    )
     target = fields.Selection(
-        max_length=16, choices=TARGET_CHOICES, default='current',
-        required=False, verbose_name='Ventana destino')
+        max_length=16,
+        choices=TARGET_CHOICES,
+        default='current',
+        required=False,
+        verbose_name='Ventana destino',
+    )
     view_mode = fields.Char(
-        max_length=120, default='list,form', verbose_name='Modos de vista',
+        max_length=120,
+        default='list,form',
+        verbose_name='Modos de vista',
         help_text="Lista separada por comas: 'form', 'list', 'calendar'…",
     )
     mobile_view_mode = fields.Char(
-        max_length=32, default='kanban', verbose_name='Modo de vista móvil',
-        help_text='Primer modo en pantallas pequeñas. Si no está entre los '
-                  'disponibles, se usa el mismo que en pantalla ancha.',
+        max_length=32,
+        default='kanban',
+        verbose_name='Modo de vista móvil',
+        help_text=(
+            'Primer modo en pantallas pequeñas. Si no está entre los '
+            'disponibles, se usa el mismo que en pantalla ancha.'
+        ),
     )
     usage = fields.Char(
-        max_length=64, blank=True, default='', verbose_name='Uso')
+        max_length=64, blank=True, default='', verbose_name='Uso'
+    )
     limit = fields.Integer(
-        default=80, verbose_name='Límite',
+        default=80,
+        verbose_name='Límite',
         help_text='Tamaño de página por defecto de la vista de lista.',
     )
     groups = fields.Many2many(
-        ResGroups, blank=True, related_name='act_window_ids',
-        db_table='ir_act_window_group_rel', verbose_name='Grupos')
+        ResGroups,
+        blank=True,
+        related_name='act_window_ids',
+        db_table='ir_act_window_group_rel',
+        verbose_name='Grupos',
+    )
     filter = fields.Boolean(default=False, verbose_name='Filtro')
     cache = fields.Boolean(
-        default=True, verbose_name='Caché de datos',
-        help_text='Cachea los datos de lista, kanban y formulario para '
-                  'acelerar la carga.',
+        default=True,
+        verbose_name='Caché de datos',
+        help_text=(
+            'Cachea los datos de lista, kanban y formulario para '
+            'acelerar la carga.'
+        ),
     )
 
     class Meta:
@@ -505,14 +573,17 @@ class IrActionsActWindow(IrActionsBase):
             if model_name and model_by_key(model_name) is None:
                 raise ValidationError(
                     'Nombre de modelo inválido “%s” en la definición de la '
-                    'acción.' % model_name)
+                    'acción.' % model_name
+                )
         modes = (self.view_mode or '').split(',')
         if len(modes) != len(set(modes)):
             raise ValidationError(
-                'Los modos de view_mode no se pueden repetir: %s' % modes)
+                'Los modos de view_mode no se pueden repetir: %s' % modes
+            )
         if any(' ' in mode for mode in modes):
             raise ValidationError(
-                'No se admiten espacios en view_mode: “%s”' % self.view_mode)
+                'No se admiten espacios en view_mode: “%s”' % self.view_mode
+            )
 
     def resolve_mobile_view_mode(self):
         """``mobile_view_mode`` con su respaldo al modo de pantalla ancha."""
@@ -523,23 +594,38 @@ class IrActionsActWindow(IrActionsBase):
 
 
 class IrActionsActWindowView(TimeStampedModel):
-    """Una vista concreta de una acción de ventana (``ir.actions.act_window.view``)."""
+    """
+    Una vista concreta de una acción de ventana
+    (``ir.actions.act_window.view``).
+    """
 
     sequence = fields.Integer(null=True, blank=True, verbose_name='Secuencia')
     view_id = fields.Integer(
-        null=True, blank=True, verbose_name='Vista',
-        help_text='Odoo view_id (Many2one a ir.ui.view). Entero mientras '
-                  'ir_ui_view.py no esté portado.',
+        null=True,
+        blank=True,
+        verbose_name='Vista',
+        help_text=(
+            'Odoo view_id (Many2one a ir.ui.view). Entero mientras '
+            'ir_ui_view.py no esté portado.'
+        ),
     )
     view_mode = fields.Selection(
-        max_length=16, choices=VIEW_TYPES, verbose_name='Tipo de vista')
+        max_length=16, choices=VIEW_TYPES, verbose_name='Tipo de vista'
+    )
     act_window = fields.Many2one(
-        IrActionsActWindow, on_delete=models.CASCADE, db_index=True,
-        related_name='view_ids', verbose_name='Acción')
+        IrActionsActWindow,
+        on_delete=models.CASCADE,
+        db_index=True,
+        related_name='view_ids',
+        verbose_name='Acción',
+    )
     multi = fields.Boolean(
-        default=False, verbose_name='En varios documentos',
-        help_text='Si está activo, la acción no aparece en la barra derecha '
-                  'de un formulario.',
+        default=False,
+        verbose_name='En varios documentos',
+        help_text=(
+            'Si está activo, la acción no aparece en la barra derecha '
+            'de un formulario.'
+        ),
     )
 
     class Meta:
@@ -551,7 +637,8 @@ class IrActionsActWindowView(TimeStampedModel):
             # ``_unique_mode_per_action`` de la fuente.
             models.UniqueConstraint(
                 fields=['act_window', 'view_mode'],
-                name='ir_act_window_view_unique_mode_per_action'),
+                name='ir_act_window_view_unique_mode_per_action',
+            ),
         ]
 
     def __str__(self):
@@ -573,8 +660,11 @@ class IrActionsActUrl(IrActionsBase):
 
     url = fields.Text(verbose_name='URL de la acción')
     target = fields.Selection(
-        max_length=16, choices=TARGET_CHOICES, default='new',
-        verbose_name='Destino de la acción')
+        max_length=16,
+        choices=TARGET_CHOICES,
+        default='new',
+        verbose_name='Destino de la acción',
+    )
 
     class Meta:
         db_table = 'ir_act_url'
@@ -591,19 +681,28 @@ class IrActionsClient(IrActionsBase):
     TARGET_CHOICES = IrActionsActWindow.TARGET_CHOICES
 
     tag = fields.Char(
-        max_length=120, verbose_name='Etiqueta de la acción de cliente',
+        max_length=120,
+        verbose_name='Etiqueta de la acción de cliente',
         help_text='Identificador que el cliente resuelve a un componente.',
     )
     target = fields.Selection(
-        max_length=16, choices=TARGET_CHOICES, default='current',
-        verbose_name='Ventana destino')
+        max_length=16,
+        choices=TARGET_CHOICES,
+        default='current',
+        verbose_name='Ventana destino',
+    )
     res_model = fields.Char(
-        max_length=120, blank=True, default='', verbose_name='Modelo destino')
+        max_length=120, blank=True, default='', verbose_name='Modelo destino'
+    )
     context = fields.Json(default=dict, verbose_name='Contexto')
     params_store = fields.Json(
-        default=dict, blank=True, verbose_name='Parámetros',
-        help_text='Odoo params_store. Allá es Binary con un compute/inverse '
-                  'que lo serializa; aquí es Json, que es lo que guarda.',
+        default=dict,
+        blank=True,
+        verbose_name='Parámetros',
+        help_text=(
+            'Odoo params_store. Allá es Binary con un compute/inverse '
+            'que lo serializa; aquí es Json, que es lo que guarda.'
+        ),
     )
 
     class Meta:
@@ -628,11 +727,21 @@ class ServerActionHistoryWizard(TransientModel):
     _description = 'Server Action History Wizard'
 
     action = fields.Many2one(
-        'base.IrActionsServer', on_delete=models.CASCADE, null=True,
-        blank=True, related_name='history_wizards', verbose_name='Acción')
+        'base.IrActionsServer',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='history_wizards',
+        verbose_name='Acción',
+    )
     revision = fields.Many2one(
-        'base.IrActionsServerHistory', on_delete=models.CASCADE, null=True,
-        blank=True, related_name='wizards', verbose_name='Revisión')
+        'base.IrActionsServerHistory',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='wizards',
+        verbose_name='Revisión',
+    )
 
     class Meta:
         # Con tabla real, como todo transitorio de la fuente
@@ -645,7 +754,8 @@ class ServerActionHistoryWizard(TransientModel):
 
     @classmethod
     def _default_revision(cls):
-        """≙ ``_default_revision`` (``:469-475``) — la última revisión distinta.
+        """
+        ≙ ``_default_revision`` (``:469-475``) — la última revisión distinta.
 
         La fuente lee ``default_action_id`` del contexto; aquí el contexto es
         ``orm.environments.get_context()``, el mismo dato por la vía del stack.
@@ -656,8 +766,11 @@ class ServerActionHistoryWizard(TransientModel):
         action = IrActionsServer.objects.filter(pk=action_id).first()
         if action is None:
             return None
-        return IrActionsServerHistory.objects.filter(
-            action=action).exclude(code=action.code or '').first()
+        return (
+            IrActionsServerHistory.objects.filter(action=action)
+            .exclude(code=action.code or '')
+            .first()
+        )
 
     #: ≙ ``current_code = fields.Text(related='action_id.code')`` (``:480``).
     #: Un ``related`` de la fuente es lectura derivada, y aquí lo es también:
@@ -685,18 +798,23 @@ class ServerActionHistoryWizard(TransientModel):
             dark_color_scheme=get_context().get('color_scheme') == 'dark',
         )
 
-    #: ≙ ``code_diff = fields.Html(compute=…, sanitize_tags=False)`` (``:479``).
+    #: ≙ ``code_diff = fields.Html(compute=…, sanitize_tags=False)``
+    #: (``:479``).
     #: El ``sanitize_tags=False`` de la fuente permite el ``<style>`` que
     #: ``get_diff`` adjunta; aquí no hay saneador que desactivar, así que el
     #: parámetro no tiene receptor y su efecto ya se cumple.
     code_diff = fields.NonStored(
         default=lambda wizard: wizard._compute_code_diff(),
-        help_text='Odoo code_diff. La diferencia entre el código vigente y '
-                  'el de la revisión, como tabla HTML.',
+        help_text=(
+            'Odoo code_diff. La diferencia entre el código vigente y '
+            'el de la revisión, como tabla HTML.'
+        ),
     )
 
     def restore_revision(self):
-        """≙ ``restore_revision`` (``:499-501``) — devuelve el código guardado."""
+        """
+        ≙ ``restore_revision`` (``:499-501``) — devuelve el código guardado.
+        """
         self.action.code = self.revision.code
         self.action.save(update_fields=['code'])
 
@@ -706,7 +824,8 @@ class IrActionsServerHistory(TimeStampedModel):
 
     Una fila por versión del código de una acción de servidor. La escribe
     ``IrActionsServer.save()`` cuando el código cambia, y la poda
-    ``_gc_histories`` cuando una acción acumula más de ``_max_entries_per_action``.
+    ``_gc_histories`` cuando una acción acumula más de
+    ``_max_entries_per_action``.
     """
 
     _name = 'ir.actions.server.history'
@@ -716,8 +835,11 @@ class IrActionsServerHistory(TimeStampedModel):
     _max_entries_per_action = 100
 
     action = fields.Many2one(
-        'base.IrActionsServer', on_delete=models.CASCADE,
-        related_name='code_history', verbose_name='Acción')
+        'base.IrActionsServer',
+        on_delete=models.CASCADE,
+        related_name='code_history',
+        verbose_name='Acción',
+    )
     code = fields.Text(blank=True, default='', verbose_name='Código')
 
     class Meta:
@@ -764,8 +886,10 @@ class IrActionsServerHistory(TimeStampedModel):
         if tzinfo is not None:
             moment = moment.astimezone(tzinfo)
         return babel_dates.format_datetime(
-            moment, tzinfo=tzinfo,
-            locale=(lang.code if lang is not None else 'en_US'))
+            moment,
+            tzinfo=tzinfo,
+            locale=(lang.code if lang is not None else 'en_US'),
+        )
 
     @api.autovacuum
     def _gc_histories(self):
@@ -781,14 +905,18 @@ class IrActionsServerHistory(TimeStampedModel):
             IrActionsServerHistory.objects.values('action')
             .annotate(total=Count('id'))
             .filter(total__gt=IrActionsServerHistory._max_entries_per_action)
-            .values_list('action', flat=True))
+            .values_list('action', flat=True)
+        )
         to_clean = []
         for action_id in crowded:
             ids = list(
-                IrActionsServerHistory.objects
-                .filter(action_id=action_id)
-                .values_list('id', flat=True))
-            to_clean.extend(ids[IrActionsServerHistory._max_entries_per_action:])
+                IrActionsServerHistory.objects.filter(
+                    action_id=action_id
+                ).values_list('id', flat=True)
+            )
+            to_clean.extend(
+                ids[IrActionsServerHistory._max_entries_per_action:]
+            )
         if to_clean:
             IrActionsServerHistory.objects.filter(pk__in=to_clean).delete()
 
@@ -892,32 +1020,47 @@ class IrActionsServer(IrActionsBase):
     #: esta columna ``_compute_name`` no tendría con qué comparar y pisaría
     #: siempre el nombre del usuario.
     automated_name = fields.Char(
-        max_length=255, blank=True, default='',
+        max_length=255,
+        blank=True,
+        default='',
         verbose_name='Nombre automático',
-        help_text='Odoo automated_name. El nombre que la acción se pondría '
-                  'sola; si coincide con name, name se regenera al cambiar '
-                  'de tipo.',
+        help_text=(
+            'Odoo automated_name. El nombre que la acción se pondría '
+            'sola; si coincide con name, name se regenera al cambiar '
+            'de tipo.'
+        ),
     )
 
     state = fields.Selection(
-        max_length=16, choices=STATE_CHOICES, verbose_name='Tipo')
+        max_length=16, choices=STATE_CHOICES, verbose_name='Tipo'
+    )
     usage = fields.Selection(
-        max_length=20, choices=USAGE_CHOICES, default='ir_actions_server',
+        max_length=20,
+        choices=USAGE_CHOICES,
+        default='ir_actions_server',
         verbose_name='Uso',
-        help_text='Odoo usage. ir_cron cuando la accion respalda a una tarea '
-                  'programada.',
+        help_text=(
+            'Odoo usage. ir_cron cuando la accion respalda a una tarea '
+            'programada.'
+        ),
     )
     sequence = fields.Integer(
-        default=5, verbose_name='Secuencia',
+        default=5,
+        verbose_name='Secuencia',
         help_text='Orden de ejecución en una acción de tipo "varias".',
     )
     model_name = fields.Char(
-        max_length=120, db_index=True, verbose_name='Modelo',
-        help_text='Odoo model_id. Label del modelo; 0 clases IrModel en este '
-                  'árbol.',
+        max_length=120,
+        db_index=True,
+        verbose_name='Modelo',
+        help_text=(
+            'Odoo model_id. Label del modelo; 0 clases IrModel en este árbol.'
+        ),
     )
     code = fields.Text(
-        blank=True, default='', verbose_name='Código',
+        blank=True,
+        default='',
+        verbose_name='Código',
         help_text='Bloque Python del modo "code". Este archivo NO lo evalúa.',
     )
     # Adaptación de proyecto (sin análogo en la referencia): sustituye la
@@ -926,9 +1069,14 @@ class IrActionsServer(IrActionsBase):
     # en ``ir.cron``, porque este es el modelo donde la referencia pone el
     # "qué ejecutar" — ``ir.cron`` sólo aporta la periodicidad y lo delega.
     method_name = fields.Char(
-        max_length=128, blank=True, default='', verbose_name='Método',
-        help_text='Método a invocar sobre model_name. Alternativa segura al '
-                  'code Python del modo "code"; este archivo tampoco lo invoca.',
+        max_length=128,
+        blank=True,
+        default='',
+        verbose_name='Método',
+        help_text=(
+            'Método a invocar sobre model_name. Alternativa segura al '
+            'code Python del modo "code"; este archivo tampoco lo invoca.'
+        ),
     )
     #: ≙ ``parent_id`` (``odoo19c: ir_actions.py:648``) — el enlace del modo
     #: ``multi``: una acción compuesta encadena a sus hijas. La fuente declara
@@ -940,8 +1088,12 @@ class IrActionsServer(IrActionsBase):
     #: vista y el segundo es semántica de ``copy()``, que este árbol resuelve
     #: en el serializer. Divergencia declarada, no omisión.
     parent = fields.Many2one(
-        'self', on_delete=models.CASCADE, db_index=True,
-        null=True, blank=True, related_name='child_ids',
+        'self',
+        on_delete=models.CASCADE,
+        db_index=True,
+        null=True,
+        blank=True,
+        related_name='child_ids',
         verbose_name='Acción padre',
         help_text='Odoo parent_id. Acción compuesta que encadena a ésta.',
     )
@@ -952,28 +1104,43 @@ class IrActionsServer(IrActionsBase):
     # y ``model_name`` sigue siendo ``Char``"*. La premisa caducó: ``IrModel``
     # (``ir_model.py:317``) e ``IrModelFields`` (``:468``) existen, así que las
     # FK se declaran contra ellos y el ``Char`` sólo queda como el nombre
-    # técnico del modelo sobre el que la acción corre (tarea #139 lo convierte).
+    # técnico del modelo sobre el que la acción corre (tarea #139 lo
+    # convierte).
 
     #: ≙ ``crud_model_id`` (``odoo19c: ir_actions.py:651-655``) — el modelo
     #: sobre el que ``object_create``/``object_copy``/``object_write`` operan.
     crud_model_id = fields.Many2one(
-        IrModel, on_delete=models.CASCADE, null=True, blank=True,
-        related_name='crud_server_actions', verbose_name='Registro a crear',
+        IrModel,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='crud_server_actions',
+        verbose_name='Registro a crear',
         help_text='Odoo crud_model_id. Modelo destino del CRUD.',
         db_column='crud_model_id',
     )
     #: ≙ ``link_field_id`` (``:657-659``) — el campo por el que se engancha el
     #: registro recién creado al registro activo.
     link_field_id = fields.Many2one(
-        IrModelFields, on_delete=models.CASCADE, null=True, blank=True,
-        related_name='link_server_actions', verbose_name='Campo de enlace',
-        help_text='Odoo link_field_id. Campo que ata el registro nuevo al '
-                  'registro sobre el que corre la acción.',
+        IrModelFields,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='link_server_actions',
+        verbose_name='Campo de enlace',
+        help_text=(
+            'Odoo link_field_id. Campo que ata el registro nuevo al '
+            'registro sobre el que corre la acción.'
+        ),
         db_column='link_field_id',
     )
-    #: ≙ ``update_field_id`` (``:663``) — el campo que ``object_write`` escribe.
+    #: ≙ ``update_field_id`` (``:663``) — el campo que ``object_write``
+    #: escribe.
     update_field_id = fields.Many2one(
-        IrModelFields, on_delete=models.CASCADE, null=True, blank=True,
+        IrModelFields,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='update_server_actions',
         verbose_name='Campo a actualizar',
         help_text='Odoo update_field_id. Último campo de update_path.',
@@ -981,69 +1148,106 @@ class IrActionsServer(IrActionsBase):
     )
     #: ≙ ``update_path`` (``:664``) — la ruta punteada hasta ese campo.
     update_path = fields.Char(
-        max_length=255, blank=True, default='',
+        max_length=255,
+        blank=True,
+        default='',
         verbose_name='Ruta del campo a actualizar',
         help_text="Odoo update_path. Ruta punteada, p. ej. 'partner_id.name'.",
     )
     #: ≙ ``update_related_model_id`` (``:665``).
     update_related_model_id = fields.Many2one(
-        IrModel, on_delete=models.CASCADE, null=True, blank=True,
+        IrModel,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='update_related_server_actions',
         verbose_name='Modelo relacionado del campo',
         db_column='update_related_model_id',
     )
     #: ≙ ``update_m2m_operation`` (``:667-672``).
     update_m2m_operation = fields.Selection(
-        max_length=8, choices=UPDATE_M2M_OPERATION_CHOICES, default='add',
-        verbose_name='Operación Many2many')
+        max_length=8,
+        choices=UPDATE_M2M_OPERATION_CHOICES,
+        default='add',
+        verbose_name='Operación Many2many',
+    )
     #: ≙ ``update_boolean_value`` (``:673``).
     update_boolean_value = fields.Selection(
-        max_length=8, choices=UPDATE_BOOLEAN_VALUE_CHOICES, default='true',
-        verbose_name='Valor booleano')
+        max_length=8,
+        choices=UPDATE_BOOLEAN_VALUE_CHOICES,
+        default='true',
+        verbose_name='Valor booleano',
+    )
     #: ≙ ``value`` (``:675-681``) — el valor a escribir, o el nombre a crear.
     value = fields.Text(
-        blank=True, default='', verbose_name='Valor',
-        help_text='Odoo value. En modo "equation" es una expresión Python; '
-                  'este archivo NO la evalúa (ver el docstring del módulo).',
+        blank=True,
+        default='',
+        verbose_name='Valor',
+        help_text=(
+            'Odoo value. En modo "equation" es una expresión Python; '
+            'este archivo NO la evalúa (ver el docstring del módulo).'
+        ),
     )
     #: ≙ ``evaluation_type`` (``:682-686``).
     evaluation_type = fields.Selection(
-        max_length=16, choices=EVALUATION_TYPE_CHOICES, default='value',
-        verbose_name='Tipo de valor')
+        max_length=16,
+        choices=EVALUATION_TYPE_CHOICES,
+        default='value',
+        verbose_name='Tipo de valor',
+    )
     #: ≙ ``html_value`` (``:687``).
-    html_value = fields.Html(
-        blank=True, default='', verbose_name='Valor HTML')
+    html_value = fields.Html(blank=True, default='', verbose_name='Valor HTML')
     #: ≙ ``sequence_id`` (``:688``) — la numeración del modo ``sequence``.
     sequence_id = fields.Many2one(
-        IrSequence, on_delete=models.CASCADE, null=True, blank=True,
-        related_name='server_actions', verbose_name='Secuencia a usar',
-        db_column='sequence_id')
+        IrSequence,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='server_actions',
+        verbose_name='Secuencia a usar',
+        db_column='sequence_id',
+    )
     #: ≙ ``resource_ref`` (``:689-690``): ``fields.Reference``, que en Odoo es
     #: la cadena ``'modelo,id'``. Aquí el mecanismo declarado por
     #: ``orm/fields_reference.py`` es el ``GenericForeignKey`` de Django, que
     #: exige el par ``content_type``/``object_id``. Las dos columnas son el
     #: precio del mecanismo, no campos inventados: juntas guardan lo mismo.
     resource_ref_content_type = fields.Many2one(
-        ContentType, on_delete=models.CASCADE, null=True, blank=True,
-        related_name='server_actions', verbose_name='Tipo del registro')
+        ContentType,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='server_actions',
+        verbose_name='Tipo del registro',
+    )
     resource_ref_id = fields.Integer(
-        null=True, blank=True, verbose_name='Id del registro')
+        null=True, blank=True, verbose_name='Id del registro'
+    )
     resource_ref = GenericForeignKey(
-        'resource_ref_content_type', 'resource_ref_id')
+        'resource_ref_content_type', 'resource_ref_id'
+    )
     #: ≙ ``selection_value`` (``:691-692``).
     selection_value = fields.Many2one(
-        IrModelFieldsSelection, on_delete=models.CASCADE, null=True, blank=True,
-        related_name='server_actions', verbose_name='Valor de selección')
+        IrModelFieldsSelection,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='server_actions',
+        verbose_name='Valor de selección',
+    )
     #: ≙ ``webhook_url`` (``:703``).
     webhook_url = fields.Char(
-        max_length=1024, blank=True, default='', verbose_name='URL del webhook')
+        max_length=1024, blank=True, default='', verbose_name='URL del webhook'
+    )
     #: ≙ ``webhook_field_ids`` (``:704-709``) — con su tabla de relación, que
     #: la fuente nombra explícitamente.
     webhook_field_ids = fields.Many2many(
-        IrModelFields, blank=True,
+        IrModelFields,
+        blank=True,
         db_table='ir_act_server_webhook_field_rel',
         related_name='webhook_server_actions',
-        verbose_name='Campos del webhook')
+        verbose_name='Campos del webhook',
+    )
 
     #: ≙ ``group_ids`` (``odoo19c: ir_actions.py:661-662``) — los grupos que
     #: pueden ejecutar la acción; vacío significa *todos*. La fuente nombra su
@@ -1055,10 +1259,15 @@ class IrActionsServer(IrActionsBase):
     #: ``run()``: sin grupos declarados la comprobación cae al permiso de
     #: escritura sobre el modelo, como allá.
     group_ids = fields.Many2many(
-        ResGroups, blank=True, db_table='ir_act_server_group_rel',
-        related_name='server_actions', verbose_name='Grupos permitidos',
-        help_text='Odoo group_ids. Grupos que pueden ejecutar la acción. '
-                  'Vacío = cualquiera con permiso de escritura en el modelo.',
+        ResGroups,
+        blank=True,
+        db_table='ir_act_server_group_rel',
+        related_name='server_actions',
+        verbose_name='Grupos permitidos',
+        help_text=(
+            'Odoo group_ids. Grupos que pueden ejecutar la acción. '
+            'Vacío = cualquiera con permiso de escritura en el modelo.'
+        ),
     )
 
     # ---- Lo derivado: en la fuente son ``compute``; aquí, no persistidos ---
@@ -1099,14 +1308,17 @@ class IrActionsServer(IrActionsBase):
     #: la fuente sobre un Many2one vacío.
     crud_model_name = fields.NonStored(
         default=lambda action: (
-            action.crud_model_id.model if action.crud_model_id else False),
+            action.crud_model_id.model if action.crud_model_id else False
+        ),
         help_text='Odoo crud_model_name. Nombre técnico del modelo destino.',
     )
-    #: ≙ ``update_field_type = fields.Selection(related='update_field_id.ttype')``
+    #: ≙ ``update_field_type =
+    #: fields.Selection(related='update_field_id.ttype')``
     #: (``:667``).
     update_field_type = fields.NonStored(
         default=lambda action: (
-            action.update_field_id.ttype if action.update_field_id else False),
+            action.update_field_id.ttype if action.update_field_id else False
+        ),
         help_text='Odoo update_field_type. Tipo del campo a actualizar.',
     )
     #: ≙ ``value_field_to_show`` (``:694-701``) — cuál de los seis campos de
@@ -1134,7 +1346,8 @@ class IrActionsServer(IrActionsBase):
     # ---- Las dos acciones de apertura de la referencia -------------------
 
     def action_open_parent_action(self):
-        """≙ ``action_open_parent_action`` (``odoo19c: ir_actions.py:1328-1335``).
+        """
+        ≙ ``action_open_parent_action`` (``odoo19c: ir_actions.py:1328-1335``).
 
         Devuelve el descriptor ``ir.actions.act_window`` que abre la accion
         padre. ``ir.cron`` delega aqui (``ir_cron.py:889-891``), que es por
@@ -1250,23 +1463,31 @@ class IrActionsServer(IrActionsBase):
 
         if self.model_name:
             children_with_different_model = [
-                child for child in children
-                if child.model_name != self.model_name]
+                child
+                for child in children
+                if child.model_name != self.model_name
+            ]
             if children_with_different_model:
                 warnings.append(
                     'Las siguientes acciones hijas deberían tener el mismo '
                     'modelo (%s): %s'
-                    % (self.model_name,
-                       ', '.join(child.name
-                                 for child in children_with_different_model)))
+                    % (
+                        self.model_name,
+                        ', '.join(
+                            child.name
+                            for child in children_with_different_model
+                        ),
+                    )
+                )
 
         children_with_warnings = [
-            child for child in children
-            if child._get_warning_messages(seen)]
+            child for child in children if child._get_warning_messages(seen)
+        ]
         if children_with_warnings:
             warnings.append(
                 'Las siguientes acciones hijas tienen avisos: %s'
-                % ', '.join(child.name for child in children_with_warnings))
+                % ', '.join(child.name for child in children_with_warnings)
+            )
 
         return warnings
 
@@ -1320,7 +1541,9 @@ class IrActionsServer(IrActionsBase):
         return list(IrModel.objects.values_list('id', flat=True))
 
     def _generate_action_name(self):
-        """≙ ``_generate_action_name`` (``:819-831``) — el nombre que se pone sola.
+        """
+        ≙ ``_generate_action_name`` (``:819-831``) — el nombre que se pone
+        sola.
 
         Tres modos tienen etiqueta propia porque nombran su destino; el resto
         cae a la etiqueta de su ``state``. ``object_copy`` sin registro elegido
@@ -1329,10 +1552,12 @@ class IrActionsServer(IrActionsBase):
         """
         if self.state == 'object_create':
             return 'Crear %s' % (
-                self.crud_model_id.name if self.crud_model_id else '')
+                self.crud_model_id.name if self.crud_model_id else ''
+            )
         if self.state == 'object_write':
             return 'Actualizar %s' % (
-                self.crud_model_id.name if self.crud_model_id else '')
+                self.crud_model_id.name if self.crud_model_id else ''
+            )
         if self.state == 'object_copy':
             if not self.crud_model_id or not self.resource_ref:
                 return 'Duplicar ...'
@@ -1364,7 +1589,9 @@ class IrActionsServer(IrActionsBase):
 
     @api.onchange('name')
     def _onchange_name(self):
-        """≙ ``_onchange_name`` (``:847-851``) — vaciar el nombre lo repuebla."""
+        """
+        ≙ ``_onchange_name`` (``:847-851``) — vaciar el nombre lo repuebla.
+        """
         if not self.name:
             self.automated_name = self._generate_action_name()
             self.name = self.automated_name
@@ -1377,8 +1604,11 @@ class IrActionsServer(IrActionsBase):
         """
         if self.state != 'code' or not self.pk:
             return False
-        return IrActionsServerHistory.objects.filter(
-            action_id=self.pk).exclude(code=self.code or '').exists()
+        return (
+            IrActionsServerHistory.objects.filter(action_id=self.pk)
+            .exclude(code=self.code or '')
+            .exists()
+        )
 
     def _compute_value_field_to_show(self):
         """≙ ``_compute_value_field_to_show`` (``:1244-1257``).
@@ -1417,16 +1647,19 @@ class IrActionsServer(IrActionsBase):
         if self.model_name:
             model = model_by_key(self.model_name)
             sample = model.objects.first() if model is not None else None
-            for field_row in (self.webhook_field_ids.all() if self.pk else []):
+            for field_row in self.webhook_field_ids.all() if self.pk else []:
                 if sample is not None:
                     payload['_id'] = sample.pk
                     payload[field_row.name] = getattr(
-                        sample, field_row.name, None)
+                        sample, field_row.name, None
+                    )
                 else:
                     payload[field_row.name] = WEBHOOK_SAMPLE_VALUES.get(
-                        field_row.ttype, WEBHOOK_SAMPLE_VALUES[None])
-        return json.dumps(stringify_keys(payload), indent=4, sort_keys=True,
-                          default=str)
+                        field_row.ttype, WEBHOOK_SAMPLE_VALUES[None]
+                    )
+        return json.dumps(
+            stringify_keys(payload), indent=4, sort_keys=True, default=str
+        )
 
     @classmethod
     def _get_children_domain(cls):
@@ -1441,11 +1674,13 @@ class IrActionsServer(IrActionsBase):
         ``'model_id'`` e ``'id'``. Sin la clase, el ``repr`` del dominio los
         entrecomilla y el filtro compara contra un literal.
         """
-        return Domain([
-            ('model_id', '=', unquote('model_id')),
-            ('parent_id', '=', False),
-            ('id', '!=', unquote('id')),
-        ])
+        return Domain(
+            [
+                ('model_id', '=', unquote('model_id')),
+                ('parent_id', '=', False),
+                ('id', '!=', unquote('id')),
+            ]
+        )
 
     def _check_python_code(self):
         """≙ ``_check_python_code`` (``:960-965``) — valida, **nunca ejecuta**.
@@ -1490,7 +1725,9 @@ class IrActionsServer(IrActionsBase):
         return super()._get_readable_fields() | {'group_ids', 'model_name'}
 
     def history_wizard_action(self):
-        """≙ ``history_wizard_action`` (``:1236-1245``) — abre el comparador."""
+        """
+        ≙ ``history_wizard_action`` (``:1236-1245``) — abre el comparador.
+        """
         return {
             'type': 'ir.actions.act_window',
             'name': 'Historial de código',
@@ -1518,11 +1755,14 @@ class IrActionsServer(IrActionsBase):
         user = get_current_user()
         if action_groups:
             user_groups = (
-                set(user.all_group_ids) if user is not None
-                and hasattr(user, 'all_group_ids') else set())
+                set(user.all_group_ids)
+                if user is not None and hasattr(user, 'all_group_ids')
+                else set()
+            )
             if not (set(action_groups) & user_groups):
                 raise AccessError(
-                    'No tiene permisos suficientes para ejecutar esta acción.')
+                    'No tiene permisos suficientes para ejecutar esta acción.'
+                )
             return
 
         model = model_by_key(self.model_name)
@@ -1534,9 +1774,13 @@ class IrActionsServer(IrActionsBase):
                 _logger.warning(
                     'Acción de servidor prohibida %r ejecutada mientras el '
                     'usuario %s no tiene acceso a %s.',
-                    self.name, login, self.model_name)
+                    self.name,
+                    login,
+                    self.model_name,
+                )
                 raise AccessError(
-                    'No tiene permisos suficientes para ejecutar esta acción.')
+                    'No tiene permisos suficientes para ejecutar esta acción.'
+                )
 
         if records is not None and hasattr(records, 'check_access'):
             try:
@@ -1545,15 +1789,24 @@ class IrActionsServer(IrActionsBase):
                 _logger.warning(
                     'Acción de servidor prohibida %r ejecutada mientras el '
                     'usuario %s no tiene acceso a %s.',
-                    self.name, login, records)
+                    self.name,
+                    login,
+                    records,
+                )
                 raise AccessError(
-                    'No tiene permisos suficientes para ejecutar esta acción.')
+                    'No tiene permisos suficientes para ejecutar esta acción.'
+                )
 
     @classmethod
     def _selection_target_model(cls):
-        """≙ ``_selection_target_model`` (``:1259-1261``) — los pares del Reference."""
-        return [(row.model, row.name)
-                for row in IrModel.objects.all().order_by('model')]
+        """
+        ≙ ``_selection_target_model`` (``:1259-1261``) — los pares del
+        Reference.
+        """
+        return [
+            (row.model, row.name)
+            for row in IrModel.objects.all().order_by('model')
+        ]
 
     @api.onchange('crud_model_id')
     def _set_crud_model_id(self):
@@ -1562,9 +1815,12 @@ class IrActionsServer(IrActionsBase):
         Cambiar el modelo destino invalida dos elecciones que colgaban del
         anterior: la referencia de ``object_copy`` y el campo de enlace.
         """
-        if (self.state == 'object_copy' and self.resource_ref
-                and getattr(self.resource_ref, '_name', None)
-                != (self.crud_model_id.model if self.crud_model_id else None)):
+        if (
+            self.state == 'object_copy'
+            and self.resource_ref
+            and getattr(self.resource_ref, '_name', None)
+            != (self.crud_model_id.model if self.crud_model_id else None)
+        ):
             self.resource_ref_content_type = None
             self.resource_ref_id = None
         link = self.link_field_id
@@ -1575,14 +1831,21 @@ class IrActionsServer(IrActionsBase):
 
     @api.onchange('resource_ref')
     def _set_resource_ref(self):
-        """≙ ``_set_resource_ref`` (``:1273-1277``) — la referencia va al valor."""
+        """
+        ≙ ``_set_resource_ref`` (``:1273-1277``) — la referencia va al valor.
+        """
         if self.value_field_to_show == 'resource_ref' and self.resource_ref_id:
             self.value = str(self.resource_ref_id)
 
     @api.onchange('selection_value')
     def _set_selection_value(self):
-        """≙ ``_set_selection_value`` (``:1279-1283``) — la opción va al valor."""
-        if self.value_field_to_show == 'selection_value' and self.selection_value:
+        """
+        ≙ ``_set_selection_value`` (``:1279-1283``) — la opción va al valor.
+        """
+        if (
+            self.value_field_to_show == 'selection_value'
+            and self.selection_value
+        ):
             self.value = self.selection_value.value
 
     def copy_data(self, default=None, seen=None):
@@ -1613,8 +1876,14 @@ class IrActionsServer(IrActionsBase):
     #: ≙ ``sensible_default_fields`` (``:599``), traducida a nuestros nombres.
     #: Los cuatro primeros pierden el sufijo ``_id`` por la convención de FK
     #: del árbol (tarea **#141**); ``state`` y ``active`` no lo llevaban.
-    SENSIBLE_DEFAULT_FIELDS = ['partner', 'user', 'users', 'stage', 'state',
-                               'active']
+    SENSIBLE_DEFAULT_FIELDS = [
+        'partner',
+        'user',
+        'users',
+        'stage',
+        'state',
+        'active',
+    ]
 
     @classmethod
     def _default_update_path(cls):
@@ -1628,7 +1897,8 @@ class IrActionsServer(IrActionsBase):
         ``_id`` de las FK, ``state_id`` de la fuente pasa a llamarse ``state``
         aquí — y ``state`` ya es una entrada de esta lista, con otro
         significado: allá nombra el **estado de flujo** del registro. Medido
-        sobre las dos raíces de addon de ``odoo19c``, el campo llamado ``state``
+        sobre las dos raíces de addon de ``odoo19c``, el campo llamado
+        ``state``
         es ``Selection`` en **98** declaraciones, ``Many2one`` en **1**
         (``res_bank.py:27``, la entidad federativa) y ``Char`` en **1**. La
         acepción de la lista es la de las 98.
@@ -1639,9 +1909,11 @@ class IrActionsServer(IrActionsBase):
         a actualizar, en vez de ``active``. No es heurística: es la traducción
         del significado que la fuente le da a esa entrada.
 
-        Se recorren los campos **propios** del modelo y no ``_meta.get_fields()``
+        Se recorren los campos **propios** del modelo y no
+        ``_meta.get_fields()``
         entero, porque aquél incluye las relaciones inversas que otro modelo
-        declara con ``related_name``. La fuente itera ``model._fields``, que son
+        declara con ``related_name``. La fuente itera ``model._fields``, que
+        son
         sólo los suyos; contar las inversas mediría otra población.
 
         ``editable`` es el ``readonly`` de la fuente con el signo invertido: es
@@ -1656,8 +1928,11 @@ class IrActionsServer(IrActionsBase):
         model = model_by_key(row.model)
         if model is None:
             return ''
-        own = {f.name: f for f in model._meta.get_fields()
-               if getattr(f, 'concrete', False)}
+        own = {
+            f.name: f
+            for f in model._meta.get_fields()
+            if getattr(f, 'concrete', False)
+        }
         for field_name in cls.SENSIBLE_DEFAULT_FIELDS:
             field = own.get(field_name)
             if field is None or not getattr(field, 'editable', True):
@@ -1686,23 +1961,28 @@ class IrActionsServer(IrActionsBase):
         while current is not None:
             if current.pk == self.pk or current.pk in seen:
                 raise ValidationError(
-                    'Recursión encontrada en las acciones de servidor hijas.')
+                    'Recursión encontrada en las acciones de servidor hijas.'
+                )
             seen.add(current.pk)
             current = current.parent
 
         children_with_warnings = [
-            child for child in (self.child_ids.all() if self.pk else [])
-            if child.warning]
+            child
+            for child in (self.child_ids.all() if self.pk else [])
+            if child.warning
+        ]
         if children_with_warnings:
             raise ValidationError(
                 'Las siguientes acciones hijas tienen avisos: %s'
-                % ', '.join(child.name for child in children_with_warnings))
+                % ', '.join(child.name for child in children_with_warnings)
+            )
 
     def save(self, *args, **kwargs):
         """``@api.constrains('parent_id', 'child_ids')`` de la fuente.
 
         Aquí también se dispara ``_compute_name``. En la fuente lo dispara el
-        ORM: ``automated_name`` es ``Char(compute='_compute_name', store=True)``
+        ORM: ``automated_name`` es ``Char(compute='_compute_name',
+        store=True)``
         con ``@api.depends(lambda self: self._name_depends())`` (``:843``), así
         que el motor lo recalcula cada vez que cambia una de sus tres
         dependencias. Aquí el cómputo con columna se invoca explícitamente
@@ -1768,7 +2048,8 @@ class IrActionsServer(IrActionsBase):
     def _get_runner(self):
         """≙ ``_get_runner`` (``odoo19c: ir_actions.py:980-987``).
 
-        Devuelve ``(corredor, multi)``. Primero busca ``_run_action_<state>_multi``
+        Devuelve ``(corredor, multi)``. Primero busca
+        ``_run_action_<state>_multi``
         —que opera sobre todos los registros activos de una vez— y si no
         existe cae al ``_run_action_<state>`` simple, que ``_run`` invoca una
         vez por registro activo.
@@ -1865,7 +2146,8 @@ class IrActionsServer(IrActionsBase):
         if not self.webhook_url:
             raise UserError(
                 'Con gusto envío el webhook, pero hace falta una URL a la que '
-                'llegar.')
+                'llegar.'
+            )
         payload = {
             '_model': self.model_name,
             '_id': record.pk,
@@ -1880,15 +2162,19 @@ class IrActionsServer(IrActionsBase):
             _logger.debug('Llamada webhook a %s — inicio', url)
             try:
                 response = requests.post(
-                    url, data=body,
-                    headers={'Content-Type': 'application/json'}, timeout=1)
+                    url,
+                    data=body,
+                    headers={'Content-Type': 'application/json'},
+                    timeout=1,
+                )
                 response.raise_for_status()
                 _logger.info('Llamada webhook a %s — correcta', url)
             except requests.exceptions.ReadTimeout:
                 _logger.warning(
                     'La llamada webhook agotó su segundo de espera — pudo '
                     'llegar o no. Si pasa a menudo, el sistema destino es '
-                    'lento o no funciona.')
+                    'lento o no funciona.'
+                )
             except requests.exceptions.RequestException as error:
                 _logger.warning('La llamada webhook falló: %s', error)
 
@@ -1905,7 +2191,9 @@ class IrActionsServer(IrActionsBase):
         reventar es lo mismo que hace ``IrModel.django_model``: una fila puede
         sobrevivir al modelo que reflejaba.
         """
-        name = self.crud_model_id.model if self.crud_model_id else self.model_name
+        name = (
+            self.crud_model_id.model if self.crud_model_id else self.model_name
+        )
         if not name:
             return None
         try:
@@ -1980,15 +2268,19 @@ class IrActionsServer(IrActionsBase):
                         'La ruta de "%s" contiene un campo no relacional '
                         '(%s) que no es el último. Sólo el último tramo '
                         'puede ser no relacional.'
-                        % (searched_field_name, name))
+                        % (searched_field_name, name)
+                    )
                 model = field.related_model
             chain.append(field)
         readable = ' > '.join(
-            str(getattr(field, 'verbose_name', field.name)) for field in chain)
+            str(getattr(field, 'verbose_name', field.name)) for field in chain
+        )
         return chain, readable
 
     def _traverse_path(self):
-        """≙ ``_traverse_path`` (``:898-907``) — el ``(modelo, campo)`` final."""
+        """
+        ≙ ``_traverse_path`` (``:898-907``) — el ``(modelo, campo)`` final.
+        """
         chain, _readable = self._get_relation_chain('update_path')
         if not chain:
             return None, None
@@ -1996,7 +2288,8 @@ class IrActionsServer(IrActionsBase):
         label = last.model._meta.label
         model_row = IrModel.objects.filter(model=label).first()
         field_row = IrModelFields.objects.filter(
-            model=label, name=last.name).first()
+            model=label, name=last.name
+        ).first()
         return model_row, field_row
 
     def _compute_crud_relations(self):
@@ -2007,10 +2300,14 @@ class IrActionsServer(IrActionsBase):
         ``object_write`` deriva ambos de ``update_path`` cuando la hay.
         """
         if self.model_name and self.state in (
-                'object_write', 'object_create', 'object_copy'):
+            'object_write',
+            'object_create',
+            'object_copy',
+        ):
             if self.state in ('object_create', 'object_copy'):
                 self.crud_model_id = IrModel.objects.filter(
-                    model=self.model_name).first()
+                    model=self.model_name
+                ).first()
                 self.update_field_id = None
                 self.update_path = ''
             elif self.update_path:
@@ -2018,14 +2315,19 @@ class IrActionsServer(IrActionsBase):
                 self.crud_model_id = model_row
                 self.update_field_id = field_row
                 needs_related = (
-                    self.evaluation_type == 'value' and field_row is not None
-                    and field_row.relation)
+                    self.evaluation_type == 'value'
+                    and field_row is not None
+                    and field_row.relation
+                )
                 self.update_related_model_id = (
                     IrModel.objects.filter(model=field_row.relation).first()
-                    if needs_related else None)
+                    if needs_related
+                    else None
+                )
             else:
                 self.crud_model_id = IrModel.objects.filter(
-                    model=self.model_name).first()
+                    model=self.model_name
+                ).first()
                 self.update_field_id = None
         else:
             self.crud_model_id = None
@@ -2049,10 +2351,12 @@ class IrActionsServer(IrActionsBase):
                 'El modo de valor "equation" evalúa Python almacenado; este '
                 'árbol no monta un evaluador sobre entrada guardada sin '
                 'decidir explícitamente su contexto (misma decisión que '
-                'ir_rule.domain_force). Ver el docstring del módulo.')
+                'ir_rule.domain_force). Ver el docstring del módulo.'
+            )
         if self.evaluation_type == 'sequence':
             expression = (
-                self.sequence_id.next_by_id() if self.sequence_id else False)
+                self.sequence_id.next_by_id() if self.sequence_id else False
+            )
         elif ttype in ('one2many', 'many2many'):
             operation = self.update_m2m_operation
             if operation == 'add':
@@ -2110,7 +2414,10 @@ class IrActionsServer(IrActionsBase):
             except (LookupError, ValueError):
                 model = None
         record = records = None
-        if model is not None and context.get('active_model') == action.model_name:
+        if (
+            model is not None
+            and context.get('active_model') == action.model_name
+        ):
             if context.get('active_id'):
                 record = model.objects.filter(pk=context['active_id']).first()
             if context.get('active_ids'):
@@ -2120,8 +2427,14 @@ class IrActionsServer(IrActionsBase):
             """≙ el ``log`` de la fuente: una fila en ``ir_logging``."""
             IrLogging = apps.get_model('base', 'IrLogging')
             IrLogging.objects.create(
-                type='server', name=__name__, level=level, message=message,
-                path='action', line=str(action.pk), func=action.name or '')
+                type='server',
+                name=__name__,
+                level=level,
+                message=message,
+                path='action',
+                line=str(action.pk),
+                func=action.name or '',
+            )
 
         return {
             'model': model,
@@ -2144,7 +2457,8 @@ class IrActionsServer(IrActionsBase):
         records = eval_context.get('records')
         if records is None and eval_context.get('record') is not None:
             records = type(eval_context['record']).objects.filter(
-                pk=eval_context['record'].pk)
+                pk=eval_context['record'].pk
+            )
         return self._run(records, eval_context)
 
     def _run(self, records, eval_context):
@@ -2157,7 +2471,9 @@ class IrActionsServer(IrActionsBase):
         if self.warning:
             raise ServerActionWithWarningsError(
                 'La acción de servidor %s tiene uno o más avisos; resuélvelos '
-                'primero.' % self.name)
+                'primero.'
+                % self.name
+            )
 
         runner, multi = self._get_runner()
         result = False
@@ -2167,9 +2483,12 @@ class IrActionsServer(IrActionsBase):
             context = get_context()
             active_id = context.get('active_id')
             active_ids = context.get(
-                'active_ids', [active_id] if active_id else [])
+                'active_ids', [active_id] if active_id else []
+            )
             for active_id in active_ids:
-                with context_scope(active_ids=[active_id], active_id=active_id):
+                with context_scope(
+                    active_ids=[active_id], active_id=active_id
+                ):
                     if records is not None:
                         current = records.filter(pk=active_id).first()
                         eval_context['record'] = current
@@ -2180,7 +2499,9 @@ class IrActionsServer(IrActionsBase):
             'No hay manera de ejecutar la acción de servidor %r de tipo %r; '
             'se ignora. Verifica que el tipo sea correcto o añade un método '
             '`_run_action_<tipo>` o `_run_action_<tipo>_multi`.',
-            self.name, self.state)
+            self.name,
+            self.state,
+        )
         return result
 
     # ---- Las dos acciones contextuales ------------------------------------
@@ -2211,14 +2532,22 @@ class IrActionsTodo(TimeStampedModel):
     ]
 
     action = fields.Many2one(
-        IrActionsActions, on_delete=models.CASCADE, db_index=True,
-        related_name='todos', verbose_name='Acción')
+        IrActionsActions,
+        on_delete=models.CASCADE,
+        db_index=True,
+        related_name='todos',
+        verbose_name='Acción',
+    )
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
     state = fields.Selection(
-        max_length=8, choices=STATE_CHOICES, default=STATE_OPEN,
-        verbose_name='Estado')
+        max_length=8,
+        choices=STATE_CHOICES,
+        default=STATE_OPEN,
+        verbose_name='Estado',
+    )
     name = fields.Char(
-        max_length=255, blank=True, default='', verbose_name='Nombre')
+        max_length=255, blank=True, default='', verbose_name='Nombre'
+    )
 
     class Meta:
         db_table = 'ir_actions_todo'

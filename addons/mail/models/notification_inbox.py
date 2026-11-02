@@ -1,7 +1,10 @@
-"""Buzón de notificaciones del comprador — read-model del inbox (familia ``mail``).
+"""
+Buzón de notificaciones del comprador — read-model del inbox (familia
+``mail``).
 
 Reubicado desde el addon de proyecto ``notifications`` (en disolución, slice 3a
-de la familia ``mail``). En Odoo el "Inbox" NO es una tabla propia: se materializa
+de la familia ``mail``). En Odoo el "Inbox" NO es una tabla propia: se
+materializa
 de ``mail.message`` + ``mail.notification`` (``notification_type='inbox'``) por
 seguidor. Este ``Notification`` es el **read-model denormalizado** que el
 comprador ve (asunto/cuerpo/leído por evento de negocio), puenteado al backbone
@@ -9,11 +12,14 @@ por ``mail_message`` (FK a ``mail.MailMessage``) + ``from_mail_message``.
 
 Adaptación de proyecto (no es un modelo Odoo 1:1): se conserva la tabla
 ``notifications_notification`` y el contrato de API ``/api/v2/notifications/``
-intactos — la reubicación es state-only (mismo patrón que newsletter→mass_mailing).
-Vive en ``mail`` porque el inbox es una preocupación del backbone de mensajería.
+intactos — la reubicación es state-only (mismo patrón que
+newsletter→mass_mailing).
+Vive en ``mail`` porque el inbox es una preocupación del backbone de
+mensajería.
 Los envíos salientes (``mail.mail``) y la entrega por destinatario
 (``mail.notification``) son modelos hermanos de esta misma familia.
 """
+
 from django.conf import settings
 from django.db import models
 
@@ -33,11 +39,13 @@ class NotificationType(models.TextChoices):
 
 
 # Tipos obligatorios — el usuario no puede deshabilitarlos.
-MANDATORY_NOTIFICATION_TYPES = frozenset({
-    NotificationType.ORDER_UPDATE,
-    NotificationType.RETURN_UPDATE,
-    NotificationType.SYSTEM,
-})
+MANDATORY_NOTIFICATION_TYPES = frozenset(
+    {
+        NotificationType.ORDER_UPDATE,
+        NotificationType.RETURN_UPDATE,
+        NotificationType.SYSTEM,
+    }
+)
 
 
 # Etiquetas user-facing por tipo.
@@ -51,7 +59,8 @@ NOTIFICATION_TYPE_LABELS = {
 
 
 class Notification(BusListenerMixin, TimeStampedModel):
-    """Notificacion individual en el buzon de un usuario (read-model del inbox).
+    """
+    Notificacion individual en el buzon de un usuario (read-model del inbox).
 
     Emite al bus al crearse (T-079). El emisor va en el modelo y no en cada
     ``notify_*`` del servicio porque la creación **es** el evento: así todo
@@ -73,7 +82,8 @@ class Notification(BusListenerMixin, TimeStampedModel):
     body = models.TextField()
     read = models.BooleanField(default=False)
     # Puente al backbone de chatter (familia mail): si esta notificacion se
-    # origino en un mensaje del hilo de un registro (``MailThread.message_post``),
+    # origino en un mensaje del hilo de un registro
+    # (``MailThread.message_post``),
     # apunta al ``mail.message`` fuente. NULL para las notificaciones que no
     # nacen del chatter (la mayoria de las transaccionales del servicio). Es la
     # contraparte de ``mail.notification`` inbox: aquel rastrea la ENTREGA por
@@ -81,10 +91,13 @@ class Notification(BusListenerMixin, TimeStampedModel):
     # buzon sobrevive al purgado del mensaje.
     mail_message = models.ForeignKey(
         'mail.MailMessage',
-        null=True, blank=True,
+        null=True,
+        blank=True,
         on_delete=models.SET_NULL,
         related_name='inbox_notifications',
-        help_text='Mensaje de chatter que origino esta notificacion (familia mail).',
+        help_text=(
+            'Mensaje de chatter que origino esta notificacion (familia mail).'
+        ),
     )
 
     class Meta:
@@ -93,8 +106,13 @@ class Notification(BusListenerMixin, TimeStampedModel):
         verbose_name = 'Notificacion'
         verbose_name_plural = 'Notificaciones'
         indexes = [
-            models.Index(fields=['user', 'read'], name='notificatio_user_id_878a13_idx'),
-            models.Index(fields=['user', '-created_at'], name='notificatio_user_id_05b4bc_idx'),
+            models.Index(
+                fields=['user', 'read'], name='notificatio_user_id_878a13_idx'
+            ),
+            models.Index(
+                fields=['user', '-created_at'],
+                name='notificatio_user_id_05b4bc_idx',
+            ),
         ]
 
     def __str__(self):
@@ -109,15 +127,19 @@ class Notification(BusListenerMixin, TimeStampedModel):
         if es_nueva:
             # Sólo la creación es noticia. Marcar leída actualiza la fila y no
             # debe reemitir: el cliente ya sabe de esta notificación.
-            self._bus_send('notificacion', {
-                'id': self.pk,
-                'type': self.type,
-                'subject': self.subject,
-            })
+            self._bus_send(
+                'notificacion',
+                {
+                    'id': self.pk,
+                    'type': self.type,
+                    'subject': self.subject,
+                },
+            )
 
     @classmethod
     def from_mail_message(cls, message, user, type=None):
-        """Materializa un item de buzon a partir de un ``mail.message`` del hilo.
+        """
+        Materializa un item de buzon a partir de un ``mail.message`` del hilo.
 
         Puente fiel del backbone: cualquier registro que herede ``MailThread``
         puede aflorar un mensaje de su chatter al buzon del comprador. Copia

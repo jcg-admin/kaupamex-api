@@ -1,4 +1,5 @@
-"""``website`` — la configuración de recuperación de carrito que ``website_sale``
+"""
+``website`` — la configuración de recuperación de carrito que ``website_sale``
 le cuelga al sitio (≙ ``_inherit``).
 
 Adaptación de ``odoo19c: addons/website_sale/models/website.py``
@@ -79,7 +80,8 @@ tabla ``website``.** La referencia reabre ``website`` y le añade columnas; aqu�
 el autodetector de migraciones **atribuye la columna al ``app_label`` del
 modelo**, no al addon que la contribuye — es la misma restricción de plataforma
 que ``models/product_template.py`` ya declara en este addon. Añadir columnas a
-``website`` obligaría a escribir la migración en ``addons/website/migrations/``,
+``website`` obligaría a escribir la migración en
+``addons/website/migrations/``,
 que es de otro addon.
 
 La forma que este árbol ya usa para eso es la tabla lateral 1-1 propiedad del
@@ -157,6 +159,7 @@ sucesor:
   ``models/res_config_settings.py`` de este addon, quinto caso idéntico del
   árbol.
 """
+
 import logging
 
 from django.apps import apps
@@ -222,8 +225,9 @@ def _default_recovery_mail_template():
     ``raise_if_not_found=False``, que devuelve ``None`` — misma conducta, sin
     excepción de control de flujo.
     """
-    return IrModelData.ref(CART_RECOVERY_TEMPLATE_XMLID,
-                           raise_if_not_found=False)
+    return IrModelData.ref(
+        CART_RECOVERY_TEMPLATE_XMLID, raise_if_not_found=False
+    )
 
 
 def _default_salesteam_id():
@@ -242,8 +246,11 @@ def _default_salesteam_id():
     El router selecciona el catálogo de la empresa activa. La ausencia del
     identificador en ese catálogo no autoriza consultar la base central.
     """
-    team = IrModelData.ref(WEBSITE_SALESTEAM_XMLID, raise_if_not_found=False,
-                           using=router.db_for_read(IrModelData))
+    team = IrModelData.ref(
+        WEBSITE_SALESTEAM_XMLID,
+        raise_if_not_found=False,
+        using=router.db_for_read(IrModelData),
+    )
     if team is not None and team.active:
         return team.pk
     return None
@@ -260,24 +267,32 @@ class WebsiteSaleSettings(TimeStampedModel):
     """
 
     website = models.OneToOneField(
-        Website, on_delete=models.CASCADE,
+        Website,
+        on_delete=models.CASCADE,
         related_name='website_sale_settings',
         help_text='Sitio al que aplica esta política (Odoo _inherit website).',
     )
     cart_recovery_mail_template_id = fields.Many2one(
-        MailTemplate, on_delete=models.SET_NULL, null=True, blank=True,
+        MailTemplate,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='+',
         verbose_name='Correo de recuperación de carrito',
-        help_text='Plantilla que se envía al carrito abandonado (Odoo '
-                  'cart_recovery_mail_template_id). Vacío = la plantilla por '
-                  'defecto del addon.',
+        help_text=(
+            'Plantilla que se envía al carrito abandonado (Odoo '
+            'cart_recovery_mail_template_id). Vacío = la plantilla por '
+            'defecto del addon.'
+        ),
         db_column='cart_recovery_mail_template_id',
     )
     cart_abandoned_delay = fields.Float(
         default=10.0,
         verbose_name='Retraso de abandono',
-        help_text='Horas sin actividad tras las cuales el carrito se considera '
-                  'abandonado (Odoo cart_abandoned_delay).',
+        help_text=(
+            'Horas sin actividad tras las cuales el carrito se considera '
+            'abandonado (Odoo cart_abandoned_delay).'
+        ),
     )
     send_abandoned_cart_email = fields.Boolean(
         default=False,
@@ -285,11 +300,14 @@ class WebsiteSaleSettings(TimeStampedModel):
         help_text='Odoo send_abandoned_cart_email.',
     )
     send_abandoned_cart_email_activation_time = fields.Datetime(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         verbose_name='Hora de activación del envío',
-        help_text='Momento en que se activó el envío de recuperación; los '
-                  'carritos anteriores no se recuperan (Odoo '
-                  'send_abandoned_cart_email_activation_time, store=True).',
+        help_text=(
+            'Momento en que se activó el envío de recuperación; los '
+            'carritos anteriores no se recuperan (Odoo '
+            'send_abandoned_cart_email_activation_time, store=True).'
+        ),
     )
     #: ≙ ``salesteam_id`` (``odoo19c: :63-69``). Los cinco atributos que la
     #: fuente declara, uno a uno — ver D-7 del docstring del módulo para por
@@ -301,12 +319,17 @@ class WebsiteSaleSettings(TimeStampedModel):
     #: - ``ondelete='set null'`` (``:67``)     → ``on_delete=models.SET_NULL``
     #: - ``default=_default_salesteam_id`` (``:68``) → ídem, ver la función
     salesteam_id = fields.Many2one(
-        'sales_team.CrmTeam', null=True, blank=True,
-        on_delete=models.SET_NULL, related_name='websites',
+        'sales_team.CrmTeam',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='websites',
         default=_default_salesteam_id,
         verbose_name='Equipo de venta',
-        help_text='Equipo de venta al que se atribuyen los pedidos de este '
-                  'sitio (Odoo website.salesteam_id).',
+        help_text=(
+            'Equipo de venta al que se atribuyen los pedidos de este '
+            'sitio (Odoo website.salesteam_id).'
+        ),
         db_column='salesteam_id',
     )
 
@@ -371,20 +394,23 @@ class WebsiteSaleSettings(TimeStampedModel):
         ``search([])``) y D-5 (``render`` + ``dispatch_email`` en vez de
         ``template.send_mail``).
         """
-        # ``apps.get_model`` y no un ``import`` del modelo al top: ``sale_order``
+        # ``apps.get_model`` y no un ``import`` del modelo al top:
+        # ``sale_order``
         # de este mismo addon importa esta clase para leer el retraso de
         # abandono, así que un import cruzado cerraría el ciclo. Es una llamada
         # en tiempo de ejecución, no un statement — ``apps`` sí está importado
         # arriba, como manda ``no-lazy-imports``.
         sale_order_model = apps.get_model('sale', 'SaleOrder')
 
-        template = IrModelData.ref(CART_RECOVERY_TEMPLATE_XMLID,
-                                   raise_if_not_found=False)
+        template = IrModelData.ref(
+            CART_RECOVERY_TEMPLATE_XMLID, raise_if_not_found=False
+        )
         if template is None:
             logger.warning(
                 'Recuperación de carrito: la plantilla %s no está sembrada; '
                 'no se envía nada en esta corrida.',
-                CART_RECOVERY_TEMPLATE_XMLID)
+                CART_RECOVERY_TEMPLATE_XMLID,
+            )
             return 0
 
         sent = 0
@@ -399,11 +425,13 @@ class WebsiteSaleSettings(TimeStampedModel):
                 logger.warning(
                     'Recuperación de carrito: el sitio %s tiene el envío '
                     'activo sin hora de activación; se omite.',
-                    settings.website_id)
+                    settings.website_id,
+                )
                 continue
 
             all_abandoned_carts = sale_order_model._search_abandoned_cart(
-                'in', [True],
+                'in',
+                [True],
             ).filter(
                 website_sale_info__website_id=settings.website_id,
                 website_sale_info__cart_recovery_email_sent=False,
@@ -412,8 +440,11 @@ class WebsiteSaleSettings(TimeStampedModel):
             if not all_abandoned_carts.exists():
                 continue
 
-            abandoned_carts = sale_order_model._filter_can_send_abandoned_cart_mail(
-                all_abandoned_carts)
+            abandoned_carts = (
+                sale_order_model._filter_can_send_abandoned_cart_mail(
+                    all_abandoned_carts
+                )
+            )
             keepers = {order.pk for order in abandoned_carts}
             # Marca como enviados los que el filtro rechazó, para no volver a
             # examinarlos en cada corrida — verbatim de la fuente (``:935``).
@@ -452,16 +483,22 @@ def _send_recovery_email(template, sale_order):
     """
     rendered = template.render(sale_order)
     recipient = rendered.get('email_to') or ''
-    if not (template.email_to or template.partner_to or template.use_default_to):
+    if not (
+        template.email_to or template.partner_to or template.use_default_to
+    ):
         recipient = _buyer_email(sale_order)
     if not recipient:
         logger.warning(
             'Recuperación de carrito: el pedido %s no tiene destinatario; '
-            'se omite.', sale_order.pk)
+            'se omite.',
+            sale_order.pk,
+        )
         return False
     dispatch_email(
-        rendered['subject'], rendered['body_html'],
-        rendered['email_from'] or None, [recipient],
+        rendered['subject'],
+        rendered['body_html'],
+        rendered['email_from'] or None,
+        [recipient],
     )
     return True
 

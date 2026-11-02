@@ -189,6 +189,7 @@ Lo que sigue fuera, y por qué:
   ``report_action`` la lee con ``getattr``, y sin ella toma la misma rama que
   la fuente cuando la compañía no tiene plantilla configurada.
 """
+
 import io
 import json
 import logging
@@ -207,7 +208,9 @@ from addons.base.models.ir_ui_view import VIEW_TYPE_TEMPLATE, IrUiView
 from addons.base.models.ir_attachment import IrAttachment
 from addons.base.models.ir_model import IrModel
 from addons.base.models.report_paperformat import (
-    ORIENTATION_LANDSCAPE, ReportPaperformat)
+    ORIENTATION_LANDSCAPE,
+    ReportPaperformat,
+)
 from contextlib import contextmanager
 from collections import OrderedDict
 
@@ -217,13 +220,21 @@ from addons.base.models.res_groups import ResGroups
 from exceptions import AccessError, UserError, ValidationError
 from orm import registry
 from orm.domains import Domain, to_q
-from orm.environments import (get_context, get_current_company,
-                              get_current_user, is_system, sudo)
+from orm.environments import (
+    get_context,
+    get_current_company,
+    get_current_user,
+    is_system,
+    sudo,
+)
 from orm.fields_temporal import Datetime
 from orm.models import filtered_domain
 from requests.exceptions import RequestException
-from tools.barcode import (check_barcode_encoding, image_to_png,
-                           render_barcode_image)
+from tools.barcode import (
+    check_barcode_encoding,
+    image_to_png,
+    render_barcode_image,
+)
 from tools.mail import is_html_empty
 from tools.pdf import PdfFileReader, PdfFileWriter, PdfReadError
 from tools.safe_eval import const_eval, safe_eval, time
@@ -362,7 +373,8 @@ def run_helper(helper, descriptor):
     path = HELPER_DIR / helper
     if not path.exists():
         raise HelperNotBuilt(
-            f'{path} no existe; correr `make pdf` en api (ADR-017, H-API-287)')
+            f'{path} no existe; correr `make pdf` en api (ADR-017, H-API-287)'
+        )
 
     # El descriptor viaja en UTF-8 crudo. Ya no hace falta ``ensure_ascii``:
     # desde que el helper embebe LiberationSans y registra el encoder UTF-8,
@@ -376,22 +388,33 @@ def run_helper(helper, descriptor):
     payload = json.dumps(descriptor, ensure_ascii=False).encode('utf-8')
     try:
         completed = subprocess.run(
-            [str(path)], input=payload, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, timeout=HELPER_TIMEOUT_SECONDS,
+            [str(path)],
+            input=payload,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=HELPER_TIMEOUT_SECONDS,
             check=False,
         )
     except subprocess.TimeoutExpired as exc:
         raise HelperFailed(
-            f'{helper} excedió {HELPER_TIMEOUT_SECONDS}s') from exc
+            f'{helper} excedió {HELPER_TIMEOUT_SECONDS}s'
+        ) from exc
 
     if completed.returncode != 0:
         meaning = HELPER_EXIT_MEANING.get(
-            completed.returncode, 'fallo no declarado en el contrato')
+            completed.returncode, 'fallo no declarado en el contrato'
+        )
         stderr = completed.stderr.decode('utf-8', 'replace').strip()
-        _logger.error('helper %s exit=%s (%s) stderr=%s',
-                      helper, completed.returncode, meaning, stderr)
+        _logger.error(
+            'helper %s exit=%s (%s) stderr=%s',
+            helper,
+            completed.returncode,
+            meaning,
+            stderr,
+        )
         raise HelperFailed(
-            f'{helper} salió con {completed.returncode}: {meaning}')
+            f'{helper} salió con {completed.returncode}: {meaning}'
+        )
 
     if not completed.stdout.startswith(b'%PDF'):
         # Exit 0 con salida que no es PDF: el contrato dice que no puede pasar,
@@ -423,74 +446,121 @@ class IrActionsReport(IrActionsBase):
     _allow_sudo_commands = False
 
     model = fields.Char(
-        max_length=255, db_index=True, verbose_name='Nombre del modelo',
-        help_text='Modelo técnico sobre el que imprime. Char plano, mismo '
-                  'criterio que ir_rule.model_name e ir_filters.model_id.',
+        max_length=255,
+        db_index=True,
+        verbose_name='Nombre del modelo',
+        help_text=(
+            'Modelo técnico sobre el que imprime. Char plano, mismo '
+            'criterio que ir_rule.model_name e ir_filters.model_id.'
+        ),
     )
     model_id = fields.Many2one(
-        IrModel, store=False,
+        IrModel,
+        store=False,
         default=lambda record: record._compute_model_id(),
-        help_text='La fila de ir.model que corresponde a "model". Derivada, '
-                  'sin columna: la fuente la declara con compute y sin store.',
+        help_text=(
+            'La fila de ir.model que corresponde a "model". Derivada, '
+            'sin columna: la fuente la declara con compute y sin store.'
+        ),
     )
     report_type = fields.Selection(
-        max_length=16, choices=REPORT_TYPE_CHOICES, default=REPORT_TYPE_PDF,
+        max_length=16,
+        choices=REPORT_TYPE_CHOICES,
+        default=REPORT_TYPE_PDF,
         verbose_name='Tipo de reporte',
-        help_text='Formato de salida: html, pdf o text. El valor gobierna el '
-                  'despacho de _render. Son los tres de la fuente, sin su '
-                  'prefijo qweb-: aquí el intérprete no es QWeb. El intermedio '
-                  'de la composición es el descriptor, y cada formato tiene su '
-                  'serializador (pdf lo dibuja el helper de libharu, ADR-017; '
-                  'html y text los serializa report_template).',
+        help_text=(
+            'Formato de salida: html, pdf o text. El valor gobierna el '
+            'despacho de _render. Son los tres de la fuente, sin su '
+            'prefijo qweb-: aquí el intérprete no es QWeb. El intermedio '
+            'de la composición es el descriptor, y cada formato tiene su '
+            'serializador (pdf lo dibuja el helper de libharu, ADR-017; '
+            'html y text los serializa report_template).'
+        ),
     )
     report_name = fields.Char(
-        max_length=255, verbose_name='Nombre de la plantilla')
+        max_length=255, verbose_name='Nombre de la plantilla'
+    )
     report_file = fields.Char(
-        max_length=255, blank=True, default='', verbose_name='Archivo del reporte',
-        help_text='Ruta al archivo principal, o vacío si el contenido vive en '
-                  'otro campo.',
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='Archivo del reporte',
+        help_text=(
+            'Ruta al archivo principal, o vacío si el contenido vive en '
+            'otro campo.'
+        ),
     )
     group_ids = fields.Many2many(
-        ResGroups, blank=True, db_table='res_groups_report_rel',
-        related_name='report_ids', verbose_name='Grupos',
-        help_text='Vacío = sin restricción por grupo. La autorización '
-                  'efectiva sigue siendo por capacidad (DEC-11).',
+        ResGroups,
+        blank=True,
+        db_table='res_groups_report_rel',
+        related_name='report_ids',
+        verbose_name='Grupos',
+        help_text=(
+            'Vacío = sin restricción por grupo. La autorización '
+            'efectiva sigue siendo por capacidad (DEC-11).'
+        ),
     )
     multi = fields.Boolean(
-        default=False, verbose_name='Sobre varios documentos',
-        help_text='Marcado, la acción NO aparece en la barra lateral de un '
-                  'formulario — es de lote.',
+        default=False,
+        verbose_name='Sobre varios documentos',
+        help_text=(
+            'Marcado, la acción NO aparece en la barra lateral de un '
+            'formulario — es de lote.'
+        ),
     )
     paperformat_id = fields.Many2one(
-        ReportPaperformat, on_delete=models.SET_NULL, null=True, blank=True,
-        db_index=True, db_column='paperformat_id', related_name='report_ids',
+        ReportPaperformat,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_index=True,
+        db_column='paperformat_id',
+        related_name='report_ids',
         verbose_name='Formato de papel',
-        help_text='Este related_name es el One2many que report_paperformat.py '
-                  'dejó anotado como pendiente.',
+        help_text=(
+            'Este related_name es el One2many que report_paperformat.py '
+            'dejó anotado como pendiente.'
+        ),
     )
     print_report_name = fields.Char(
-        max_length=255, blank=True, default='',
+        max_length=255,
+        blank=True,
+        default='',
         verbose_name='Nombre del archivo impreso',
-        help_text='Nombre del archivo que se descarga. Vacío = no se cambia. '
-                  'En la referencia admite una expresión Python; aquí es dato, '
-                  'no se evalúa.',
+        help_text=(
+            'Nombre del archivo que se descarga. Vacío = no se cambia. '
+            'En la referencia admite una expresión Python; aquí es dato, '
+            'no se evalúa.'
+        ),
     )
     attachment_use = fields.Boolean(
-        default=False, verbose_name='Recargar desde el adjunto',
-        help_text='Marcado, imprimir dos veces con el mismo nombre de adjunto '
-                  'devuelve el reporte anterior en vez de regenerarlo.',
+        default=False,
+        verbose_name='Recargar desde el adjunto',
+        help_text=(
+            'Marcado, imprimir dos veces con el mismo nombre de adjunto '
+            'devuelve el reporte anterior en vez de regenerarlo.'
+        ),
     )
     attachment = fields.Char(
-        max_length=255, blank=True, default='',
+        max_length=255,
+        blank=True,
+        default='',
         verbose_name='Prefijo del adjunto guardado',
-        help_text='Nombre del adjunto donde se guarda el resultado. Vacío = no '
-                  'se guarda. Expresión Python en la referencia; aquí es dato.',
+        help_text=(
+            'Nombre del adjunto donde se guarda el resultado. Vacío = no '
+            'se guarda. Expresión Python en la referencia; aquí es dato.'
+        ),
     )
     domain = fields.Char(
-        max_length=1024, blank=True, default='',
+        max_length=1024,
+        blank=True,
+        default='',
         verbose_name='Dominio de filtrado',
-        help_text='Con valor, la acción sólo aparece en los registros que lo '
-                  'cumplen. Este archivo NO lo evalúa.',
+        help_text=(
+            'Con valor, la acción sólo aparece en los registros que lo '
+            'cumplen. Este archivo NO lo evalúa.'
+        ),
     )
 
     class Meta:
@@ -550,7 +620,9 @@ class IrActionsReport(IrActionsBase):
             return NotImplemented
         rows = IrModel.objects.none()
         if isinstance(value, str):
-            rows = cls._models_matching(Domain('display_name', operator, value))
+            rows = cls._models_matching(
+                Domain('display_name', operator, value)
+            )
         elif isinstance(value, Domain):
             rows = cls._models_matching(value)
         elif operator == 'any!':
@@ -559,13 +631,20 @@ class IrActionsReport(IrActionsBase):
         elif operator == 'any' or isinstance(value, int):
             rows = cls._models_matching(Domain('id', operator, value))
         elif operator == 'in':
-            rows = cls._models_matching(Domain.OR(
-                Domain('id' if isinstance(item, int) else 'display_name',
-                       operator, item)
-                for item in value
-                if item
-            ))
-        return Domain('model', 'in', list(rows.values_list('model', flat=True)))
+            rows = cls._models_matching(
+                Domain.OR(
+                    Domain(
+                        'id' if isinstance(item, int) else 'display_name',
+                        operator,
+                        item,
+                    )
+                    for item in value
+                    if item
+                )
+            )
+        return Domain(
+            'model', 'in', list(rows.values_list('model', flat=True))
+        )
 
     @staticmethod
     def _models_matching(domain):
@@ -595,8 +674,11 @@ class IrActionsReport(IrActionsBase):
         una extensión encuentra el punto que espera.
         """
         return super()._get_readable_fields() | {
-            'report_name', 'report_type', 'target',
-            'context', 'data',
+            'report_name',
+            'report_type',
+            'target',
+            'context',
+            'data',
             'close_on_report_download',
             'domain',
         }
@@ -609,8 +691,9 @@ class IrActionsReport(IrActionsBase):
         """
         self.binding_model_name = self.model
         self.binding_type = BINDING_TYPE_REPORT
-        self.save(update_fields=['binding_model_name', 'binding_type',
-                                 'updated_at'])
+        self.save(
+            update_fields=['binding_model_name', 'binding_type', 'updated_at']
+        )
 
     def unlink_action(self):
         """``unlink_action`` — quita el anclaje sin borrar el reporte."""
@@ -629,8 +712,9 @@ class IrActionsReport(IrActionsBase):
         Devuelve ``False`` si no hay acción resuelta o si el ``report_name``
         no lleva punto — las dos guardas de la fuente, verbatim.
         """
-        action_ref = IrModelData.ref('base.action_ui_view',
-                                     raise_if_not_found=False)
+        action_ref = IrModelData.ref(
+            'base.action_ui_view', raise_if_not_found=False
+        )
         if not action_ref or len(self.report_name.split('.')) < 2:
             return False
         action_data = action_ref._get_action_dict()
@@ -668,7 +752,9 @@ class IrActionsReport(IrActionsBase):
         """
         if not xml_id:
             company = get_current_company()
-            return getattr(company, 'paperformat_id', None) if company else None
+            return (
+                getattr(company, 'paperformat_id', None) if company else None
+            )
         return IrModelData.ref(xml_id).get_paperformat()
 
     # --- Plantilla y URL --------------------------------------------------
@@ -679,8 +765,7 @@ class IrActionsReport(IrActionsBase):
         ≙ ``_get_layout`` (``:294-295``):
         ``self.env.ref('web.minimal_layout', raise_if_not_found=False)``.
         """
-        return IrModelData.ref('web.minimal_layout',
-                               raise_if_not_found=False)
+        return IrModelData.ref('web.minimal_layout', raise_if_not_found=False)
 
     def _get_report_url(self, layout=None):
         """La raíz desde la que el motor resuelve los recursos del documento.
@@ -697,8 +782,9 @@ class IrActionsReport(IrActionsBase):
         mecanismo.
         """
         report_url = SystemParameter.get_param('report.url')
-        return report_url or (
-            layout or self._get_layout() or self).get_base_url()
+        return (
+            report_url or (layout or self._get_layout() or self).get_base_url()
+        )
 
     # --- Adjunto ----------------------------------------------------------
 
@@ -721,9 +807,11 @@ class IrActionsReport(IrActionsBase):
         (``search(..., limit=1)``); aquí es la instancia o ``None``, que es la
         forma que toma un ``limit=1`` con este ORM.
         """
-        attachment_name = safe_eval(
-            self.attachment, {'object': record, 'time': time}
-        ) if self.attachment else ''
+        attachment_name = (
+            safe_eval(self.attachment, {'object': record, 'time': time})
+            if self.attachment
+            else ''
+        )
         if not attachment_name:
             return None
         return IrAttachment.objects.filter(
@@ -753,7 +841,9 @@ class IrActionsReport(IrActionsBase):
                 except (ValidationError, RequestException) as error:
                     _logger.error(
                         'Failed to migrate attachment %s to local: %s',
-                        attachment.pk, error)
+                        attachment.pk,
+                        error,
+                    )
         return [a for a in attachments if not a._is_remote_source()]
 
     # --- Búsqueda ---------------------------------------------------------
@@ -794,7 +884,8 @@ class IrActionsReport(IrActionsBase):
                 if not isinstance(report_ref, cls):
                     raise ValueError(
                         'Expected report of type %s, got %s'
-                        % (cls._name, type(report_ref).__name__))
+                        % (cls._name, type(report_ref).__name__)
+                    )
                 return report_ref
             report = cls.objects.filter(report_name=report_ref).first()
             if report:
@@ -804,10 +895,12 @@ class IrActionsReport(IrActionsBase):
                 if not isinstance(report, cls):
                     raise ValueError(
                         'Fetching report %r: type %s, expected %s'
-                        % (report_ref, type(report).__name__, cls._name))
+                        % (report_ref, type(report).__name__, cls._name)
+                    )
                 return report
-            raise ValueError('Fetching report %r: report not found'
-                             % report_ref)
+            raise ValueError(
+                'Fetching report %r: report not found' % report_ref
+            )
 
     @classmethod
     def get_valid_action_reports(cls, model, record_ids):
@@ -828,8 +921,11 @@ class IrActionsReport(IrActionsBase):
         de la fuente.
         """
         model_cls = registry.model_by_name(model)
-        records = (list(model_cls.objects.filter(pk__in=record_ids))
-                   if model_cls else [])
+        records = (
+            list(model_cls.objects.filter(pk__in=record_ids))
+            if model_cls
+            else []
+        )
         reports = list(cls.objects.filter(model=model))
         with_domain = [r for r in reports if r.domain]
         valid_action_report_ids = [r.pk for r in reports if not r.domain]
@@ -857,7 +953,8 @@ class IrActionsReport(IrActionsBase):
         group_ids = {getattr(group, 'pk', group) for group in groups}
         applicable = []
         for report in cls.objects.filter(model=model_name).prefetch_related(
-                'group_ids'):
+            'group_ids'
+        ):
             declared = set(report.group_ids.values_list('pk', flat=True))
             if not declared or (declared & group_ids):
                 applicable.append(report)
@@ -919,17 +1016,25 @@ class IrActionsReport(IrActionsBase):
             # El QR admite cuatro niveles de corrección de error, y el dibujo
             # cambia con cada uno. Ver https://en.wikipedia.org/wiki/QR_code
             # Nivel 'L' — hasta 7 % de daño   (por defecto)
-            # Nivel 'M' — hasta 15 %          (lo exige la factura QR de l10n_ch)
+            # Nivel 'M' — hasta 15 %          (lo exige la factura QR de
+            # l10n_ch)
             # Nivel 'Q' — hasta 25 %
             # Nivel 'H' — hasta 30 %
-            'barLevel': ('L', lambda x: x in ('L', 'M', 'Q', 'H') and x or 'L'),
+            'barLevel': (
+                'L',
+                lambda x: x in ('L', 'M', 'Q', 'H') and x or 'L',
+            ),
         }
-        kwargs = {key: validator(kwargs.get(key, value))
-                  for key, (value, validator) in defaults.items()}
+        kwargs = {
+            key: validator(kwargs.get(key, value))
+            for key, (value, validator) in defaults.items()
+        }
         kwargs['humanReadable'] = kwargs.pop('humanreadable')
 
-        if (kwargs['width'] * kwargs['height'] > 1200000
-                or max(kwargs['width'], kwargs['height']) > 10000):
+        if (
+            kwargs['width'] * kwargs['height'] > 1200000
+            or max(kwargs['width'], kwargs['height']) > 10000
+        ):
             raise ValueError("Barcode too large")
 
         if barcode_type == 'UPCA' and len(value) in (11, 12, 13):
@@ -946,8 +1051,9 @@ class IrActionsReport(IrActionsBase):
             if not kwargs['quiet']:
                 kwargs['barBorder'] = 0
 
-        if (barcode_type in ('EAN8', 'EAN13')
-                and not check_barcode_encoding(value, barcode_type)):
+        if barcode_type in ('EAN8', 'EAN13') and not check_barcode_encoding(
+            value, barcode_type
+        ):
             # Si el valor no respeta la codificación, el dibujante calcularía
             # el dígito verificador y devolvería un código distinto del
             # pedido: un EAN-8 de 11111111 saldría como 11111115.
@@ -955,11 +1061,15 @@ class IrActionsReport(IrActionsBase):
 
         try:
             image = render_barcode_image(
-                barcode_type, value,
-                width=kwargs['width'], height=kwargs['height'],
+                barcode_type,
+                value,
+                width=kwargs['width'],
+                height=kwargs['height'],
                 human_readable=kwargs['humanReadable'],
-                quiet=kwargs['quiet'], bar_border=kwargs['barBorder'],
-                bar_level=kwargs['barLevel'])
+                quiet=kwargs['quiet'],
+                bar_border=kwargs['barBorder'],
+                bar_level=kwargs['barLevel'],
+            )
 
             # Si se pide una máscara y está registrada, su función
             # post-procesa la imagen del código ya dibujado.
@@ -1042,16 +1152,21 @@ class IrActionsReport(IrActionsBase):
 
         discard_logo_check = get_context().get('discard_logo_check')
         company = get_current_company()
-        if (is_system()
-                and not getattr(company, 'external_report_layout_id', None)
-                and config and not discard_logo_check):
+        if (
+            is_system()
+            and not getattr(company, 'external_report_layout_id', None)
+            and config
+            and not discard_logo_check
+        ):
             return self._action_configure_external_report_layout(report_action)
 
         return report_action
 
     def _action_configure_external_report_layout(
-            self, report_action,
-            xml_id='web.action_base_document_layout_configurator'):
+        self,
+        report_action,
+        xml_id='web.action_base_document_layout_configurator',
+    ):
         """Envuelve la acción del reporte en la del configurador de plantilla.
 
         ≙ ``_action_configure_external_report_layout`` (``:1187-1193``). La
@@ -1091,9 +1206,16 @@ class IrActionsReport(IrActionsBase):
         interpretar; el filtro lo excluye en la resolución en vez de dejarlo
         fallar dentro del intérprete con un mensaje que no nombra la causa.
         """
-        return IrUiView.objects.filter(
-            key=key, type=VIEW_TYPE_TEMPLATE, active=True, mode='primary',
-        ).order_by('priority', 'id').first()
+        return (
+            IrUiView.objects.filter(
+                key=key,
+                type=VIEW_TYPE_TEMPLATE,
+                active=True,
+                mode='primary',
+            )
+            .order_by('priority', 'id')
+            .first()
+        )
 
     @classmethod
     def _resolve_template_key(cls, key):
@@ -1126,7 +1248,8 @@ class IrActionsReport(IrActionsBase):
         fuente devuelve la representación HTML que produce
         ``ir.ui.view._render_template``; aquí ese papel lo cumple el
         **descriptor**, que ``report_template.interpret_descriptor`` obtiene
-        del mismo sitio: una vista ``type='template'`` resuelta por su clave, con
+        del mismo sitio: una vista ``type='template'`` resuelta por su clave,
+        con
         el arch ya combinado. Cambia la forma del intermedio, no el paso: sigue
         siendo composición separada de la conversión, que es la razón por la
         que la fuente tiene un motor y N documentos.
@@ -1135,7 +1258,8 @@ class IrActionsReport(IrActionsBase):
         registros en un solo HTML —``t-foreach="docs"`` escribe un ``div`` con
         ``data-oe-id`` por cada uno— y ``_prepare_html`` lo parte después. Aquí
         el arch se interpreta **una vez por registro**, con ``docs`` ligado a
-        ese registro, y el intermedio es ``{'bodies': [...], 'html_ids': [...]}``:
+        ese registro, y el intermedio es ``{'bodies': [...], 'html_ids':
+        [...]}``:
         la misma pareja que ``_prepare_html`` devuelve, obtenida antes en la
         cadena. El vocabulario de nuestras plantillas nombra ``docs`` en
         singular (``{{ docs.order_number }}``, no un bucle), así que la
@@ -1145,7 +1269,8 @@ class IrActionsReport(IrActionsBase):
         Las cinco variables que la fuente inyecta se inyectan aquí, con el
         mismo nombre — son el contrato de lo que una plantilla puede nombrar:
         ``time``, ``context_timestamp``, ``user``, ``res_company`` y
-        ``web_base_url``. ``time`` es el módulo envuelto de ``tools.safe_eval``,
+        ``web_base_url``. ``time`` es el módulo envuelto de
+        ``tools.safe_eval``,
         el mismo que la fuente expone.
         """
         if values is None:
@@ -1156,7 +1281,8 @@ class IrActionsReport(IrActionsBase):
         values.update(
             time=time,
             context_timestamp=lambda moment: Datetime.context_timestamp(
-                self, moment),
+                self, moment
+            ),
             user=user,
             res_company=company,
             web_base_url=SystemParameter.get_param('web.base.url', default=''),
@@ -1175,8 +1301,9 @@ class IrActionsReport(IrActionsBase):
         if view is None and spec is None:
             raise UnknownReport(
                 f'{template!r} no tiene plantilla: ninguna vista qweb '
-                f'primaria activa declara esa clave, y ningún addon '
-                f'instalado lo declara en su catálogo')
+                'primaria activa declara esa clave, y ningún addon '
+                'instalado lo declara en su catálogo'
+            )
 
         docs = values.get('docs')
         if isinstance(docs, (list, tuple)):
@@ -1191,8 +1318,11 @@ class IrActionsReport(IrActionsBase):
         for record in records or [None]:
             context = dict(values, docs=record, report=self)
             if arch is not None:
-                bodies.append(report_template.interpret_descriptor(
-                    arch, context, resolve_key=self._resolve_template_key))
+                bodies.append(
+                    report_template.interpret_descriptor(
+                        arch, context, resolve_key=self._resolve_template_key
+                    )
+                )
             else:
                 bodies.append(spec.builder(record, **context))
             html_ids.append(getattr(record, 'pk', None))
@@ -1230,13 +1360,18 @@ class IrActionsReport(IrActionsBase):
             data.update(report_model._get_report_values(docids, data=data))
         else:
             model_cls = _model_class(report.model)
-            docs = (list(model_cls.objects.filter(pk__in=docids or []))
-                    if model_cls else [])
-            data.update({
-                'doc_ids': docids,
-                'doc_model': report.model,
-                'docs': docs,
-            })
+            docs = (
+                list(model_cls.objects.filter(pk__in=docids or []))
+                if model_cls
+                else []
+            )
+            data.update(
+                {
+                    'doc_ids': docids,
+                    'doc_model': report.model,
+                    'docs': docs,
+                }
+            )
         data['is_html_empty'] = is_html_empty
         return data
 
@@ -1288,8 +1423,10 @@ class IrActionsReport(IrActionsBase):
         report = self._get_report(report_ref)
         data = self._get_rendering_context(report, docids, data)
         rendered = report._render_template(report.report_name, data)
-        return (report_template.descriptor_to_html(rendered, model=report.model),
-                'html')
+        return (
+            report_template.descriptor_to_html(rendered, model=report.model),
+            'html',
+        )
 
     @classmethod
     def _render(cls, report_ref, res_ids, data=None):
@@ -1349,8 +1486,9 @@ class IrActionsReport(IrActionsBase):
         conversión es un ``subprocess`` propio (ADR-017), sin pool que quedarse
         corto.
         """
-        faltantes = [h for h in report_catalog.HELPERS
-                     if not (HELPER_DIR / h).exists()]
+        faltantes = [
+            h for h in report_catalog.HELPERS if not (HELPER_DIR / h).exists()
+        ]
         if len(faltantes) == len(report_catalog.HELPERS):
             return 'install'
         if faltantes:
@@ -1358,11 +1496,12 @@ class IrActionsReport(IrActionsBase):
         return 'ok'
 
     def _build_wkhtmltopdf_args(
-            self,
-            paperformat_id,
-            landscape,
-            specific_paperformat_args=None,
-            set_viewport_size=False):
+        self,
+        paperformat_id,
+        landscape,
+        specific_paperformat_args=None,
+        set_viewport_size=False,
+    ):
         """Resuelve los ajustes de papel con que se dibujará el documento.
 
         ≙ ``_build_wkhtmltopdf_args`` (``:302-380``), con su nombre, su firma
@@ -1402,61 +1541,87 @@ class IrActionsReport(IrActionsBase):
           Aquí el aislamiento del helper lo fija ADR-017 en el propio
           ``subprocess``, no en un argumento que el documento pueda tocar.
         """
-        if (landscape is None and specific_paperformat_args
-                and specific_paperformat_args.get('data-report-landscape')):
+        if (
+            landscape is None
+            and specific_paperformat_args
+            and specific_paperformat_args.get('data-report-landscape')
+        ):
             landscape = specific_paperformat_args.get('data-report-landscape')
 
         command_args = {}
         if set_viewport_size:
             command_args['viewport_size'] = (
-                landscape and '1024x1280' or '1280x1024')
+                landscape and '1024x1280' or '1280x1024'
+            )
 
         if paperformat_id:
             if paperformat_id.format and paperformat_id.format != 'custom':
                 command_args['page_size'] = paperformat_id.format
 
-            if (paperformat_id.page_height and paperformat_id.page_width
-                    and paperformat_id.format == 'custom'):
-                command_args['page_width'] = str(paperformat_id.page_width) + 'mm'
-                command_args['page_height'] = str(paperformat_id.page_height) + 'mm'
+            if (
+                paperformat_id.page_height
+                and paperformat_id.page_width
+                and paperformat_id.format == 'custom'
+            ):
+                command_args['page_width'] = (
+                    str(paperformat_id.page_width) + 'mm'
+                )
+                command_args['page_height'] = (
+                    str(paperformat_id.page_height) + 'mm'
+                )
 
-            if (specific_paperformat_args
-                    and 'data-report-margin-top' in specific_paperformat_args):
+            if (
+                specific_paperformat_args
+                and 'data-report-margin-top' in specific_paperformat_args
+            ):
                 command_args['margin_top'] = str(
-                    specific_paperformat_args['data-report-margin-top'])
+                    specific_paperformat_args['data-report-margin-top']
+                )
             else:
                 command_args['margin_top'] = str(paperformat_id.margin_top)
 
             dpi = None
-            if (specific_paperformat_args
-                    and specific_paperformat_args.get('data-report-dpi')):
+            if specific_paperformat_args and specific_paperformat_args.get(
+                'data-report-dpi'
+            ):
                 dpi = int(specific_paperformat_args['data-report-dpi'])
             elif paperformat_id.dpi:
                 if os.name == 'nt' and int(paperformat_id.dpi) <= 95:
-                    _logger.info("Generating PDF on Windows platform require "
-                                 "DPI >= 96. Using 96 instead.")
+                    _logger.info(
+                        "Generating PDF on Windows platform require "
+                        "DPI >= 96. Using 96 instead."
+                    )
                     dpi = 96
                 else:
                     dpi = paperformat_id.dpi
             if dpi:
                 command_args['dpi'] = str(dpi)
 
-            if (specific_paperformat_args
-                    and 'data-report-header-spacing' in specific_paperformat_args):
+            if (
+                specific_paperformat_args
+                and 'data-report-header-spacing' in specific_paperformat_args
+            ):
                 command_args['header_spacing'] = str(
-                    specific_paperformat_args['data-report-header-spacing'])
+                    specific_paperformat_args['data-report-header-spacing']
+                )
             elif paperformat_id.header_spacing:
                 command_args['header_spacing'] = str(
-                    paperformat_id.header_spacing)
+                    paperformat_id.header_spacing
+                )
 
             command_args['margin_left'] = str(paperformat_id.margin_left)
 
-            if (specific_paperformat_args
-                    and 'data-report-margin-bottom' in specific_paperformat_args):
+            if (
+                specific_paperformat_args
+                and 'data-report-margin-bottom' in specific_paperformat_args
+            ):
                 command_args['margin_bottom'] = str(
-                    specific_paperformat_args['data-report-margin-bottom'])
+                    specific_paperformat_args['data-report-margin-bottom']
+                )
             else:
-                command_args['margin_bottom'] = str(paperformat_id.margin_bottom)
+                command_args['margin_bottom'] = str(
+                    paperformat_id.margin_bottom
+                )
 
             command_args['margin_right'] = str(paperformat_id.margin_right)
             if not landscape and paperformat_id.orientation:
@@ -1468,7 +1633,8 @@ class IrActionsReport(IrActionsBase):
 
         # Margen de tiempo para que la página termine de dibujarse.
         command_args['javascript_delay'] = SystemParameter.get_param(
-            'report.print_delay', default='1000')
+            'report.print_delay', default='1000'
+        )
 
         if landscape:
             command_args['orientation'] = 'landscape'
@@ -1498,7 +1664,8 @@ class IrActionsReport(IrActionsBase):
         if isinstance(html, dict):
             bodies = html.get('bodies') or [html]
             html_ids = html.get('html_ids') or [
-                body.get('res_id') for body in bodies]
+                body.get('res_id') for body in bodies
+            ]
             header = html.get('header')
             footer = html.get('footer')
             specific_paperformat_args = html.get('paperformat') or {}
@@ -1543,7 +1710,8 @@ class IrActionsReport(IrActionsBase):
         # ``landscape=True`` fuerza apaisado aunque el formato diga vertical.
         resolved = (args or {}).get('orientation', paperformat.orientation)
         if (str(resolved).lower() == 'landscape') != (
-                paperformat.orientation == ORIENTATION_LANDSCAPE):
+            paperformat.orientation == ORIENTATION_LANDSCAPE
+        ):
             width, height = height, width
 
         geometry = {'page_width_mm': width, 'page_height_mm': height}
@@ -1553,10 +1721,16 @@ class IrActionsReport(IrActionsBase):
                 geometry[f'{key}_mm'] = args[key]
         return geometry
 
-    def _run_wkhtmltopdf(self, bodies, report_ref=False, header=None,
-                         footer=None, landscape=False,
-                         specific_paperformat_args=None,
-                         set_viewport_size=False):
+    def _run_wkhtmltopdf(
+        self,
+        bodies,
+        report_ref=False,
+        header=None,
+        footer=None,
+        landscape=False,
+        specific_paperformat_args=None,
+        set_viewport_size=False,
+    ):
         """Convierte los cuerpos ya compuestos en un PDF.
 
         ≙ ``_run_wkhtmltopdf`` (``:513-647``), con su firma completa.
@@ -1574,20 +1748,25 @@ class IrActionsReport(IrActionsBase):
         report = self._get_report(report_ref) if report_ref else self
         paperformat = report.get_paperformat()
         args = self._build_wkhtmltopdf_args(
-            paperformat, landscape,
+            paperformat,
+            landscape,
             specific_paperformat_args=specific_paperformat_args,
-            set_viewport_size=set_viewport_size)
+            set_viewport_size=set_viewport_size,
+        )
         paper = dict(args, **self._paperformat_geometry(paperformat, args))
 
         spec = report_catalog.get(report.report_name)
         if spec is None:
             raise UnknownReport(
                 f'{report.report_name!r} no está declarado por ningún addon '
-                f'instalado')
+                'instalado'
+            )
 
         pieces = []
         for body in bodies:
-            descriptor = dict(body) if isinstance(body, dict) else {'body': body}
+            descriptor = (
+                dict(body) if isinstance(body, dict) else {'body': body}
+            )
             if header is not None:
                 descriptor.setdefault('header', header)
             if footer is not None:
@@ -1597,7 +1776,9 @@ class IrActionsReport(IrActionsBase):
             pieces.append(run_helper(spec.helper, descriptor))
         if len(pieces) == 1:
             return pieces[0]
-        with self._merge_pdfs([io.BytesIO(piece) for piece in pieces]) as merged:
+        with self._merge_pdfs(
+            [io.BytesIO(piece) for piece in pieces]
+        ) as merged:
             return merged.getvalue()
 
     def _run_wkhtmltoimage(self, bodies, width, height, image_format='jpg'):
@@ -1641,14 +1822,21 @@ class IrActionsReport(IrActionsBase):
         """
         # Se valida antes del recorrido para que el formato desconocido aborte
         # la tanda entera y no se confunda con el fallo de un cuerpo suelto.
-        report_template.descriptor_to_image({}, 1, 1, image_format=image_format)
+        report_template.descriptor_to_image(
+            {}, 1, 1, image_format=image_format
+        )
 
         images = []
         for body in bodies:
-            descriptor = dict(body) if isinstance(body, dict) else {'body': body}
+            descriptor = (
+                dict(body) if isinstance(body, dict) else {'body': body}
+            )
             try:
-                images.append(report_template.descriptor_to_image(
-                    descriptor, width, height, image_format=image_format))
+                images.append(
+                    report_template.descriptor_to_image(
+                        descriptor, width, height, image_format=image_format
+                    )
+                )
             except Exception as error:
                 _logger.warning('El raster del descriptor falló: %s', error)
                 images.append(None)
@@ -1692,11 +1880,16 @@ class IrActionsReport(IrActionsBase):
             try:
                 stream.seek(0)
                 writer.appendPagesFromReader(PdfFileReader(stream))
-            except (PdfReadError, TypeError, NotImplementedError,
-                    ValueError) as error:
+            except (
+                PdfReadError,
+                TypeError,
+                NotImplementedError,
+                ValueError,
+            ) as error:
                 if handle_error is None:
-                    cls._handle_merge_pdfs_error(cls, error=error,
-                                                 error_stream=stream)
+                    cls._handle_merge_pdfs_error(
+                        cls, error=error, error_stream=stream
+                    )
                 else:
                     handle_error(error=error, error_stream=stream)
         result_stream = io.BytesIO()
@@ -1749,8 +1942,11 @@ class IrActionsReport(IrActionsBase):
         no_attachment = get_context().get('report_pdf_no_attachment')
         if res_ids:
             model_cls = _model_class(report_sudo.model)
-            records = (list(model_cls.objects.filter(pk__in=res_ids))
-                       if model_cls else [])
+            records = (
+                list(model_cls.objects.filter(pk__in=res_ids))
+                if model_cls
+                else []
+            )
             for record in records:
                 res_id = record.pk
                 if res_id in collected_streams:
@@ -1758,8 +1954,11 @@ class IrActionsReport(IrActionsBase):
 
                 stream = None
                 attachment = None
-                if (not has_duplicated_ids and report_sudo.attachment
-                        and not no_attachment):
+                if (
+                    not has_duplicated_ids
+                    and report_sudo.attachment
+                    and not no_attachment
+                ):
                     attachment = report_sudo.retrieve_attachment(record)
 
                     if attachment and report_sudo.attachment_use:
@@ -1770,18 +1969,22 @@ class IrActionsReport(IrActionsBase):
                     'attachment': attachment,
                 }
 
-        res_ids_wo_stream = [res_id
-                             for res_id, stream_data in collected_streams.items()
-                             if not stream_data['stream']]
-        all_res_ids_wo_stream = (res_ids if has_duplicated_ids
-                                 else res_ids_wo_stream)
+        res_ids_wo_stream = [
+            res_id
+            for res_id, stream_data in collected_streams.items()
+            if not stream_data['stream']
+        ]
+        all_res_ids_wo_stream = (
+            res_ids if has_duplicated_ids else res_ids_wo_stream
+        )
         is_conversion_needed = not res_ids or res_ids_wo_stream
 
         if is_conversion_needed:
             if self.get_wkhtmltopdf_state() == 'install':
                 raise UserError(
                     'Unable to find the PDF helpers on this system. '
-                    'The PDF can not be created.')
+                    'The PDF can not be created.'
+                )
 
             data.setdefault('debug', False)
 
@@ -1794,28 +1997,41 @@ class IrActionsReport(IrActionsBase):
             # ``_render_qweb_html`` hace antes de serializar.
             data.setdefault('report_type', 'pdf')
             rendering_data = report_sudo._get_rendering_context(
-                report_sudo, all_res_ids_wo_stream, data)
+                report_sudo, all_res_ids_wo_stream, data
+            )
             rendered = report_sudo._render_template(
-                report_sudo.report_name, rendering_data)
+                report_sudo.report_name, rendering_data
+            )
 
-            (bodies, html_ids, header, footer,
-             specific_paperformat_args) = report_sudo._prepare_html(
-                rendered, report_model=report_sudo.model)
+            (bodies, html_ids, header, footer, specific_paperformat_args) = (
+                report_sudo._prepare_html(
+                    rendered, report_model=report_sudo.model
+                )
+            )
 
-            if (not has_duplicated_ids and report_sudo.attachment
-                    and set(res_ids_wo_stream) != set(html_ids)):
+            if (
+                not has_duplicated_ids
+                and report_sudo.attachment
+                and set(res_ids_wo_stream) != set(html_ids)
+            ):
                 raise UserError(
                     'Report template “%s” has an issue, please contact your '
                     'administrator. \n\nCannot separate file to save as '
                     'attachment because the report\'s template does not '
-                    'identify each record.' % report_sudo.name)
+                    'identify each record.'
+                    % report_sudo.name
+                )
 
             if has_duplicated_ids or not res_ids:
                 pdf_content = report_sudo._run_wkhtmltopdf(
-                    bodies, report_ref=report_ref, header=header,
-                    footer=footer, landscape=get_context().get('landscape'),
+                    bodies,
+                    report_ref=report_ref,
+                    header=header,
+                    footer=footer,
+                    landscape=get_context().get('landscape'),
                     specific_paperformat_args=specific_paperformat_args,
-                    set_viewport_size=get_context().get('set_viewport_size'))
+                    set_viewport_size=get_context().get('set_viewport_size'),
+                )
                 return {
                     False: {
                         'stream': io.BytesIO(pdf_content),
@@ -1825,13 +2041,18 @@ class IrActionsReport(IrActionsBase):
 
             for body, html_id in zip(bodies, html_ids):
                 pdf_content = report_sudo._run_wkhtmltopdf(
-                    [body], report_ref=report_ref, header=header,
-                    footer=footer, landscape=get_context().get('landscape'),
+                    [body],
+                    report_ref=report_ref,
+                    header=header,
+                    footer=footer,
+                    landscape=get_context().get('landscape'),
                     specific_paperformat_args=specific_paperformat_args,
-                    set_viewport_size=get_context().get('set_viewport_size'))
+                    set_viewport_size=get_context().get('set_viewport_size'),
+                )
                 if html_id in collected_streams:
                     collected_streams[html_id]['stream'] = io.BytesIO(
-                        pdf_content)
+                        pdf_content
+                    )
                 else:
                     collected_streams[False] = {
                         'stream': io.BytesIO(pdf_content),
@@ -1859,28 +2080,35 @@ class IrActionsReport(IrActionsBase):
             if not res_id or not stream_data['stream']:
                 _logger.warning(
                     'These documents were not saved as an attachment because '
-                    "the template of %s doesn't identify each record. If you "
+                    'the template of %s doesn\'t identify each record. If you '
                     'want it saved, please print the documents separately',
-                    report.report_name)
+                    report.report_name,
+                )
                 continue
             model_cls = _model_class(report.model)
-            record = (model_cls.objects.filter(pk=res_id).first()
-                      if model_cls else None)
+            record = (
+                model_cls.objects.filter(pk=res_id).first()
+                if model_cls
+                else None
+            )
             if record is None:
                 continue
             attachment_name = safe_eval(
-                report.attachment, {'object': record, 'time': time})
+                report.attachment, {'object': record, 'time': time}
+            )
 
             if not attachment_name:
                 continue
 
-            attachment_vals_list.append({
-                'name': attachment_name,
-                'raw': stream_data['stream'].getvalue(),
-                'res_model': report.model,
-                'res_id': record.pk,
-                'type': 'binary',
-            })
+            attachment_vals_list.append(
+                {
+                    'name': attachment_name,
+                    'raw': stream_data['stream'].getvalue(),
+                    'res_model': report.model,
+                    'res_id': record.pk,
+                    'type': 'binary',
+                }
+            )
         return attachment_vals_list
 
     def _pre_render_qweb_pdf(self, report_ref, res_ids=None, data=None):
@@ -1899,12 +2127,17 @@ class IrActionsReport(IrActionsBase):
         if isinstance(res_ids, int):
             res_ids = [res_ids]
         data.setdefault('report_type', 'pdf')
-        if (self.get_wkhtmltopdf_state() != 'ok'
-                and not get_context().get('force_report_rendering')):
+        if self.get_wkhtmltopdf_state() != 'ok' and not get_context().get(
+            'force_report_rendering'
+        ):
             return self._render_qweb_html(report_ref, res_ids, data=data)
 
-        return (self._render_qweb_pdf_prepare_streams(
-            report_ref, data, res_ids=res_ids), 'pdf')
+        return (
+            self._render_qweb_pdf_prepare_streams(
+                report_ref, data, res_ids=res_ids
+            ),
+            'pdf',
+        )
 
     def _render_qweb_pdf(self, report_ref, res_ids=None, data=None):
         """El documento en PDF, con sus adjuntos guardados.
@@ -1924,7 +2157,8 @@ class IrActionsReport(IrActionsBase):
         data.setdefault('report_type', 'pdf')
 
         collected_streams, report_type = self._pre_render_qweb_pdf(
-            report_ref, res_ids=res_ids, data=data)
+            report_ref, res_ids=res_ids, data=data
+        )
         if report_type != 'pdf':
             return collected_streams, report_type
 
@@ -1932,29 +2166,43 @@ class IrActionsReport(IrActionsBase):
 
         report_sudo = self._get_report(report_ref)
 
-        if (not has_duplicated_ids and report_sudo.attachment
-                and not get_context().get('report_pdf_no_attachment')):
-            attachment_vals_list = self._prepare_pdf_report_attachment_vals_list(
-                report_sudo, collected_streams)
+        if (
+            not has_duplicated_ids
+            and report_sudo.attachment
+            and not get_context().get('report_pdf_no_attachment')
+        ):
+            attachment_vals_list = (
+                self._prepare_pdf_report_attachment_vals_list(
+                    report_sudo, collected_streams
+                )
+            )
             if attachment_vals_list:
                 attachment_names = ', '.join(
-                    x['name'] for x in attachment_vals_list)
+                    x['name'] for x in attachment_vals_list
+                )
                 try:
                     for vals in attachment_vals_list:
                         IrAttachment.objects.create(**vals)
                 except AccessError:
                     _logger.info(
                         'Cannot save PDF report %r attachments for user %r',
-                        attachment_names, get_current_user())
+                        attachment_names,
+                        get_current_user(),
+                    )
                 else:
                     _logger.info(
                         'The PDF documents %r are now saved in the database',
-                        attachment_names)
+                        attachment_names,
+                    )
 
-        stream_to_ids = {id(v['stream']): k
-                         for k, v in collected_streams.items() if v['stream']}
-        streams_to_merge = [v['stream'] for v in collected_streams.values()
-                            if v['stream']]
+        stream_to_ids = {
+            id(v['stream']): k
+            for k, v in collected_streams.items()
+            if v['stream']
+        }
+        streams_to_merge = [
+            v['stream'] for v in collected_streams.values() if v['stream']
+        ]
         error_record_ids = []
 
         def custom_handle_merge_pdfs_error(error, error_stream):
@@ -1964,8 +2212,8 @@ class IrActionsReport(IrActionsBase):
             pdf_content = streams_to_merge[0].getvalue()
         else:
             with self._merge_pdfs(
-                    streams_to_merge,
-                    custom_handle_merge_pdfs_error) as pdf_merged_stream:
+                streams_to_merge, custom_handle_merge_pdfs_error
+            ) as pdf_merged_stream:
                 pdf_content = pdf_merged_stream.getvalue()
 
         if error_record_ids:
@@ -1978,15 +2226,18 @@ class IrActionsReport(IrActionsBase):
             }
             num_errors = len(error_record_ids)
             if num_errors == 1:
-                action.update({
-                    'views': [(False, 'form')],
-                    'res_id': error_record_ids[0],
-                })
+                action.update(
+                    {
+                        'views': [(False, 'form')],
+                        'res_id': error_record_ids[0],
+                    }
+                )
             raise RedirectWarning(
                 'Unable to merge the generated PDFs because of %s corrupted '
                 'file(s)' % num_errors,
                 action,
-                'View Problematic Record(s)')
+                'View Problematic Record(s)',
+            )
 
         for stream in streams_to_merge:
             stream.close()
@@ -1994,7 +2245,9 @@ class IrActionsReport(IrActionsBase):
         if res_ids:
             _logger.info(
                 'The PDF report has been generated for model: %s, records %s.',
-                report_sudo.model, str(res_ids))
+                report_sudo.model,
+                str(res_ids),
+            )
 
         return pdf_content, 'pdf'
 

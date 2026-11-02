@@ -18,6 +18,7 @@ en la base y se comprueba que el metodo la devuelve al del campo. Un
 ``update_db_column`` que solo supiera crear columnas pasaria el resto de los
 casos igual.
 """
+
 import pytest
 from django.db import connection, models as django_models
 
@@ -85,7 +86,9 @@ class TestUpdateDb:
         assert field.update_db(model, _columns(cursor)) is False
         assert set(_columns(cursor)) == before
 
-    def test_nonstored_bank_name_is_absent_from_the_migrated_schema(self, fields, cursor):
+    def test_nonstored_bank_name_is_absent_from_the_migrated_schema(
+        self, fields, cursor
+    ):
         """Django gobierna este esquema; el campo conserva el tipo nativo."""
         field = fields['bank_name']
         assert field.store is False
@@ -93,11 +96,14 @@ class TestUpdateDb:
         assert field.column_type[0] == 'varchar'
         assert 'bank_name' not in _columns(cursor)
 
-    def test_an_existing_column_needs_no_recompute(self, model, fields, cursor):
+    def test_an_existing_column_needs_no_recompute(
+        self, model, fields, cursor
+    ):
         assert fields['note'].update_db(model, _columns(cursor)) is False
 
     def test_a_missing_column_is_created_and_asks_for_recompute(
-            self, model, fields, cursor):
+        self, model, fields, cursor
+    ):
         cursor.execute(f'ALTER TABLE {TABLE} DROP COLUMN note')
         assert 'note' not in _columns(cursor)
         assert fields['note'].update_db(model, _columns(cursor)) is True
@@ -106,7 +112,9 @@ class TestUpdateDb:
 
 class TestUpdateDbColumn:
 
-    def test_creates_the_column_with_the_field_type(self, model, fields, cursor):
+    def test_creates_the_column_with_the_field_type(
+        self, model, fields, cursor
+    ):
         cursor.execute(f'ALTER TABLE {TABLE} DROP COLUMN note')
         fields['note'].update_db_column(model, None)
         assert _columns(cursor)['note']['udt_name'] == 'text'
@@ -117,9 +125,12 @@ class TestUpdateDbColumn:
         assert _columns(cursor)['sequence']['udt_name'] == 'int4'
 
     def test_a_diverging_type_is_converted_back(self, model, fields, cursor):
-        """El control: la columna se lleva a otro tipo y el metodo la devuelve."""
+        """
+        El control: la columna se lleva a otro tipo y el metodo la devuelve.
+        """
         cursor.execute(
-            f'ALTER TABLE {TABLE} ALTER COLUMN sequence TYPE varchar')
+            f'ALTER TABLE {TABLE} ALTER COLUMN sequence TYPE varchar'
+        )
         column = _columns(cursor)['sequence']
         assert column['udt_name'] == 'varchar'
         fields['sequence'].update_db_column(model, column)
@@ -129,16 +140,19 @@ class TestUpdateDbColumn:
 class TestUpdateDbNotnull:
 
     def test_drops_not_null_when_the_field_is_not_required(
-            self, model, fields, cursor):
+        self, model, fields, cursor
+    ):
         assert _columns(cursor)['note']['is_nullable'] == 'NO'
         assert fields['note'].required is False
         fields['note'].update_db_notnull(model, _columns(cursor)['note'])
         assert _columns(cursor)['note']['is_nullable'] == 'YES'
 
     def test_a_required_field_defers_the_constraint_to_post_init(
-            self, model, fields, cursor, monkeypatch):
+        self, model, fields, cursor, monkeypatch
+    ):
         """La restriccion NO se aplica en el acto: se encola para el final de
-        ``init_models``, que es lo que la fuente hace con ``pool.post_init``."""
+        ``init_models``, que es lo que la fuente hace con ``pool.post_init``.
+        """
         cursor.execute(f'ALTER TABLE {TABLE} ALTER COLUMN note DROP NOT NULL')
         monkeypatch.setattr(fields['note'], 'required', True, raising=False)
 
@@ -157,7 +171,8 @@ class TestUpdateDbNotnull:
             registry._constraint_queue.clear()
 
     def test_a_new_column_gets_its_default_on_the_rows_that_exist(
-            self, model, fields, cursor):
+        self, model, fields, cursor
+    ):
         _bank_account(model, 'MX-0001')
         cursor.execute(f'ALTER TABLE {TABLE} DROP COLUMN note')
         cursor.execute(f'ALTER TABLE {TABLE} ADD COLUMN note text')
@@ -184,7 +199,8 @@ class TestTableHasRows:
 class TestInitColumn:
 
     def test_the_default_of_the_field_lands_on_the_null_rows(
-            self, model, fields, cursor):
+        self, model, fields, cursor
+    ):
         _bank_account(model, 'MX-0003')
         cursor.execute(f'ALTER TABLE {TABLE} ALTER COLUMN note DROP NOT NULL')
         cursor.execute(f'UPDATE {TABLE} SET note = NULL')
@@ -195,7 +211,8 @@ class TestInitColumn:
         assert cursor.fetchone()[0] == ''
 
     def test_a_field_without_default_leaves_the_column_alone(
-            self, model, fields, cursor):
+        self, model, fields, cursor
+    ):
         _bank_account(model, 'MX-0004')
         cursor.execute(f'ALTER TABLE {TABLE} ALTER COLUMN note DROP NOT NULL')
         cursor.execute(f'UPDATE {TABLE} SET note = NULL')
@@ -209,7 +226,8 @@ class TestInitColumn:
 class TestUpdateDbRelated:
 
     def test_the_column_is_filled_from_the_comodel_in_one_statement(
-            self, model, fields, cursor, monkeypatch):
+        self, model, fields, cursor, monkeypatch
+    ):
         """``acc_holder_name`` se declara related de ``bank.name`` y el metodo
         lo llena con un solo ``UPDATE ... FROM``, sin recorrer las filas."""
         bank_model = MODELS_BY_NAME['res.bank']
@@ -217,10 +235,12 @@ class TestUpdateDbRelated:
         _bank_account(model, 'MX-0005', bank=bank)
 
         target = model_field_registry(bank_model)['name']
-        monkeypatch.setattr(fields['acc_holder_name'], 'related', 'bank.name',
-                            raising=False)
-        monkeypatch.setattr(fields['acc_holder_name'], 'related_field', target,
-                            raising=False)
+        monkeypatch.setattr(
+            fields['acc_holder_name'], 'related', 'bank.name', raising=False
+        )
+        monkeypatch.setattr(
+            fields['acc_holder_name'], 'related_field', target, raising=False
+        )
 
         fields['acc_holder_name'].update_db_related(model)
 

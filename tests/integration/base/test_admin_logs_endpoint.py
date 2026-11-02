@@ -4,9 +4,11 @@ Verifican el endpoint DRF read-only del visor de logs:
 
 - lista ``IrLogging``, la unica fuente desde DEC-AF-11,
 - filtros: ``correlation_id``, ``level``, rango ``from``/``to``,
-- ``?source`` sigue validandose: ``applog`` pasa, cualquier otro valor —incluido
+- ``?source`` sigue validandose: ``applog`` pasa, cualquier otro valor
+  —incluido
   el ``requestlog`` que hasta ayer era el default— da 400,
-- acceso: sin la capacidad ``audit.view`` -> 403, anonimo -> 401/403 (FR-ADM-06.04),
+- acceso: sin la capacidad ``audit.view`` -> 403, anonimo -> 401/403
+  (FR-ADM-06.04),
 - append-only: POST/PUT/DELETE -> 405 (FR-ADM-06.03),
 - paginado.
 
@@ -22,6 +24,7 @@ El contrato JSON de salida (``logger_name``/``msg``) tampoco cambia: lo mapea
 
 Toca DB → ``django_db``.
 """
+
 import pytest
 from rest_framework.test import APIClient
 
@@ -41,10 +44,16 @@ def admin_client():
 
 
 def _seed_logs():
-    IrLogging.objects.create(name='apps.x', level='INFO', message='hola',
-                             correlation_id='c1')
-    IrLogging.objects.create(name='apps.x', level='ERROR', message='boom',
-                             correlation_id='c2', trace='Traceback...')
+    IrLogging.objects.create(
+        name='apps.x', level='INFO', message='hola', correlation_id='c1'
+    )
+    IrLogging.objects.create(
+        name='apps.x',
+        level='ERROR',
+        message='boom',
+        correlation_id='c2',
+        trace='Traceback...',
+    )
 
 
 def test_admin_lists_ir_logging(admin_client):
@@ -77,7 +86,9 @@ def test_filter_level(admin_client):
 
 
 def test_source_requestlog_now_400(admin_client):
-    """El vocabulario vigente se nombra; no se sirve la otra fuente en silencio."""
+    """
+    El vocabulario vigente se nombra; no se sirve la otra fuente en silencio.
+    """
     resp = admin_client.get(URL, {'source': 'requestlog'})
     assert resp.status_code == 400
     assert 'source' in resp.json()
@@ -109,8 +120,12 @@ def test_append_only_delete_405(admin_client):
 
 def test_pagination(admin_client):
     for i in range(30):
-        IrLogging.objects.create(name='apps.x', level='INFO', message=f'm{i}',
-                                 correlation_id=f'c{i}')
+        IrLogging.objects.create(
+            name='apps.x',
+            level='INFO',
+            message=f'm{i}',
+            correlation_id=f'c{i}',
+        )
     resp = admin_client.get(URL, {'page_size': 10, 'page': 2})
     body = resp.json()
     assert body['count'] == 30
@@ -122,8 +137,9 @@ def test_pagination(admin_client):
 def test_filter_from_to_range(admin_client):
     _seed_logs()
     # rango amplio → incluye ambos
-    wide = admin_client.get(URL, {'from': '2000-01-01T00:00:00',
-                                  'to': '2100-01-01T00:00:00'})
+    wide = admin_client.get(
+        URL, {'from': '2000-01-01T00:00:00', 'to': '2100-01-01T00:00:00'}
+    )
     assert wide.json()['count'] == 2
     # from en el futuro → ninguno (created_at < from)
     future = admin_client.get(URL, {'from': '2100-01-01T00:00:00'})

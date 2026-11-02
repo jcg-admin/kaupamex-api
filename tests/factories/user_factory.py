@@ -11,12 +11,15 @@ call-sites previos: ``username`` se ignora, ``email`` se enruta a ``login``, y
 ``first_name``/``last_name`` se concatenan en ``ResPartner.name`` (la
 referencia no separa nombre y apellido en el partner).
 """
+
 import factory
 from django.contrib.auth import get_user_model
 
 from addons.authz.models import Capability, Module, Role, RoleAssignment
 from addons.authz.services import (
-    BUYER_ROLE_CODE, SUPERADMIN_ROLE_CODE, assign_buyer_role,
+    BUYER_ROLE_CODE,
+    SUPERADMIN_ROLE_CODE,
+    assign_buyer_role,
     invalidate_capabilities,
 )
 from addons.base.authz_catalog import CAPABILITIES as _BASE_CAPS
@@ -35,23 +38,27 @@ def make_buyer(user):
     reflejando producción (ADR-020: todo usuario registrado y validado recibe
     ``comprador``). Siembra sólo el dominio ``account`` (idempotente) — no el
     catálogo admin — y asigna el rol. Reutilizable por conftest y por los tests
-    que crean usuarios ad-hoc (``other``/``attacker``) que en producción también
+    que crean usuarios ad-hoc (``other``/``attacker``) que en producción
+    también
     son compradores."""
     module, _ = Module.objects.get_or_create(
-        code='account', defaults={'name': 'Mi cuenta'},
+        code='account',
+        defaults={'name': 'Mi cuenta'},
     )
     caps = []
     for spec in _ACCOUNT_CAPS:
         cap, _ = Capability.objects.get_or_create(
             code=spec.code,
             defaults={
-                'module': module, 'name': spec.name,
+                'module': module,
+                'name': spec.name,
                 'is_sensitive': spec.is_sensitive,
             },
         )
         caps.append(cap)
     role, _ = Role.objects.get_or_create(
-        code=BUYER_ROLE_CODE, defaults={'name': 'Comprador'},
+        code=BUYER_ROLE_CODE,
+        defaults={'name': 'Comprador'},
     )
     role.capabilities.add(*caps)
     assign_buyer_role(user)
@@ -67,6 +74,7 @@ class UserFactory(factory.django.DjangoModelFactory):
         user = UserFactory(login='nestor@test.mx', first_name='Nestor')
         users = UserFactory.create_batch(5)
     """
+
     class Meta:
         model = User
         skip_postgeneration_save = True
@@ -117,7 +125,8 @@ class UserFactory(factory.django.DjangoModelFactory):
     @factory.post_generation
     def buyer_role(self, create, extracted, **kwargs):
         """Refleja producción (ADR-020): todo usuario registrado y validado
-        recibe ``comprador``. ``assign_buyer_role`` es tolerante: si el catálogo
+        recibe ``comprador``. ``assign_buyer_role`` es tolerante: si el
+        catálogo
         authz no está sembrado (rol ausente) es no-op, así que no altera los
         tests que no siembran. En los tests que siembran el rol primero, el
         usuario queda con las capacidades ``account.*`` como en producción."""
@@ -165,10 +174,13 @@ class AdminUserFactory(UserFactory):
             return
         self.partner.employee = True
         self.partner.save(update_fields=['employee'])
-        # is_staff ya no existe: el gate admin es una capacidad. Se le asigna el
-        # rol superadmin (bypass del resolver) para que las vistas ``HasCapability``
+        # is_staff ya no existe: el gate admin es una capacidad. Se le
+        # asigna el
+        # rol superadmin (bypass del resolver) para que las vistas
+        # ``HasCapability``
         # lo autoricen, replicando la semántica del antiguo ``is_staff=True``.
         role, _ = Role.objects.get_or_create(
-            code=SUPERADMIN_ROLE_CODE, defaults={'name': 'Superadministrador'},
+            code=SUPERADMIN_ROLE_CODE,
+            defaults={'name': 'Superadministrador'},
         )
         RoleAssignment.objects.get_or_create(user=self, role=role)

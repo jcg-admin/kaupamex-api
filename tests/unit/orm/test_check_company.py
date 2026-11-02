@@ -1,4 +1,6 @@
-"""``CheckCompanyMixin`` — la coherencia de empresa entre un registro y lo que apunta.
+"""
+``CheckCompanyMixin`` — la coherencia de empresa entre un registro y lo que
+apunta.
 
 ≙ ``BaseModel._check_company_auto`` / ``_check_company_domain`` /
 ``_check_company`` (``odoo19c: odoo/orm/models.py:451, 3997, 4009``) y sus dos
@@ -52,6 +54,7 @@ los del predicado y la marca, que leen ``_meta`` y no escriben.
 *Ciega a:* un modelo que sobrescriba ``save`` sin llamar a ``super()`` — ahí
 la verificación no corre y ningún caso de aquí lo vería.
 """
+
 import pytest
 
 from django.apps import apps
@@ -59,8 +62,11 @@ from django.apps import apps
 from addons.base.models import ResCompany
 from exceptions import UserError
 from orm.models import (
-    COMPANIES_FIELD_NAMES, COMPANY_FIELD_NAMES, CheckCompanyMixin,
-    _company_ids, _first_field_name,
+    COMPANIES_FIELD_NAMES,
+    COMPANY_FIELD_NAMES,
+    CheckCompanyMixin,
+    _company_ids,
+    _first_field_name,
 )
 
 pytestmark = pytest.mark.django_db
@@ -71,9 +77,13 @@ CrmTeam = apps.get_model('sales_team', 'CrmTeam')
 
 @pytest.fixture
 def two_companies():
-    """Dos empresas distintas — el mínimo para que la pregunta tenga sentido."""
-    return (ResCompany.objects.create(code='acme', name='ACME'),
-            ResCompany.objects.create(code='globex', name='Globex'))
+    """
+    Dos empresas distintas — el mínimo para que la pregunta tenga sentido.
+    """
+    return (
+        ResCompany.objects.create(code='acme', name='ACME'),
+        ResCompany.objects.create(code='globex', name='Globex'),
+    )
 
 
 class TestTheSwitchTravelsOnTheCommonBase:
@@ -112,18 +122,26 @@ class TestTheComodelPredicate:
         acme, _globex = two_companies
         shared = CrmTeam.objects.create(name='Compartido', company_id=None)
         owned = CrmTeam.objects.create(name='De ACME', company_id=acme)
-        got = set(CrmTeam.objects.filter(
-            CrmTeam._check_company_domain(None)).values_list('pk', flat=True))
+        got = set(
+            CrmTeam.objects.filter(
+                CrmTeam._check_company_domain(None)
+            ).values_list('pk', flat=True)
+        )
         assert got == {shared.pk}
         assert owned.pk not in got
 
-    def test_with_a_company_its_own_and_the_shared_ones_pass(self, two_companies):
+    def test_with_a_company_its_own_and_the_shared_ones_pass(
+        self, two_companies
+    ):
         acme, globex = two_companies
         shared = CrmTeam.objects.create(name='Compartido', company_id=None)
         mine = CrmTeam.objects.create(name='De ACME', company_id=acme)
         theirs = CrmTeam.objects.create(name='De Globex', company_id=globex)
-        got = set(CrmTeam.objects.filter(
-            CrmTeam._check_company_domain([acme])).values_list('pk', flat=True))
+        got = set(
+            CrmTeam.objects.filter(
+                CrmTeam._check_company_domain([acme])
+            ).values_list('pk', flat=True)
+        )
         assert got == {shared.pk, mine.pk}
         assert theirs.pk not in got
 
@@ -179,8 +197,11 @@ class TestTheCheckItself:
         lead = CrmLead(name='Incoherente', company_id=acme, team_id=team)
         lead._check_company(['name'])
 
-    def test_naming_the_company_field_reopens_the_whole_walk(self, two_companies):
-        """≙ ``if fnames is None or {'company_id','company_ids'} & set(fnames)``.
+    def test_naming_the_company_field_reopens_the_whole_walk(
+        self, two_companies
+    ):
+        """
+        ≙ ``if fnames is None or {'company_id','company_ids'} & set(fnames)``.
 
         Al cambiar de empresa, un valor que era coherente puede dejar de serlo
         sin que nadie lo toque; por eso nombrar la empresa reabre el recorrido
@@ -210,14 +231,19 @@ class TestTheHookFromSave:
     """
 
     def test_saving_a_model_with_the_switch_on_runs_the_check(
-            self, two_companies, monkeypatch):
+        self, two_companies, monkeypatch
+    ):
         acme, _globex = two_companies
         llamadas = []
         original = CheckCompanyMixin._check_company
         monkeypatch.setattr(
-            CheckCompanyMixin, '_check_company',
-            lambda self, fnames=None: (llamadas.append((type(self).__name__, fnames)),
-                                       original(self, fnames))[1])
+            CheckCompanyMixin,
+            '_check_company',
+            lambda self, fnames=None: (
+                llamadas.append((type(self).__name__, fnames)),
+                original(self, fnames),
+            )[1],
+        )
         team = CrmTeam.objects.create(name='De ACME', company_id=acme)
         CrmLead(name='Coherente', company_id=acme, team_id=team).save()
         assert ('CrmLead', None) in llamadas
@@ -226,9 +252,13 @@ class TestTheHookFromSave:
         llamadas = []
         original = CheckCompanyMixin._check_company
         monkeypatch.setattr(
-            CheckCompanyMixin, '_check_company',
-            lambda self, fnames=None: (llamadas.append(type(self).__name__),
-                                       original(self, fnames))[1])
+            CheckCompanyMixin,
+            '_check_company',
+            lambda self, fnames=None: (
+                llamadas.append(type(self).__name__),
+                original(self, fnames),
+            )[1],
+        )
         ResCompany.objects.create(code='sola', name='Sola')
         assert 'ResCompany' not in llamadas
 
@@ -237,9 +267,13 @@ class TestTheHookFromSave:
         llamadas = []
         original = CheckCompanyMixin._check_company
         monkeypatch.setattr(
-            CheckCompanyMixin, '_check_company',
-            lambda self, fnames=None: (llamadas.append(fnames),
-                                       original(self, fnames))[1])
+            CheckCompanyMixin,
+            '_check_company',
+            lambda self, fnames=None: (
+                llamadas.append(fnames),
+                original(self, fnames),
+            )[1],
+        )
         team = CrmTeam.objects.create(name='De ACME', company_id=acme)
         lead = CrmLead(name='Coherente', company_id=acme, team_id=team)
         lead.save()
@@ -252,7 +286,9 @@ class TestTheHookFromSave:
 class TestTheCompanyNormalisation:
     """``_company_ids`` — ≙ ``to_record_ids`` (``odoo19c: models.py:159``)."""
 
-    def test_an_instance_a_list_and_a_queryset_give_the_same(self, two_companies):
+    def test_an_instance_a_list_and_a_queryset_give_the_same(
+        self, two_companies
+    ):
         acme, _globex = two_companies
         esperado = [acme.pk]
         assert _company_ids(acme) == esperado

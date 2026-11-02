@@ -32,12 +32,14 @@ Divergencias declaradas
    lo necesite (diseño-primero, ``docs-design-first-rup.md``) — construirlo
    especulativamente sin ese UC repetiría el patrón que esa regla prohíbe.
    Lo que SÍ se porta son los predicados que NO requieren el motor:
-   ``is_fully_flexible``/``is_flexible`` (leen sólo ``calendar.flexible_hours``,
+   ``is_fully_flexible``/``is_flexible`` (leen sólo
+   ``calendar.flexible_hours``,
    sin fecha de por medio) y ``calendar_at()`` (hoy trivialmente
    ``self.calendar``, sin historial de calendarios por período — la
    referencia ya lo simplifica igual en su base, dejando el caso multi-periodo
    a módulos de RRHH que tampoco están portados).
 """
+
 import fields
 import models
 
@@ -61,26 +63,41 @@ class ResourceResource(TimeStampedModel):
         help_text='Odoo active — archivar sin borrar (Odoo active).',
     )
     company = fields.Many2one(
-        ResCompany, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='resource_resources', help_text='Odoo company_id.',
+        ResCompany,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='resource_resources',
+        help_text='Odoo company_id.',
     )
     resource_type = fields.Selection(
-        max_length=10, choices=RESOURCE_TYPES, default='user',
+        max_length=10,
+        choices=RESOURCE_TYPES,
+        default='user',
         help_text='Odoo resource_type.',
     )
     user = fields.Many2one(
-        ResUsers, on_delete=models.SET_NULL, null=True, blank=True,
+        ResUsers,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='resource_resources',
-        help_text='Odoo user_id — usuario relacionado, para gestionar accesos.',
+        help_text=(
+            'Odoo user_id — usuario relacionado, para gestionar accesos.'
+        ),
     )
     time_efficiency = fields.Float(
-        default=100, help_text=(
+        default=100,
+        help_text=(
             'Odoo time_efficiency — factor de eficiencia %; 200% implica la '
             'mitad del tiempo esperado.'
         ),
     )
     calendar = fields.Many2one(
-        'resource.ResourceCalendar', on_delete=models.SET_NULL, null=True, blank=True,
+        'resource.ResourceCalendar',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='resources',
         help_text=(
             'Odoo calendar_id — horario de trabajo. Vacío = horario '
@@ -88,7 +105,8 @@ class ResourceResource(TimeStampedModel):
         ),
     )
     tz = fields.Selection(
-        max_length=TZ_MAX_LENGTH, choices=TZ_CHOICES,
+        max_length=TZ_MAX_LENGTH,
+        choices=TZ_CHOICES,
         help_text='Odoo tz — zona horaria del recurso.',
     )
 
@@ -165,7 +183,9 @@ class ResourceResource(TimeStampedModel):
     @property
     def is_flexible(self):
         """Odoo ``_is_flexible`` — sin calendario, o calendario flexible."""
-        return self.is_fully_flexible or (self.calendar_id and self.calendar.flexible_hours)
+        return self.is_fully_flexible or (
+            self.calendar_id and self.calendar.flexible_hours
+        )
 
     def calendar_at(self, date_target=None, tz=None):
         """Odoo ``_get_calendar_at`` — el calendario vigente en una fecha.

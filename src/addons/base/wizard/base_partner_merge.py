@@ -31,7 +31,8 @@ mecanismo intacto en vez de sustituirlo por una lista literal.
 El SQL de introspección se copia, no se traduce
 ================================================
 
-``_get_fk_on`` y ``_has_check_or_unique_constraint`` consultan ``pg_constraint``
+``_get_fk_on`` y ``_has_check_or_unique_constraint`` consultan
+``pg_constraint``
 y ``pg_class`` directamente. No se reescriben con el ORM: son PostgreSQL nativo
 y el motor aquí es el mismo, así que la consulta de la referencia es **la
 consulta correcta** (``porte-completo-no-parcial.md``: PostgreSQL nativo es una
@@ -75,7 +76,8 @@ empresa (tarea **#129**): vacío por dato, no por construcción.
 **3. ``SET is_company = NULL`` se porta como ``= false``.** Dos consultas de
 cierre de la fuente anulan la columna (``:...``, en
 ``parent_migration_process_cb`` y ``action_update_all_process``). Aquí
-``res_partner.is_company`` es ``BooleanField`` **NOT NULL**, así que el ``NULL``
+``res_partner.is_company`` es ``BooleanField`` **NOT NULL**, así que el
+``NULL``
 verbatim revienta con ``IntegrityError`` — medido, no supuesto: es lo que
 destapó ``test_the_parent_migration_flattens_a_self_parented_partner`` al
 correrlo por primera vez.
@@ -93,6 +95,7 @@ grupo falla; su propio comentario lo marca como dudoso (*"TODO JEM : explain
 why"*). Aquí el llamador decide la frontera transaccional — un ``commit`` a
 mitad de un test o de una petición rompería el atomic de Django.
 """
+
 import logging
 from dataclasses import dataclass
 
@@ -157,7 +160,8 @@ class MergeGroup:
     """≙ ``base.partner.merge.line`` (``odoo19c: :19-27``).
 
     Un grupo de contactos candidatos a fusionarse. La referencia lo guarda como
-    fila transitoria con ``wizard_id``/``min_id``/``aggr_ids``; aquí es un valor
+    fila transitoria con ``wizard_id``/``min_id``/``aggr_ids``; aquí es un
+    valor
     inmutable que el barrido devuelve. ``wizard_id`` desaparece con el wizard:
     sin fila que agrupe, no hay a quién apuntar.
     """
@@ -180,12 +184,14 @@ class PartnerMerge:
 
     @classmethod
     def _get_fk_on(cls, table):
-        """≙ ``_get_fk_on`` (``:80-101``): las relaciones que apuntan a ``table``.
+        """
+        ≙ ``_get_fk_on`` (``:80-101``): las relaciones que apuntan a ``table``.
 
         Devuelve una lista de tuplas ``(tabla, columna)``.
         """
         with connection.cursor() as cursor:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT cl1.relname AS table, att1.attname AS column
                 FROM pg_constraint AS con, pg_class AS cl1, pg_class AS cl2,
                      pg_attribute AS att1, pg_attribute AS att2
@@ -201,7 +207,9 @@ class PartnerMerge:
                     AND con.confkey[1] = att2.attnum
                     AND att2.attrelid = cl2.oid
                     AND con.contype = 'f'
-            """, [table])
+            """,
+                [table],
+            )
             return cursor.fetchall()
 
     @classmethod
@@ -213,7 +221,8 @@ class PartnerMerge:
         hay que atrapar el error por fila.
         """
         with connection.cursor() as cursor:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT 1
                 FROM pg_constraint c
                 JOIN pg_class r ON (c.conrelid = r.oid)
@@ -225,7 +234,9 @@ class PartnerMerge:
                     AND r.relnamespace = current_schema::regnamespace
                     AND a.attname = %s
                 LIMIT 1
-            """, [table, column])
+            """,
+                [table, column],
+            )
             return cursor.fetchone() is not None
 
     # ------------------------------------------------------------------
@@ -251,8 +262,11 @@ class PartnerMerge:
         if not ids_origen:
             return
 
-        logger.debug('_update_foreign_keys_generic destino=%s origenes=%s',
-                     dst_record.pk, ids_origen)
+        logger.debug(
+            '_update_foreign_keys_generic destino=%s origenes=%s',
+            dst_record.pk,
+            ids_origen,
+        )
 
         relaciones = cls._get_fk_on(model._meta.db_table)
 
@@ -260,23 +274,27 @@ class PartnerMerge:
             for tabla, columna in relaciones:
                 # La fuente salta sus dos tablas de wizard (``:133``); aquí el
                 # wizard no tiene tabla, así que no hay nada que saltar.
-                columnas = [c for c in table_columns(cursor, tabla)
-                            if c != columna]
+                columnas = [
+                    c for c in table_columns(cursor, tabla) if c != columna
+                ]
                 if not columnas:
                     continue
 
                 cursor.execute(
                     f'SELECT 1 FROM "{tabla}" WHERE "{columna}" = ANY(%s) '
-                    f'LIMIT 1', [ids_origen])
+                    'LIMIT 1',
+                    [ids_origen],
+                )
                 if cursor.fetchone() is None:
-                    continue                      # ninguna fila que reasignar
+                    continue  # ninguna fila que reasignar
 
                 if len(columnas) <= 1:
                     # Clave única de hecho: sólo se reasigna la fila que no
                     # colisionaría con una ya existente del destino (``:150``).
                     testigo = columnas[0]
                     for id_origen in ids_origen:
-                        cursor.execute(f"""
+                        cursor.execute(
+                            f"""
                             UPDATE "{tabla}" AS ___tu
                             SET "{columna}" = %s
                             WHERE "{columna}" = %s
@@ -285,12 +303,15 @@ class PartnerMerge:
                                   WHERE "{columna}" = %s
                                     AND ___tu."{testigo}" = ___tw."{testigo}"
                               )
-                        """, [dst_record.pk, id_origen, dst_record.pk])
+                        """,
+                            [dst_record.pk, id_origen, dst_record.pk],
+                        )
                 elif not cls._has_check_or_unique_constraint(tabla, columna):
                     cursor.execute(
                         f'UPDATE "{tabla}" SET "{columna}" = %s '
                         f'WHERE "{columna}" = ANY(%s)',
-                        [dst_record.pk, ids_origen])
+                        [dst_record.pk, ids_origen],
+                    )
                 else:
                     # Con restricción encima, el UPDATE puede violarla. La
                     # fuente usa un savepoint y, si falla, BORRA las filas:
@@ -301,16 +322,23 @@ class PartnerMerge:
                             cursor.execute(
                                 f'UPDATE "{tabla}" SET "{columna}" = %s '
                                 f'WHERE "{columna}" = ANY(%s)',
-                                [dst_record.pk, ids_origen])
+                                [dst_record.pk, ids_origen],
+                            )
                     except IntegrityError:
                         cursor.execute(
                             f'DELETE FROM "{tabla}" '
-                            f'WHERE "{columna}" = ANY(%s)', [ids_origen])
+                            f'WHERE "{columna}" = ANY(%s)',
+                            [ids_origen],
+                        )
 
     @classmethod
-    def _update_reference_fields_generic(cls, referenced_model, src_records,
-                                         dst_record,
-                                         additional_update_records=None):
+    def _update_reference_fields_generic(
+        cls,
+        referenced_model,
+        src_records,
+        dst_record,
+        additional_update_records=None,
+    ):
         """≙ ``_update_reference_fields_generic`` (``:179-320``).
 
         Repunta las referencias **genéricas** — las que guardan el modelo y el
@@ -322,8 +350,11 @@ class PartnerMerge:
         corre :meth:`_update_company_dependent_references`, al final — ver la
         divergencia 2 del módulo.
         """
-        logger.debug('_update_reference_fields_generic destino=%s origenes=%r',
-                     dst_record.pk, [r.pk for r in src_records])
+        logger.debug(
+            '_update_reference_fields_generic destino=%s origenes=%r',
+            dst_record.pk,
+            [r.pk for r in src_records],
+        )
 
         objetivos = list(GENERIC_REFERENCE_MODELS)
         objetivos += list(additional_update_records or ())
@@ -331,12 +362,15 @@ class PartnerMerge:
         for app_label, clase, campo_modelo, field_id in objetivos:
             modelo = _resolve(app_label, clase)
             if modelo is None:
-                continue                 # ≙ ``if Model is None: return`` (:196)
+                # ≙ ``if Model is None: return`` (:196)
+                continue
             for registro in src_records:
-                filas = modelo.objects.filter(**{
-                    campo_modelo: referenced_model,
-                    field_id: registro.pk,
-                })
+                filas = modelo.objects.filter(
+                    **{
+                        campo_modelo: referenced_model,
+                        field_id: registro.pk,
+                    }
+                )
                 if not filas.exists():
                     continue
                 tabla = modelo._meta.db_table
@@ -356,7 +390,8 @@ class PartnerMerge:
         """Los TRES bloques ``company_dependent`` de la fuente (``:241-315``).
 
         Se extraen a su propio método porque cada uno es una sentencia con su
-        propio criterio, y el cuerpo de :meth:`_update_reference_fields_generic`
+        propio criterio, y el cuerpo de
+        :meth:`_update_reference_fields_generic`
         ya recorría dos bucles anidados. La fuente los tiene en línea; aquí la
         división es de forma, no de contenido — los tres corren en el mismo
         punto y en el mismo orden.
@@ -390,9 +425,11 @@ class PartnerMerge:
 
         # 1. ``company_dependent`` fields referring the merged records.
         for modelo, campo in registry.many2one_company_dependents(
-                type(dst_record)._meta.label):
-            execute_query(SQL(
-                """
+            type(dst_record)._meta.label
+        ):
+            execute_query(
+                SQL(
+                    """
                 UPDATE %(table)s
                 SET %(field)s = (
                     SELECT jsonb_object_agg(key,
@@ -406,11 +443,12 @@ class PartnerMerge:
                 )
                 WHERE %(field)s IS NOT NULL
                 """,
-                table=SQL.identifier(modelo._meta.db_table),
-                field=SQL.identifier(campo.column),
-                src_record_ids=src_ids,
-                dest_record_id=dst_record.pk,
-            ))
+                    table=SQL.identifier(modelo._meta.db_table),
+                    field=SQL.identifier(campo.column),
+                    src_record_ids=src_ids,
+                    dest_record_id=dst_record.pk,
+                )
+            )
 
         # 2. Merge the fallback values for company dependent many2one fields.
         #
@@ -420,8 +458,9 @@ class PartnerMerge:
         # dos ``Char`` —``model`` y ``field``— con su razon escrita en aquel
         # modulo, asi que la union equivalente es por el par de nombres. Es la
         # misma fila la que se selecciona; cambia por donde se llega a ella.
-        execute_query(SQL(
-            """
+        execute_query(
+            SQL(
+                """
             UPDATE ir_default
             SET json_value =
                 CASE
@@ -437,22 +476,26 @@ class PartnerMerge:
             AND f.ttype = 'many2one'
             AND json_value ~ '^[0-9]+$'
             """,
-            src_record_ids=src_ids,
-            dest_record_id=str(dst_record.pk),
-            model_name=registry.name_of(type(dst_record)),
-        ))
+                src_record_ids=src_ids,
+                dest_record_id=str(dst_record.pk),
+                model_name=registry.name_of(type(dst_record)),
+            )
+        )
 
         # 3. ``company_dependent`` fields of the merged records.
         tabla = type(dst_record)._meta.db_table
         for campo in type(dst_record)._meta.get_fields():
             if not getattr(campo, 'company_dependent', False):
                 continue
-            execute_query(SQL(
-                # Comentario de la fuente, verbatim: *"use the specific company
-                # dependent value of sources to fill the non-specific value of
-                # destination. Source values for rows with larger id have
-                # higher priority when aggregated"*.
-                """
+            execute_query(
+                SQL(
+                    # Comentario de la fuente, verbatim: *"use the
+                    # specific company
+                    # dependent value of sources to fill the
+                    # non-specific value of
+                    # destination. Source values for rows with larger id have
+                    # higher priority when aggregated"*.
+                    """
                 WITH source AS (
                     SELECT %(field)s
                     FROM  %(table)s
@@ -468,17 +511,19 @@ class PartnerMerge:
                 FROM source_agg
                 WHERE id = %(destination_id)s AND source_agg.value IS NOT NULL
                 """,
-                table=SQL.identifier(tabla),
-                field=SQL.identifier(campo.column),
-                destination_id=dst_record.pk,
-                source_ids=src_ids,
-            ))
+                    table=SQL.identifier(tabla),
+                    field=SQL.identifier(campo.column),
+                    destination_id=dst_record.pk,
+                    source_ids=src_ids,
+                )
+            )
 
     @classmethod
     def _update_foreign_keys(cls, src_partners, dst_partner):
         """≙ ``_update_foreign_keys`` (``:316-322``)."""
         cls._update_foreign_keys_generic(
-            type(dst_partner), src_partners, dst_partner)
+            type(dst_partner), src_partners, dst_partner
+        )
 
     @classmethod
     def _update_reference_fields(cls, src_partners, dst_partner):
@@ -490,7 +535,8 @@ class PartnerMerge:
         """
         adicionales = [('calendar', 'Calendar', 'model_id__model', 'res_id')]
         cls._update_reference_fields_generic(
-            'res.partner', src_partners, dst_partner, adicionales)
+            'res.partner', src_partners, dst_partner, adicionales
+        )
 
     @classmethod
     def _get_summable_fields(cls):
@@ -507,8 +553,11 @@ class PartnerMerge:
         el de los orígenes en orden, y por último el suyo — así el propio valor
         del destino gana si lo tiene (``:365-372``).
         """
-        logger.debug('_update_values destino=%s origenes=%r',
-                     dst_partner.pk, [p.pk for p in src_partners])
+        logger.debug(
+            '_update_values destino=%s origenes=%r',
+            dst_partner.pk,
+            [p.pk for p in src_partners],
+        )
 
         sumables = cls._get_summable_fields()
         valores = {}
@@ -540,8 +589,11 @@ class PartnerMerge:
                 dst_partner.save(update_fields=['parent', 'updated_at'])
             except (UserError, ValueError):
                 logger.info(
-                    'Se omite la jerarquía recursiva parent=%s del contacto %s',
-                    parent.pk, dst_partner.pk)
+                    'Se omite la jerarquía recursiva parent=%s del'
+                    ' contacto %s',
+                    parent.pk,
+                    dst_partner.pk,
+                )
 
     @classmethod
     def _merge_bank_accounts(cls, src_partners, dst_partner):
@@ -554,17 +606,25 @@ class PartnerMerge:
         if modelo_banco is None:
             return
 
-        cuentas_destino = list(modelo_banco.objects.filter(partner=dst_partner))
+        cuentas_destino = list(
+            modelo_banco.objects.filter(partner=dst_partner)
+        )
         for cuenta in modelo_banco.objects.filter(partner__in=src_partners):
             duplicada = next(
-                (c for c in cuentas_destino
-                 if c.sanitized_acc_number == cuenta.sanitized_acc_number),
-                None)
+                (
+                    c
+                    for c in cuentas_destino
+                    if c.sanitized_acc_number == cuenta.sanitized_acc_number
+                ),
+                None,
+            )
             if duplicada is not None:
                 cls._update_foreign_keys_generic(
-                    modelo_banco, [cuenta], duplicada)
+                    modelo_banco, [cuenta], duplicada
+                )
                 cls._update_reference_fields_generic(
-                    'res.partner.bank', [cuenta], duplicada)
+                    'res.partner.bank', [cuenta], duplicada
+                )
                 cuenta.delete()
             else:
                 cuenta.partner = dst_partner
@@ -590,9 +650,10 @@ class PartnerMerge:
 
         if len(contactos) > MAX_PARTNERS_PER_MERGE:
             raise UserError(
-                'Por razones de seguridad no se pueden fusionar más de '
-                f'{MAX_PARTNERS_PER_MERGE} contactos a la vez. Se puede repetir '
-                'la operación las veces que haga falta.')
+                'Por razones de seguridad no se pueden fusionar más de'
+                f' {MAX_PARTNERS_PER_MERGE} contactos a la vez. Se puede'
+                ' repetir la operación las veces que haga falta.'
+            )
 
         # Ni padre ni hijo entre los seleccionados (``:427-433``).
         ids = {c.pk for c in contactos}
@@ -600,7 +661,8 @@ class PartnerMerge:
             descendientes = cls._descendant_ids(contacto)
             if ids & (descendientes - {contacto.pk}):
                 raise UserError(
-                    'No se puede fusionar un contacto con uno de sus padres.')
+                    'No se puede fusionar un contacto con uno de sus padres.'
+                )
 
         # Un solo usuario entre todos (``:435-436``).
         modelo_usuario = _resolve('base', 'ResUsers')
@@ -609,12 +671,14 @@ class PartnerMerge:
             if usuarios.count() > 1:
                 raise UserError(
                     'No se pueden fusionar contactos ligados a más de un '
-                    'usuario, aunque sólo uno esté activo.')
+                    'usuario, aunque sólo uno esté activo.'
+                )
 
         if extra_checks and len({c.email for c in contactos}) > 1:
             raise UserError(
                 'Todos los contactos deben tener el mismo correo. Sólo el '
-                'administrador puede fusionar contactos con correos distintos.')
+                'administrador puede fusionar contactos con correos distintos.'
+            )
 
         if dst_partner is not None and dst_partner.pk in ids:
             origenes = [c for c in contactos if c.pk != dst_partner.pk]
@@ -637,8 +701,11 @@ class PartnerMerge:
     @classmethod
     def _log_merge_operation(cls, src_partners, dst_partner):
         """≙ ``_log_merge_operation`` (``:473-474``)."""
-        logger.info('se fusionaron los contactos %r en %s',
-                    [p.pk for p in src_partners], dst_partner.pk)
+        logger.info(
+            'se fusionaron los contactos %r en %s',
+            [p.pk for p in src_partners],
+            dst_partner.pk,
+        )
 
     # ------------------------------------------------------------------
     # Ayudantes
@@ -656,10 +723,11 @@ class PartnerMerge:
         vistos = {partner.pk}
         frontera = [partner.pk]
         while frontera:
-            hijos = list(modelo.objects
-                         .filter(parent_id__in=frontera)
-                         .exclude(pk__in=vistos)
-                         .values_list('pk', flat=True))
+            hijos = list(
+                modelo.objects.filter(parent_id__in=frontera)
+                .exclude(pk__in=vistos)
+                .values_list('pk', flat=True)
+            )
             if not hijos:
                 break
             vistos.update(hijos)
@@ -679,17 +747,22 @@ class PartnerMerge:
             else:
                 columnas.append(campo)
 
-        filtros = [f'{campo} IS NOT NULL' for campo in fields
-                   if campo in LOWERCASED_CRITERIA + SPACELESS_CRITERIA]
+        filtros = [
+            f'{campo} IS NOT NULL'
+            for campo in fields
+            if campo in LOWERCASED_CRITERIA + SPACELESS_CRITERIA
+        ]
 
         texto = ['SELECT min(id), array_agg(id)', 'FROM res_partner']
         if filtros:
             texto.append('WHERE %s' % ' AND '.join(filtros))
-        texto.extend([
-            'GROUP BY %s' % ', '.join(columnas),
-            'HAVING COUNT(*) >= 2',
-            'ORDER BY min(id)',
-        ])
+        texto.extend(
+            [
+                'GROUP BY %s' % ', '.join(columnas),
+                'HAVING COUNT(*) >= 2',
+                'ORDER BY min(id)',
+            ]
+        )
         if maximum_group:
             texto.append('LIMIT %d' % maximum_group)
         return ' '.join(texto)
@@ -701,9 +774,11 @@ class PartnerMerge:
         Lee las casillas **por prefijo**, igual que la fuente recorre
         ``self._fields`` buscando ``group_by_``.
         """
-        grupos = [nombre[len(GROUP_BY_PREFIX):]
-                  for nombre, activo in options.items()
-                  if nombre.startswith(GROUP_BY_PREFIX) and activo]
+        grupos = [
+            nombre[len(GROUP_BY_PREFIX):]
+            for nombre, activo in options.items()
+            if nombre.startswith(GROUP_BY_PREFIX) and activo
+        ]
         if not grupos:
             raise UserError('Hay que especificar un filtro para la selección.')
         return grupos
@@ -731,12 +806,14 @@ class PartnerMerge:
         modelo = _resolve('base', 'ResPartner')
         contactos = list(modelo.objects.filter(pk__in=partner_ids))
         contactos.sort(
-            key=lambda p: (not p.active, p.created_at),
-            reverse=True)
+            key=lambda p: (not p.active, p.created_at), reverse=True
+        )
         return contactos
 
     @classmethod
-    def _compute_models(cls, exclude_contact=False, exclude_journal_item=False):
+    def _compute_models(
+        cls, exclude_contact=False, exclude_journal_item=False
+    ):
         """≙ ``_compute_models`` (``:558-565``): los modelos cuya presencia
         excluye a un grupo de la propuesta."""
         mapa = {}
@@ -751,8 +828,9 @@ class PartnerMerge:
     # ------------------------------------------------------------------
 
     @classmethod
-    def _process_query(cls, query, exclude_contact=False,
-                       exclude_journal_item=False):
+    def _process_query(
+        cls, query, exclude_contact=False, exclude_journal_item=False
+    ):
         """≙ ``_process_query`` (``:618-648``).
 
         La fuente **escribe** una fila ``base.partner.merge.line`` por grupo y
@@ -769,9 +847,11 @@ class PartnerMerge:
         grupos = []
         for min_id, aggr_ids in filas:
             # Sólo los contactos que el llamador puede ver (``:630-634``).
-            visibles = list(modelo.objects
-                            .filter(pk__in=aggr_ids)
-                            .values_list('pk', flat=True))
+            visibles = list(
+                modelo.objects.filter(pk__in=aggr_ids).values_list(
+                    'pk', flat=True
+                )
+            )
             if len(visibles) < 2:
                 continue
             if mapa and cls._partner_use_in(visibles, mapa):
@@ -793,7 +873,8 @@ class PartnerMerge:
         return cls._process_query(
             consulta,
             exclude_contact=options.get('exclude_contact', False),
-            exclude_journal_item=options.get('exclude_journal_item', False))
+            exclude_journal_item=options.get('exclude_journal_item', False),
+        )
 
     @classmethod
     def action_start_automatic_process(cls, options, maximum_group=100):
@@ -811,7 +892,8 @@ class PartnerMerge:
         """≙ ``parent_migration_process_cb`` (``:683-...``).
 
         Fusiona los pares padre/hijo que comparten correo y nombre — el residuo
-        de una migración en la que la empresa y su contacto quedaron duplicados.
+        de una migración en la que la empresa y su contacto quedaron
+        duplicados.
         Cierra aplanando los contactos que quedaron como padres de sí mismos.
         """
         consulta = """
@@ -833,7 +915,8 @@ class PartnerMerge:
         with connection.cursor() as cursor:
             cursor.execute(
                 'UPDATE res_partner SET is_company = false, parent_id = NULL '
-                'WHERE parent_id = id')
+                'WHERE parent_id = id'
+            )
 
     @classmethod
     def action_update_all_process(cls):
@@ -844,12 +927,15 @@ class PartnerMerge:
         que quedaron sin jerarquía.
         """
         cls.parent_migration_process_cb()
-        cls.action_start_automatic_process({
-            'group_by_vat': True,
-            'group_by_email': True,
-            'group_by_name': True,
-        })
+        cls.action_start_automatic_process(
+            {
+                'group_by_vat': True,
+                'group_by_email': True,
+                'group_by_name': True,
+            }
+        )
         with connection.cursor() as cursor:
             cursor.execute(
                 'UPDATE res_partner SET is_company = false '
-                'WHERE parent_id IS NULL AND is_company')
+                'WHERE parent_id IS NULL AND is_company'
+            )

@@ -33,6 +33,7 @@ cambios de campo — micro-paso siguiente de la familia), los ``attachment_ids``
 (se resuelven con ``ir.attachment`` ya portado, wiring posterior), y las ACL de
 lectura de Odoo (aqui es DRF ``HasCapability``, DEC-11).
 """
+
 from django.conf import settings
 from django.utils import timezone
 
@@ -58,57 +59,93 @@ class MailMessage(TimeStampedModel):
     ]
 
     subject = fields.Char(
-        max_length=255, blank=True, default='',
+        max_length=255,
+        blank=True,
+        default='',
         help_text='Asunto del mensaje (Odoo subject).',
     )
     date = fields.Datetime(
-        default=None, null=True, blank=True,
-        help_text='Fecha del mensaje (Odoo date, default now — se fija en save()).',
+        default=None,
+        null=True,
+        blank=True,
+        help_text=(
+            'Fecha del mensaje (Odoo date, default now — se fija en save()).'
+        ),
     )
     body = fields.Html(
-        blank=True, default='',
+        blank=True,
+        default='',
         help_text='Contenido HTML del mensaje (Odoo body; saneo en capa UI).',
     )
     model = fields.Char(
-        max_length=128, blank=True, default='',
+        max_length=128,
+        blank=True,
+        default='',
         help_text=(
             'Modelo polimorfico referenciado, p. ej. "support.SupportTicket" '
             '(Odoo model). NO es una FK — vinculo plano igual que Odoo.'
         ),
     )
     res_id = fields.Integer(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text='ID del registro referenciado (Odoo res_id, Integer plano).',
     )
     parent = fields.Many2one(
-        'mail.MailMessage', on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='children',
-        help_text='Mensaje padre para el hilo de conversacion (Odoo parent_id).',
+        'mail.MailMessage',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='children',
+        help_text=(
+            'Mensaje padre para el hilo de conversacion (Odoo parent_id).'
+        ),
     )
     record_name = fields.Char(
-        max_length=255, blank=True, default='',
-        help_text='Nombre legible del registro referenciado (Odoo record_name).',
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=(
+            'Nombre legible del registro referenciado (Odoo record_name).'
+        ),
     )
     message_type = fields.Selection(
-        max_length=16, choices=MESSAGE_TYPE_CHOICES, default=TYPE_COMMENT,
+        max_length=16,
+        choices=MESSAGE_TYPE_CHOICES,
+        default=TYPE_COMMENT,
         help_text='Tipo de mensaje (Odoo message_type).',
     )
     subtype = fields.Many2one(
-        'mail.MailMessageSubtype', on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='messages',
+        'mail.MailMessageSubtype',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='messages',
         help_text='Subtipo del mensaje (Odoo subtype_id).',
     )
     author = fields.Many2one(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='authored_messages',
-        help_text='Autor del mensaje (Odoo author_id → res.partner; party = IdentityUser).',
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='authored_messages',
+        help_text=(
+            'Autor del mensaje (Odoo author_id → res.partner; party ='
+            ' IdentityUser).'
+        ),
     )
     email_from = fields.Char(
-        max_length=254, blank=True, default='',
-        help_text='Remitente cuando no hay autor registrado (Odoo email_from).',
+        max_length=254,
+        blank=True,
+        default='',
+        help_text=(
+            'Remitente cuando no hay autor registrado (Odoo email_from).'
+        ),
     )
     reply_to = fields.Char(
-        max_length=254, blank=True, default='',
+        max_length=254,
+        blank=True,
+        default='',
         help_text='Direccion Reply-To (Odoo reply_to).',
     )
 
@@ -118,17 +155,22 @@ class MailMessage(TimeStampedModel):
         verbose_name = 'Mensaje'
         verbose_name_plural = 'Mensajes'
         indexes = [
-            models.Index(fields=['model', 'res_id'], name='mail_message_record_idx'),
+            models.Index(
+                fields=['model', 'res_id'], name='mail_message_record_idx'
+            ),
             models.Index(fields=['author'], name='mail_message_author_idx'),
         ]
 
     def __str__(self) -> str:
-        return f'{self.model}#{self.res_id} — {self.subject or self.message_type}'
+        return (
+            f'{self.model}#{self.res_id} — {self.subject or self.message_type}'
+        )
 
     def save(self, *args, **kwargs):
         """Fija ``date`` a la fecha de creacion si no se dio — equivalente del
         ``default=fields.Datetime.now`` de Odoo (``mail_message.py:92``). No se
-        usa ``auto_now_add`` porque ``date`` es reasignable (reenvio/import)."""
+        usa ``auto_now_add`` porque ``date`` es reasignable (reenvio/import).
+        """
         if self.date is None:
             self.date = timezone.now()
         super().save(*args, **kwargs)

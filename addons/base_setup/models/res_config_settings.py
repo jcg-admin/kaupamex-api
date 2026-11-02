@@ -54,6 +54,7 @@ pendiente es **de qué ámbito** es cada clave, y eso se decide cuando el
 resolutor exista: mover una clave de ``SystemParameter`` a ``CompanySetting``
 es un cambio de una línea en la declaración, no un refactor.
 """
+
 from decimal import Decimal, InvalidOperation
 
 import fields
@@ -62,7 +63,9 @@ from django.db import models
 
 from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_company import ResCompany
-from addons.base.models.res_config import ResConfigSettings as BaseResConfigSettings
+from addons.base.models.res_config import (
+    ResConfigSettings as BaseResConfigSettings,
+)
 from addons.base.models.res_groups import ResGroups
 from addons.base.models.res_lang import ResLang
 from addons.base.models.res_users import ResUsers
@@ -127,7 +130,9 @@ def _coerce(raw, caster, default):
 
 
 class ResConfigSettings(BaseResConfigSettings):
-    """≙ ``ResConfigSettings`` (``odoo19c: base_setup/models/res_config_settings.py:8-136``).
+    """
+    ≙ ``ResConfigSettings`` (``odoo19c:
+    base_setup/models/res_config_settings.py:8-136``).
 
     Adaptación del addon ``base_setup`` de la referencia
     (``odoo-tools@622ddc2a``, LGPL-3 — atribución y aviso de licencia
@@ -218,14 +223,22 @@ class ResConfigSettings(BaseResConfigSettings):
     # === La empresa sobre la que se configura =============================
 
     company_id = fields.Many2one(
-        ResCompany, on_delete=models.DO_NOTHING, db_column='company_id',
-        related_name='+', null=True, blank=False,
-        default=get_current_company, verbose_name='Company',
-        help_text='Odoo company_id — la empresa que el formulario configura.')
+        ResCompany,
+        on_delete=models.DO_NOTHING,
+        db_column='company_id',
+        related_name='+',
+        null=True,
+        blank=False,
+        default=get_current_company,
+        verbose_name='Company',
+        help_text='Odoo company_id — la empresa que el formulario configura.',
+    )
 
     is_root_company = fields.Boolean(
-        store=False, verbose_name='Is Root Company',
-        default=lambda record: record._compute_is_root_company())
+        store=False,
+        verbose_name='Is Root Company',
+        default=lambda record: record._compute_is_root_company(),
+    )
 
     # === Los quince módulos opcionales ====================================
     # Prefijo ``module_``: ``classify_fields`` los clasifica como módulo y
@@ -235,76 +248,111 @@ class ResConfigSettings(BaseResConfigSettings):
 
     module_base_import = fields.Boolean(
         default=False,
-        verbose_name='Allow users to import data from CSV/XLS/XLSX/ODS files')
+        verbose_name='Allow users to import data from CSV/XLS/XLSX/ODS files',
+    )
     module_google_calendar = fields.Boolean(
         default=False,
-        verbose_name='Allow the users to synchronize their calendar  with Google Calendar')
+        verbose_name=(
+            'Allow the users to synchronize their calendar  with Google'
+            ' Calendar'
+        ),
+    )
     module_microsoft_calendar = fields.Boolean(
         default=False,
-        verbose_name='Allow the users to synchronize their calendar with Outlook Calendar')
+        verbose_name=(
+            'Allow the users to synchronize their calendar with Outlook'
+            ' Calendar'
+        ),
+    )
     module_mail_plugin = fields.Boolean(
-        default=False, verbose_name='Allow integration with the mail plugins')
+        default=False, verbose_name='Allow integration with the mail plugins'
+    )
     module_auth_oauth = fields.Boolean(
         default=False,
-        verbose_name='Use external authentication providers (OAuth)')
+        verbose_name='Use external authentication providers (OAuth)',
+    )
     module_auth_ldap = fields.Boolean(
-        default=False, verbose_name='LDAP Authentication')
+        default=False, verbose_name='LDAP Authentication'
+    )
     module_account_inter_company_rules = fields.Boolean(
-        default=False, verbose_name='Manage Inter Company')
+        default=False, verbose_name='Manage Inter Company'
+    )
     module_voip = fields.Boolean(default=False, verbose_name='Phone')
     module_web_unsplash = fields.Boolean(
-        default=False, verbose_name='Unsplash Image Library')
+        default=False, verbose_name='Unsplash Image Library'
+    )
     module_sms = fields.Boolean(default=False, verbose_name='SMS')
     module_partner_autocomplete = fields.Boolean(
-        default=False, verbose_name='Partner Autocomplete')
+        default=False, verbose_name='Partner Autocomplete'
+    )
     module_base_geolocalize = fields.Boolean(
-        default=False, verbose_name='GeoLocalize')
+        default=False, verbose_name='GeoLocalize'
+    )
     module_google_recaptcha = fields.Boolean(
-        default=False, verbose_name='reCAPTCHA')
+        default=False, verbose_name='reCAPTCHA'
+    )
     module_website_cf_turnstile = fields.Boolean(
-        default=False, verbose_name='Cloudflare Turnstile')
+        default=False, verbose_name='Cloudflare Turnstile'
+    )
     module_google_address_autocomplete = fields.Boolean(
-        default=False, verbose_name='Google Address Autocomplete')
+        default=False, verbose_name='Google Address Autocomplete'
+    )
 
     # === Los que viajan a la empresa ======================================
 
     #: ≙ ``report_footer`` (``:33``) — ver la divergencia de ``Html`` arriba.
     report_footer = fields.NonStored(
-        'Custom Report Footer', related='company_id.report_footer',
+        'Custom Report Footer',
+        related='company_id.report_footer',
         readonly=False,
-        help_text='Footer text displayed at the bottom of all reports.')
+        help_text='Footer text displayed at the bottom of all reports.',
+    )
 
     company_name = fields.Char(
-        related='company_id.display_name', verbose_name='Company Name')
+        related='company_id.display_name', verbose_name='Company Name'
+    )
     company_country_code = fields.Char(
-        related='company_id.country.code', readonly=True,
-        verbose_name='Company Country Code')
+        related='company_id.country.code',
+        readonly=True,
+        verbose_name='Company Country Code',
+    )
     company_country_group_codes = fields.Json(
-        related='company_id.country.country_group_codes')
+        related='company_id.country.country_group_codes'
+    )
 
     # === Grupo implicado y parámetros de sistema ==========================
 
     group_multi_currency = fields.Boolean(
-        default=False, verbose_name='Multi-Currencies',
-        help_text='Allows to work in a multi currency environment')
+        default=False,
+        verbose_name='Multi-Currencies',
+        help_text='Allows to work in a multi currency environment',
+    )
     show_effect = fields.Boolean(default=False, verbose_name='Show Effect')
     profiling_enabled_until = fields.Datetime(
-        null=True, blank=True, verbose_name='Profiling enabled until')
+        null=True, blank=True, verbose_name='Profiling enabled until'
+    )
 
     # === Los cuatro contadores del panel ==================================
 
     company_count = fields.Integer(
-        store=False, verbose_name='Number of Companies',
-        default=lambda record: record._compute_company_count())
+        store=False,
+        verbose_name='Number of Companies',
+        default=lambda record: record._compute_company_count(),
+    )
     active_user_count = fields.Integer(
-        store=False, verbose_name='Number of Active Users',
-        default=lambda record: record._compute_active_user_count())
+        store=False,
+        verbose_name='Number of Active Users',
+        default=lambda record: record._compute_active_user_count(),
+    )
     language_count = fields.Integer(
-        store=False, verbose_name='Number of Languages',
-        default=lambda record: record._compute_language_count())
+        store=False,
+        verbose_name='Number of Languages',
+        default=lambda record: record._compute_language_count(),
+    )
     company_informations = fields.Text(
         store=False,
-        default=lambda record: record._compute_company_informations())
+        default=lambda record: record._compute_company_informations(),
+    )
 
     #: El metadato que el motor lee para clasificar los tres campos que no van
     #: por prefijo. ``SiteConfigSettings`` lo **amplía**, no lo sustituye.
@@ -312,13 +360,15 @@ class ResConfigSettings(BaseResConfigSettings):
         'group_multi_currency': {'implied_group': MULTI_CURRENCY_GROUP},
         'show_effect': {'config_parameter': SHOW_EFFECT_PARAM},
         'profiling_enabled_until': {
-            'config_parameter': PROFILING_ENABLED_UNTIL_PARAM},
+            'config_parameter': PROFILING_ENABLED_UNTIL_PARAM
+        },
     }
 
     # --- Acciones ---------------------------------------------------------
 
     def open_company(self):
-        """≙ ``open_company`` (``odoo19c: :48-56``) — abre la ficha de la empresa.
+        """
+        ≙ ``open_company`` (``odoo19c: :48-56``) — abre la ficha de la empresa.
 
         La acción sale verbatim de la fuente; su ``res_id`` es el de la
         empresa activa (``self.env.company.id`` allá, ``get_current_company()``
@@ -344,13 +394,16 @@ class ResConfigSettings(BaseResConfigSettings):
         este árbol ya declara para eso: un ``create`` a mano de la fila no
         siembra la caché de identificadores ni registra el cargado.
         """
-        default_group = IrModelData.ref(DEFAULT_USER_GROUP_XMLID,
-                                        raise_if_not_found=False)
+        default_group = IrModelData.ref(
+            DEFAULT_USER_GROUP_XMLID, raise_if_not_found=False
+        )
         if not default_group:
             default_group = ResGroups.objects.create(
-                name='Default access for new users')
-            IrModelData.set_xmlid(default_group, DEFAULT_USER_GROUP_XMLID,
-                                  noupdate=True)
+                name='Default access for new users'
+            )
+            IrModelData.set_xmlid(
+                default_group, DEFAULT_USER_GROUP_XMLID, noupdate=True
+            )
         action = {
             'type': 'ir.actions.act_window',
             'name': 'Edit new user default group',
@@ -367,8 +420,9 @@ class ResConfigSettings(BaseResConfigSettings):
         # la acción entera sería inalcanzable; con el salvavidas la acción
         # abre el formulario por defecto, que es la degradación mínima.
         # Sucesor: tarea **#458**, la siembra de las vistas de ``base``.
-        form_view = IrModelData.ref(DEFAULT_GROUPS_FORM_XMLID,
-                                    raise_if_not_found=False)
+        form_view = IrModelData.ref(
+            DEFAULT_GROUPS_FORM_XMLID, raise_if_not_found=False
+        )
         if form_view is not None:
             action['views'] = [(form_view.pk, 'form')]
         return action
@@ -399,7 +453,8 @@ class ResConfigSettings(BaseResConfigSettings):
         raise NotImplementedError(
             'edit_external_header está bloqueado: '
             'res.company.external_report_layout_id no tiene columna en este '
-            'árbol (tarea #257).')
+            'árbol (tarea #257).'
+        )
 
     # --- Cómputos ---------------------------------------------------------
     # NOTA de la fuente, verbatim (``:96-97``): *"These fields depend on the
@@ -442,11 +497,17 @@ class ResConfigSettings(BaseResConfigSettings):
         informations += '\n' if company.zip and not company.city else ''
         informations += ' - ' if company.zip and company.city else ''
         informations += '%s\n' % company.city if company.city else ''
-        informations += '%s\n' % company.state.display_name if company.state else ''
-        informations += '%s' % company.country.display_name if company.country else ''
+        informations += (
+            '%s\n' % company.state.display_name if company.state else ''
+        )
+        informations += (
+            '%s' % company.country.display_name if company.country else ''
+        )
         vat_display = (company.country and company.country.vat_label) or 'VAT'
         vat_display = '\n' + vat_display + ': '
-        informations += '%s %s' % (vat_display, company.vat) if company.vat else ''
+        informations += (
+            '%s %s' % (vat_display, company.vat) if company.vat else ''
+        )
         return informations
 
     def _compute_is_root_company(self):
@@ -456,6 +517,7 @@ class ResConfigSettings(BaseResConfigSettings):
         de ``res.company``: la misma columna con el nombre que Django le da.
         """
         return not self.company_id or not self.company_id.parent_id
+
 
 class SiteConfigSettings(ResConfigSettings):
     """``res.config.settings`` del sitio — formulario de ajustes (UC-CFG-03).
@@ -474,14 +536,20 @@ class SiteConfigSettings(ResConfigSettings):
     #: referencia el nombre sale de ``res.company.name``).
     site_name = models.CharField(max_length=100, blank=True, default='')
     iva_rate = models.DecimalField(
-        max_digits=5, decimal_places=4, default=Decimal('0.16'),
-        validators=[MinValueValidator(Decimal('0')),
-                    MaxValueValidator(Decimal('1'))],
+        max_digits=5,
+        decimal_places=4,
+        default=Decimal('0.16'),
+        validators=[
+            MinValueValidator(Decimal('0')),
+            MaxValueValidator(Decimal('1')),
+        ],
     )
     max_return_days = models.PositiveIntegerField(default=30)
     min_stock_threshold = models.PositiveIntegerField(default=5)
     free_shipping_threshold = models.DecimalField(
-        max_digits=10, decimal_places=2, default=Decimal('999.00'),
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('999.00'),
         validators=[MinValueValidator(Decimal('0'))],
     )
     support_email = models.EmailField(max_length=254, blank=True, default='')
@@ -498,8 +566,10 @@ class SiteConfigSettings(ResConfigSettings):
         #: ``group_multi_currency``, y el motor los clasificaría como ``other``
         #: — o sea, el formulario los mostraría y no los guardaría.
         ResConfigSettings.field_attrs,
-        **{name: {'config_parameter': key}
-           for name, (key, _caster) in CONFIG_CASTERS.items()},
+        **{
+            name: {'config_parameter': key}
+            for name, (key, _caster) in CONFIG_CASTERS.items()
+        },
     )
 
     class Meta:

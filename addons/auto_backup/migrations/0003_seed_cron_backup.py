@@ -12,6 +12,7 @@ natural ``(model_name, method_name)``, que es el equivalente nativo del
 ``noupdate="1"`` de la referencia — si el operador ajusta el intervalo, se
 respeta.
 """
+
 from django.db import migrations
 
 from addons.auto_backup.data import CRON_BACKUP
@@ -23,15 +24,21 @@ def sembrar(apps, schema_editor):
 
 
 def retirar(apps, schema_editor):
-    """Retira el par acción + cron. El cron primero: su FK apunta a la acción."""
+    """
+    Retira el par acción + cron. El cron primero: su FK apunta a la acción.
+    """
     alias = schema_editor.connection.alias
     IrActionsServer = apps.get_model('base', 'IrActionsServer')
     IrCron = apps.get_model('base', 'IrCron')
 
-    accion = IrActionsServer.objects.using(alias).filter(
-        model_name=CRON_BACKUP['model_name'],
-        method_name=CRON_BACKUP['method_name'],
-    ).first()
+    accion = (
+        IrActionsServer.objects.using(alias)
+        .filter(
+            model_name=CRON_BACKUP['model_name'],
+            method_name=CRON_BACKUP['method_name'],
+        )
+        .first()
+    )
     if accion is None:
         return
     IrCron.objects.using(alias).filter(ir_actions_server=accion).delete()

@@ -10,6 +10,7 @@ Medido antes del porte (``scripts/workbench/field-type-vocabulary-*``):
 **2 de 12** familias declaraban su ``type``; ``type_for`` ya sabia el de las
 doce. Lo que faltaba no era el mapa, era cablearlo al atributo.
 """
+
 import pytest
 from django.db import models
 
@@ -20,45 +21,61 @@ from orm.fields import type_for
 class TestEveryFamilyPublishesItsType:
     """El vocabulario de la fuente, no la cadena vacia."""
 
-    @pytest.mark.parametrize('field_class, expected', [
-        (models.BooleanField, 'boolean'),
-        (models.CharField, 'char'),
-        (models.TextField, 'text'),
-        (models.IntegerField, 'integer'),
-        (models.FloatField, 'float'),
-        (models.DecimalField, 'monetary'),
-        (models.JSONField, 'json'),
-        (models.BinaryField, 'binary'),
-    ])
+    @pytest.mark.parametrize(
+        'field_class, expected',
+        [
+            (models.BooleanField, 'boolean'),
+            (models.CharField, 'char'),
+            (models.TextField, 'text'),
+            (models.IntegerField, 'integer'),
+            (models.FloatField, 'float'),
+            (models.DecimalField, 'monetary'),
+            (models.JSONField, 'json'),
+            (models.BinaryField, 'binary'),
+        ],
+    )
     def test_the_scalar_families(self, field_class, expected):
         assert field_class().type == expected
 
-    @pytest.mark.parametrize('field_class, expected', [
-        (models.EmailField, 'char'),
-        (models.URLField, 'char'),
-        (models.SlugField, 'char'),
-        (models.UUIDField, 'char'),
-        (models.PositiveIntegerField, 'integer'),
-        (models.SmallIntegerField, 'integer'),
-    ])
+    @pytest.mark.parametrize(
+        'field_class, expected',
+        [
+            (models.EmailField, 'char'),
+            (models.URLField, 'char'),
+            (models.SlugField, 'char'),
+            (models.UUIDField, 'char'),
+            (models.PositiveIntegerField, 'integer'),
+            (models.SmallIntegerField, 'integer'),
+        ],
+    )
     def test_a_subclass_inherits_the_type_of_its_internal_type(
-            self, field_class, expected):
+        self, field_class, expected
+    ):
         """``get_internal_type`` es quien decide, no el nombre de la clase."""
         assert field_class().type == expected
 
     def test_no_family_is_left_with_the_empty_string(self):
         families = [
-            models.BooleanField, models.CharField, models.TextField,
-            models.IntegerField, models.FloatField, models.DecimalField,
-            models.DateField, models.DateTimeField, models.JSONField,
-            models.BinaryField, models.EmailField, models.URLField,
+            models.BooleanField,
+            models.CharField,
+            models.TextField,
+            models.IntegerField,
+            models.FloatField,
+            models.DecimalField,
+            models.DateField,
+            models.DateTimeField,
+            models.JSONField,
+            models.BinaryField,
+            models.EmailField,
+            models.URLField,
         ]
         without_type = [c.__name__ for c in families if not c().type]
         assert without_type == [], without_type
 
 
 class TestTheTemporalClassAttributeStillWins:
-    """``fields_temporal`` declara ``type`` en la clase concreta, como la fuente.
+    """
+    ``fields_temporal`` declara ``type`` en la clase concreta, como la fuente.
 
     Un atributo llano de la subclase gana sobre una ``property`` de la base
     por resolucion de atributo. El porte no puede romper esa declaracion.
@@ -90,21 +107,25 @@ class TestSelectionIsDecidedByTheInstance:
 
     def test_the_two_are_the_same_class(self):
         assert type(models.CharField()) is type(
-            models.CharField(choices=[('a', 'A')]))
+            models.CharField(choices=[('a', 'A')])
+        )
 
 
 class TestTheAttributeAgreesWithTypeFor:
     """``type`` y ``type_for`` no pueden divergir: uno delega en el otro."""
 
-    @pytest.mark.parametrize('field', [
-        models.BooleanField(),
-        models.CharField(),
-        models.CharField(choices=[('a', 'A')]),
-        models.IntegerField(),
-        models.JSONField(),
-        models.DateField(),
-        models.DateTimeField(),
-    ])
+    @pytest.mark.parametrize(
+        'field',
+        [
+            models.BooleanField(),
+            models.CharField(),
+            models.CharField(choices=[('a', 'A')]),
+            models.IntegerField(),
+            models.JSONField(),
+            models.DateField(),
+            models.DateTimeField(),
+        ],
+    )
     def test_they_agree(self, field):
         assert field.type == type_for(field)
 
@@ -148,7 +169,10 @@ class TestRelationalIsTheDjangoPredicate:
         assert models.ManyToManyField('self').relational is True
 
     def test_it_agrees_with_the_django_predicate(self):
-        for field in (models.BooleanField(), models.CharField(),
-                      models.ForeignKey('self', on_delete=models.CASCADE),
-                      models.ManyToManyField('self')):
+        for field in (
+            models.BooleanField(),
+            models.CharField(),
+            models.ForeignKey('self', on_delete=models.CASCADE),
+            models.ManyToManyField('self'),
+        ):
             assert field.relational == field.is_relation, field

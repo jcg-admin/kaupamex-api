@@ -1,4 +1,6 @@
-"""Modelo ``ProductTemplateAttributeLine`` — addon ``product`` (base del monolito modular).
+"""
+Modelo ``ProductTemplateAttributeLine`` — addon ``product`` (base del monolito
+modular).
 
 Adaptación fiel de Odoo ``product.template.attribute.line``
 (``product/models/product_template_attribute_line.py:8-39``, verificado en 18 y
@@ -7,6 +9,7 @@ atributo aplican a ese producto. Núcleo: ``product_tmpl_id``/``attribute_id``/
 ``value_ids`` (M2M). Es el eje del que se genera el producto cartesiano de
 combinaciones.
 """
+
 import fields
 import models
 
@@ -14,23 +17,30 @@ from addons.base.models import TimeStampedModel
 
 
 class ProductTemplateAttributeLine(TimeStampedModel):
-    """``product.template.attribute.line`` — atributo aplicado a un producto."""
+    """
+    ``product.template.attribute.line`` — atributo aplicado a un producto.
+    """
 
     product_tmpl = fields.Many2one(
-        'product.ProductTemplate', on_delete=models.CASCADE,
+        'product.ProductTemplate',
+        on_delete=models.CASCADE,
         related_name='attribute_lines',
         help_text='Plantilla de producto (Odoo product_tmpl_id).',
     )
     attribute = fields.Many2one(
-        'product.ProductAttribute', on_delete=models.PROTECT,
-        related_name='template_lines', help_text='Atributo (Odoo attribute_id).',
+        'product.ProductAttribute',
+        on_delete=models.PROTECT,
+        related_name='template_lines',
+        help_text='Atributo (Odoo attribute_id).',
     )
-    values    = fields.Many2many(
-        'product.ProductAttributeValue', related_name='template_lines',
+    values = fields.Many2many(
+        'product.ProductAttributeValue',
+        related_name='template_lines',
         help_text='Valores aplicables a este producto (Odoo value_ids).',
     )
-    sequence  = models.PositiveIntegerField(
-        default=10, help_text='Orden (Odoo sequence).',
+    sequence = models.PositiveIntegerField(
+        default=10,
+        help_text='Orden (Odoo sequence).',
     )
 
     class Meta:

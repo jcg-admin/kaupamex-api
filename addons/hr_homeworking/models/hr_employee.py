@@ -25,8 +25,10 @@ Símbolo de la referencia (línea)                             Dónde queda aqu�
 ``_compute_exceptional_location_id`` (``:44-53``)            método verbatim
 ``_compute_presence_icon`` (``:55-64``)                      método (ver
                                                              divergencia 3)
-``_compute_work_location_name`` (``:66-71``)                 override encadenado
-``_compute_work_location_type`` (``:73-78``)                 override encadenado
+``_compute_work_location_name`` (``:66-71``)                 override
+encadenado
+``_compute_work_location_type`` (``:73-78``)                 override
+encadenado
 ===========================================================  ==================
 
 Lo que no se porta — y por qué
@@ -64,14 +66,17 @@ Divergencias declaradas
 5. **``employee.sudo()`` → acceso directo** — sin usuario ambiente no hay
    elevación que hacer (mismo criterio del árbol).
 """
+
 from datetime import date
 
 import fields
 import models
 
-from addons.hr_homeworking.models.hr_homeworking import DAYS, HrEmployeeLocation
-from orm.model_classes import (extend_model,
-                              extend_selection_choices)
+from addons.hr_homeworking.models.hr_homeworking import (
+    DAYS,
+    HrEmployeeLocation,
+)
+from orm.model_classes import extend_model, extend_selection_choices
 
 
 def _get_current_day_location_field(cls):
@@ -86,9 +91,14 @@ def _compute_exceptional_location_id(self):
     de HOY del empleado, o ``None`` (la referencia asigna ``False``)."""
     if self.pk is None:
         return None
-    exception = HrEmployeeLocation.objects.filter(
-        employee_id=self, date=date.today(),
-    ).select_related('work_location_id').first()
+    exception = (
+        HrEmployeeLocation.objects.filter(
+            employee_id=self,
+            date=date.today(),
+        )
+        .select_related('work_location_id')
+        .first()
+    )
     return exception.work_location_id if exception else None
 
 
@@ -145,8 +155,12 @@ def today_location_name(self):
 def _day_location_field(day_field_name, label):
     """Fábrica de los 7 FKs semanales — mismos kwargs, distinta etiqueta."""
     return fields.Many2one(
-        'hr.HrWorkLocation', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='+', verbose_name=label,
+        'hr.HrWorkLocation',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+',
+        verbose_name=label,
         help_text=f'Ubicación de trabajo del día (Odoo {day_field_name}).',
     )
 
@@ -162,7 +176,9 @@ HR_ICON_DISPLAY_SELECTION_ADD = [
 
 
 def _extend_hr_icon_display_choices(model):
-    """El ``selection_add`` — amplía las choices del campo ya declarado por ``hr``.
+    """
+    El ``selection_add`` — amplía las choices del campo ya declarado por
+    ``hr``.
 
     Delega en :func:`orm.model_classes.extend_selection_choices`, que es
     idempotente por pertenencia (``ready()`` puede correr dos veces) y que
@@ -176,8 +192,9 @@ def _extend_hr_icon_display_choices(model):
     pelado). Los tres valores toman la política por defecto, ``'set null'``,
     que es lo que allá hace ``ondelete.setdefault``.
     """
-    return extend_selection_choices(model, 'hr_icon_display',
-                                    HR_ICON_DISPLAY_SELECTION_ADD)
+    return extend_selection_choices(
+        model, 'hr_icon_display', HR_ICON_DISPLAY_SELECTION_ADD
+    )
 
 
 def apply_hr_homeworking_hr_employee_extensions():
@@ -188,19 +205,38 @@ def apply_hr_homeworking_hr_employee_extensions():
     ``hr/migrations/`` — la app dueña del modelo; ver ``__init__.py`` del
     addon). Los computes no almacenados son properties."""
     extend_model(
-        'hr', 'HrEmployee',
+        'hr',
+        'HrEmployee',
         campos={
-            'monday_location': _day_location_field('monday_location_id', 'Monday'),
-            'tuesday_location': _day_location_field('tuesday_location_id', 'Tuesday'),
-            'wednesday_location': _day_location_field('wednesday_location_id', 'Wednesday'),
-            'thursday_location': _day_location_field('thursday_location_id', 'Thursday'),
-            'friday_location': _day_location_field('friday_location_id', 'Friday'),
-            'saturday_location': _day_location_field('saturday_location_id', 'Saturday'),
-            'sunday_location': _day_location_field('sunday_location_id', 'Sunday'),
+            'monday_location': _day_location_field(
+                'monday_location_id', 'Monday'
+            ),
+            'tuesday_location': _day_location_field(
+                'tuesday_location_id', 'Tuesday'
+            ),
+            'wednesday_location': _day_location_field(
+                'wednesday_location_id', 'Wednesday'
+            ),
+            'thursday_location': _day_location_field(
+                'thursday_location_id', 'Thursday'
+            ),
+            'friday_location': _day_location_field(
+                'friday_location_id', 'Friday'
+            ),
+            'saturday_location': _day_location_field(
+                'saturday_location_id', 'Saturday'
+            ),
+            'sunday_location': _day_location_field(
+                'sunday_location_id', 'Sunday'
+            ),
         },
         metodos={
-            '_get_current_day_location_field': classmethod(_get_current_day_location_field),
-            '_compute_exceptional_location_id': _compute_exceptional_location_id,
+            '_get_current_day_location_field': classmethod(
+                _get_current_day_location_field
+            ),
+            '_compute_exceptional_location_id': (
+                _compute_exceptional_location_id
+            ),
             '_current_location': _current_location,
             '_compute_presence_icon': _compute_presence_icon,
             '_compute_work_location_name': _compute_work_location_name,

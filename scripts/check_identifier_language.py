@@ -2,7 +2,8 @@
 """check_identifier_language.py — delega en el gate de thyrox.
 
 El mecanismo (AST, léxico cerrado, corpus) se mudó a THYROX (DEC-04,
-actualizar-agentic-ai-thyrox): ``thyrox: src/verify/check_identifier_language.py``.
+actualizar-agentic-ai-thyrox): ``thyrox:
+src/verify/check_identifier_language.py``.
 Este archivo se conserva porque sus consumidores lo invocan **por su ruta** —
 el `.githooks/pre-commit` (gate 4) y `thyrox: src/corpus/migration_report.py`
 (fila `check_identifier_language`)— y reapuntarlos es un cambio aparte del
@@ -48,18 +49,30 @@ def thyrox_gate():
     mismo resultado que sin declarar nada)."""
     declared = os.environ.get('THYROX_ROOT')
     if declared:
-        gate = pathlib.Path(declared) / 'src' / 'verify' / 'check_identifier_language.py'
+        gate = (
+            pathlib.Path(declared)
+            / 'src'
+            / 'verify'
+            / 'check_identifier_language.py'
+        )
         return gate if gate.is_file() else None
     # Clon hermano: <arbol>/thyrox junto a <arbol>/kaupamex-api — SOLO
     # cuando THYROX_ROOT no se declaró en absoluto.
-    gate = HERE.parents[1] / 'thyrox' / 'src' / 'verify' / 'check_identifier_language.py'
+    gate = (
+        HERE.parents[1]
+        / 'thyrox'
+        / 'src'
+        / 'verify'
+        / 'check_identifier_language.py'
+    )
     return gate if gate.is_file() else None
 
 
 def provider_interpreter(gate):
     """El intérprete del proveedor, preguntado a su propio selector.
 
-    Se consulta ``thyrox: src/lib/toolchain.sh`` en vez de derivar la ruta aquí:
+    Se consulta ``thyrox: src/lib/toolchain.sh`` en vez de derivar la ruta
+    aquí:
     el reparto —mecanismo al proveedor, sujeto al consumidor— es una decisión
     del proveedor, y una segunda copia de la regla en este puente derivaría en
     silencio. Devuelve ``None`` cuando el selector rehúsa, y su mensaje ya
@@ -70,13 +83,20 @@ def provider_interpreter(gate):
     # puente: el puente no sabe dónde está thyrox, y el gate sí.
     selector = gate.parent.parent / 'lib' / 'toolchain.sh'
     if not selector.is_file():
-        print(f'FATAL: no se encontró el selector de toolchain en {selector}.',
-              file=sys.stderr)
+        print(
+            f'FATAL: no se encontró el selector de toolchain en {selector}.',
+            file=sys.stderr,
+        )
         return None
     asked = subprocess.run(
-        ['bash', '-c',
-         f'source {selector} && thyrox_toolchain_provider_python'],
-        capture_output=True, text=True)
+        [
+            'bash',
+            '-c',
+            f'source {selector} && thyrox_toolchain_provider_python',
+        ],
+        capture_output=True,
+        text=True,
+    )
     if asked.returncode != 0:
         sys.stderr.write(asked.stderr)
         return None
@@ -86,25 +106,37 @@ def provider_interpreter(gate):
 def main(argv):
     gate = thyrox_gate()
     if gate is None:
-        print('FATAL: no se encontró thyrox/src/verify/check_identifier_language.py.',
-              file=sys.stderr)
-        print('       Declara THYROX_ROOT o clona thyrox como hermano.', file=sys.stderr)
-        print('       NO se emite veredicto: un 0 aquí sería un verde falso.', file=sys.stderr)
+        print(
+            'FATAL: no se encontró'
+            ' thyrox/src/verify/check_identifier_language.py.',
+            file=sys.stderr,
+        )
+        print(
+            '       Declara THYROX_ROOT o clona thyrox como hermano.',
+            file=sys.stderr,
+        )
+        print(
+            '       NO se emite veredicto: un 0 aquí sería un verde falso.',
+            file=sys.stderr,
+        )
         return 2
 
     env = dict(os.environ)
     # El baseline de ESTE árbol. `setdefault`: si quien invoca ya lo declaró
     # (p. ej. para probar contra otro archivo), esa declaración manda.
-    env.setdefault('IDENTIFIER_LANGUAGE_BASELINE',
-                    str(HERE / 'identifier_language_baseline.txt'))
+    env.setdefault(
+        'IDENTIFIER_LANGUAGE_BASELINE',
+        str(HERE / 'identifier_language_baseline.txt'),
+    )
     # El gate importa los paquetes de su árbol por nombre (`from paths.reach
     # import ...`) y ya no se abre el camino solo: su `sys.path.insert` se
     # retiró en TASK-THYROX-0018. Quien lo invoca declara `<thyrox>/src`, igual
     # que hace el envoltorio `bin/` del proveedor.
     provider_src = str(gate.parent.parent)
     inherited = env.get('PYTHONPATH')
-    env['PYTHONPATH'] = (provider_src + os.pathsep + inherited
-                         if inherited else provider_src)
+    env['PYTHONPATH'] = (
+        provider_src + os.pathsep + inherited if inherited else provider_src
+    )
     interpreter = provider_interpreter(gate)
     if interpreter is None:
         return 2

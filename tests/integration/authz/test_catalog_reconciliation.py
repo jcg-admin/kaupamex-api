@@ -10,6 +10,7 @@ El caso que motiva ambos es H-API-106: el addon ``orders`` se retiró
 (``api@77bd1f0``) y su fila sobrevivió en toda base ya sembrada, porque la
 siembra sólo añade — ``get_or_create`` nunca retira lo que dejó de declararse.
 """
+
 import io
 import subprocess
 import sys
@@ -32,8 +33,12 @@ BASE = Path(__file__).resolve().parents[3]
 def test_static_gate_passes_on_the_current_tree():
     """El árbol tal como está declarado pasa los cinco checks."""
     proc = subprocess.run(
-        [sys.executable, str(BASE / 'scripts' / 'check_catalog_declaration.py')],
-        capture_output=True, text=True,
+        [
+            sys.executable,
+            str(BASE / 'scripts' / 'check_catalog_declaration.py'),
+        ],
+        capture_output=True,
+        text=True,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert 'Coherencia: OK' in proc.stdout
@@ -65,7 +70,9 @@ def test_detects_stored_capability_nobody_declares():
     call_command('seed_authz')
     module = Module.objects.get(code='catalogue')
     Capability.objects.create(
-        code='catalogue.inventada', module=module, name='Inventada',
+        code='catalogue.inventada',
+        module=module,
+        name='Inventada',
     )
 
     out = io.StringIO()
@@ -76,7 +83,9 @@ def test_detects_stored_capability_nobody_declares():
 
 @pytest.mark.django_db
 def test_detects_diverging_metadata():
-    """Editar la fila en la consola L0 sin tocar la declaración es divergencia."""
+    """
+    Editar la fila en la consola L0 sin tocar la declaración es divergencia.
+    """
     call_command('seed_authz')
     module = Module.objects.get(code='catalogue')
     module.category = 'Categoría inventada'
@@ -110,7 +119,9 @@ def test_prune_spares_a_subscribed_module():
     la que ``--prune`` es opt-in y no parte del seed.
     """
     call_command('seed_authz')
-    module = Module.objects.create(code='addon_retirado', name='Addon retirado')
+    module = Module.objects.create(
+        code='addon_retirado', name='Addon retirado'
+    )
     company = ResCompany.objects.create(code='acme', name='ACME')
     CompanyModuleSubscription.objects.create(company=company, module=module)
 

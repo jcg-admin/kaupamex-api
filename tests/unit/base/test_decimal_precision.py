@@ -1,10 +1,13 @@
-"""Gate de ``decimal.precision`` = ``odoo/addons/base/models/decimal_precision.py``.
+"""
+Gate de ``decimal.precision`` =
+``odoo/addons/base/models/decimal_precision.py``.
 
 Escrito antes que la implementación (TDD). Cubre las cuatro piezas que el gate
 de porte reportaba ausentes —``create``, ``write``, ``unlink`` y
 ``_onchange_digits_warning``— más el caché de ``precision_get``, que la fuente
 declara con ``@ormcache('application', cache='stable')`` y aquí no existía.
 """
+
 import pytest
 from django.db import IntegrityError, transaction
 
@@ -26,7 +29,9 @@ class TestPrecisionGet:
         DecimalPrecision.create([{'name': 'Product Price', 'digits': 4}])
         assert DecimalPrecision.precision_get('Product Price') == 4
 
-    def test_the_second_read_does_not_touch_the_database(self, django_assert_num_queries):
+    def test_the_second_read_does_not_touch_the_database(
+        self, django_assert_num_queries
+    ):
         DecimalPrecision.create([{'name': 'Product Price', 'digits': 4}])
         DecimalPrecision.precision_get('Product Price')
         with django_assert_num_queries(0):
@@ -46,19 +51,25 @@ class TestCacheInvalidation:
         assert DecimalPrecision.precision_get('Account') == 6
 
     def test_write_invalidates_it(self):
-        (registro,) = DecimalPrecision.create([{'name': 'Account', 'digits': 6}])
+        (registro,) = DecimalPrecision.create(
+            [{'name': 'Account', 'digits': 6}]
+        )
         assert DecimalPrecision.precision_get('Account') == 6
         registro.write({'digits': 3})
         assert DecimalPrecision.precision_get('Account') == 3
 
     def test_unlink_invalidates_it(self):
-        (registro,) = DecimalPrecision.create([{'name': 'Account', 'digits': 6}])
+        (registro,) = DecimalPrecision.create(
+            [{'name': 'Account', 'digits': 6}]
+        )
         assert DecimalPrecision.precision_get('Account') == 6
         registro.unlink()
         assert DecimalPrecision.precision_get('Account') == 2
 
     def test_a_plain_save_invalidates_it_too(self):
-        (registro,) = DecimalPrecision.create([{'name': 'Account', 'digits': 6}])
+        (registro,) = DecimalPrecision.create(
+            [{'name': 'Account', 'digits': 6}]
+        )
         assert DecimalPrecision.precision_get('Account') == 6
         registro.digits = 5
         registro.save()
@@ -67,13 +78,17 @@ class TestCacheInvalidation:
 
 @pytest.mark.django_db
 class TestCreate:
-    """``create`` — la firma multi de la fuente (``@api.model_create_multi``)."""
+    """
+    ``create`` — la firma multi de la fuente (``@api.model_create_multi``).
+    """
 
     def test_it_takes_a_list_and_returns_the_records(self):
-        creados = DecimalPrecision.create([
-            {'name': 'Product Price', 'digits': 4},
-            {'name': 'Product Unit', 'digits': 3},
-        ])
+        creados = DecimalPrecision.create(
+            [
+                {'name': 'Product Price', 'digits': 4},
+                {'name': 'Product Unit', 'digits': 3},
+            ]
+        )
         assert [r.name for r in creados] == ['Product Price', 'Product Unit']
         assert DecimalPrecision.objects.count() == 2
 
@@ -87,20 +102,29 @@ class TestOnchangeDigitsWarning:
     """``_onchange_digits_warning`` — el aviso al reducir la precisión."""
 
     def test_reducing_the_precision_warns(self):
-        (registro,) = DecimalPrecision.create([{'name': 'Account', 'digits': 6}])
+        (registro,) = DecimalPrecision.create(
+            [{'name': 'Account', 'digits': 6}]
+        )
         registro.digits = 2
         aviso = registro._onchange_digits_warning()
         assert aviso is not None
         assert 'Account' in aviso['warning']['title']
-        assert 'WON' in aviso['warning']['message'] or 'no se actualiz' in aviso['warning']['message']
+        assert (
+            'WON' in aviso['warning']['message']
+            or 'no se actualiz' in aviso['warning']['message']
+        )
 
     def test_raising_the_precision_does_not_warn(self):
-        (registro,) = DecimalPrecision.create([{'name': 'Account', 'digits': 2}])
+        (registro,) = DecimalPrecision.create(
+            [{'name': 'Account', 'digits': 2}]
+        )
         registro.digits = 6
         assert registro._onchange_digits_warning() is None
 
     def test_leaving_it_unchanged_does_not_warn(self):
-        (registro,) = DecimalPrecision.create([{'name': 'Account', 'digits': 2}])
+        (registro,) = DecimalPrecision.create(
+            [{'name': 'Account', 'digits': 2}]
+        )
         assert registro._onchange_digits_warning() is None
 
 

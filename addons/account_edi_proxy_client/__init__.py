@@ -1,4 +1,5 @@
-"""``account_edi_proxy_client`` — vacío a propósito (patrón ``utm/__init__.py``).
+"""
+``account_edi_proxy_client`` — vacío a propósito (patrón ``utm/__init__.py``).
 
 La referencia declara aquí ``_create_demo_config_param(env)``, un
 ``post_init_hook`` que siembra ``account_edi_proxy_client.demo`` en

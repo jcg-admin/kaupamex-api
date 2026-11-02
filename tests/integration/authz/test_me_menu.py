@@ -5,8 +5,13 @@ capacidades del usuario. Verifica: superadmin ve todo; un usuario de solo
 ``support.view`` ve únicamente su sección; sin capacidades el menú es vacío;
 las secciones sin hijos visibles se descartan; requiere autenticación.
 """
+
 from addons.authz.models import (
-    AccessLevel, Capability, Module, Role, RoleAssignment,
+    AccessLevel,
+    Capability,
+    Module,
+    Role,
+    RoleAssignment,
     RoleCapability,
 )
 from addons.base.models import IrUiMenu
@@ -23,8 +28,10 @@ User = get_user_model()
 
 # Verbo CRUD → nivel mínimo (DEC-11). ``manage`` es alias legado del tope.
 _VERB_LEVEL = {
-    'view': AccessLevel.VIEW, 'create': AccessLevel.CREATE,
-    'edit': AccessLevel.EDIT, 'full': AccessLevel.FULL,
+    'view': AccessLevel.VIEW,
+    'create': AccessLevel.CREATE,
+    'edit': AccessLevel.EDIT,
+    'full': AccessLevel.FULL,
 }
 
 
@@ -45,11 +52,14 @@ def _user(email):
 
 def _grant(role, code, level):
     module, _ = Module.objects.get_or_create(
-        code=code.split('.', 1)[0], defaults={'name': code})
+        code=code.split('.', 1)[0], defaults={'name': code}
+    )
     cap, _ = Capability.objects.get_or_create(
-        code=code, defaults={'module': module, 'name': code})
+        code=code, defaults={'module': module, 'name': code}
+    )
     RoleCapability.objects.update_or_create(
-        role=role, capability=cap, defaults={'level': level})
+        role=role, capability=cap, defaults={'level': level}
+    )
 
 
 def _role_with(codes, code='r', name='Rol'):
@@ -58,9 +68,9 @@ def _role_with(codes, code='r', name='Rol'):
     role = Role.objects.create(code=code, name=name)
     for c in codes:
         noun, _, verb = c.partition('.')
-        if verb in _VERB_LEVEL:               # sustantivo graduado
+        if verb in _VERB_LEVEL:  # sustantivo graduado
             _grant(role, noun, _VERB_LEVEL[verb])
-        else:                                  # acción nombrada / sustantivo puro
+        else:  # acción nombrada / sustantivo puro
             _grant(role, c, AccessLevel.FULL)
     return role
 
@@ -79,9 +89,12 @@ def test_capabilities_endpoint_returns_resolved_set(seeded, client):
     client.force_authenticate(u)
     body = client.get('/api/v2/authz/me/capabilities/').json()
     assert body['is_superadmin'] is False
-    # DEC-11: support@FULL se expande a la escala de verbos (view<create<edit<full).
+    # DEC-11: support@FULL se expande a la escala de verbos
+    # (view<create<edit<full).
     assert body['capabilities'] == [
-        'support.create', 'support.edit', 'support.full',
+        'support.create',
+        'support.edit',
+        'support.full',
         'support.view',
     ]
 
@@ -121,24 +134,34 @@ def test_level_two_group_is_nested(seeded, client):
     tree = client.get('/api/v2/authz/me/menu/').json()
     ventas = next(s for s in tree if s['label'] == 'Ventas')
     assert [c['label'] for c in ventas['children']] == [
-        'Pedidos', 'Panel de pedidos', 'Reportes']
+        'Pedidos',
+        'Panel de pedidos',
+        'Reportes',
+    ]
     reportes = ventas['children'][-1]
     assert reportes['route'] == ''  # agrupador nivel 1 sin ruta
-    assert [g['label'] for g in reportes['children']] == ['Ventas', 'Top sellers']
+    assert [g['label'] for g in reportes['children']] == [
+        'Ventas',
+        'Top sellers',
+    ]
     # El RFM NO aparece: es de otro dominio.
     assert 'Clientes' not in [s['label'] for s in tree]
 
 
 @pytest.mark.django_db
 def test_customer_report_is_gated_by_its_own_domain(seeded, client):
-    """El contraejemplo del anterior: ``users.view`` ve el RFM, no el de ventas."""
+    """
+    El contraejemplo del anterior: ``users.view`` ve el RFM, no el de ventas.
+    """
     u = _user('crm@e.com')
     RoleAssignment.objects.create(user=u, role=_role_with(['users.view']))
     invalidate_capabilities(u.id)
     client.force_authenticate(u)
     tree = client.get('/api/v2/authz/me/menu/').json()
     clientes = next(s for s in tree if s['label'] == 'Clientes')
-    reportes = next(c for c in clientes['children'] if c['label'] == 'Reportes')
+    reportes = next(
+        c for c in clientes['children'] if c['label'] == 'Reportes'
+    )
     assert [g['label'] for g in reportes['children']] == ['Clientes RFM']
     assert 'Ventas' not in [s['label'] for s in tree]
 
@@ -154,26 +177,43 @@ def test_no_capabilities_yields_empty_menu(seeded, client):
 def test_superadmin_sees_all_sections(seeded, client):
     u = _user('boss@e.com')
     RoleAssignment.objects.create(
-        user=u, role=Role.objects.get(code=SUPERADMIN_ROLE_CODE))
+        user=u, role=Role.objects.get(code=SUPERADMIN_ROLE_CODE)
+    )
     invalidate_capabilities(u.id)
     client.force_authenticate(u)
     tree = client.get('/api/v2/authz/me/menu/').json()
     labels = [s['label'] for s in tree]
-    assert labels == ['Principal', 'Catálogo', 'Ventas', 'Marketing',
-                      'Clientes', 'Operaciones', 'Sistema', 'Configuración']
+    assert labels == [
+        'Principal',
+        'Catálogo',
+        'Ventas',
+        'Marketing',
+        'Clientes',
+        'Operaciones',
+        'Sistema',
+        'Configuración',
+    ]
     # Catálogo tiene sus 5 items visibles para el superadmin.
     catalogo = next(s for s in tree if s['label'] == 'Catálogo')
     assert [i['label'] for i in catalogo['children']] == [
-        'Productos', 'Crear Producto', 'Categorías', 'Descuentos',
-        'Sincronización de precios']
+        'Productos',
+        'Crear Producto',
+        'Categorías',
+        'Descuentos',
+        'Sincronización de precios',
+    ]
     # Reseñas (UGC/moderación para marketing + comportamiento) vive en
     # Marketing, no en una sección "Catálogo social" aparte. «Preguntas» ya no
     # está: su capacidad murió con el addon ``questions`` y vuelve con el
     # cluster ``website_sale`` que lo hospeda (H-QUESTIONS-01).
     marketing = next(s for s in tree if s['label'] == 'Marketing')
     assert [i['label'] for i in marketing['children']] == [
-        'Reseñas', 'Newsletter', 'Notificaciones',
-        'Listas de deseos', 'Banners de portada']
+        'Reseñas',
+        'Newsletter',
+        'Notificaciones',
+        'Listas de deseos',
+        'Banners de portada',
+    ]
     # Ventas cierra con su propio agrupador Reportes (dominio dueño).
     ventas = next(s for s in tree if s['label'] == 'Ventas')
     assert [i['label'] for i in ventas['children']][-1] == 'Reportes'
@@ -190,8 +230,9 @@ def test_banners_leaf_gated_by_banners_manage(seeded, client):
     client.force_authenticate(u)
     tree = client.get('/api/v2/authz/me/menu/').json()
     marketing = next(s for s in tree if s['label'] == 'Marketing')
-    banners = next(i for i in marketing['children']
-                   if i['label'] == 'Banners de portada')
+    banners = next(
+        i for i in marketing['children'] if i['label'] == 'Banners de portada'
+    )
     assert banners['route'] == '/admin/banners'
 
 
@@ -206,8 +247,9 @@ def test_static_content_leaf_gated_by_settings_manage(seeded, client):
     client.force_authenticate(u)
     tree = client.get('/api/v2/authz/me/menu/').json()
     config = next(s for s in tree if s['label'] == 'Configuración')
-    contenido = next(i for i in config['children']
-                     if i['label'] == 'Contenido estático')
+    contenido = next(
+        i for i in config['children'] if i['label'] == 'Contenido estático'
+    )
     assert contenido['route'] == '/admin/content'
 
 
@@ -225,10 +267,20 @@ def test_arbitrary_depth_0_1_2_3(seeded, client):
     devuelve anidada intacta (prueba de que 0/1/2/3/N funciona sin cambios)."""
     cap = Capability.objects.get(code='settings')
     n0 = IrUiMenu.objects.create(key='d0', name='N0', route='', sequence=90)
-    n1 = IrUiMenu.objects.create(key='d1', name='N1', route='', sequence=0, parent=n0)
-    n2 = IrUiMenu.objects.create(key='d2', name='N2', route='', sequence=0, parent=n1)
-    IrUiMenu.objects.create(key='d3', name='N3', route='/admin/system-settings',
-                            sequence=0, parent=n2, group=cap)
+    n1 = IrUiMenu.objects.create(
+        key='d1', name='N1', route='', sequence=0, parent=n0
+    )
+    n2 = IrUiMenu.objects.create(
+        key='d2', name='N2', route='', sequence=0, parent=n1
+    )
+    IrUiMenu.objects.create(
+        key='d3',
+        name='N3',
+        route='/admin/system-settings',
+        sequence=0,
+        parent=n2,
+        group=cap,
+    )
 
     u = _user('deep@e.com')
     RoleAssignment.objects.create(user=u, role=_role_with(['settings.full']))
@@ -236,10 +288,14 @@ def test_arbitrary_depth_0_1_2_3(seeded, client):
     client.force_authenticate(u)
     tree = client.get('/api/v2/authz/me/menu/').json()
 
-    n0node = next(s for s in tree if s['label'] == 'N0')          # nivel 0
-    n1node = n0node['children'][0]                                 # nivel 1
-    n2node = n1node['children'][0]                                 # nivel 2
-    n3node = n2node['children'][0]                                 # nivel 3
-    assert [n1node['label'], n2node['label'], n3node['label']] == ['N1', 'N2', 'N3']
+    n0node = next(s for s in tree if s['label'] == 'N0')  # nivel 0
+    n1node = n0node['children'][0]  # nivel 1
+    n2node = n1node['children'][0]  # nivel 2
+    n3node = n2node['children'][0]  # nivel 3
+    assert [n1node['label'], n2node['label'], n3node['label']] == [
+        'N1',
+        'N2',
+        'N3',
+    ]
     assert n3node['route'] == '/admin/system-settings'
     assert n3node['children'] == []

@@ -5,12 +5,15 @@ La disponibilidad de código no instala módulos: conserva el estado existente,
 registra nuevos módulos como no instalados y reconcilia sus dependencias.
 Toda la actualización se confirma o revierte en la conexión seleccionada.
 """
+
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
 
 from addons.authz.declaration import (
-    MANIFEST_FILE, read_manifest, values_from_manifest,
+    MANIFEST_FILE,
+    read_manifest,
+    values_from_manifest,
 )
 from addons.base.models import IrModule, IrModuleDependency
 from modules import ModuleGraph
@@ -36,11 +39,13 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--database', default=DEFAULT_DB_ALIAS,
+            '--database',
+            default=DEFAULT_DB_ALIAS,
             help='Alias registrado cuyo catálogo se actualizará.',
         )
         parser.add_argument(
-            '--dry-run', action='store_true',
+            '--dry-run',
+            action='store_true',
             help='Reporta lo que haría sin escribir en la base.',
         )
 
@@ -52,10 +57,15 @@ class Command(BaseCommand):
             return self._refresh(using, options['dry_run'])
 
     def _refresh(self, using, dry_run):
-        stored = {module.name: module for module in
-                  IrModule.objects.using(using).select_for_update()}
-        installed = {name for name, row in stored.items()
-                     if row.state == IrModule.STATE_INSTALLED}
+        stored = {
+            module.name: module
+            for module in IrModule.objects.using(using).select_for_update()
+        }
+        installed = {
+            name
+            for name, row in stored.items()
+            if row.state == IrModule.STATE_INSTALLED
+        }
 
         updated = added = 0
         without_manifest = []
@@ -74,8 +84,12 @@ class Command(BaseCommand):
             manifests[addon] = manifest
 
         paths = {name: row.category_path for name, row in stored.items()}
-        paths.update({name: manifest.get('category', 'Uncategorized')
-                      for name, manifest in manifests.items()})
+        paths.update(
+            {
+                name: manifest.get('category', 'Uncategorized')
+                for name, manifest in manifests.items()
+            }
+        )
         validate_category_paths(paths.values())
 
         for addon, manifest in manifests.items():
@@ -88,29 +102,42 @@ class Command(BaseCommand):
             if not dry_run:
                 with connections[using].cursor() as cursor:
                     values['category_id'] = create_categories(
-                        cursor, category_path.split('/') if category_path else [],
+                        cursor,
+                        category_path.split('/') if category_path else [],
                     )
             row = stored.get(addon)
             if row is None:
-                values['state'] = (IrModule.STATE_UNINSTALLED
-                                   if manifest.get('installable', True)
-                                   else IrModule.STATE_UNINSTALLABLE)
+                values['state'] = (
+                    IrModule.STATE_UNINSTALLED
+                    if manifest.get('installable', True)
+                    else IrModule.STATE_UNINSTALLABLE
+                )
                 added += 1
                 if not dry_run:
-                    row = IrModule.objects.using(using).create(name=addon, **values)
+                    row = IrModule.objects.using(using).create(
+                        name=addon, **values
+                    )
             else:
-                if row.state in {IrModule.STATE_UNINSTALLED, IrModule.STATE_UNINSTALLABLE}:
-                    values['state'] = (IrModule.STATE_UNINSTALLED
-                                       if manifest.get('installable', True)
-                                       else IrModule.STATE_UNINSTALLABLE)
-                changed = {k: v for k, v in values.items()
-                           if getattr(row, k) != v}
+                if row.state in {
+                    IrModule.STATE_UNINSTALLED,
+                    IrModule.STATE_UNINSTALLABLE,
+                }:
+                    values['state'] = (
+                        IrModule.STATE_UNINSTALLED
+                        if manifest.get('installable', True)
+                        else IrModule.STATE_UNINSTALLABLE
+                    )
+                changed = {
+                    k: v for k, v in values.items() if getattr(row, k) != v
+                }
                 if changed:
                     updated += 1
                     if not dry_run:
                         for key, value in changed.items():
                             setattr(row, key, value)
-                        row.save(using=using, update_fields=[*changed, 'updated_at'])
+                        row.save(
+                            using=using, update_fields=[*changed, 'updated_at']
+                        )
 
             if not dry_run and row is not None:
                 self._sync_dependencies(row, depends, using=using)
@@ -120,7 +147,8 @@ class Command(BaseCommand):
         return None
 
     def _report_auto_install_gaps(self, installed):
-        """Reporta candidatos usando el estado persistido de la base seleccionada.
+        """
+        Reporta candidatos usando el estado persistido de la base seleccionada.
 
         El alcance es el conjunto descubierto con manifiesto; el reporte no
         instala candidatos ni representa disponibilidad de clases Python.
@@ -131,19 +159,26 @@ class Command(BaseCommand):
         visible = [name for name in modules if graph[name].manifest]
         missing = graph.auto_installable(installed)
 
-        alcance = (f'alcance medido: {len(visible)} addon(s) con manifest '
-                   f'de {len(modules)} en el árbol')
+        alcance = (
+            f'alcance medido: {len(visible)} addon(s) con manifest '
+            f'de {len(modules)} en el árbol'
+        )
 
         if not missing:
-            self.stdout.write(self.style.SUCCESS(
-                f'auto_install coherente: 0 pendientes ({alcance}).'
-            ))
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f'auto_install coherente: 0 pendientes ({alcance}).'
+                )
+            )
             return
 
-        self.stdout.write(self.style.WARNING(
-            f'{len(missing)} addon(s) declaran auto_install, tienen sus '
-            f'dependencias presentes y NO están instalados en esta base ({alcance}):'
-        ))
+        self.stdout.write(
+            self.style.WARNING(
+                f'{len(missing)} addon(s) declaran auto_install, tienen sus'
+                ' dependencias presentes y NO están instalados en esta base'
+                f' ({alcance}):'
+            )
+        )
         for name in missing:
             depends = ', '.join(graph[name].depends) or '—'
             self.stdout.write(f'  {name}  (depends: {depends})')
@@ -156,29 +191,42 @@ class Command(BaseCommand):
         registró en el catálogo comercial.
         """
         declared = set(depends)
-        dependencies = IrModuleDependency.objects.using(using).filter(module_id=module.pk)
+        dependencies = IrModuleDependency.objects.using(using).filter(
+            module_id=module.pk
+        )
         existing = set(dependencies.values_list('name', flat=True))
         for name in sorted(declared - existing):
-            IrModuleDependency.objects.using(using).create(module_id=module.pk, name=name)
+            IrModuleDependency.objects.using(using).create(
+                module_id=module.pk, name=name
+            )
         if existing - declared:
             dependencies.filter(name__in=existing - declared).delete()
 
     def _report(self, added, updated, without_manifest, dry_run):
-        """El conteo va con su denominador — sin él, dos instrumentos mienten igual.
+        """
+        El conteo va con su denominador — sin él, dos instrumentos mienten
+        igual.
 
         ``h-api-649``: la salida decía ``1 añadidos`` y, dos líneas abajo,
         ``94 addon(s) … en el árbol``. Las dos cifras eran correctas y medían
         universos distintos; nada en el reporte lo delataba.
         """
         prefix = '[dry-run] ' if dry_run else ''
-        alcance = ', '.join(str(root) for root in ADDONS_PATHS if root.is_dir())
-        self.stdout.write(self.style.SUCCESS(
-            f'{prefix}Catálogo técnico: {added} añadidos, {updated} actualizados '
-            f'(alcance medido: {len(get_modules())} addon(s) en {alcance}).'
-        ))
+        alcance = ', '.join(
+            str(root) for root in ADDONS_PATHS if root.is_dir()
+        )
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'{prefix}Catálogo técnico: {added} añadidos,'
+                f' {updated} actualizados (alcance medido:'
+                f' {len(get_modules())} addon(s) en {alcance}).'
+            )
+        )
         if without_manifest:
-            self.stdout.write(self.style.WARNING(
-                f'{len(without_manifest)} addon(s) sin {MANIFEST_FILE} — no entran '
-                f'al catálogo:'
-            ))
+            self.stdout.write(
+                self.style.WARNING(
+                    f'{len(without_manifest)} addon(s) sin {MANIFEST_FILE} —'
+                    ' no entran al catálogo:'
+                )
+            )
             self.stdout.write('  ' + ', '.join(without_manifest))

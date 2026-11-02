@@ -31,6 +31,7 @@ Prediccion contra medicion: antes de correrlo se escribio aqui «tres caen, ocho
 sobreviven». La cifra real es 2/9, y el que sobro es justo el del camino feliz.
 Ver ``metrica-decide-la-conclusion.md`` sub-patron D.
 """
+
 import logging
 
 import pytest
@@ -47,13 +48,15 @@ NEW = 'contrasena-nueva-4K'
 @pytest.fixture
 def user(db):
     return get_user_model().objects.create_user(
-        login='ana.tester', password=CURRENT)
+        login='ana.tester', password=CURRENT
+    )
 
 
 @pytest.fixture
 def request_context():
     def _set(ip='203.0.113.7'):
         set_current_request(RequestFactory().get('/', REMOTE_ADDR=ip))
+
     yield _set
     set_current_request(None)
 
@@ -61,6 +64,7 @@ def request_context():
 # --------------------------------------------------------------------------
 # change_password — la puerta, y lo que exige
 # --------------------------------------------------------------------------
+
 
 def test_the_old_password_is_required(user):
     """Sin la anterior no se abre, aunque haya sesion viva."""
@@ -96,6 +100,7 @@ def test_an_empty_new_password_is_refused(user):
 # _change_password — el interno
 # --------------------------------------------------------------------------
 
+
 def test_it_does_not_check_identity(user):
     """Por diseño: quien llama ya la verifico. La fuente lo separa asi."""
     user._change_password(NEW)
@@ -122,7 +127,9 @@ def test_none_counts_as_empty(user):
 
 
 def test_it_persists(user):
-    """DIVERGENCIA: la fuente escribe en la asignacion; Django necesita save."""
+    """
+    DIVERGENCIA: la fuente escribe en la asignacion; Django necesita save.
+    """
     user._change_password(NEW)
     fresh = get_user_model().objects.get(pk=user.pk)
     assert fresh.check_password(NEW) is True

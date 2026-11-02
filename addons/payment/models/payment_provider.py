@@ -8,6 +8,7 @@ al framework de pagos, no a la configuración genérica del sitio. La tabla
 
 Identifiers + field names in English per DEC-DOC-005.
 """
+
 import base64
 import hashlib
 import json
@@ -24,24 +25,29 @@ logger = logging.getLogger(__name__)
 
 class PaymentGateway(TimeStampedModel):
     """Pasarela de pago configurada. UC-CFG-01."""
-    GATEWAY_TEST     = 'TEST'
+
+    GATEWAY_TEST = 'TEST'
     GATEWAY_MERCADOPAGO = 'MERCADOPAGO'
-    GATEWAY_PAYPAL   = 'PAYPAL'
+    GATEWAY_PAYPAL = 'PAYPAL'
     GATEWAYS = [
-        (GATEWAY_TEST,        'Test (sandbox)'),
+        (GATEWAY_TEST, 'Test (sandbox)'),
         (GATEWAY_MERCADOPAGO, 'MercadoPago'),
-        (GATEWAY_PAYPAL,      'PayPal'),
+        (GATEWAY_PAYPAL, 'PayPal'),
     ]
 
-    name        = models.CharField(max_length=50)
-    gateway     = models.CharField(max_length=20, choices=GATEWAYS, unique=True)
-    is_active   = models.BooleanField(default=False)
+    name = models.CharField(max_length=50)
+    gateway = models.CharField(max_length=20, choices=GATEWAYS, unique=True)
+    is_active = models.BooleanField(default=False)
     credentials = models.BinaryField(
-        help_text='Credenciales cifradas con Fernet (addons.payment.models.payment_provider._fernet_key)')
+        help_text=(
+            'Credenciales cifradas con Fernet'
+            ' (addons.payment.models.payment_provider._fernet_key)'
+        )
+    )
     verified_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        db_table     = 'settings_payment_gateway'
+        db_table = 'settings_payment_gateway'
         verbose_name = 'Pasarela de pago'
 
     def __str__(self):
@@ -58,7 +64,10 @@ class PaymentGateway(TimeStampedModel):
         self.credentials = f.encrypt(json.dumps(data).encode())
 
     def get_credentials(self) -> dict:
-        """Descifra y retorna las credenciales. {} si están vacías o son inválidas."""
+        """
+        Descifra y retorna las credenciales. {} si están vacías o son
+        inválidas.
+        """
         if not self.credentials:
             return {}
         try:
@@ -70,7 +79,8 @@ class PaymentGateway(TimeStampedModel):
             # y obligar a re-ingresarlas. DEC-DOC-008.
             logger.warning(
                 'PaymentGateway.get_credentials: decrypt failed gw=%s',
-                getattr(self, 'gateway', '?'), exc_info=True,
+                getattr(self, 'gateway', '?'),
+                exc_info=True,
             )
             return {}
 
@@ -86,7 +96,8 @@ class PaymentGateway(TimeStampedModel):
             # falla antes de su try. DEC-DOC-008.
             logger.warning(
                 'PaymentGateway.get_masked_credentials failed gw=%s',
-                getattr(self, 'gateway', '?'), exc_info=True,
+                getattr(self, 'gateway', '?'),
+                exc_info=True,
             )
             return {}
         masked = {}
@@ -96,4 +107,3 @@ class PaymentGateway(TimeStampedModel):
             else:
                 masked[key] = '****'
         return masked
-

@@ -31,7 +31,9 @@ def documented_env_names():
 
 
 def stray_config_calls():
-    """Archivos de settings fuera de options.py que aún llaman decouple.config()."""
+    """
+    Archivos de settings fuera de options.py que aún llaman decouple.config().
+    """
     offenders = []
     for f in SETTINGS_DIR.glob('*.py'):
         if f.name in ('options.py', '__init__.py'):
@@ -50,15 +52,15 @@ def main():
     missing = sorted(registered - documented)
     if missing:
         errors.append(
-            f"{len(missing)} opción(es) registradas en options.py sin documentar "
-            f"en src/.env.example: {', '.join(missing)}"
+            f"{len(missing)} opción(es) registradas en options.py sin"
+            f" documentar en src/.env.example: {', '.join(missing)}"
         )
 
     offenders = stray_config_calls()
     if offenders:
         errors.append(
-            "Llamadas a decouple.config() fuera de options.py (deben pasar por "
-            f"el registro): {', '.join(str(o) for o in offenders)}"
+            "Llamadas a decouple.config() fuera de options.py (deben pasar"
+            f" por el registro): {', '.join(str(o) for o in offenders)}"
         )
 
     if errors:
@@ -68,8 +70,8 @@ def main():
         return 1
 
     print(
-        f"OK: registro sincronizado ({len(registered)} opciones, "
-        f"todas documentadas en .env.example; sin config() fuera de options.py)"
+        f"OK: registro sincronizado ({len(registered)} opciones, todas"
+        " documentadas en .env.example; sin config() fuera de options.py)"
     )
     return 0
 

@@ -59,6 +59,7 @@ Divergencias declaradas frente a la referencia
    ``porte-completo-no-parcial.md``: el guion bajo marca lo interno porque el
    público es el campo.
 """
+
 import re
 from contextlib import suppress
 
@@ -66,10 +67,17 @@ from cryptography import x509
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
 from cryptography.hazmat.primitives import constant_time, serialization
 from cryptography.hazmat.primitives.asymmetric import (
-    dsa, ec, ed448, ed25519, padding, rsa,
+    dsa,
+    ec,
+    ed448,
+    ed25519,
+    padding,
+    rsa,
 )
 from cryptography.hazmat.primitives.serialization import (
-    Encoding, PublicFormat, pkcs12,
+    Encoding,
+    PublicFormat,
+    pkcs12,
 )
 from cryptography.x509.extensions import DuplicateExtension, ExtensionNotFound
 from cryptography.x509.oid import ExtensionOID, SignatureAlgorithmOID
@@ -80,7 +88,9 @@ import models
 
 from addons.base.models import ResCompany, TimeStampedModel
 from addons.certificate.models.key import (
-    STR_TO_HASH, CertificateKey, _get_formatted_value,
+    STR_TO_HASH,
+    CertificateKey,
+    _get_formatted_value,
 )
 from exceptions import UserError, ValidationError
 
@@ -120,63 +130,104 @@ class CertificateCertificate(TimeStampedModel):
     _check_company_auto = True
 
     name = fields.Char(
-        max_length=255, blank=True, default='', verbose_name='Nombre',
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='Nombre',
     )
     content = fields.Binary(verbose_name='Certificado')
     pkcs12_password = fields.Char(
-        max_length=255, blank=True, default='',
+        max_length=255,
+        blank=True,
+        default='',
         verbose_name='Contraseña del certificado',
         help_text='Contraseña para descifrar el archivo PKCS12.',
     )
     private_key = fields.Many2one(
-        CertificateKey, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='certificates_as_private_key', check_company=True,
+        CertificateKey,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='certificates_as_private_key',
+        check_company=True,
         verbose_name='Llave privada',
-        help_text='Computado: se detecta o crea automáticamente al cargar '
-                  'el certificado.',
+        help_text=(
+            'Computado: se detecta o crea automáticamente al cargar '
+            'el certificado.'
+        ),
     )
     public_key = fields.Many2one(
-        CertificateKey, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='certificates_as_public_key', check_company=True,
+        CertificateKey,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='certificates_as_public_key',
+        check_company=True,
         verbose_name='Llave pública',
-        help_text='Usar cuando la llave pública autocontenida en el '
-                  'certificado es errónea.',
+        help_text=(
+            'Usar cuando la llave pública autocontenida en el '
+            'certificado es errónea.'
+        ),
     )
     scope = fields.Selection(
-        max_length=20, choices=CertificateScope.choices, blank=True,
-        default='', verbose_name='Alcance del certificado',
+        max_length=20,
+        choices=CertificateScope.choices,
+        blank=True,
+        default='',
+        verbose_name='Alcance del certificado',
     )
     content_format = fields.Selection(
-        max_length=10, choices=CertificateContentFormat.choices, blank=True,
-        default='', verbose_name='Formato original del certificado',
+        max_length=10,
+        choices=CertificateContentFormat.choices,
+        blank=True,
+        default='',
+        verbose_name='Formato original del certificado',
     )
     pem_certificate = fields.Binary(
-        null=True, blank=True, verbose_name='Certificado en PEM',
+        null=True,
+        blank=True,
+        verbose_name='Certificado en PEM',
     )
     subject_common_name = fields.Char(
-        max_length=255, blank=True, default='', verbose_name='Nombre del sujeto',
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='Nombre del sujeto',
     )
     serial_number = fields.Char(
-        max_length=64, blank=True, default='', verbose_name='Número de serie',
+        max_length=64,
+        blank=True,
+        default='',
+        verbose_name='Número de serie',
         help_text='El número de serie a añadir a documentos electrónicos.',
     )
     date_start = fields.Datetime(
-        null=True, blank=True, verbose_name='Fecha de disponibilidad',
+        null=True,
+        blank=True,
+        verbose_name='Fecha de disponibilidad',
         help_text='La fecha desde la que el certificado es válido.',
     )
     date_end = fields.Datetime(
-        null=True, blank=True, db_index=True, verbose_name='Fecha de expiración',
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name='Fecha de expiración',
         help_text='La fecha en que el certificado expira.',
     )
     loading_error = fields.Text(
-        blank=True, default='', verbose_name='Error de carga',
+        blank=True,
+        default='',
+        verbose_name='Error de carga',
     )
     active = fields.Boolean(
-        default=True, verbose_name='Activo',
+        default=True,
+        verbose_name='Activo',
         help_text='Archivar sin borrar el certificado.',
     )
     company = fields.Many2one(
-        ResCompany, on_delete=models.CASCADE, related_name='certificates',
+        ResCompany,
+        on_delete=models.CASCADE,
+        related_name='certificates',
         verbose_name='Empresa',
     )
 
@@ -215,11 +266,13 @@ class CertificateCertificate(TimeStampedModel):
         # ≙ el bucle de ``create``/``write`` (certificate.py:485-491, 499-505):
         # sólo cuando hay ``content`` que parsear y se cargó bien.
         if self.content and not self.loading_error:
-            for ca_vals in self._parse_chain_missing_ca_vals({
-                'company': self.company,
-                'content': self.content,
-                'pkcs12_password': self.pkcs12_password,
-            }):
+            for ca_vals in self._parse_chain_missing_ca_vals(
+                {
+                    'company': self.company,
+                    'content': self.content,
+                    'pkcs12_password': self.pkcs12_password,
+                }
+            ):
                 type(self).objects.create(**ca_vals)
 
     def clean(self):
@@ -283,7 +336,9 @@ class CertificateCertificate(TimeStampedModel):
         now = timezone.now()
         # Los cuatro términos de la fuente, en el mismo orden.
         return cls.objects.exclude(pem_certificate__isnull=True).filter(
-            date_start__lte=now, date_end__gte=now, loading_error='',
+            date_start__lte=now,
+            date_end__gte=now,
+            loading_error='',
         )
 
     @property
@@ -293,7 +348,8 @@ class CertificateCertificate(TimeStampedModel):
 
     @property
     def issuer_cert(self):
-        """``issuer_cert_id = fields.Many2one(compute='_compute_issuer_cert_id')``
+        """
+        ``issuer_cert_id = fields.Many2one(compute='_compute_issuer_cert_id')``
         (certificate.py:102-108), sin ``store=True`` — recalculado en cada
         lectura. El cálculo vive en ``_compute_issuer_cert_id``."""
         return self._compute_issuer_cert_id()
@@ -319,8 +375,10 @@ class CertificateCertificate(TimeStampedModel):
         # nuestra columna es ``IS_NULLABLE = NO``, así que una CA compartida
         # no es representable en ninguno de los dos árboles. Ver H-API-298.
         candidates = list(
-            type(self).objects
-            .filter(company=self.company, subject_common_name=issuer_cn)
+            type(self)
+            .objects.filter(
+                company=self.company, subject_common_name=issuer_cn
+            )
             .exclude(pk=self.pk)
             .exclude(pem_certificate__isnull=True)
             .order_by('-date_end')
@@ -330,8 +388,9 @@ class CertificateCertificate(TimeStampedModel):
         # certificado (prueba matemática).
         for candidate in candidates:
             candidate_x509 = candidate._load_x509()
-            if candidate_x509 is not None \
-                    and self._is_issued_by(loaded, candidate_x509):
+            if candidate_x509 is not None and self._is_issued_by(
+                loaded, candidate_x509
+            ):
                 return candidate
 
         # Preferencia 2 (sin prueba matemática): el SKI del candidato
@@ -340,8 +399,11 @@ class CertificateCertificate(TimeStampedModel):
         if expected_ski:
             for candidate in candidates:
                 candidate_x509 = candidate._load_x509()
-                if candidate_x509 is not None and \
-                        self._get_subject_key_identifier(candidate_x509) == expected_ski:
+                if (
+                    candidate_x509 is not None
+                    and self._get_subject_key_identifier(candidate_x509)
+                    == expected_ski
+                ):
                     return candidate
         return None
 
@@ -359,14 +421,17 @@ class CertificateCertificate(TimeStampedModel):
         """``@api.constrains('content', 'pem_certificate')`` (certificate.py
         :304-310): si hay ``content`` pero no se pudo cargar, rechazar."""
         if self.content and not self.pem_certificate:
-            raise ValidationError({
-                'content': self.loading_error or 'CERTIFICATE_LOAD_FAILED',
-            })
+            raise ValidationError(
+                {
+                    'content': self.loading_error or 'CERTIFICATE_LOAD_FAILED',
+                }
+            )
 
     def _constrains_certificate_key_compatibility(self):
         """``@api.constrains('pem_certificate', 'private_key_id',
         'public_key_id')`` (certificate.py:275-303): la llave pública de
-        ``private_key``/``public_key`` debe coincidir con la del certificado."""
+        ``private_key``/``public_key`` debe coincidir con la del certificado.
+        """
         if not self.pem_certificate:
             return
         cert = x509.load_pem_x509_certificate(bytes(self.pem_certificate))
@@ -375,16 +440,22 @@ class CertificateCertificate(TimeStampedModel):
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
         for field_name, key in (
-            ('private_key', self.private_key), ('public_key', self.public_key),
+            ('private_key', self.private_key),
+            ('public_key', self.public_key),
         ):
             if not key:
                 continue
             if key.loading_error:
                 raise ValidationError({field_name: key.loading_error})
             key_public_key_bytes = key._get_public_key_bytes(
-                encoding='pem', formatting='raw')
-            if not constant_time.bytes_eq(key_public_key_bytes, cert_public_key_bytes):
-                raise ValidationError({field_name: 'CERTIFICATE_KEY_INCOMPATIBLE'})
+                encoding='pem', formatting='raw'
+            )
+            if not constant_time.bytes_eq(
+                key_public_key_bytes, cert_public_key_bytes
+            ):
+                raise ValidationError(
+                    {field_name: 'CERTIFICATE_KEY_INCOMPATIBLE'}
+                )
 
     # -------------------------------------------------------
     #                       Cómputo (store=True)
@@ -409,10 +480,14 @@ class CertificateCertificate(TimeStampedModel):
             reset()
             return
 
-        password = (self.pkcs12_password.encode('utf-8')
-                    if self.pkcs12_password else None)
-        leaf_pem, _additional_pems, content_format = \
+        password = (
+            self.pkcs12_password.encode('utf-8')
+            if self.pkcs12_password
+            else None
+        )
+        leaf_pem, _additional_pems, content_format = (
             self._parse_certificate_content(content, password)
+        )
 
         if not leaf_pem:
             reset()
@@ -428,8 +503,9 @@ class CertificateCertificate(TimeStampedModel):
         self.pem_certificate = leaf_pem
         self.content_format = content_format
         self.serial_number = str(cert.serial_number)
-        self.subject_common_name = (
-            self._get_common_name(cert) or str(cert.serial_number))
+        self.subject_common_name = self._get_common_name(cert) or str(
+            cert.serial_number
+        )
         self.date_start = cert.not_valid_before_utc
         self.date_end = cert.not_valid_after_utc
 
@@ -448,17 +524,23 @@ class CertificateCertificate(TimeStampedModel):
             return
 
         content = bytes(self.content) if self.content else None
-        password = (self.pkcs12_password.encode('utf-8')
-                    if self.pkcs12_password else None)
+        password = (
+            self.pkcs12_password.encode('utf-8')
+            if self.pkcs12_password
+            else None
+        )
         key = None
 
         if self.content_format == CertificateContentFormat.PKCS12:
             with suppress(ValueError, TypeError, UnsupportedAlgorithm):
                 key, _cert, _chain = pkcs12.load_key_and_certificates(
-                    content, password)
+                    content, password
+                )
         elif self.content_format == CertificateContentFormat.PEM:
             with suppress(ValueError, TypeError, UnsupportedAlgorithm):
-                key = serialization.load_pem_private_key(content, password=password)
+                key = serialization.load_pem_private_key(
+                    content, password=password
+                )
 
         if key is None:
             return
@@ -469,7 +551,8 @@ class CertificateCertificate(TimeStampedModel):
             encryption_algorithm=serialization.NoEncryption(),
         )
         existing = CertificateKey.objects.filter(
-            company=self.company, pem_key=pem_key,
+            company=self.company,
+            pem_key=pem_key,
         ).first()
         if existing is None:
             existing = CertificateKey.objects.create(
@@ -488,7 +571,8 @@ class CertificateCertificate(TimeStampedModel):
         """Extrae el Subject Key Identifier (SKI), si existe."""
         with suppress(ExtensionNotFound, DuplicateExtension, ValueError):
             return x509_cert.extensions.get_extension_for_oid(
-                ExtensionOID.SUBJECT_KEY_IDENTIFIER).value.digest
+                ExtensionOID.SUBJECT_KEY_IDENTIFIER
+            ).value.digest
         return None
 
     @staticmethod
@@ -496,7 +580,8 @@ class CertificateCertificate(TimeStampedModel):
         """Extrae el Authority Key Identifier (AKI), si existe."""
         with suppress(ExtensionNotFound, DuplicateExtension, ValueError):
             return x509_cert.extensions.get_extension_for_oid(
-                ExtensionOID.AUTHORITY_KEY_IDENTIFIER).value.key_identifier
+                ExtensionOID.AUTHORITY_KEY_IDENTIFIER
+            ).value.key_identifier
         return None
 
     @staticmethod
@@ -504,7 +589,9 @@ class CertificateCertificate(TimeStampedModel):
         """Extrae el Common Name del sujeto (o del emisor) del certificado."""
         with suppress(ValueError, IndexError):
             x509_name = cert.issuer if issuer else cert.subject
-            return x509_name.get_attributes_for_oid(x509.NameOID.COMMON_NAME)[0].value
+            return x509_name.get_attributes_for_oid(x509.NameOID.COMMON_NAME)[
+                0
+            ].value
         return None
 
     @staticmethod
@@ -537,28 +624,44 @@ class CertificateCertificate(TimeStampedModel):
                 attempts, on_failure = [], False
             case ec.EllipticCurvePublicKey():
                 attempts, on_failure = (
-                    [(signature, signed_bytes, ec.ECDSA(hash_alg))], False)
+                    [(signature, signed_bytes, ec.ECDSA(hash_alg))],
+                    False,
+                )
             case dsa.DSAPublicKey():
-                attempts, on_failure = [(signature, signed_bytes, hash_alg)], False
+                attempts, on_failure = [
+                    (signature, signed_bytes, hash_alg)
+                ], False
             case rsa.RSAPublicKey() if (
                 x509_certificate.signature_algorithm_oid
                 != SignatureAlgorithmOID.RSASSA_PSS
             ):
                 attempts, on_failure = (
-                    [(signature, signed_bytes, padding.PKCS1v15(), hash_alg)], False)
+                    [(signature, signed_bytes, padding.PKCS1v15(), hash_alg)],
+                    False,
+                )
             case rsa.RSAPublicKey():
                 attempts = [
-                    (signature, signed_bytes,
-                     padding.PSS(mgf=padding.MGF1(hash_alg), salt_length=salt_length),
-                     hash_alg)
-                    for salt_length in (hash_alg.digest_size, padding.PSS.MAX_LENGTH)
+                    (
+                        signature,
+                        signed_bytes,
+                        padding.PSS(
+                            mgf=padding.MGF1(hash_alg), salt_length=salt_length
+                        ),
+                        hash_alg,
+                    )
+                    for salt_length in (
+                        hash_alg.digest_size,
+                        padding.PSS.MAX_LENGTH,
+                    )
                 ]
                 on_failure = None
             case _:
                 attempts, on_failure = [], None
 
         for verify_args in attempts:
-            with suppress(InvalidSignature, TypeError, ValueError, UnsupportedAlgorithm):
+            with suppress(
+                InvalidSignature, TypeError, ValueError, UnsupportedAlgorithm
+            ):
                 public_key.verify(*verify_args)
                 return True
         return on_failure
@@ -571,17 +674,22 @@ class CertificateCertificate(TimeStampedModel):
 
         def subject(obj):
             return obj.public_key().public_bytes(
-                Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+                Encoding.PEM, PublicFormat.SubjectPublicKeyInfo
+            )
 
         cert_blocks = re.findall(
             rb'(-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----)',
-            decoded_content, flags=re.DOTALL,
+            decoded_content,
+            flags=re.DOTALL,
         )
-        certs = [x509.load_pem_x509_certificate(block) for block in cert_blocks]
+        certs = [
+            x509.load_pem_x509_certificate(block) for block in cert_blocks
+        ]
 
         try:
             private_key = serialization.load_pem_private_key(
-                decoded_content, password=password)
+                decoded_content, password=password
+            )
         except (ValueError, TypeError, UnsupportedAlgorithm):
             return cert_blocks
 
@@ -604,18 +712,28 @@ class CertificateCertificate(TimeStampedModel):
             return x.public_bytes(Encoding.PEM) if x else None
 
         with suppress(ValueError):
-            return pem(x509.load_der_x509_certificate(content)), [], \
-                CertificateContentFormat.DER
+            return (
+                pem(x509.load_der_x509_certificate(content)),
+                [],
+                CertificateContentFormat.DER,
+            )
 
         with suppress(ValueError):
-            _key, leaf_cert, additional_certs = \
+            _key, leaf_cert, additional_certs = (
                 pkcs12.load_key_and_certificates(content, password)
-            return (pem(leaf_cert), [pem(x) for x in additional_certs],
-                    CertificateContentFormat.PKCS12)
+            )
+            return (
+                pem(leaf_cert),
+                [pem(x) for x in additional_certs],
+                CertificateContentFormat.PKCS12,
+            )
 
         with suppress(ValueError):
-            leaf, *additional = CertificateCertificate._parse_pem_certificate_bundle(
-                content, password)
+            leaf, *additional = (
+                CertificateCertificate._parse_pem_certificate_bundle(
+                    content, password
+                )
+            )
             return leaf, additional, CertificateContentFormat.PEM
 
         return None, [], None
@@ -624,8 +742,11 @@ class CertificateCertificate(TimeStampedModel):
     def _extract_and_filter_chain(content_bytes, password=None):
         """Devuelve sólo los certificados de la cadena del leaf (leaf →
         raíz), descartando lo que el bundle traiga de más."""
-        leaf_pem, additional_pems, _fmt = \
-            CertificateCertificate._parse_certificate_content(content_bytes, password)
+        leaf_pem, additional_pems, _fmt = (
+            CertificateCertificate._parse_certificate_content(
+                content_bytes, password
+            )
+        )
         if not leaf_pem:
             return [None]
 
@@ -640,7 +761,9 @@ class CertificateCertificate(TimeStampedModel):
         certs_chain = [leaf_cert]
         current_cert = leaf_cert
         while True:
-            aki = CertificateCertificate._get_authority_key_identifier(current_cert)
+            aki = CertificateCertificate._get_authority_key_identifier(
+                current_cert
+            )
             parent_cert = ski_cert_map.get(aki) if aki else None
             if parent_cert is None or parent_cert in certs_chain:
                 break
@@ -660,7 +783,8 @@ class CertificateCertificate(TimeStampedModel):
         de campos de las que faltan** en la base — no las crea. Quien crea es
         el llamador, igual que en la referencia: allí son ``create``/``write``
         (certificate.py:483-511), aquí es ``save()`` (divergencia 5 del
-        docstring del módulo: el batch por ``vals_list`` se colapsa a una fila).
+        docstring del módulo: el batch por ``vals_list`` se colapsa a una
+        fila).
 
         :param vals: los valores de la escritura en curso. La referencia lee
           ``company_id``/``pkcs12_password``/``content`` de ahí; se conserva
@@ -669,8 +793,11 @@ class CertificateCertificate(TimeStampedModel):
         :return: lista de ``dict`` listos para ``objects.create()``.
         """
         company = vals.get('company')
-        password = (vals['pkcs12_password'].encode('utf-8')
-                    if vals.get('pkcs12_password') else None)
+        password = (
+            vals['pkcs12_password'].encode('utf-8')
+            if vals.get('pkcs12_password')
+            else None
+        )
         content = bytes(vals.get('content') or b'')
 
         _leaf_pem, *ca_pems = self._extract_and_filter_chain(content, password)
@@ -682,21 +809,28 @@ class CertificateCertificate(TimeStampedModel):
             ca_cert = x509.load_pem_x509_certificate(pem)
             serial = str(ca_cert.serial_number)
             subject = self._get_common_name(ca_cert) or serial
-            ca_data_list.append({
-                'name': f'{subject} (CA)', 'company': company,
-                'serial_number': serial, 'subject_common_name': subject,
-                'content': pem, 'active': False,
-            })
+            ca_data_list.append(
+                {
+                    'name': f'{subject} (CA)',
+                    'company': company,
+                    'serial_number': serial,
+                    'subject_common_name': subject,
+                    'content': pem,
+                    'active': False,
+                }
+            )
 
         # Las ya existentes se descartan para no duplicar. La referencia usa
         # ``with_context(active_test=False)`` porque una CA se siembra con
         # ``active=False``; aquí no hay ``active_test``, así que el queryset
         # ya ve las archivadas sin pedir nada.
         existing_keys = set(
-            type(self).objects.filter(
+            type(self)
+            .objects.filter(
                 company=company,
                 serial_number__in=[d['serial_number'] for d in ca_data_list],
-            ).values_list('serial_number', 'subject_common_name')
+            )
+            .values_list('serial_number', 'subject_common_name')
         )
 
         missing = []
@@ -716,17 +850,24 @@ class CertificateCertificate(TimeStampedModel):
         """Bytes DER del certificado."""
         cert = x509.load_pem_x509_certificate(bytes(self.pem_certificate))
         return _get_formatted_value(
-            cert.public_bytes(serialization.Encoding.DER), formatting=formatting)
+            cert.public_bytes(serialization.Encoding.DER),
+            formatting=formatting,
+        )
 
-    def _get_fingerprint_bytes(self, hashing_algorithm='sha256', formatting='encodebytes'):
+    def _get_fingerprint_bytes(
+        self, hashing_algorithm='sha256', formatting='encodebytes'
+    ):
         """Bytes de la huella (fingerprint) del certificado."""
         cert = x509.load_pem_x509_certificate(bytes(self.pem_certificate))
         if hashing_algorithm not in STR_TO_HASH:
             raise UserError(
                 f"Algoritmo de hash no soportado '{hashing_algorithm}'. "
-                "Soportados: sha1 y sha256.")
+                "Soportados: sha1 y sha256."
+            )
         return _get_formatted_value(
-            cert.fingerprint(STR_TO_HASH[hashing_algorithm]), formatting=formatting)
+            cert.fingerprint(STR_TO_HASH[hashing_algorithm]),
+            formatting=formatting,
+        )
 
     def _get_signature_bytes(self, formatting='encodebytes'):
         """Bytes de la firma del certificado."""
@@ -736,8 +877,9 @@ class CertificateCertificate(TimeStampedModel):
     def _get_public_key_numbers_bytes(self, formatting='encodebytes'):
         """Números públicos de la llave pública del certificado."""
         if self.public_key or self.private_key:
-            return (self.public_key or self.private_key)._get_public_key_numbers_bytes(
-                formatting=formatting)
+            return (
+                self.public_key or self.private_key
+            )._get_public_key_numbers_bytes(formatting=formatting)
         return CertificateKey._numbers_public_key_bytes_with_key(
             self._get_public_key_bytes(encoding='pem', formatting='raw'),
             formatting=formatting,
@@ -747,16 +889,22 @@ class CertificateCertificate(TimeStampedModel):
         """Bytes de la llave pública del certificado."""
         if self.public_key or self.private_key:
             return (self.public_key or self.private_key)._get_public_key_bytes(
-                encoding=encoding, formatting=formatting)
+                encoding=encoding, formatting=formatting
+            )
 
         try:
             cert = x509.load_pem_x509_certificate(bytes(self.pem_certificate))
             public_key = cert.public_key()
         except ValueError:
-            raise UserError('No se pudo cargar la llave pública del certificado.')
+            raise UserError(
+                'No se pudo cargar la llave pública del certificado.'
+            )
 
-        enc = (serialization.Encoding.DER if encoding == 'der'
-               else serialization.Encoding.PEM)
+        enc = (
+            serialization.Encoding.DER
+            if encoding == 'der'
+            else serialization.Encoding.PEM
+        )
         return _get_formatted_value(
             public_key.public_bytes(
                 encoding=enc,
@@ -765,19 +913,24 @@ class CertificateCertificate(TimeStampedModel):
             formatting=formatting,
         )
 
-    def _sign(self, message, hashing_algorithm='sha256', formatting='encodebytes'):
+    def _sign(
+        self, message, hashing_algorithm='sha256', formatting='encodebytes'
+    ):
         """Firma ``message`` con la llave privada de este certificado."""
         if not self.is_valid:
             raise UserError(
-                self.loading_error or
-                'Este certificado no es válido, su vigencia expiró.')
+                self.loading_error
+                or 'Este certificado no es válido, su vigencia expiró.'
+            )
         if not self.private_key:
             raise UserError(
                 'No hay llave privada asociada al certificado; es '
-                'requerida para firmar documentos.')
+                'requerida para firmar documentos.'
+            )
 
         return self.private_key._sign(
-            message, hashing_algorithm=hashing_algorithm, formatting=formatting)
+            message, hashing_algorithm=hashing_algorithm, formatting=formatting
+        )
 
     def _get_certificate_chain(self):
         """Cadena completa del certificado, Leaf → Root, siguiendo

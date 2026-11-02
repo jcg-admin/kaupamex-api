@@ -1,4 +1,6 @@
-"""``onboarding.onboarding`` colgado por ``account`` — pasos de facturación y dashboard.
+"""
+``onboarding.onboarding`` colgado por ``account`` — pasos de facturación y
+dashboard.
 
 Adaptación de ``addons/account/models/onboarding_onboarding.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3 — atribución y aviso de
@@ -20,7 +22,8 @@ Sin ``ir.model.data``/``env.ref`` (medido en el docstring de
 onboarding concreto aquí es ``route_name`` — el propio campo que
 ``OnboardingOnboarding`` ya declara para ese fin (ver su docstring: *"Odoo
 route_name... sin panel web, no define una ruta HTTP aquí"*). Los dos
-xmlids que la referencia nombra (``account.onboarding_onboarding_account_invoice``,
+xmlids que la referencia nombra
+(``account.onboarding_onboarding_account_invoice``,
 ``account.onboarding_onboarding_account_dashboard``) se sustituyen por sus
 sufijos como ``route_name``: ``account_invoice`` / ``account_dashboard``.
 Ninguno de los dos tiene fila sembrada en este árbol todavía (no hay cargador
@@ -42,6 +45,7 @@ guion bajo no renombra, promueve el símbolo a API pública— y estaba
 congelada en ``scripts/despromovidos_baseline.txt``, que es de donde salió
 al tocar el archivo.
 """
+
 from addons.account.models.account_move import AccountMove
 from addons.onboarding.models.onboarding_onboarding import OnboardingOnboarding
 from addons.onboarding.models.onboarding_progress import _resolve_company_id
@@ -62,7 +66,9 @@ def action_close_panel_account_invoice(self):
     delega en ``action_close_panel`` del base (ya porta el "quietly do
     nothing" de la referencia).
     """
-    onboarding = type(self).objects.filter(route_name=ROUTE_ACCOUNT_INVOICE).first()
+    onboarding = (
+        type(self).objects.filter(route_name=ROUTE_ACCOUNT_INVOICE).first()
+    )
     if onboarding is not None:
         type(self).action_close_panel(onboarding.pk)
 
@@ -70,13 +76,17 @@ def action_close_panel_account_invoice(self):
 def action_close_panel_account_dashboard(self):
     """≙ ``action_close_panel_account_dashboard`` (``odoo19c:
     onboarding_onboarding.py:26-28``). Mismo patrón que la de facturación."""
-    onboarding = type(self).objects.filter(route_name=ROUTE_ACCOUNT_DASHBOARD).first()
+    onboarding = (
+        type(self).objects.filter(route_name=ROUTE_ACCOUNT_DASHBOARD).first()
+    )
     if onboarding is not None:
         type(self).action_close_panel(onboarding.pk)
 
 
 def _prepare_rendering_values(self):
-    """≙ ``_prepare_rendering_values`` (``odoo19c: onboarding_onboarding.py:11-21``).
+    """
+    ≙ ``_prepare_rendering_values`` (``odoo19c:
+    onboarding_onboarding.py:11-21``).
 
     Si este onboarding es el de facturación (``route_name ==
     'account_invoice'``) y su paso "crear factura" sigue sin marcarse hecho,
@@ -102,7 +112,8 @@ def _prepare_rendering_values(self):
         return None
     company_id = _resolve_company_id(None)
     has_invoices = AccountMove.objects.filter(
-        company_id=company_id, move_type='out_invoice',
+        company_id=company_id,
+        move_type='out_invoice',
     ).exists()
     if has_invoices:
         step.action_set_just_done()
@@ -110,15 +121,25 @@ def _prepare_rendering_values(self):
 
 
 def apply_account_extensions():
-    """Cuelga los pasos de facturación/dashboard sobre ``onboarding.onboarding``
+    """
+    Cuelga los pasos de facturación/dashboard sobre ``onboarding.onboarding``
     — ≙ ``_inherit``.
 
     **Todavía no cableado** en ``AccountConfig._EXTENSIONES`` — mismo estado
     declarado que el resto de archivos de este pase.
     """
-    chain_method(OnboardingOnboarding, 'action_close_panel_account_invoice',
-                 action_close_panel_account_invoice)
-    chain_method(OnboardingOnboarding, 'action_close_panel_account_dashboard',
-                 action_close_panel_account_dashboard)
-    chain_method(OnboardingOnboarding, '_prepare_rendering_values',
-                 _prepare_rendering_values)
+    chain_method(
+        OnboardingOnboarding,
+        'action_close_panel_account_invoice',
+        action_close_panel_account_invoice,
+    )
+    chain_method(
+        OnboardingOnboarding,
+        'action_close_panel_account_dashboard',
+        action_close_panel_account_dashboard,
+    )
+    chain_method(
+        OnboardingOnboarding,
+        '_prepare_rendering_values',
+        _prepare_rendering_values,
+    )

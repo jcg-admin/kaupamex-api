@@ -1,4 +1,5 @@
-"""``ir.http`` extendido por ``website`` — el consentimiento de cookies por sitio.
+"""
+``ir.http`` extendido por ``website`` — el consentimiento de cookies por sitio.
 
 Adaptación de Odoo ``website/models/ir_http.py`` (``odoo-tools@622ddc2a``,
 ``odoo19c:``, LGPL-3). Porte quirúrgico: de los **29 símbolos** del archivo
@@ -74,13 +75,20 @@ Divergencias declaradas:
   recordset vacío; ``None`` se lee igual que la fuente lee el recordset
   vacío (``cookies_bar`` falsy → sin barra → ``True``).
 """
-from addons.base.models.ir_http import IrHttp as BaseIrHttp, get_current_request
+
+from addons.base.models.ir_http import (
+    IrHttp as BaseIrHttp,
+    get_current_request,
+)
 from core.middleware.cookie_governance import _read_consent
 from orm.registry import model_by_name
 
 
 class IrHttp(BaseIrHttp):
-    """``ir.http`` con el consentimiento por sitio (``odoo19c: ir_http.py:421-442``)."""
+    """
+    ``ir.http`` con el consentimiento por sitio (``odoo19c:
+    ir_http.py:421-442``).
+    """
 
     _inherit = 'ir.http'
 

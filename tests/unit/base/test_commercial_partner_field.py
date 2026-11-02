@@ -1,10 +1,13 @@
 """#314 — la entidad comercial es una COLUMNA, no una property pelada.
 
 La fuente la declara ``fields.Many2one('res.partner',
-compute='_compute_commercial_partner', store=True, recursive=True, index=True)``
+compute='_compute_commercial_partner', store=True, recursive=True,
+index=True)``
 (``odoo19c: base/models/res_partner.py:301-304``), y su hermana
-``commercial_company_name`` tambien lleva ``store=True`` (``:305-306``). Aqui las
-dos eran ``@property`` sin columna, asi que ningun ``filter`` las alcanzaba — lo
+``commercial_company_name`` tambien lleva ``store=True`` (``:305-306``). Aqui
+las
+dos eran ``@property`` sin columna, asi que ningun ``filter`` las alcanzaba —
+lo
 midio :ref:`h-api-1034` sobre el consumidor de ``crm``.
 
 Veredicto por el criterio de las dos categorias: **el stack lo trae hecho**. El
@@ -17,7 +20,8 @@ Medido con cada guarda anulada
 
 La columna sola no discrimina: un campo declarado y nunca computado da ``NULL``
 y el filtro devuelve vacio sin quejarse. Por eso ningun caso se conforma con
-*"el campo existe"* — cada uno siembra una cadena de parentesco concreta y exige
+*"el campo existe"* — cada uno siembra una cadena de parentesco concreta y
+exige
 el valor que la fuente daria.
 
 Son dos las guardas, y cada una se midio por separado con
@@ -45,6 +49,7 @@ Es lo que ``recursive=True`` compra, medido.
 antes, no este campo— y al coste del recorrido en una cadena larga, que no se
 mide aqui.
 """
+
 import pytest
 
 from django.apps import apps
@@ -65,7 +70,9 @@ def chain(db):
     Es el minimo para que ``recursive=True`` tenga algo que resolver: la nieta
     no llega a la empresa en un salto, sino atravesando a su madre.
     """
-    grandmother = ResPartner.objects.create(name='Kaupamex SA', is_company=True)
+    grandmother = ResPartner.objects.create(
+        name='Kaupamex SA', is_company=True
+    )
     mother = ResPartner.objects.create(name='Direccion', parent=grandmother)
     daughter = ResPartner.objects.create(name='Ana', parent=mother)
     return grandmother, mother, daughter
@@ -88,7 +95,10 @@ class TestTheFieldIsAColumn:
         —para que el accessor devuelva el REGISTRO, como la fuente— y
         ``db_column`` fuerza la columna a la de la fuente. Sin el, Django la
         llamaria ``commercial_partner_id_id``."""
-        assert field_of('commercial_partner_id').db_column == 'commercial_partner_id'
+        assert (
+            field_of('commercial_partner_id').db_column
+            == 'commercial_partner_id'
+        )
 
     def test_it_declares_its_recursion(self):
         """``recursive=True`` no es decoracion: decide que el computo corre
@@ -142,9 +152,11 @@ class TestTheColumnIsQueryable:
         """``crm_lead._compute_potential_lead_duplicates`` filtraba por esta
         columna y no compilaba (:ref:`h-api-1034`)."""
         grandmother, mother, daughter = chain
-        found = set(ResPartner.objects
-                    .filter(commercial_partner_id=grandmother.pk)
-                    .values_list('pk', flat=True))
+        found = set(
+            ResPartner.objects.filter(
+                commercial_partner_id=grandmother.pk
+            ).values_list('pk', flat=True)
+        )
         assert found == {grandmother.pk, mother.pk, daughter.pk}
 
     def test_someone_from_another_family_is_not_found(self, chain):
@@ -153,16 +165,20 @@ class TestTheColumnIsQueryable:
         arriba."""
         grandmother, _mother, _daughter = chain
         other = ResPartner.objects.create(name='Otra SA', is_company=True)
-        found = set(ResPartner.objects
-                    .filter(commercial_partner_id=grandmother.pk)
-                    .values_list('pk', flat=True))
+        found = set(
+            ResPartner.objects.filter(
+                commercial_partner_id=grandmother.pk
+            ).values_list('pk', flat=True)
+        )
         assert other.pk not in found
 
 
 class TestMovingTheGrandmotherReachesTheGranddaughter:
     """La condicion de cierre de #314, y la unica que mide la ARISTA."""
 
-    def test_giving_the_mother_her_own_company_flag_detaches_the_branch(self, chain):
+    def test_giving_the_mother_her_own_company_flag_detaches_the_branch(
+        self, chain
+    ):
         """La madre pasa a ser empresa: ella y su hija dejan de colgar de la
         abuela. Es el cambio que la fuente propaga por
         ``@api.depends('is_company', 'parent_id.commercial_partner_id')``."""

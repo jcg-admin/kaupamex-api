@@ -1,6 +1,7 @@
 """Lo que la passkey cuelga del usuario — el cuarto eslabón de la cadena.
 
-Adaptación de Odoo ``auth_passkey/models/res_users.py`` (``odoo19c:``, LGPL-3) —
+Adaptación de Odoo ``auth_passkey/models/res_users.py`` (``odoo19c:``, LGPL-3)
+—
 atribución y aviso de licencia preservados (DEC-KX-03).
 
 Este archivo existe **porque la referencia lo declara aquí**. Hasta #722 su
@@ -22,7 +23,8 @@ Reparto de los cuatro símbolos de la fuente
    * - ``_inherit = 'res.users'``
      - ``extend_model('base', 'ResUsers', luego=…)`` de este módulo
    * - ``auth_passkey_key_ids`` (One2many)
-     - ``related_name='passkeys'`` de la FK que declara ``auth_passkey_key.py``.
+     - ``related_name='passkeys'`` de la FK que declara
+       ``auth_passkey_key.py``.
        En Django el One2many no se declara: es el reverso del Many2one
    * - ``SELF_READABLE_FIELDS`` (``:17``)
      - **NO portado, y es un BLOQUEO, no una divergencia**: se podría portar el
@@ -63,6 +65,7 @@ no un relevo: devolver ``None`` haría que la cadena delegara el tipo
 ``webauthn`` a un eslabón que no lo atiende, y el rechazo saldría con el
 mensaje equivocado.
 """
+
 from exceptions import AccessDenied
 from orm.method_chain import chain_method
 from orm.model_classes import extend_model
@@ -96,7 +99,8 @@ def _check_credentials(self, credential, env):
         return None
     request = (env or {}).get('request')
     auth = verify_webauthn_credential(
-        self, request, credential.get('webauthn_response'))
+        self, request, credential.get('webauthn_response')
+    )
     if auth is None:
         # ≙ AccessDenied('Unknown passkey') y el AccessDenied de la aserción
         # inválida: la fuente no los distingue hacia fuera, y decir cuál fue le

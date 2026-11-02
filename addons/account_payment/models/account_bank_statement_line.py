@@ -1,7 +1,8 @@
 """``account.bank.statement.line`` — lo que ``account_payment`` le cuelga
 (≙ ``_inherit``). **0 de 1 símbolo portado.**
 
-Adaptación de ``odoo19c: account_payment/models/account_bank_statement_line.py``
+Adaptación de ``odoo19c:
+account_payment/models/account_bank_statement_line.py``
 (``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``, LGPL-3, 15 líneas)
 — atribución y aviso de licencia preservados (DEC-KX-03).
 

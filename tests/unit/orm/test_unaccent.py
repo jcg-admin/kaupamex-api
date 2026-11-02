@@ -14,9 +14,11 @@ sus bases desde las migraciones, no desde el provisioner: de ahi que faltara
 justo donde se mide.
 
 **El control que discrimina** es ``test_like_does_not_unaccent``: la fuente
-envuelve **solo** cuando el operador termina en ``ilike``. Sin ese caso, envolver
+envuelve **solo** cuando el operador termina en ``ilike``. Sin ese caso,
+envolver
 las dos familias pasaria igual de verde y nadie lo notaria.
 """
+
 import pytest
 from django.db import connection
 
@@ -49,12 +51,15 @@ class TestTheExtensionIsInstalled:
         with connection.cursor() as cr:
             cr.execute(
                 "SELECT provolatile FROM pg_proc "
-                "WHERE proname = 'unaccent' AND pronargs = 1")
+                "WHERE proname = 'unaccent' AND pronargs = 1"
+            )
             rows = cr.fetchall()
         assert rows, 'unaccent/1 no existe'
 
     def test_the_flag_is_on(self):
-        """Las dos vias leen esta bandera; encenderla es una decision, no dos."""
+        """
+        Las dos vias leen esta bandera; encenderla es una decision, no dos.
+        """
         assert UNACCENT_ENABLED is True
 
 
@@ -75,14 +80,17 @@ class TestBothWaysIgnoreTheAccent:
     @pytest.mark.django_db
     def test_the_engine_finds_the_accented_row(self, partners):
         found = ResPartner.objects.filter(
-            pk__in=[p.pk for p in partners]).filter(
-                Domain([('name', 'ilike', 'acme')])._to_q(ResPartner))
+            pk__in=[p.pk for p in partners]
+        ).filter(Domain([('name', 'ilike', 'acme')])._to_q(ResPartner))
         assert _names(found) == ['Acme Junior', 'Ácme']
 
     @pytest.mark.django_db
     def test_the_in_memory_predicate_finds_it_too(self, partners):
-        assert _names(filtered_domain(partners, [('name', 'ilike', 'acme')])) == [
-            'Acme Junior', 'Ácme',
+        assert _names(
+            filtered_domain(partners, [('name', 'ilike', 'acme')])
+        ) == [
+            'Acme Junior',
+            'Ácme',
         ]
 
     @pytest.mark.django_db
@@ -90,19 +98,25 @@ class TestBothWaysIgnoreTheAccent:
         """La razon por la que la bandera existe: un solo veredicto."""
         domain = [('name', 'ilike', 'acme')]
         from_engine = ResPartner.objects.filter(
-            pk__in=[p.pk for p in partners]).filter(Domain(domain)._to_q(ResPartner))
+            pk__in=[p.pk for p in partners]
+        ).filter(Domain(domain)._to_q(ResPartner))
         assert _names(filtered_domain(partners, domain)) == _names(from_engine)
 
     @pytest.mark.django_db
     def test_it_works_in_the_other_direction_too(self, partners):
         """Buscar con acento encuentra la fila sin acento."""
-        assert _names(filtered_domain(partners, [('name', 'ilike', 'ácme')])) == [
-            'Acme Junior', 'Ácme',
+        assert _names(
+            filtered_domain(partners, [('name', 'ilike', 'ácme')])
+        ) == [
+            'Acme Junior',
+            'Ácme',
         ]
 
 
 class TestOnlyILikeUnaccents:
-    """El control: la fuente envuelve solo la familia insensible a mayusculas."""
+    """
+    El control: la fuente envuelve solo la familia insensible a mayusculas.
+    """
 
     @pytest.mark.django_db
     def test_like_does_not_unaccent(self, db):
@@ -111,7 +125,8 @@ class TestOnlyILikeUnaccents:
         try:
             domain = [('name', 'like', 'Acme')]
             from_engine = ResPartner.objects.filter(pk=row.pk).filter(
-                Domain(domain)._to_q(ResPartner))
+                Domain(domain)._to_q(ResPartner)
+            )
             assert list(from_engine) == []
             assert list(filtered_domain([row], domain)) == []
         finally:
@@ -120,6 +135,9 @@ class TestOnlyILikeUnaccents:
     @pytest.mark.django_db
     def test_the_ilike_sql_names_the_function(self):
         """La consulta emitida lleva ``unaccent(`` en los dos lados."""
-        query = str(ResPartner.objects.filter(
-            Domain([('name', 'ilike', 'acme')])._to_q(ResPartner)).query)
+        query = str(
+            ResPartner.objects.filter(
+                Domain([('name', 'ilike', 'acme')])._to_q(ResPartner)
+            ).query
+        )
         assert query.lower().count('unaccent(') >= 2

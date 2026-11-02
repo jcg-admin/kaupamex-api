@@ -50,6 +50,7 @@ Los controles que exige el sub-patrón D de ``metrica-decide-la-conclusion.md``
     es la acción que más protege el segundo factor; aceptar ahí un código ya
     gastado sería el rodeo de todo lo demás.
 """
+
 import base64
 
 import pytest
@@ -83,8 +84,10 @@ def _code_for(secret, offset=0):
 def enrolled(db):
     """Usuario con 2FA activo; devuelve ``(user, secret)``."""
     user = User.objects.create_user(
-        login='codigo.unico@kaupamex.mx', password=PASSWORD,
-        name='Usuario Con Codigo Unico')
+        login='codigo.unico@kaupamex.mx',
+        password=PASSWORD,
+        name='Usuario Con Codigo Unico',
+    )
     secret, _uri = begin_setup(user)
     # El alta consume el intervalo MÁS VIEJO de la ventana. ``match`` recorre
     # sólo ``[n-1, n+1]`` —tres intervalos—, así que empezar por ``n-1`` deja
@@ -139,8 +142,10 @@ class TestEnrollment:
         viene detrás; sin asentarlo, sirve para las dos cosas.
         """
         user = User.objects.create_user(
-            login='alta.y.login@kaupamex.mx', password=PASSWORD,
-            name='Usuario Recien Dado De Alta')
+            login='alta.y.login@kaupamex.mx',
+            password=PASSWORD,
+            name='Usuario Recien Dado De Alta',
+        )
         secret, _uri = begin_setup(user)
         code = _code_for(secret)
         assert confirm_setup(user, code)
@@ -153,25 +158,31 @@ class TestEnrollment:
         es un descuido: ``disable`` borra la fila, así que hoy ningún camino de
         producción llega a ``begin_setup`` con un contador puesto. Y aunque
         llegara, ``confirm_setup`` asienta el suyo encima antes de que ningún
-        ``verify_code`` lo lea — de modo que el ÚNICO observable del reinicio es
+        ``verify_code`` lo lea — de modo que el ÚNICO observable del reinicio
+        es
         el campo mismo, entre las dos llamadas. Por eso la aserción es una y no
         dos: una segunda sobre ``confirm_setup`` pasaría con la línea puesta o
         retirada, que es el defecto que este caso acaba de corregir.
 
         La línea se conserva porque es el porte fiel de ``_inverse_token``
         (``:228``) y porque el día que la fila sobreviva a un cambio de secreto
-        —o que ``confirm_setup`` deje de escribir el contador— heredar el umbral
+        —o que ``confirm_setup`` deje de escribir el contador— heredar el
+        umbral
         del secreto retirado rechazaría códigos legítimos del nuevo.
         """
         user = User.objects.create_user(
-            login='secreto.nuevo@kaupamex.mx', password=PASSWORD,
-            name='Usuario Que Reinicia Su Secreto')
+            login='secreto.nuevo@kaupamex.mx',
+            password=PASSWORD,
+            name='Usuario Que Reinicia Su Secreto',
+        )
         begin_setup(user)
         # Un umbral del futuro lejano: si se heredara, ningún código de hoy
         # pasaría la comparación ``counter <= last_counter``.
-        TotpSecret.objects.filter(user_id=user.pk).update(last_counter=99_999_999)
+        TotpSecret.objects.filter(user_id=user.pk).update(
+            last_counter=99_999_999
+        )
 
-        begin_setup(user)   # segunda alta sobre la MISMA fila
+        begin_setup(user)  # segunda alta sobre la MISMA fila
         assert TotpSecret.objects.get(user_id=user.pk).last_counter is None
 
 

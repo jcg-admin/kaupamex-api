@@ -1,4 +1,5 @@
-"""``hr_homeworking`` — trabajo remoto: ubicación por día (Odoo ``Remote Work``).
+"""
+``hr_homeworking`` — trabajo remoto: ubicación por día (Odoo ``Remote Work``).
 
 Adaptación de Odoo ``hr_homeworking`` (``odoo-tools@622ddc2a``, ``odoo19c:``,
 licencia ``LGPL-3`` declarada en su ``__manifest__.py``) — atribución y aviso

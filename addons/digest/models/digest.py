@@ -157,6 +157,7 @@ Divergencias declaradas
 8. **``ensure_one()`` no aplica** — Django no tiene recordsets; cada método
    opera sobre una única instancia.
 """
+
 from datetime import timedelta
 
 from django.db.models import Sum
@@ -205,7 +206,9 @@ class DigestDigest(TimeStampedModel):
         help_text='Odoo name (required, translate) — nombre del digest.',
     )
     user_ids = fields.Many2many(
-        'base.ResUsers', blank=True, related_name='digests',
+        'base.ResUsers',
+        blank=True,
+        related_name='digests',
         verbose_name='Destinatarios',
         help_text=(
             'Odoo user_ids (domain share=False en la referencia — no '
@@ -213,30 +216,48 @@ class DigestDigest(TimeStampedModel):
         ),
     )
     periodicity = fields.Selection(
-        max_length=10, choices=DigestPeriodicity.choices,
-        default=DigestPeriodicity.DAILY, verbose_name='Periodicidad',
+        max_length=10,
+        choices=DigestPeriodicity.choices,
+        default=DigestPeriodicity.DAILY,
+        verbose_name='Periodicidad',
     )
     next_run_date = fields.Date(
-        null=True, blank=True, verbose_name='Próximo envío',
-        help_text='Se calcula en save() si no se da explícitamente (Odoo create()).',
+        null=True,
+        blank=True,
+        verbose_name='Próximo envío',
+        help_text=(
+            'Se calcula en save() si no se da explícitamente (Odoo create()).'
+        ),
     )
     company_id = fields.Many2one(
-        'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='digests', default=get_current_company,
+        'base.ResCompany',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='digests',
+        default=get_current_company,
         verbose_name='Compañía',
-        help_text='Odoo company_id (default=env.company.id → get_current_company()).',
+        help_text=(
+            'Odoo company_id (default=env.company.id → get_current_company()).'
+        ),
         db_column='company_id',
     )
     state = fields.Selection(
-        max_length=12, choices=DigestState.choices,
-        default=DigestState.ACTIVATED, verbose_name='Estado',
+        max_length=12,
+        choices=DigestState.choices,
+        default=DigestState.ACTIVATED,
+        verbose_name='Estado',
     )
     kpi_res_users_connected = fields.Boolean(
-        default=False, verbose_name='Usuarios conectados',
-        help_text='KPI base: cuenta filas de ResUsersLog (accesos) en el periodo.',
+        default=False,
+        verbose_name='Usuarios conectados',
+        help_text=(
+            'KPI base: cuenta filas de ResUsersLog (accesos) en el periodo.'
+        ),
     )
     kpi_mail_message_total = fields.Boolean(
-        default=False, verbose_name='Mensajes enviados',
+        default=False,
+        verbose_name='Mensajes enviados',
         help_text='KPI base: cuenta MailMessage creados en el periodo.',
     )
 
@@ -277,8 +298,10 @@ class DigestDigest(TimeStampedModel):
         in digest.user_ids`` → ``get_current_user()`` en vez de ``env.user``
         (divergencia 2)."""
         user = get_current_user()
-        return user is not None and self.pk is not None and (
-            self.user_ids.filter(pk=user.pk).exists()
+        return (
+            user is not None
+            and self.pk is not None
+            and (self.user_ids.filter(pk=user.pk).exists())
         )
 
     def action_subscribe(self):
@@ -318,7 +341,9 @@ class DigestDigest(TimeStampedModel):
 
     def action_set_periodicity(self, periodicity):
         """≙ ``digest.py:127-129``. Recalcula ``next_run_date`` (reemplaza el
-        onchange de formulario que la referencia dispara vía UI — divergencia 6)."""
+        onchange de formulario que la referencia dispara vía UI — divergencia
+        6).
+        """
         if periodicity not in DigestPeriodicity.values:
             raise ValidationError(
                 f'periodicity inválida: {periodicity!r} '
@@ -371,7 +396,8 @@ class DigestDigest(TimeStampedModel):
         concretas propias, no relaciones inversas de otros modelos) en vez
         de ``self._fields.items()`` de Odoo."""
         return [
-            f.name for f in self._meta.fields
+            f.name
+            for f in self._meta.fields
             if f.get_internal_type() == 'BooleanField'
             and f.name.startswith('kpi_')
             and getattr(self, f.name)
@@ -380,29 +406,41 @@ class DigestDigest(TimeStampedModel):
     @property
     def available_fields(self):
         """≙ ``_compute_available_fields`` (``digest.py:50-56``)."""
-        return ', '.join(f'{name}_value' for name in self._get_kpi_field_names())
+        return ', '.join(
+            f'{name}_value' for name in self._get_kpi_field_names()
+        )
 
     def _compute_timeframes(self):
         """≙ ``_compute_timeframes`` (``digest.py:379-395``). Divergencia 1
-        (de facto): no busca la zona horaria de ``company.resource_calendar_id``
+        (de facto): no busca la zona horaria de
+        ``company.resource_calendar_id``
         (la referencia sí) — ``ResCompany`` de este proyecto no tiene esa
         columna (``resource`` la expone como propiedad calculada, no un FK
         directo en ``base``); se usa ``timezone.now()`` (UTC-aware, Django
         ``USE_TZ=True``). Divergencia 5 para el salto de -1/-2 meses."""
         now = timezone.now()
         return [
-            ('Últimas 24 horas', (
-                (now - timedelta(days=1), now),
-                (now - timedelta(days=2), now - timedelta(days=1)),
-            )),
-            ('Últimos 7 días', (
-                (now - timedelta(weeks=1), now),
-                (now - timedelta(weeks=2), now - timedelta(weeks=1)),
-            )),
-            ('Últimos 30 días', (
-                (_add_months(now, -1), now),
-                (_add_months(now, -2), _add_months(now, -1)),
-            )),
+            (
+                'Últimas 24 horas',
+                (
+                    (now - timedelta(days=1), now),
+                    (now - timedelta(days=2), now - timedelta(days=1)),
+                ),
+            ),
+            (
+                'Últimos 7 días',
+                (
+                    (now - timedelta(weeks=1), now),
+                    (now - timedelta(weeks=2), now - timedelta(weeks=1)),
+                ),
+            ),
+            (
+                'Últimos 30 días',
+                (
+                    (_add_months(now, -1), now),
+                    (_add_months(now, -2), _add_months(now, -1)),
+                ),
+            ),
         ]
 
     def _compute_kpi_res_users_connected_value(self, start, end):
@@ -410,7 +448,9 @@ class DigestDigest(TimeStampedModel):
         delega en ``_calculate_company_based_kpi`` con ``date_field=
         'login_date'``). Divergencia 4: ``ResUsersLog`` no tiene FK a
         compañía — se filtra por ``user__in company_id.user_ids``."""
-        qs = ResUsersLog.objects.filter(created_at__gte=start, created_at__lt=end)
+        qs = ResUsersLog.objects.filter(
+            created_at__gte=start, created_at__lt=end
+        )
         if self.company_id:
             qs = qs.filter(user__in=self.company_id.user_ids.all())
         return qs.count()
@@ -421,7 +461,9 @@ class DigestDigest(TimeStampedModel):
         fixture XML estable — mismo criterio que ``fleet``/``certificate``
         para external IDs ausentes); cuenta todo ``MailMessage`` del rango,
         acotado por compañía vía el autor."""
-        qs = MailMessage.objects.filter(created_at__gte=start, created_at__lt=end)
+        qs = MailMessage.objects.filter(
+            created_at__gte=start, created_at__lt=end
+        )
         if self.company_id:
             qs = qs.filter(author__in=self.company_id.user_ids.all())
         return qs.count()
@@ -430,15 +472,22 @@ class DigestDigest(TimeStampedModel):
         """≙ ``_get_company_field`` (``digest.py:437-438``).
 
         Devuelve el nombre del campo por el que ese modelo se acota a empresa.
-        ``res.users`` usa el plural porque su pertenencia es múltiple; el resto,
+        ``res.users`` usa el plural porque su pertenencia es múltiple; el
+        resto,
         el singular. Verbatim de la fuente, con el nombre de modelo de este
         árbol (``_name``, no la etiqueta de Django).
         """
         return 'company_ids' if model in ['res.users'] else 'company_id'
 
-    def _calculate_company_based_kpi(self, model, start, end,
-                                     date_field='created_at',
-                                     additional_domain=None, sum_field=None):
+    def _calculate_company_based_kpi(
+        self,
+        model,
+        start,
+        end,
+        date_field='created_at',
+        additional_domain=None,
+        sum_field=None,
+    ):
         """≙ ``_calculate_company_based_kpi`` (``digest.py:401-435``).
 
         Cuenta (o suma ``sum_field``) los registros de ``model`` en la ventana,
@@ -493,7 +542,9 @@ class DigestDigest(TimeStampedModel):
         porcentual redondeada a 2 decimales, ``0.0`` si no hay base de
         comparación válida."""
         if value != previous_value and value != 0.0 and previous_value != 0.0:
-            return round((float(value - previous_value) / previous_value) * 100, 2)
+            return round(
+                (float(value - previous_value) / previous_value) * 100, 2
+            )
         return 0.0
 
     def compute_kpis(self):
@@ -509,9 +560,13 @@ class DigestDigest(TimeStampedModel):
             kpi = {
                 'kpi_name': field_name,
                 'kpi_fullname': verbose_name,
-                'kpi_col1': {}, 'kpi_col2': {}, 'kpi_col3': {},
+                'kpi_col1': {},
+                'kpi_col2': {},
+                'kpi_col3': {},
             }
-            for col_index, (label, (current, previous)) in enumerate(timeframes, start=1):
+            for col_index, (label, (current, previous)) in enumerate(
+                timeframes, start=1
+            ):
                 value = self.compute_kpi_value(field_name, *current)
                 previous_value = self.compute_kpi_value(field_name, *previous)
                 kpi[f'kpi_col{col_index}'] = {

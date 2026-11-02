@@ -13,6 +13,7 @@ versiones y comprueba el resultado del conjunto, no el de la vigente.
 
 Creado: 2026-08-18T23:11:21.
 """
+
 from datetime import date, datetime, time
 from zoneinfo import ZoneInfo
 
@@ -29,7 +30,9 @@ def _employee(name='Ana Prueba'):
 
 def _version(employee, date_version, **kwargs):
     return HrVersion.objects.create(
-        employee=employee, date_version=date_version, **kwargs,
+        employee=employee,
+        date_version=date_version,
+        **kwargs,
     )
 
 
@@ -93,12 +96,18 @@ class TestContractDatesOverTheWholeHistory:
 
     def test_all_contract_dates_collects_every_version_interval(self):
         employee = _employee()
-        _version(employee, date(2020, 1, 1),
-                 contract_date_start=date(2020, 1, 1),
-                 contract_date_end=date(2020, 12, 31))
-        _version(employee, date(2022, 1, 1),
-                 contract_date_start=date(2022, 1, 1),
-                 contract_date_end=date(2022, 12, 31))
+        _version(
+            employee,
+            date(2020, 1, 1),
+            contract_date_start=date(2020, 1, 1),
+            contract_date_end=date(2020, 12, 31),
+        )
+        _version(
+            employee,
+            date(2022, 1, 1),
+            contract_date_start=date(2022, 1, 1),
+            contract_date_end=date(2022, 12, 31),
+        )
         # Una versión sin contrato no aporta intervalo.
         _version(employee, date(2023, 1, 1))
         employee.save()
@@ -112,12 +121,18 @@ class TestContractDatesOverTheWholeHistory:
         """Control de H-API-713 — el orden por defecto de ``HrVersion``
         se colaba en el ``SELECT DISTINCT`` y duplicaba el intervalo."""
         employee = _employee()
-        _version(employee, date(2026, 1, 1),
-                 contract_date_start=date(2026, 1, 1),
-                 contract_date_end=date(2026, 12, 31))
-        _version(employee, date(2026, 6, 1),
-                 contract_date_start=date(2026, 1, 1),
-                 contract_date_end=date(2026, 12, 31))
+        _version(
+            employee,
+            date(2026, 1, 1),
+            contract_date_start=date(2026, 1, 1),
+            contract_date_end=date(2026, 12, 31),
+        )
+        _version(
+            employee,
+            date(2026, 6, 1),
+            contract_date_start=date(2026, 1, 1),
+            contract_date_end=date(2026, 12, 31),
+        )
 
         assert employee._get_all_contract_dates() == [
             (date(2026, 1, 1), date(2026, 12, 31)),
@@ -125,28 +140,38 @@ class TestContractDatesOverTheWholeHistory:
 
     def test_contract_dates_finds_the_old_interval_not_only_the_current(self):
         employee = _employee()
-        _version(employee, date(2020, 1, 1),
-                 contract_date_start=date(2020, 1, 1),
-                 contract_date_end=date(2020, 12, 31))
-        _version(employee, date(2022, 1, 1),
-                 contract_date_start=date(2022, 1, 1),
-                 contract_date_end=date(2022, 12, 31))
+        _version(
+            employee,
+            date(2020, 1, 1),
+            contract_date_start=date(2020, 1, 1),
+            contract_date_end=date(2020, 12, 31),
+        )
+        _version(
+            employee,
+            date(2022, 1, 1),
+            contract_date_start=date(2022, 1, 1),
+            contract_date_end=date(2022, 12, 31),
+        )
         employee.save()
 
         # La versión vigente es la de 2022; la respuesta correcta para 2020
         # sale del historial completo.
         assert employee._get_contract_dates(date(2020, 6, 1)) == (
-            date(2020, 1, 1), date(2020, 12, 31),
+            date(2020, 1, 1),
+            date(2020, 12, 31),
         )
         assert employee._is_in_contract(date(2020, 6, 1)) is True
         assert employee._is_in_contract(date(2021, 6, 1)) is False
 
     def test_open_ended_contract_has_no_end(self):
         employee = _employee()
-        _version(employee, date(2020, 1, 1), contract_date_start=date(2020, 1, 1))
+        _version(
+            employee, date(2020, 1, 1), contract_date_start=date(2020, 1, 1)
+        )
 
         assert employee._get_contract_dates(date(2999, 1, 1)) == (
-            date(2020, 1, 1), None,
+            date(2020, 1, 1),
+            None,
         )
 
     def test_without_contract_the_answer_is_the_empty_pair(self):
@@ -161,9 +186,12 @@ class TestCheckNoExistingContract:
 
     def test_raises_inside_an_existing_contract(self):
         employee = _employee()
-        _version(employee, date(2026, 1, 1),
-                 contract_date_start=date(2026, 1, 1),
-                 contract_date_end=date(2026, 12, 31))
+        _version(
+            employee,
+            date(2026, 1, 1),
+            contract_date_start=date(2026, 1, 1),
+            contract_date_end=date(2026, 12, 31),
+        )
 
         with pytest.raises(Exception) as excinfo:
             employee.check_no_existing_contract(date(2026, 6, 1))
@@ -171,9 +199,12 @@ class TestCheckNoExistingContract:
 
     def test_accepts_a_date_outside_every_contract(self):
         employee = _employee()
-        _version(employee, date(2026, 1, 1),
-                 contract_date_start=date(2026, 1, 1),
-                 contract_date_end=date(2026, 12, 31))
+        _version(
+            employee,
+            date(2026, 1, 1),
+            contract_date_start=date(2026, 1, 1),
+            contract_date_end=date(2026, 12, 31),
+        )
 
         assert employee.check_no_existing_contract(date(2027, 6, 1)) is None
 
@@ -187,16 +218,25 @@ class TestFirstVersions:
     def test_a_gap_of_four_days_or_more_cuts_the_series(self):
         employee = _employee()
         # Ocupación antigua, cerrada, seguida de un hueco largo.
-        _version(employee, date(2018, 1, 1),
-                 contract_date_start=date(2018, 1, 1),
-                 contract_date_end=date(2018, 12, 31))
+        _version(
+            employee,
+            date(2018, 1, 1),
+            contract_date_start=date(2018, 1, 1),
+            contract_date_end=date(2018, 12, 31),
+        )
         # Ocupación actual, dos versiones contiguas.
-        _version(employee, date(2024, 1, 1),
-                 contract_date_start=date(2024, 1, 1),
-                 contract_date_end=date(2024, 12, 31))
-        _version(employee, date(2025, 1, 1),
-                 contract_date_start=date(2025, 1, 1),
-                 contract_date_end=date(2025, 12, 31))
+        _version(
+            employee,
+            date(2024, 1, 1),
+            contract_date_start=date(2024, 1, 1),
+            contract_date_end=date(2024, 12, 31),
+        )
+        _version(
+            employee,
+            date(2025, 1, 1),
+            contract_date_start=date(2025, 1, 1),
+            contract_date_end=date(2025, 12, 31),
+        )
 
         versions = employee._get_first_versions_filtered()
         starts = sorted(version.date_start for version in versions)
@@ -207,13 +247,19 @@ class TestFirstVersions:
 
     def test_without_gap_filtering_the_whole_history_counts(self):
         employee = _employee()
-        _version(employee, date(2018, 1, 1),
-                 contract_date_start=date(2018, 1, 1),
-                 contract_date_end=date(2018, 12, 31))
-        _version(employee, date(2024, 1, 1),
-                 contract_date_start=date(2024, 1, 1))
+        _version(
+            employee,
+            date(2018, 1, 1),
+            contract_date_start=date(2018, 1, 1),
+            contract_date_end=date(2018, 12, 31),
+        )
+        _version(
+            employee, date(2024, 1, 1), contract_date_start=date(2024, 1, 1)
+        )
 
-        assert employee._get_first_version_date(no_gap=False) == date(2018, 1, 1)
+        assert employee._get_first_version_date(no_gap=False) == date(
+            2018, 1, 1
+        )
         assert len(employee._get_first_versions()) == 2
 
     def test_before_date_narrows_the_history(self):
@@ -233,14 +279,23 @@ class TestContractVersionsGrouping:
     def test_versions_group_by_contract_start_across_two_employees(self):
         first_employee = _employee('Ana Prueba')
         second_employee = _employee('Beto Prueba')
-        _version(first_employee, date(2026, 1, 1),
-                 contract_date_start=date(2026, 1, 1),
-                 contract_date_end=date(2026, 12, 31))
-        _version(first_employee, date(2026, 6, 1),
-                 contract_date_start=date(2026, 1, 1),
-                 contract_date_end=date(2026, 12, 31))
-        _version(second_employee, date(2026, 3, 1),
-                 contract_date_start=date(2026, 3, 1))
+        _version(
+            first_employee,
+            date(2026, 1, 1),
+            contract_date_start=date(2026, 1, 1),
+            contract_date_end=date(2026, 12, 31),
+        )
+        _version(
+            first_employee,
+            date(2026, 6, 1),
+            contract_date_start=date(2026, 1, 1),
+            contract_date_end=date(2026, 12, 31),
+        )
+        _version(
+            second_employee,
+            date(2026, 3, 1),
+            contract_date_start=date(2026, 3, 1),
+        )
 
         grouped = HrEmployee._get_contract_versions(
             [first_employee, second_employee],
@@ -253,12 +308,18 @@ class TestContractVersionsGrouping:
 
     def test_contracts_pick_the_latest_version_of_each_contract(self):
         employee = _employee()
-        _version(employee, date(2026, 1, 1),
-                 contract_date_start=date(2026, 1, 1),
-                 contract_date_end=date(2026, 12, 31))
-        latest = _version(employee, date(2026, 6, 1),
-                          contract_date_start=date(2026, 1, 1),
-                          contract_date_end=date(2026, 12, 31))
+        _version(
+            employee,
+            date(2026, 1, 1),
+            contract_date_start=date(2026, 1, 1),
+            contract_date_end=date(2026, 12, 31),
+        )
+        latest = _version(
+            employee,
+            date(2026, 6, 1),
+            contract_date_start=date(2026, 1, 1),
+            contract_date_end=date(2026, 12, 31),
+        )
 
         contracts = HrEmployee._get_contracts([employee])
 
@@ -272,19 +333,28 @@ class TestContractVersionsGrouping:
 
 
 class TestOverlapWithPeriod:
-    """≙ ``_get_versions_with_contract_overlap_with_period`` (``:1767-1775``)."""
+    """
+    ≙ ``_get_versions_with_contract_overlap_with_period`` (``:1767-1775``).
+    """
 
     def test_only_versions_overlapping_the_period_come_back(self):
         employee = _employee()
-        old = _version(employee, date(2020, 1, 1),
-                       contract_date_start=date(2020, 1, 1),
-                       contract_date_end=date(2020, 12, 31))
-        current = _version(employee, date(2026, 1, 1),
-                           contract_date_start=date(2026, 1, 1),
-                           contract_date_end=date(2026, 12, 31))
+        old = _version(
+            employee,
+            date(2020, 1, 1),
+            contract_date_start=date(2020, 1, 1),
+            contract_date_end=date(2020, 12, 31),
+        )
+        current = _version(
+            employee,
+            date(2026, 1, 1),
+            contract_date_start=date(2026, 1, 1),
+            contract_date_end=date(2026, 12, 31),
+        )
 
         overlapping = employee._get_versions_with_contract_overlap_with_period(
-            date(2026, 1, 1), date(2026, 12, 31),
+            date(2026, 1, 1),
+            date(2026, 12, 31),
         )
 
         assert current in overlapping
@@ -293,13 +363,20 @@ class TestOverlapWithPeriod:
     def test_the_class_level_sweep_covers_every_employee(self):
         first_employee = _employee('Ana Prueba')
         second_employee = _employee('Beto Prueba')
-        _version(first_employee, date(2026, 1, 1),
-                 contract_date_start=date(2026, 1, 1))
-        _version(second_employee, date(2026, 2, 1),
-                 contract_date_start=date(2026, 2, 1))
+        _version(
+            first_employee,
+            date(2026, 1, 1),
+            contract_date_start=date(2026, 1, 1),
+        )
+        _version(
+            second_employee,
+            date(2026, 2, 1),
+            contract_date_start=date(2026, 2, 1),
+        )
 
         found = HrEmployee._get_all_versions_with_contract_overlap_with_period(
-            date(2026, 1, 1), date(2026, 12, 31),
+            date(2026, 1, 1),
+            date(2026, 12, 31),
         )
         owners = {version.employee_id for version in found}
 
@@ -311,13 +388,20 @@ class TestCreateVersion:
 
     def test_copies_the_effective_version_and_applies_the_new_values(self):
         employee = _employee()
-        _version(employee, date(2026, 1, 1), job_title='Analista',
-                 contract_date_start=date(2026, 1, 1),
-                 contract_date_end=date(2026, 12, 31))
+        _version(
+            employee,
+            date(2026, 1, 1),
+            job_title='Analista',
+            contract_date_start=date(2026, 1, 1),
+            contract_date_end=date(2026, 12, 31),
+        )
 
-        created = employee.create_version({
-            'date_version': date(2026, 6, 1), 'job_title': 'Analista senior',
-        })
+        created = employee.create_version(
+            {
+                'date_version': date(2026, 6, 1),
+                'job_title': 'Analista senior',
+            }
+        )
 
         assert created.job_title == 'Analista senior'
         # El contrato vigente viaja con la copia.
@@ -336,17 +420,25 @@ class TestCreateVersion:
 
     def test_a_new_contract_end_propagates_to_the_whole_contract(self):
         employee = _employee()
-        first = _version(employee, date(2026, 1, 1),
-                         contract_date_start=date(2026, 1, 1),
-                         contract_date_end=date(2026, 12, 31))
-        second = _version(employee, date(2026, 3, 1),
-                          contract_date_start=date(2026, 1, 1),
-                          contract_date_end=date(2026, 12, 31))
+        first = _version(
+            employee,
+            date(2026, 1, 1),
+            contract_date_start=date(2026, 1, 1),
+            contract_date_end=date(2026, 12, 31),
+        )
+        second = _version(
+            employee,
+            date(2026, 3, 1),
+            contract_date_start=date(2026, 1, 1),
+            contract_date_end=date(2026, 12, 31),
+        )
 
-        employee.create_version({
-            'date_version': date(2026, 6, 1),
-            'contract_date_end': date(2026, 9, 30),
-        })
+        employee.create_version(
+            {
+                'date_version': date(2026, 6, 1),
+                'contract_date_end': date(2026, 9, 30),
+            }
+        )
         first.refresh_from_db()
         second.refresh_from_db()
 
@@ -382,9 +474,12 @@ class TestCreateContract:
 
     def test_a_future_contract_closes_the_new_one_the_day_before(self):
         employee = _employee()
-        _version(employee, date(2026, 9, 1),
-                 contract_date_start=date(2026, 9, 1),
-                 contract_date_end=date(2026, 12, 31))
+        _version(
+            employee,
+            date(2026, 9, 1),
+            contract_date_start=date(2026, 9, 1),
+            contract_date_end=date(2026, 12, 31),
+        )
 
         created = employee.create_contract(date(2026, 1, 1))
 
@@ -397,19 +492,25 @@ class TestDepartureDate:
 
     def test_a_finished_contract_yields_the_departure_date(self):
         employee = _employee()
-        _version(employee, date(2020, 1, 1),
-                 contract_date_start=date(2020, 1, 1),
-                 contract_date_end=date(2020, 12, 31),
-                 departure_date=date(2020, 12, 31))
+        _version(
+            employee,
+            date(2020, 1, 1),
+            contract_date_start=date(2020, 1, 1),
+            contract_date_end=date(2020, 12, 31),
+            departure_date=date(2020, 12, 31),
+        )
         employee.save()
 
         assert employee._get_departure_date() == date(2020, 12, 31)
 
     def test_a_live_contract_yields_nothing(self):
         employee = _employee()
-        _version(employee, date(2020, 1, 1),
-                 contract_date_start=date(2020, 1, 1),
-                 departure_date=date(2020, 12, 31))
+        _version(
+            employee,
+            date(2020, 1, 1),
+            contract_date_start=date(2020, 1, 1),
+            departure_date=date(2020, 12, 31),
+        )
         employee.save()
 
         assert employee._get_departure_date() is None
@@ -451,40 +552,67 @@ class TestVersionPeriods:
 
     def test_each_version_contributes_its_slice_of_the_window(self):
         employee = _employee()
-        _version(employee, date(2026, 1, 1),
-                 contract_date_start=date(2026, 1, 1),
-                 contract_date_end=date(2026, 12, 31))
-        _version(employee, date(2026, 7, 1),
-                 contract_date_start=date(2026, 1, 1),
-                 contract_date_end=date(2026, 12, 31))
+        _version(
+            employee,
+            date(2026, 1, 1),
+            contract_date_start=date(2026, 1, 1),
+            contract_date_end=date(2026, 12, 31),
+        )
+        _version(
+            employee,
+            date(2026, 7, 1),
+            contract_date_start=date(2026, 1, 1),
+            contract_date_end=date(2026, 12, 31),
+        )
 
-        start = datetime.combine(date(2026, 1, 1), time.min, tzinfo=ZoneInfo('UTC'))
-        stop = datetime.combine(date(2026, 12, 31), time.max, tzinfo=ZoneInfo('UTC'))
+        start = datetime.combine(
+            date(2026, 1, 1), time.min, tzinfo=ZoneInfo('UTC')
+        )
+        stop = datetime.combine(
+            date(2026, 12, 31), time.max, tzinfo=ZoneInfo('UTC')
+        )
         periods = HrEmployee._get_version_periods(
-            [employee], start, stop, check_contract=True,
+            [employee],
+            start,
+            stop,
+            check_contract=True,
         )
 
         assert len(periods[employee.pk]) == 2
 
     def test_an_unknown_field_raises(self):
         employee = _employee()
-        start = datetime.combine(date(2026, 1, 1), time.min, tzinfo=ZoneInfo('UTC'))
-        stop = datetime.combine(date(2026, 12, 31), time.max, tzinfo=ZoneInfo('UTC'))
+        start = datetime.combine(
+            date(2026, 1, 1), time.min, tzinfo=ZoneInfo('UTC')
+        )
+        stop = datetime.combine(
+            date(2026, 12, 31), time.max, tzinfo=ZoneInfo('UTC')
+        )
 
         with pytest.raises(Exception) as excinfo:
             HrEmployee._get_version_periods(
-                [employee], start, stop, field='no_existe',
+                [employee],
+                start,
+                stop,
+                field='no_existe',
             )
         assert 'no_existe' in str(excinfo.value)
 
     def test_calendar_periods_carry_the_calendar_as_the_value(self):
         employee = _employee()
-        _version(employee, date(2026, 1, 1),
-                 contract_date_start=date(2026, 1, 1),
-                 contract_date_end=date(2026, 12, 31))
+        _version(
+            employee,
+            date(2026, 1, 1),
+            contract_date_start=date(2026, 1, 1),
+            contract_date_end=date(2026, 12, 31),
+        )
 
-        start = datetime.combine(date(2026, 1, 1), time.min, tzinfo=ZoneInfo('UTC'))
-        stop = datetime.combine(date(2026, 12, 31), time.max, tzinfo=ZoneInfo('UTC'))
+        start = datetime.combine(
+            date(2026, 1, 1), time.min, tzinfo=ZoneInfo('UTC')
+        )
+        stop = datetime.combine(
+            date(2026, 12, 31), time.max, tzinfo=ZoneInfo('UTC')
+        )
         periods = HrEmployee._get_calendar_periods([employee], start, stop)
 
         assert len(periods[employee.pk]) == 1

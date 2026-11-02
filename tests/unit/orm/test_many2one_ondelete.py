@@ -23,7 +23,8 @@ LA POLÍTICA SE PORTA, NO SE INVENTA. Está escrita en
 
 Lo que sí diverge es el MOMENTO, y la divergencia es del stack, no del porte:
 la fuente resuelve en ``setup_nonrelated``, una fase que Django no tiene, y su
-``ForeignKey.__init__`` exige ``on_delete`` posicional. La resolución ocurre por
+``ForeignKey.__init__`` exige ``on_delete`` posicional. La resolución ocurre
+por
 tanto al construir. La rama de ``is_transient()`` de la fuente necesita el
 modelo, que en ``__init__`` no existe todavía: queda declarada en el puerto,
 medida, y no se simula. Su cierre es TASK-API-0405.
@@ -47,6 +48,7 @@ allá no hay segundo vocabulario que comparar. Medido antes de dejarlo así:
 grep -c ondelete``), así que el caso es hoy inalcanzable. Sucesor registrado:
 TASK-API-0404.
 """
+
 import pytest
 from django.db import models as django_models
 
@@ -61,16 +63,20 @@ def deletion_policy(field):
 class TestTheThreeValuesOfTheLiteral:
     """Los tres de ``OnDelete``, cada uno a su política de Django."""
 
-    @pytest.mark.parametrize('declared, expected', [
-        ('cascade', django_models.CASCADE),
-        ('set null', django_models.SET_NULL),
-        ('restrict', django_models.RESTRICT),
-    ])
+    @pytest.mark.parametrize(
+        'declared, expected',
+        [
+            ('cascade', django_models.CASCADE),
+            ('set null', django_models.SET_NULL),
+            ('restrict', django_models.RESTRICT),
+        ],
+    )
     def test_each_value_maps_to_its_policy(self, declared, expected):
         # `null=True` porque `'set null'` sobre un campo requerido es el
         # ValueError de `:283`: sin el, este caso mediria aquella rama.
-        field = fields.Many2one('base.ResPartner', ondelete=declared,
-                                null=True)
+        field = fields.Many2one(
+            'base.ResPartner', ondelete=declared, null=True
+        )
 
         assert deletion_policy(field) is expected
 
@@ -79,8 +85,9 @@ class TestTheThreeValuesOfTheLiteral:
         guarda del plano de Python que no llega al esquema. La fuente compone
         la clausula SQL (``:306``/``:318``), asi que el puerto toma la que
         tiene contraparte en el motor."""
-        field = fields.Many2one('base.ResPartner', ondelete='restrict',
-                                null=True)
+        field = fields.Many2one(
+            'base.ResPartner', ondelete='restrict', null=True
+        )
 
         assert deletion_policy(field) is not django_models.PROTECT
 
@@ -100,8 +107,7 @@ class TestTheTwoProgrammingErrorsOfTheSource:
     def test_set_null_on_a_required_field_is_refused(self):
         """``:283`` — un campo requerido no puede quedar en NULL."""
         with pytest.raises(ValueError):
-            fields.Many2one('base.ResPartner', ondelete='set null',
-                            null=False)
+            fields.Many2one('base.ResPartner', ondelete='set null', null=False)
 
     def test_restrict_towards_a_registry_model_is_refused(self):
         """``:289`` — el comodelo se nombra con el ``_name`` de la fuente, que
@@ -115,7 +121,8 @@ class TestTheDjangoVocabularyStaysAlive:
     """El puerto no puede romper lo que ya estaba declarado."""
 
     def test_on_delete_of_django_still_works(self):
-        field = fields.Many2one('base.ResPartner',
-                                on_delete=django_models.CASCADE)
+        field = fields.Many2one(
+            'base.ResPartner', on_delete=django_models.CASCADE
+        )
 
         assert deletion_policy(field) is django_models.CASCADE

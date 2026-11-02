@@ -15,12 +15,19 @@ positivos y nadie lo notaria. El segundo es
 devolviera el nombre tal cual pasaria el caso corto — y dos indices distintos
 colapsarian en uno cuando PostgreSQL trunque a 63.
 """
+
 import pytest
 from django.db import connection
 
-from tools.sql import (_CONFDELTYPES, add_foreign_key, drop_constraint,
-                       drop_index, existing_tables, get_foreign_keys,
-                       make_index_name)
+from tools.sql import (
+    _CONFDELTYPES,
+    add_foreign_key,
+    drop_constraint,
+    drop_index,
+    existing_tables,
+    get_foreign_keys,
+    make_index_name,
+)
 
 
 @pytest.fixture
@@ -33,7 +40,9 @@ def cr(db):
 def two_tables(cr):
     """Dos tablas de usar y tirar, para la ida y vuelta de la clave foranea."""
     cr.execute('CREATE TABLE probe_target (id serial PRIMARY KEY)')
-    cr.execute('CREATE TABLE probe_source (id serial PRIMARY KEY, target_id integer)')
+    cr.execute(
+        'CREATE TABLE probe_source (id serial PRIMARY KEY, target_id integer)'
+    )
     yield 'probe_source', 'probe_target'
     cr.execute('DROP TABLE IF EXISTS probe_source')
     cr.execute('DROP TABLE IF EXISTS probe_target')
@@ -63,7 +72,9 @@ class TestMakeIndexName:
     """≙ ``make_index_name`` (``:779-781``)."""
 
     def test_it_follows_the_convention(self):
-        assert make_index_name('res_partner', 'name') == 'res_partner__name_index'
+        assert (
+            make_index_name('res_partner', 'name') == 'res_partner__name_index'
+        )
 
     def test_a_long_name_gets_a_hash(self):
         """El control: sin recorte, dos indices distintos colapsan en uno."""
@@ -85,7 +96,9 @@ class TestExistingTables:
         assert 'res_partner' in existing_tables(cr, {'res_partner'})
 
     def test_an_invented_table_is_not_reported(self, cr):
-        """El control: sin esto, un ayudante que devuelva su entrada pasaria."""
+        """
+        El control: sin esto, un ayudante que devuelva su entrada pasaria.
+        """
         assert existing_tables(cr, {'no_existe_esta_tabla'}) == []
 
     def test_it_filters_the_mix(self, cr):
@@ -98,27 +111,43 @@ class TestForeignKeyRoundTrip:
 
     def test_there_is_none_before_adding_it(self, cr, two_tables):
         source, target = two_tables
-        assert get_foreign_keys(cr, source, 'target_id', target, 'id', 'cascade') == []
+        assert (
+            get_foreign_keys(cr, source, 'target_id', target, 'id', 'cascade')
+            == []
+        )
 
     def test_adding_it_makes_it_findable(self, cr, two_tables):
         source, target = two_tables
         add_foreign_key(cr, source, 'target_id', target, 'id', 'cascade')
-        names = get_foreign_keys(cr, source, 'target_id', target, 'id', 'cascade')
+        names = get_foreign_keys(
+            cr, source, 'target_id', target, 'id', 'cascade'
+        )
         assert len(names) == 1
         assert isinstance(names[0], str)
 
     def test_the_delete_policy_discriminates(self, cr, two_tables):
-        """El control: la busqueda filtra por ``confdeltype``, no solo por columna."""
+        """
+        El control: la busqueda filtra por ``confdeltype``, no solo por
+        columna.
+        """
         source, target = two_tables
         add_foreign_key(cr, source, 'target_id', target, 'id', 'cascade')
-        assert get_foreign_keys(cr, source, 'target_id', target, 'id', 'restrict') == []
+        assert (
+            get_foreign_keys(cr, source, 'target_id', target, 'id', 'restrict')
+            == []
+        )
 
     def test_dropping_it_leaves_nothing(self, cr, two_tables):
         source, target = two_tables
         add_foreign_key(cr, source, 'target_id', target, 'id', 'cascade')
-        name = get_foreign_keys(cr, source, 'target_id', target, 'id', 'cascade')[0]
+        name = get_foreign_keys(
+            cr, source, 'target_id', target, 'id', 'cascade'
+        )[0]
         drop_constraint(cr, source, name)
-        assert get_foreign_keys(cr, source, 'target_id', target, 'id', 'cascade') == []
+        assert (
+            get_foreign_keys(cr, source, 'target_id', target, 'id', 'cascade')
+            == []
+        )
 
 
 class TestDropIndex:
@@ -129,7 +158,13 @@ class TestDropIndex:
 
     def test_it_drops_the_index(self, cr, two_tables):
         source, _ = two_tables
-        cr.execute(f'CREATE INDEX probe_source__target_id_index ON {source} (target_id)')
+        cr.execute(
+            'CREATE INDEX probe_source__target_id_index ON'
+            f' {source} (target_id)'
+        )
         drop_index(cr, 'probe_source__target_id_index', source)
-        cr.execute("SELECT 1 FROM pg_class WHERE relname = 'probe_source__target_id_index'")
+        cr.execute(
+            "SELECT 1 FROM pg_class WHERE relname ="
+            " 'probe_source__target_id_index'"
+        )
         assert cr.fetchall() == []

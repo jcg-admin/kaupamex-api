@@ -22,6 +22,7 @@ El primer instrumento fue ``grep -rlE "Adaptación fiel"`` con ``.`` en lugar de
 la tilde y devolvió **0** — en UTF-8 la ``ó`` son dos bytes y ``.`` casa uno.
 El caso ``test_the_accented_form_is_detected`` fija esa regresión.
 """
+
 import importlib.util
 import pathlib
 
@@ -29,7 +30,9 @@ import pytest
 
 REPO = pathlib.Path(__file__).resolve().parents[3]
 _spec = importlib.util.spec_from_file_location(
-    'check_fidelidad_declarada', REPO / 'scripts' / 'check_fidelidad_declarada.py')
+    'check_fidelidad_declarada',
+    REPO / 'scripts' / 'check_fidelidad_declarada.py',
+)
 gate = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gate)
 
@@ -47,9 +50,12 @@ def _write(tmp_path, name, body):
 # El detector de la declaración
 # ----------------------------------------------------------------------
 
+
 def test_the_accented_form_is_detected(tmp_path):
     """La regresión que motivó el AST: ``Adaptación`` lleva tilde."""
-    path = _write(tmp_path, 'a.py', '"""Adaptación fiel de la referencia."""\n')
+    path = _write(
+        tmp_path, 'a.py', '"""Adaptación fiel de la referencia."""\n'
+    )
     assert gate.declara_fidelidad(path)
 
 
@@ -60,14 +66,20 @@ def test_the_unaccented_form_is_detected(tmp_path):
 
 
 def test_verbatim_is_detected(tmp_path):
-    path = _write(tmp_path, 'c.py', '"""Cuerpo adaptado VERBATIM de la fuente."""\n')
+    path = _write(
+        tmp_path, 'c.py', '"""Cuerpo adaptado VERBATIM de la fuente."""\n'
+    )
     assert gate.declara_fidelidad(path)
 
 
 def test_a_class_docstring_counts(tmp_path):
     """La declaración vive tan a menudo en la clase como en el módulo."""
-    path = _write(tmp_path, 'd.py',
-                  '"""Sin declaración aquí."""\n\n\nclass X:\n    """Fiel a la fuente."""\n')
+    path = _write(
+        tmp_path,
+        'd.py',
+        '"""Sin declaración aquí."""\n\n\nclass X:\n    """Fiel a la'
+        ' fuente."""\n',
+    )
     assert gate.declara_fidelidad(path)
 
 
@@ -92,16 +104,22 @@ def test_a_broken_file_does_not_crash_the_gate(tmp_path):
 # La clave, que es como el gate hermano nombra el archivo
 # ----------------------------------------------------------------------
 
+
 def test_the_key_drops_both_addon_roots():
-    assert gate.clave(pathlib.Path('src/addons/base/models/x.py')) == \
-        'base/models/x.py'
-    assert gate.clave(pathlib.Path('addons/account/models/y.py')) == \
-        'account/models/y.py'
+    assert (
+        gate.clave(pathlib.Path('src/addons/base/models/x.py'))
+        == 'base/models/x.py'
+    )
+    assert (
+        gate.clave(pathlib.Path('addons/account/models/y.py'))
+        == 'account/models/y.py'
+    )
 
 
 # ----------------------------------------------------------------------
 # El baseline
 # ----------------------------------------------------------------------
+
 
 def test_the_baseline_exists_and_is_not_empty():
     """Un baseline vacío haría que el gate pase por vacuidad."""
@@ -110,21 +128,25 @@ def test_the_baseline_exists_and_is_not_empty():
 
 
 def test_the_real_positive_is_in_the_baseline():
-    rutas = {l.split('#')[0].strip() for l in gate.carga_baseline()}
+    rutas = {item.split('#')[0].strip() for item in gate.carga_baseline()}
     assert REAL_POSITIVE in rutas
 
 
 def test_comments_do_not_enter_the_baseline():
     """La cabecera del baseline es casi todo el archivo."""
-    assert not any(l.lstrip().startswith('#') for l in gate.carga_baseline())
+    assert not any(item.lstrip().startswith('#')
+                   for item in gate.carga_baseline())
 
 
 # ----------------------------------------------------------------------
 # El positivo real, contra el archivo del árbol
 # ----------------------------------------------------------------------
 
+
 def test_the_real_positive_declares_fidelity_in_the_tree():
-    """El positivo real, medido sobre el archivo del árbol y no sobre uno hecho."""
+    """
+    El positivo real, medido sobre el archivo del árbol y no sobre uno hecho.
+    """
     path = REPO / 'addons' / REAL_POSITIVE
     assert path.is_file(), 'el positivo real se movió: elegir otro de los 205'
     assert gate.declara_fidelidad(path)

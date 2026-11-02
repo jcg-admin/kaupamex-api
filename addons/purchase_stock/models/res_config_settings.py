@@ -1,4 +1,6 @@
-r"""``res.config.settings`` — la pestaña de ajustes de ``purchase_stock``: NO PORTADA.
+r"""
+``res.config.settings`` — la pestaña de ajustes de ``purchase_stock``: NO
+PORTADA.
 
 Adaptación de Odoo ``purchase_stock/models/res_config_settings.py``
 (``odoo19c: addons/purchase_stock/models/res_config_settings.py``, 21 líneas,
@@ -24,7 +26,8 @@ sobre la fuente. Son **5** con ``_inherit``; **4** sin él: 3 campos y 1 método
      - Por qué
    * - ``module_stock_dropshipping`` (``:10``)
      - **bloqueado por el catálogo de módulos**
-     - Un campo ``module_*`` INSTALA un addon al guardar. ``stock_dropshipping``
+     - Un campo ``module_*`` INSTALA un addon al guardar.
+       ``stock_dropshipping``
        no está portado (medido: ``ls addons/ | grep dropship`` → 0), y el
        mecanismo que traduce el check a una instalación tampoco.
    * - ``days_to_purchase`` (``:11-12``)
@@ -41,7 +44,8 @@ sobre la fuente. Son **5** con ``_inherit``; **4** sin él: 3 campos y 1 método
    * - ``get_values`` (``:15-21``)
      - **bloqueado por lo anterior**
      - Su cuerpo entero rellena ``is_installed_sale`` consultando
-       ``ir.module.module``. Sin ese modelo (medido: ``grep -rn "ir.module.module"
+       ``ir.module.module``. Sin ese modelo (medido: ``grep -rn
+       "ir.module.module"
        src/addons/base/models/ir_module.py`` da el modelo, pero su tabla de
        estados de instalación no se puebla en este árbol) y sin el formulario
        que lea el resultado, el método no tiene ni entrada ni salida.

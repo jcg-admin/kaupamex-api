@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Mide la cobertura de símbolos de cada puerto contra su archivo de referencia.
+"""
+Mide la cobertura de símbolos de cada puerto contra su archivo de referencia.
 
 Origen: directiva del ejecutor 2026-08-06 — *"¿se están integrando todas las
 clases y métodos completos de los archivos de la referencia?"*. La respuesta
 medida era **no se verifica**: había gates de layout, nombres, ciclos e
-``_inherits``, pero ninguno que comparara los símbolos. ``porte-completo-no-parcial.md``
+``_inherits``, pero ninguno que comparara los símbolos.
+``porte-completo-no-parcial.md``
 pide mecanizar la métrica cuando se pueda; esto lo hace.
 
 Qué mide
@@ -124,30 +126,34 @@ Uso
 
     python3 scripts/check_porte_completo.py                  # reporte
     python3 scripts/check_porte_completo.py --addon account  # un addon
-    python3 scripts/check_porte_completo.py --mapa           # inventario por archivo
+    python3 scripts/check_porte_completo.py --mapa           # inventario por
+    archivo
     python3 scripts/check_porte_completo.py --quiet          # sólo el conteo
-    python3 scripts/check_porte_completo.py --strict         # exit 1 si hay ausentes
+    python3 scripts/check_porte_completo.py --strict         # exit 1 si hay
+    ausentes
 """
+
 import argparse
 import ast
 import os
 import pathlib
 import sys
+import sys as _s
+import os.path as _op
+import sys as _sys
+import os as _os
+from reference_roots import (
+    ADDON_ALIAS,
+    addon_root as reference_root,
+    tree as _tree,
+)
+from addons_roots import addon_dirs, addon_path
 
-import sys as _s, os.path as _op
-_s.path.insert(0, _op.dirname(_op.abspath(__file__)))
-from reference_roots import ADDON_ALIAS, addon_root as reference_root, tree as _tree
 
 #: Raíz del árbol que gobierna (``odoo19c``). Ver
 #: ``referencia-odoo-gobierna-las-decisiones.md``: 19 desempata, y las rutas de
 #: una versión NO son válidas en la otra.
-REFERENCE_19C = pathlib.Path(
-    _tree('odoo19c')
-)
-
-import sys as _sys, os as _os
-_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
-from addons_roots import addon_dirs, addon_path
+REFERENCE_19C = pathlib.Path(_tree('odoo19c'))
 
 
 #: ``ADDON_ALIAS`` y ``reference_root`` viven en ``reference_roots.py`` —
@@ -177,10 +183,12 @@ PORTE_ALIAS = {
     # por su nombre técnico en la referencia. Ninguna regla los deriva, así que
     # se declaran uno por uno, y cada uno con su ``_name`` como prueba de que
     # es la misma entidad y no un homónimo.
-    'IrConfig_Parameter': 'SystemParameter',        # _name = ir.config_parameter
-    'IrModuleModule': 'IrModule',                   # _name = ir.module.module
-    'IrModuleModuleDependency': 'IrModuleDependency',  # _name = ir.module.module.dependency
-    'IrModuleModuleExclusion': 'IrModuleExclusion',    # _name = ir.module.module.exclusion
+    'IrConfig_Parameter': 'SystemParameter',  # _name = ir.config_parameter
+    'IrModuleModule': 'IrModule',  # _name = ir.module.module
+    # _name = ir.module.module.dependency
+    'IrModuleModuleDependency': 'IrModuleDependency',
+    # _name = ir.module.module.exclusion
+    'IrModuleModuleExclusion': 'IrModuleExclusion',
     # La familia de QWeb: el archivo y las clases se renombraron por lo que
     # SON aquí, no por el motor de la referencia — directiva del ejecutor
     # 2026-08-29: *"tenemos que quitar el nombre, porque puedes estar tentado a
@@ -188,9 +196,11 @@ PORTE_ALIAS = {
     # y ``ir.qweb.field.*``) y es la prueba de que son la misma entidad, igual
     # que en ``SystemParameter``. El prefijo ``Ir`` se mantiene porque es la
     # convención de ``base/models/``.
-    'IrQweb': 'IrTemplateExpressions',               # _name = ir.qweb
-    'IrQwebField': 'IrFieldConverter',               # _name = ir.qweb.field
-    'IrQwebFieldQweb': 'IrFieldConverterTemplate',   # _name = ir.qweb.field.qweb
+    'IrQweb': 'IrTemplateExpressions',  # _name = ir.qweb
+    'IrQwebField': 'IrFieldConverter',  # _name = ir.qweb.field
+    'IrQwebFieldQweb': (
+        'IrFieldConverterTemplate'
+    ),  # _name = ir.qweb.field.qweb
     'QWebError': 'TemplateError',
     'QWebErrorInfo': 'TemplateErrorInfo',
     'IrQwebFieldBarcode': 'IrFieldConverterBarcode',
@@ -217,9 +227,9 @@ PORTE_ALIAS = {
     # no por parecido — 9 de 9 en el primero, y el segundo no declara metodos
     # en la referencia (solo campos). Declarados en el mapa de porte de su
     # ``models/__init__.py``, que nombra el archivo destino de cada uno.
-    'ResCompanyLdap': 'CompanyLdap',                # _name = res.company.ldap
-    'AuthOauthProvider': 'OauthProvider',           # _name = auth.oauth.provider
-    'AuthPasskeyKey': 'PasskeyKey',                 # _name = auth.passkey.key
+    'ResCompanyLdap': 'CompanyLdap',  # _name = res.company.ldap
+    'AuthOauthProvider': 'OauthProvider',  # _name = auth.oauth.provider
+    'AuthPasskeyKey': 'PasskeyKey',  # _name = auth.passkey.key
 }
 
 
@@ -227,7 +237,9 @@ PORTE_ALIAS = {
 #: medida. Vive en un archivo aparte y no en este guion, porque un guion de
 #: ``.claude/scripts`` es mecanismo y no registro — mismo criterio que
 #: ``calibration-verified-numbers.md`` fija para las cifras.
-DECLARED_DIVERGENCES = pathlib.Path(__file__).with_name('divergencias_declaradas.txt')
+DECLARED_DIVERGENCES = pathlib.Path(__file__).with_name(
+    'divergencias_declaradas.txt'
+)
 
 
 def load_divergences():
@@ -241,7 +253,9 @@ def load_divergences():
         return set()
     return {
         line.strip()
-        for line in DECLARED_DIVERGENCES.read_text(encoding='utf-8').splitlines()
+        for line in DECLARED_DIVERGENCES.read_text(
+            encoding='utf-8'
+        ).splitlines()
         if line.strip() and not line.lstrip().startswith('#')
     }
 
@@ -265,8 +279,14 @@ def split_declared(all_findings, declared_keys):
     for addon, file_path, klass, tipo, symbols in all_findings:
         pending, covered = [], []
         for symbol in symbols:
-            key = next((c for c in keys_of(addon, file_path, klass, symbol)
-                          if c in declared_keys), None)
+            key = next(
+                (
+                    c
+                    for c in keys_of(addon, file_path, klass, symbol)
+                    if c in declared_keys
+                ),
+                None,
+            )
             if key is None:
                 pending.append(symbol)
             else:
@@ -300,12 +320,18 @@ def _extend_model_class(nodo):
     conservando el separador, y este arbol escribe lo mismo en PascalCase.
     """
     f = nodo.func
-    name = f.id if isinstance(f, ast.Name) else (
-        f.attr if isinstance(f, ast.Attribute) else None)
+    name = (
+        f.id
+        if isinstance(f, ast.Name)
+        else (f.attr if isinstance(f, ast.Attribute) else None)
+    )
     if name != 'extend_model' or not nodo.args:
         return None
-    literales = [a.value for a in nodo.args
-                 if isinstance(a, ast.Constant) and isinstance(a.value, str)]
+    literales = [
+        a.value
+        for a in nodo.args
+        if isinstance(a, ast.Constant) and isinstance(a.value, str)
+    ]
     if not literales:
         return None
     if len(literales) >= 2:
@@ -329,10 +355,17 @@ def _extend_model_symbols(nodo, funcs):
     """
     salida, nodos = set(), set()
     for k in nodo.keywords:
-        if (k.arg in ('campos', 'metodos', 'propiedades', 'overrides')
-                and isinstance(k.value, ast.Dict)):
-            salida |= {c.value for c in k.value.keys
-                       if isinstance(c, ast.Constant) and isinstance(c.value, str)}
+        if k.arg in (
+            'campos',
+            'metodos',
+            'propiedades',
+            'overrides',
+        ) and isinstance(k.value, ast.Dict):
+            salida |= {
+                c.value
+                for c in k.value.keys
+                if isinstance(c, ast.Constant) and isinstance(c.value, str)
+            }
         if k.arg != 'luego':
             continue
         # ``luego=`` llega de dos formas: una funcion con nombre y un lambda
@@ -386,7 +419,9 @@ def addon_installations(raiz):
             arbol = ast.parse(py.read_text())
         except (SyntaxError, UnicodeDecodeError):
             continue
-        funcs = {n.name: n for n in arbol.body if isinstance(n, ast.FunctionDef)}
+        funcs = {
+            n.name: n for n in arbol.body if isinstance(n, ast.FunctionDef)
+        }
         # ``extend_model`` primero: sus ``luego=`` atribuyen enganches que el
         # recorrido plano contaria como receptor no resoluble.
         atribuidos = set()
@@ -402,8 +437,11 @@ def addon_installations(raiz):
         for nodo in ast.walk(arbol):
             for klass, clave in _loop_installations(nodo):
                 mapa.setdefault(normaliza(klass), set()).add(clave)
-        in_loop = {id(n) for nodo in ast.walk(arbol)
-                    for n in _loop_resolved_nodes(nodo)}
+        in_loop = {
+            id(n)
+            for nodo in ast.walk(arbol)
+            for n in _loop_resolved_nodes(nodo)
+        }
         for nodo in ast.walk(arbol):
             if not isinstance(nodo, ast.Call):
                 continue
@@ -468,17 +506,23 @@ def _loop_resolved_nodes(nodo):
     if not isinstance(nodo, ast.For) or not _loop_iterable_classes(nodo):
         return []
     variables = _loop_vars(nodo)
-    return [sub for sub in ast.walk(nodo) if isinstance(sub, ast.Call)
-            and _destino_y_clave(sub)[1] is not None
-            and _destino_y_clave(sub)[0] in variables]
+    return [
+        sub
+        for sub in ast.walk(nodo)
+        if isinstance(sub, ast.Call)
+        and _destino_y_clave(sub)[1] is not None
+        and _destino_y_clave(sub)[0] in variables
+    ]
 
 
 def _destino_y_clave(nodo):
     """``(clase, símbolo)`` de una llamada de instalación, o ``(None, None)``.
 
-    Reconoce las cuatro formas que el árbol usa hoy: ``chain_method(C, 'x', …)``,
+    Reconoce las cuatro formas que el árbol usa hoy: ``chain_method(C, 'x',
+    …)``,
     ``wrap_method(C, 'x', …)``, ``C.add_to_class('x', …)`` y el ayudante
-    ``_add_if_absent(C, 'x', …)`` que tres addons repiten para hacer idempotente
+    ``_add_if_absent(C, 'x', …)`` que tres addons repiten para hacer
+    idempotente
     el ``add_to_class``.
 
     ``wrap_method`` se añadió 2026-09-02: es la TERCERA semántica de
@@ -488,10 +532,16 @@ def _destino_y_clave(nodo):
     del propio ``method_chain.py``.
     """
     f = nodo.func
-    name = f.id if isinstance(f, ast.Name) else (
-        f.attr if isinstance(f, ast.Attribute) else None)
+    name = (
+        f.id
+        if isinstance(f, ast.Name)
+        else (f.attr if isinstance(f, ast.Attribute) else None)
+    )
 
-    if name in ('chain_method', 'wrap_method', '_add_if_absent') and len(nodo.args) >= 2:
+    if (
+        name in ('chain_method', 'wrap_method', '_add_if_absent')
+        and len(nodo.args) >= 2
+    ):
         destino, clave = nodo.args[0], nodo.args[1]
     elif name == 'add_to_class' and nodo.args:
         # El receptor es el destino: ``ResBank.add_to_class('campo', …)``.
@@ -516,9 +566,13 @@ def simbolos(ruta):
     except (SyntaxError, UnicodeDecodeError):
         return None
     return {
-        n.name: {m.name for m in n.body
-                 if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))}
-        for n in arbol.body if isinstance(n, ast.ClassDef)
+        n.name: {
+            m.name
+            for m in n.body
+            if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        for n in arbol.body
+        if isinstance(n, ast.ClassDef)
     }
 
 
@@ -548,8 +602,11 @@ def file_symbols(ruta):
         arbol = ast.parse(ruta.read_text())
     except (SyntaxError, UnicodeDecodeError):
         return set()
-    return {n.name for n in ast.walk(arbol)
-            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    return {
+        n.name
+        for n in ast.walk(arbol)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
 
 
 def equivalencias_declaradas(ruta):
@@ -622,16 +679,22 @@ def equivalencias_declaradas(ruta):
             # ``inverse`` de la referencia. Se recoge bajo el MISMO nombre de
             # campo, porque el símbolo que absuelve depende del prefijo, no de
             # cuál de los dos lados lo declare.
-            name = (dec.id if isinstance(dec, ast.Name) else
-                    dec.attr if isinstance(dec, ast.Attribute) else '')
+            name = (
+                dec.id
+                if isinstance(dec, ast.Name)
+                else dec.attr if isinstance(dec, ast.Attribute) else ''
+            )
             if 'property' in name or name == 'setter':
                 properties.setdefault(n.name, []).append(
-                    ast.get_docstring(n) or '')
+                    ast.get_docstring(n) or ''
+                )
                 break
-    return {f'_{prefijo}_{field}'
-            for field, docs in properties.items()
-            for prefijo in ('compute', 'get', 'inverse', 'set')
-            if any(f'_{prefijo}_{field}' in doc for doc in docs)}
+    return {
+        f'_{prefijo}_{field}'
+        for field, docs in properties.items()
+        for prefijo in ('compute', 'get', 'inverse', 'set')
+        if any(f'_{prefijo}_{field}' in doc for doc in docs)
+    }
 
 
 def addon_classes(raiz):
@@ -646,7 +709,8 @@ def addon_classes(raiz):
     declaraba COMPLETO cualquier archivo cuyas clases existieran aquí —
     aunque no se hubiera portado ni un método. Medido sobre
     ``account_journal_dashboard.py``: **50 métodos** en la referencia, **0**
-    portados, y el gate lo daba por completo, porque su clase ``AccountJournal``
+    portados, y el gate lo daba por completo, porque su clase
+    ``AccountJournal``
     existe en otro archivo. Es un COMPLETO falso, la forma más cara de error en
     un instrumento de cobertura. Ver :ref:`h-api-350`.
     """
@@ -664,7 +728,8 @@ def addon_classes(raiz):
 #: el grifo cerrado de los guiones: la deuda se paga al tocar el archivo, no en
 #: un barrido que compite con la implementacion.
 DESPROMOVIDOS_BASELINE_PATH = pathlib.Path(__file__).with_name(
-    'despromovidos_baseline.txt')
+    'despromovidos_baseline.txt'
+)
 
 
 def _cargar_despromovidos_baseline():
@@ -672,8 +737,8 @@ def _cargar_despromovidos_baseline():
     if not DESPROMOVIDOS_BASELINE_PATH.exists():
         return set()
     return {
-        line.strip() for line in
-        DESPROMOVIDOS_BASELINE_PATH.read_text().splitlines()
+        line.strip()
+        for line in DESPROMOVIDOS_BASELINE_PATH.read_text().splitlines()
         if line.strip() and not line.lstrip().startswith('#')
     }
 
@@ -682,7 +747,8 @@ DESPROMOVIDOS_BASELINE = _cargar_despromovidos_baseline()
 
 
 def _despromovido(ref_name, ref_methods, our_methods):
-    """¿La referencia lo declara ``_foo`` y nosotros lo publicamos como ``foo``?
+    """
+    ¿La referencia lo declara ``_foo`` y nosotros lo publicamos como ``foo``?
 
     Quitar el guion bajo no renombra: **promueve el simbolo a API publica**.
     PEP 8 lo fija — ``_nombre`` significa *"uso interno; no lo llames desde
@@ -693,7 +759,8 @@ def _despromovido(ref_name, ref_methods, our_methods):
     NO cuenta como despromovido, y por eso los dos descartes:
 
     - que la referencia declare **ambos** (``action_done`` y ``_action_done``):
-      ahi tener solo el public_name es porte **parcial**, que el gate ya mide con
+      ahi tener solo el public_name es porte **parcial**, que el gate ya mide
+      con
       otro instrumento y contarlo dos veces inflaria el hallazgo;
     - que nosotros declaremos **ambos**: entonces el privado esta portado y lo
       public_name es un anadido nuestro, no una promocion.
@@ -706,9 +773,11 @@ def _despromovido(ref_name, ref_methods, our_methods):
     if not ref_name.startswith('_'):
         return False
     public_name = ref_name.lstrip('_')
-    return (public_name not in ref_methods
-            and public_name in our_methods
-            and ref_name not in our_methods)
+    return (
+        public_name not in ref_methods
+        and public_name in our_methods
+        and ref_name not in our_methods
+    )
 
 
 #: Renombres que valen en UN SITIO y no en el arbol: la llave es
@@ -745,7 +814,9 @@ def normaliza(name):
 
 
 def normaliza_en(file_path, klass, name):
-    """El nombre comparable EN UN SITIO: primero el alias del sitio, luego el global.
+    """
+    El nombre comparable EN UN SITIO: primero el alias del sitio, luego el
+    global.
 
     El sitio se identifica por ``(archivo, clase, simbolo)`` con el archivo
     tal como lo nombra la referencia y la clase por su ``class_key`` —la misma
@@ -763,7 +834,8 @@ def normaliza_en(file_path, klass, name):
 
 
 def class_key(name):
-    """La llave con que se compara un nombre de CLASE, que no es la de un metodo.
+    """
+    La llave con que se compara un nombre de CLASE, que no es la de un metodo.
 
     La referencia deriva el nombre de la clase de su ``_name`` y conserva el
     separador: ``ir.mail_server`` da ``IrMail_Server``,
@@ -799,8 +871,9 @@ def class_key(name):
     return normaliza(name).replace('_', '')
 
 
-def _class_without_counterpart(addon, file_path, klass, metodos, instalado,
-                           absueltos=frozenset()):
+def _class_without_counterpart(
+    addon, file_path, klass, metodos, instalado, absueltos=frozenset()
+):
     """``(hallazgo|None, absoluciones)`` de una clase que no existe aquí.
 
     Dos estados distintos: **ausente** del todo, o **extendida** — si el addon
@@ -883,18 +956,26 @@ def compara(addon):
             pares += 1
             ref_clases = simbolos(ref_py) or {}
             # Si NINGUNA de sus clases existe aquí, el archivo entero está sin
-            # portar; si alguna existe, es una extensión (``_inherit``) cubierta
+            # portar; si alguna existe, es una extensión (``_inherit``)
+            # cubierta
             # a medias. Los dos estados se cuentan distinto en el mapa.
             # "Ninguna de sus clases existe" incluye a las que existen **como
             # extensión**: un archivo cuyo único contenido es un ``_inherit``
             # portado con ``chain_method`` no está sin portar, aunque ninguna
             # clase lleve su nombre.
             if ref_clases and not any(
-                    class_key(c) in by_class or normaliza(c) in instalado
-                    for c in ref_clases):
+                class_key(c) in by_class or normaliza(c) in instalado
+                for c in ref_clases
+            ):
                 hallazgos.append(
-                    (addon, ref_py.name, '(archivo)', 'ARCHIVO NO PORTADO',
-                     sorted(ref_clases)))
+                    (
+                        addon,
+                        ref_py.name,
+                        '(archivo)',
+                        'ARCHIVO NO PORTADO',
+                        sorted(ref_clases),
+                    )
+                )
                 continue
             for klass, metodos in ref_clases.items():
                 aqui = by_class.get(class_key(klass))
@@ -902,16 +983,21 @@ def compara(addon):
                     # Sin archivo pareado no hay property nuestra que leer, así
                     # que aquí no se absuelve nada: el conjunto va vacío.
                     hallazgo, _ = _class_without_counterpart(
-                        addon, ref_py.name, klass, metodos, instalado)
+                        addon, ref_py.name, klass, metodos, instalado
+                    )
                     if hallazgo is not None:
                         hallazgos.append(hallazgo)
                     continue
                 aqui_norm = {normaliza(m) for m in aqui}
-                faltan = [m for m in sorted(metodos)
-                          if normaliza_en(ref_py.name, klass, m) not in aqui_norm]
+                faltan = [
+                    m
+                    for m in sorted(metodos)
+                    if normaliza_en(ref_py.name, klass, m) not in aqui_norm
+                ]
                 if faltan:
                     hallazgos.append(
-                        (addon, ref_py.name, klass, 'MÉTODOS AUSENTES', faltan))
+                        (addon, ref_py.name, klass, 'MÉTODOS AUSENTES', faltan)
+                    )
             continue
         pares += 1
         ref_clases = simbolos(ref_py) or {}
@@ -941,15 +1027,22 @@ def compara(addon):
                 out_of_file = aqui is not None
             if aqui is None:
                 hallazgo, absueltas = _class_without_counterpart(
-                    addon, ref_py.name, klass, metodos, instalado, absueltos)
+                    addon, ref_py.name, klass, metodos, instalado, absueltos
+                )
                 absolutions += absueltas
                 if hallazgo is not None:
                     hallazgos.append(hallazgo)
                 continue
             if out_of_file:
                 hallazgos.append(
-                    (addon, ref_py.name, klass, 'CLASE FUERA DE SITIO',
-                     [f'portada fuera de {ref_py.name}']))
+                    (
+                        addon,
+                        ref_py.name,
+                        klass,
+                        'CLASE FUERA DE SITIO',
+                        [f'portada fuera de {ref_py.name}'],
+                    )
+                )
             aqui_norm = {normaliza(m) for m in aqui}
             faltan, out_of_place, despromovidos = [], [], []
             for m in sorted(metodos):
@@ -959,8 +1052,10 @@ def compara(addon):
                     # `normaliza` los aplana, asi que `_foo` y `foo` colisionan
                     # en la misma llave y el gate no distinguia uno de otro.
                     if _despromovido(m, metodos, aqui):
-                        if f'{klass}::{m}' in DESPROMOVIDOS_BASELINE \
-                                or m in DESPROMOVIDOS_BASELINE:
+                        if (
+                            f'{klass}::{m}' in DESPROMOVIDOS_BASELINE
+                            or m in DESPROMOVIDOS_BASELINE
+                        ):
                             absolutions += 1
                         else:
                             despromovidos.append(f'{m} -> {m.lstrip("_")}')
@@ -977,15 +1072,16 @@ def compara(addon):
                 (out_of_place if n in from_file else faltan).append(m)
             if faltan:
                 hallazgos.append(
-                    (addon, ref_py.name, klass, 'MÉTODOS AUSENTES', faltan))
+                    (addon, ref_py.name, klass, 'MÉTODOS AUSENTES', faltan)
+                )
             if out_of_place:
                 hallazgos.append(
-                    (addon, ref_py.name, klass, 'FUERA DE SITIO',
-                     out_of_place))
+                    (addon, ref_py.name, klass, 'FUERA DE SITIO', out_of_place)
+                )
             if despromovidos:
                 hallazgos.append(
-                    (addon, ref_py.name, klass, 'DESPROMOVIDOS',
-                     despromovidos))
+                    (addon, ref_py.name, klass, 'DESPROMOVIDOS', despromovidos)
+                )
     return pares, hallazgos, no_resolubles, absolutions
 
 
@@ -996,23 +1092,34 @@ def main(argv=None):
     """
     p = argparse.ArgumentParser()
     p.add_argument('--addon', help='medir sólo este addon')
-    p.add_argument('--mapa', action='store_true',
-                   help='inventario por archivo con su estado')
+    p.add_argument(
+        '--mapa',
+        action='store_true',
+        help='inventario por archivo con su estado',
+    )
     p.add_argument('--quiet', action='store_true')
     p.add_argument('--strict', action='store_true')
-    p.add_argument('--divergencias', action='store_true',
-                   help='listar el registro de divergencias declaradas con su '
-                        'estado (viva si sigue cubriendo un hallazgo, MUERTA '
-                        'si ya no cubre nada)')
+    p.add_argument(
+        '--divergencias',
+        action='store_true',
+        help=(
+            'listar el registro de divergencias declaradas con su '
+            'estado (viva si sigue cubriendo un hallazgo, MUERTA '
+            'si ya no cubre nada)'
+        ),
+    )
     args = p.parse_args(argv)
 
     if not REFERENCE_19C.is_dir():
-        print(f'AVISO: no está el árbol de referencia en {REFERENCE_19C}; '
-              'sin él este gate no puede medir nada.')
+        print(
+            f'AVISO: no está el árbol de referencia en {REFERENCE_19C}; '
+            'sin él este gate no puede medir nada.'
+        )
         return 0
 
-    addons = [args.addon] if args.addon else sorted(
-        d.name for d in addon_dirs())
+    addons = (
+        [args.addon] if args.addon else sorted(d.name for d in addon_dirs())
+    )
 
     pares_total, todos, opacas, absueltos_total = 0, [], 0, 0
     for addon in addons:
@@ -1051,14 +1158,18 @@ def main(argv=None):
         for key in sorted(declared_keys):
             estado = 'viva  ' if key in used else 'MUERTA'
             print(f'  {estado}  {key}')
-        print(f'\n{len(declared_keys)} declarada(s) · {len(used)} viva(s) · '
-              f'{len(dead)} muerta(s) '
-              f'(alcance medido: {pares_total} pares de archivo, '
-              f'{len(addons)} addons)')
+        print(
+            f'\n{len(declared_keys)} declarada(s) · {len(used)} viva(s) · '
+            f'{len(dead)} muerta(s) '
+            f'(alcance medido: {pares_total} pares de archivo, '
+            f'{len(addons)} addons)'
+        )
         if dead:
-            print('\nUna entrada MUERTA ya no cubre ningun hallazgo: o el '
-                  'simbolo se porto —y entonces la entrada se retira—, o la '
-                  'clave esta mal escrita. Las dos piden accion.')
+            print(
+                '\nUna entrada MUERTA ya no cubre ningun hallazgo: o el '
+                'simbolo se porto —y entonces la entrada se retira—, o la '
+                'clave esta mal escrita. Las dos piden accion.'
+            )
         return 1 if (args.strict and dead) else 0
 
     if args.mapa:
@@ -1069,8 +1180,10 @@ def main(argv=None):
         for addon, file_path, _klass, tipo, _s in todos:
             previo = estado.get((addon, file_path))
             estado[(addon, file_path)] = (
-                'NO PORTADO' if tipo == 'ARCHIVO NO PORTADO'
-                else previo or 'PARCIAL')
+                'NO PORTADO'
+                if tipo == 'ARCHIVO NO PORTADO'
+                else previo or 'PARCIAL'
+            )
         for addon in addons:
             ref_dir = reference_root(addon) / 'models'
             if not ref_dir.is_dir() or addon_path(addon) is None:
@@ -1078,13 +1191,18 @@ def main(argv=None):
             for ref_py in sorted(ref_dir.glob('*.py')):
                 if ref_py.name == '__init__.py':
                     continue
-                print(f'{estado.get((addon, ref_py.name), "COMPLETO"):>11}  '
-                      f'{addon}/models/{ref_py.name}')
+                print(
+                    f'{estado.get((addon, ref_py.name), "COMPLETO"):>11}  '
+                    f'{addon}/models/{ref_py.name}'
+                )
     elif args.quiet:
         print(len(todos))
     else:
         for addon, file_path, klass, tipo, simbolos_ in todos:
-            print(f'{addon}/models/{file_path} :: {klass} — {tipo} ({len(simbolos_)})')
+            print(
+                f'{addon}/models/{file_path} :: {klass} —'
+                f' {tipo} ({len(simbolos_)})'
+            )
             print(f'    {", ".join(simbolos_)}')
         # El denominador va SIEMPRE junto al conteo: un 0 sin alcance medido no
         # distingue "no hay deuda" de "el instrumento no vio nada".
@@ -1094,26 +1212,31 @@ def main(argv=None):
         fuera = [h for h in todos if h[3] == 'FUERA DE SITIO']
         extend = [h for h in todos if h[3] == 'CLASE EXTENDIDA']
         simb_fuera = sum(len(h[4]) for h in fuera)
-        print(f'\nporte incompleto: {len(todos)} hallazgos '
-              f'({len(todos) - len(fuera) - len(extend)} de porte · '
-              f'{len(extend)} de extensión parcial · '
-              f'{len(fuera)} de sitio, {simb_fuera} símbolos) '
-              f'(alcance medido: {pares_total} pares de archivo, '
-              f'{len(addons)} addons; '
-              f'{opacas} instalaciones con receptor no resoluble; '
-              f'{absueltos_total} compute absueltos por property declarada)')
+        print(
+            f'\nporte incompleto: {len(todos)} hallazgos '
+            f'({len(todos) - len(fuera) - len(extend)} de porte · '
+            f'{len(extend)} de extensión parcial · '
+            f'{len(fuera)} de sitio, {simb_fuera} símbolos) '
+            f'(alcance medido: {pares_total} pares de archivo, '
+            f'{len(addons)} addons; '
+            f'{opacas} instalaciones con receptor no resoluble; '
+            f'{absueltos_total} compute absueltos por property declarada)'
+        )
         # El registro va en su propio renglon y con su propio conteo: lo
         # declarado NO se suma a la deuda ni se calla. Y una entrada muerta se
         # nombra aqui aunque nadie pida `--divergencias`.
         alcance_registro = (
             f'{len(used)} entrada(s) tocadas por el recorrido de '
             f'`--addon {args.addon}`; las MUERTAS no se calculan en un '
-            f'recorrido acotado'
-            if scoped else
-            f'{len(used)} de {len(declared_keys)} entrada(s) vivas')
-        print(f'divergencias declaradas: {len(declared)} hallazgo(s), '
-              f'{declared_symbols} simbolo(s), {alcance_registro}'
-              + (f' — MUERTAS: {", ".join(dead)}' if dead else ''))
+            'recorrido acotado'
+            if scoped
+            else f'{len(used)} de {len(declared_keys)} entrada(s) vivas'
+        )
+        print(
+            f'divergencias declaradas: {len(declared)} hallazgo(s), '
+            f'{declared_symbols} simbolo(s), {alcance_registro}'
+            + (f' — MUERTAS: {", ".join(dead)}' if dead else '')
+        )
     return 1 if (args.strict and todos) else 0
 
 

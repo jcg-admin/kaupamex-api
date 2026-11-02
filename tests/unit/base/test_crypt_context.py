@@ -64,25 +64,33 @@ def test_verify_accepts_the_secret_and_rejects_another(context):
 
 
 def test_verify_and_update_leaves_a_current_hash_alone(context):
-    valid, replacement = context.verify_and_update('secreto', context.hash('secreto'))
+    valid, replacement = context.verify_and_update(
+        'secreto', context.hash('secreto')
+    )
     assert valid is True
     assert replacement is None
 
 
 def test_verify_and_update_replaces_a_deprecated_scheme(context):
-    """``deprecated=['auto']``: todo esquema que no sea el primero se reemplaza."""
+    """
+    ``deprecated=['auto']``: todo esquema que no sea el primero se reemplaza.
+    """
     valid, replacement = context.verify_and_update('secreto', 'secreto')
     assert valid is True
     assert context.identify(replacement) == 'pbkdf2_sha512'
 
 
-def test_verify_and_update_gives_no_replacement_when_the_secret_is_wrong(context):
+def test_verify_and_update_gives_no_replacement_when_the_secret_is_wrong(
+    context,
+):
     valid, replacement = context.verify_and_update('otro', 'secreto')
     assert valid is False
     assert replacement is None
 
 
-def test_copy_returns_an_independent_instance_with_the_same_configuration(context):
+def test_copy_returns_an_independent_instance_with_the_same_configuration(
+    context,
+):
     other = context.copy()
     assert other is not context
     assert other.schemes() == context.schemes()
@@ -127,7 +135,8 @@ class TestWithoutTheCryptOfTheOperatingSystem:
     import en ``try/except ImportError`` y degrada a ``has_crypt = False``
     (``passlib/utils/__init__.py:853-861``). Los dos esquemas que declara
     ``_crypt_context`` —``pbkdf2_sha512`` y ``plaintext``— son de Python puro:
-    medido, ninguno declara ``backends``, así que ninguno llega a ``safe_crypt``.
+    medido, ninguno declara ``backends``, así que ninguno llega a
+    ``safe_crypt``.
 
     Estos casos son el control: con el ``crypt`` del sistema anulado, cifrar y
     verificar siguen funcionando. Si algún día se adopta un esquema respaldado
@@ -143,7 +152,8 @@ class TestWithoutTheCryptOfTheOperatingSystem:
     """
 
     def test_hashing_and_verifying_survive_without_the_system_crypt(
-            self, context, monkeypatch):
+        self, context, monkeypatch
+    ):
         monkeypatch.setattr(passlib.utils, '_crypt', None, raising=False)
         monkeypatch.setattr(passlib.utils, 'has_crypt', False, raising=False)
 
@@ -153,7 +163,9 @@ class TestWithoutTheCryptOfTheOperatingSystem:
         assert not context.verify('otro', cifrado)
 
     def test_neither_scheme_declares_a_backend_to_resolve(self, context):
-        """Un esquema sin ``backends`` no tiene por dónde llegar a ``crypt``."""
+        """
+        Un esquema sin ``backends`` no tiene por dónde llegar a ``crypt``.
+        """
         for scheme in context.schemes():
             handler = get_crypt_handler(scheme)
             assert getattr(handler, 'backends', None) is None, scheme

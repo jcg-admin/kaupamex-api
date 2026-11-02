@@ -1,12 +1,17 @@
-"""Tests unitarios — la FORMA de los ``Char`` de ``hr`` contra su fuente (H-API-757).
+"""
+Tests unitarios — la FORMA de los ``Char`` de ``hr`` contra su fuente
+(H-API-757).
 
-Estos casos no prueban comportamiento: prueban que el **puerto sigue teniendo la
+Estos casos no prueban comportamiento: prueban que el **puerto sigue teniendo
+la
 forma que la referencia declara**. Son el hermano de
 ``tests/unit/base/test_ir_module_reference_shape.py``, que nació de
-:ref:`h-api-750` — un ``summary`` real truncado contra una columna de 255 que la
+:ref:`h-api-750` — un ``summary`` real truncado contra una columna de 255 que
+la
 fuente no impone.
 
-La afirmación viene de una medición sobre ``odoo19c: addons/hr/`` (``odoo-tools``
+La afirmación viene de una medición sobre ``odoo19c: addons/hr/``
+(``odoo-tools``
 en su commit ``622ddc2a``), no de memoria::
 
     grep -rho 'fields\\.Char(' addons/hr/models/*.py | wc -l   -> 93
@@ -15,7 +20,8 @@ en su commit ``622ddc2a``), no de memoria::
 Es decir: **93 de 93 sin tamaño**. Y no es una peculiaridad de ``hr`` — el
 ``Char`` de la referencia deriva su columna de ``pg_varchar(self.size)``
 (``odoo19c: odoo/orm/fields_textual.py:496``), y ``pg_varchar`` devuelve un
-``VARCHAR`` sin límite cuando el tamaño es nulo (``odoo/tools/sql.py:644-654``).
+``VARCHAR`` sin límite cuando el tamaño es nulo
+(``odoo/tools/sql.py:644-654``).
 El ``Selection`` va más lejos: su columna es ``('varchar', pg_varchar())``
 literal (``odoo/orm/fields_selection.py:63``), sin tamaño posible.
 
@@ -23,6 +29,7 @@ El tope, por tanto, no se sube: **se retira**. ``supports_unlimited_charfield``
 es ``True`` en el backend PostgreSQL de Django 6, así que un ``CharField`` sin
 ``max_length`` emite el mismo ``varchar`` a secas.
 """
+
 import pytest
 from django.apps import apps
 from django.db import connection
@@ -60,8 +67,10 @@ CAPPED_BY_DECISION: dict[tuple[str, str], str] = {}
 def _char_fields(label):
     model = apps.get_model(label)
     return [
-        f for f in model._meta.get_fields()
-        if getattr(f, 'get_internal_type', None) and f.get_internal_type() == 'CharField'
+        f
+        for f in model._meta.get_fields()
+        if getattr(f, 'get_internal_type', None)
+        and f.get_internal_type() == 'CharField'
     ]
 
 
@@ -70,7 +79,8 @@ def test_no_hr_char_field_declares_a_cap(label):
     """Ningún ``Char`` de ``hr`` lleva ``max_length`` — el modelo, no la base.
 
     Es la aserción que cierra el grifo: un campo nuevo con tope la rompe aquí,
-    antes de que llegue a una columna. Si el tope es deliberado (un campo propio
+    antes de que llegue a una columna. Si el tope es deliberado (un campo
+    propio
     del L0 sin contraparte), su sitio es ``CAPPED_BY_DECISION`` con la razón
     escrita, no un ``max_length`` suelto.
     """
@@ -82,7 +92,7 @@ def test_no_hr_char_field_declares_a_cap(label):
     }
     assert not capped, (
         f'{label} declara tope en {capped}; la referencia declara sus 93 '
-        f'fields.Char sin size= (odoo19c: addons/hr/, odoo-tools@622ddc2a)'
+        'fields.Char sin size= (odoo19c: addons/hr/, odoo-tools@622ddc2a)'
     )
 
 
@@ -94,9 +104,9 @@ def test_the_company_field_hung_by_hr_declares_no_cap():
     """
     label, name = COMPANY_FIELD
     field = apps.get_model(label)._meta.get_field(name)
-    assert field.max_length is None, (
-        f'{label}.{name} declara max_length={field.max_length}'
-    )
+    assert (
+        field.max_length is None
+    ), f'{label}.{name} declara max_length={field.max_length}'
 
 
 @pytest.mark.django_db
@@ -118,7 +128,8 @@ def test_the_hr_char_columns_carry_no_length_limit():
         for label in HR_LABELS
         if apps.get_model(label)._meta.managed
         for f in _char_fields(label)
-        if getattr(f, 'column', None) and (label, f.name) not in CAPPED_BY_DECISION
+        if getattr(f, 'column', None)
+        and (label, f.name) not in CAPPED_BY_DECISION
     }
     company_table = apps.get_model(COMPANY_FIELD[0])._meta.db_table
     expected.add((company_table, COMPANY_FIELD[1]))
@@ -139,10 +150,10 @@ def test_the_hr_char_columns_carry_no_length_limit():
             if (t, c) in expected
         }
 
-    assert set(measured) == expected, (
-        f'columnas no encontradas en el schema: {expected - set(measured)}'
-    )
+    assert (
+        set(measured) == expected
+    ), f'columnas no encontradas en el schema: {expected - set(measured)}'
     capped_columns = {k: v for k, v in measured.items() if v is not None}
-    assert not capped_columns, (
-        f'columnas con varchar(n) tras la migración: {capped_columns}'
-    )
+    assert (
+        not capped_columns
+    ), f'columnas con varchar(n) tras la migración: {capped_columns}'

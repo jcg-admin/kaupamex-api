@@ -1,10 +1,12 @@
 """Tests — addon ``mrp_subcontracting`` (subcontratación + costo real).
 
 Cubre el ancla de subcontratación: la BoM de tipo ``subcontract`` con sus
-subcontratistas, la ubicación de subcontratación (constraint interna), el perfil
+subcontratistas, la ubicación de subcontratación (constraint interna), el
+perfil
 del subcontratista, el subcontratista de la orden, y el **costo real**: el
 terminado absorbe componentes valuados + el servicio del subcontratista.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -37,7 +39,8 @@ def _product(price='100.00'):
 
 def _bom(product, **kwargs):
     return MrpBom.objects.create(
-        product_tmpl=product.product_tmpl, product=product, **kwargs)
+        product_tmpl=product.product_tmpl, product=product, **kwargs
+    )
 
 
 def _partner(email):
@@ -45,12 +48,16 @@ def _partner(email):
 
 
 def _internal(name='WH/Stock'):
-    return StockLocation.objects.create(name=name, usage=StockLocation.USAGE_INTERNAL)
+    return StockLocation.objects.create(
+        name=name, usage=StockLocation.USAGE_INTERNAL
+    )
 
 
 def test_bom_type_subcontract_with_subcontractors(db):
     finished = _product()
-    bom = _bom(finished, product_qty=Decimal('1'), type=MrpBom.TYPE_SUBCONTRACT)
+    bom = _bom(
+        finished, product_qty=Decimal('1'), type=MrpBom.TYPE_SUBCONTRACT
+    )
     sub_a = _partner('subA@kaupamex.mx')
     sub_b = _partner('subB@kaupamex.mx')
     BomSubcontractor.objects.create(bom=bom, subcontractor=sub_a)
@@ -61,7 +68,8 @@ def test_bom_type_subcontract_with_subcontractors(db):
 
 def test_subcontracting_location_must_be_internal(db):
     customer = StockLocation.objects.create(
-        name='Cust', usage=StockLocation.USAGE_CUSTOMER)
+        name='Cust', usage=StockLocation.USAGE_CUSTOMER
+    )
     with pytest.raises(ValidationError):
         SubcontractingLocation.objects.create(location=customer)
     # Una ubicación interna sí puede marcarse como de subcontratación.
@@ -91,26 +99,41 @@ def test_bom_subcontractor_unique(db):
 def test_subcontract_produce_cost_is_components_plus_service(db):
     finished = _product()
     comp = _product()
-    ProductCosting.for_product(finished, cost_method=ProductCosting.COST_AVERAGE)
+    ProductCosting.for_product(
+        finished, cost_method=ProductCosting.COST_AVERAGE
+    )
     # BoM de subcontratación: 1 terminado consume 2 componentes.
-    bom = _bom(finished, product_qty=Decimal('1'), type=MrpBom.TYPE_SUBCONTRACT)
-    MrpBomLine.objects.create(bom=bom, product=comp, product_qty=Decimal('2'), sequence=1)
+    bom = _bom(
+        finished, product_qty=Decimal('1'), type=MrpBom.TYPE_SUBCONTRACT
+    )
+    MrpBomLine.objects.create(
+        bom=bom, product=comp, product_qty=Decimal('2'), sequence=1
+    )
 
     subc_loc = _internal('WH/Subcontractor')
     prod_loc = StockLocation.objects.create(
-        name='WH/Production', usage=StockLocation.USAGE_PRODUCTION)
+        name='WH/Production', usage=StockLocation.USAGE_PRODUCTION
+    )
     dest = _internal('WH/Stock')
 
     # Los componentes ya están valuados en la ubicación del subcontratista
     # (enviados). Se reciben ahí a $10 c/u.
     ProductCosting.for_product(comp, cost_method=ProductCosting.COST_AVERAGE)
-    vendor = StockLocation.objects.create(name='Vendors', usage=StockLocation.USAGE_SUPPLIER)
+    vendor = StockLocation.objects.create(
+        name='Vendors', usage=StockLocation.USAGE_SUPPLIER
+    )
     receive = StockMove.objects.create(
-        product=comp, product_uom_qty=Decimal('2'), quantity=Decimal('2'),
-        location=vendor, location_dest=subc_loc)
+        product=comp,
+        product_uom_qty=Decimal('2'),
+        quantity=Decimal('2'),
+        location=vendor,
+        location_dest=subc_loc,
+    )
     valuation.value_move(receive, unit_cost=Decimal('10.00'))
 
-    mo = MrpProduction.objects.create(product=finished, product_qty=Decimal('2'), bom=bom)
+    mo = MrpProduction.objects.create(
+        product=finished, product_qty=Decimal('2'), bom=bom
+    )
     mo.action_confirm()
     subc.subcontract_generate_moves(mo, subc_loc, prod_loc, dest)
     # Servicio del subcontratista: $30 por la tanda.
@@ -124,8 +147,10 @@ def test_subcontract_produce_cost_is_components_plus_service(db):
 
 def test_subcontract_production_links_subcontractor(db):
     mo = MrpProduction.objects.create(
-        product=_product(), product_qty=Decimal('1'),
-        bom=_bom(_product(), type=MrpBom.TYPE_SUBCONTRACT))
+        product=_product(),
+        product_qty=Decimal('1'),
+        bom=_bom(_product(), type=MrpBom.TYPE_SUBCONTRACT),
+    )
     sub = _partner('link@kaupamex.mx')
     SubcontractProduction.objects.create(production=mo, subcontractor=sub)
     assert mo.subcontract.subcontractor == sub

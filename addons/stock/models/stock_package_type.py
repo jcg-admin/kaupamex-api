@@ -81,6 +81,7 @@ Divergencias declaradas
    de petición en un método de modelo aquí) — la misma decisión que
    ``stock_package.py::StockPackage._compute_display_name`` declara.
 """
+
 from decimal import Decimal
 
 import fields
@@ -114,63 +115,91 @@ class StockPackageType(models.DefaultGetMixin, TimeStampedModel):
     _description = 'Stock package type'
     _order = 'sequence, id'
 
-    name                = fields.Char(
+    name = fields.Char(
         max_length=120,
         help_text='Nombre del tipo de paquete (Odoo name, requerido).',
     )
-    sequence            = fields.Integer(
+    sequence = fields.Integer(
         default=1,
         help_text='Orden; el primero es el tipo por defecto (Odoo sequence).',
     )
-    sequence_ref        = fields.Many2one(
-        'base.IrSequence', null=True, blank=True, on_delete=models.SET_NULL,
+    sequence_ref = fields.Many2one(
+        'base.IrSequence',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
         related_name='package_types',
-        help_text='Secuencia de numeración de los paquetes de este tipo '
-                  '(Odoo sequence_id).',
+        help_text=(
+            'Secuencia de numeración de los paquetes de este tipo '
+            '(Odoo sequence_id).'
+        ),
     )
-    height              = fields.Monetary(
-        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+    height = fields.Monetary(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
         help_text='Alto del embalaje (Odoo height).',
     )
-    width               = fields.Monetary(
-        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+    width = fields.Monetary(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
         help_text='Ancho del embalaje (Odoo width).',
     )
-    packaging_length    = fields.Monetary(
-        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+    packaging_length = fields.Monetary(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
         help_text='Largo del embalaje (Odoo packaging_length).',
     )
-    base_weight         = fields.Monetary(
-        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+    base_weight = fields.Monetary(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
         help_text='Peso del propio embalaje vacío (Odoo base_weight).',
     )
-    max_weight          = fields.Monetary(
-        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+    max_weight = fields.Monetary(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
         help_text='Peso máximo embarcable en este embalaje (Odoo max_weight).',
     )
-    barcode             = fields.Char(
-        max_length=64, blank=True, default='', null=True,
+    barcode = fields.Char(
+        max_length=64,
+        blank=True,
+        default='',
+        null=True,
         help_text='Código de barras del tipo de paquete (Odoo barcode).',
     )
-    company             = fields.Many2one(
-        'base.ResCompany', null=True, blank=True, on_delete=models.CASCADE,
-        related_name='package_types', db_index=True,
+    company = fields.Many2one(
+        'base.ResCompany',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='package_types',
+        db_index=True,
         help_text='Empresa (Odoo company_id).',
     )
-    package_use         = fields.Selection(
-        max_length=12, choices=PACKAGE_USE_CHOICES, default=PACKAGE_USE_DISPOSABLE,
-        help_text='Las cajas reutilizables se usan en preparación por lotes y '
-                  'se vacían después; al escanear una desechable, sus productos '
-                  'se añaden a la transferencia (Odoo package_use).',
+    package_use = fields.Selection(
+        max_length=12,
+        choices=PACKAGE_USE_CHOICES,
+        default=PACKAGE_USE_DISPOSABLE,
+        help_text=(
+            'Las cajas reutilizables se usan en preparación por lotes y '
+            'se vacían después; al escanear una desechable, sus productos '
+            'se añaden a la transferencia (Odoo package_use).'
+        ),
     )
-    route_ids           = fields.Many2many(
-        'stock.StockRoute', blank=True, related_name='package_type_ids',
+    route_ids = fields.Many2many(
+        'stock.StockRoute',
+        blank=True,
+        related_name='package_type_ids',
         help_text='Rutas aplicables a este tipo de paquete (Odoo route_ids).',
     )
 
     class Meta:
         db_table = 'stock_package_type'
-        ordering = ['sequence', 'id']      # ≙ ``_order = "sequence, id"``
+        ordering = ['sequence', 'id']  # ≙ ``_order = "sequence, id"``
         verbose_name = 'Tipo de paquete'
         verbose_name_plural = 'Tipos de paquete'
         constraints = [
@@ -180,8 +209,10 @@ class StockPackageType(models.DefaultGetMixin, TimeStampedModel):
             models.UniqueConstraint(
                 fields=['barcode'],
                 name='stock_package_type_barcode_uniq',
-                violation_error_message='Un código de barras sólo puede '
-                                        'asignarse a un tipo de paquete.',
+                violation_error_message=(
+                    'Un código de barras sólo puede '
+                    'asignarse a un tipo de paquete.'
+                ),
             ),
             # ≙ ``_positive_height`` (``:45-48``).
             models.CheckConstraint(
@@ -219,8 +250,10 @@ class StockPackageType(models.DefaultGetMixin, TimeStampedModel):
         emite siempre que haya dimensiones, que es la mitad observable.
         """
         if self.packaging_length and self.width and self.height:
-            return (f'{self.name}\t--{self.packaging_length} x '
-                    f'{self.width} x {self.height}--')
+            return (
+                f'{self.name}\t--{self.packaging_length} x '
+                f'{self.width} x {self.height}--'
+            )
         return self.name
 
     # -- los dos defaults de unidad --
@@ -239,12 +272,18 @@ class StockPackageType(models.DefaultGetMixin, TimeStampedModel):
 
     @property
     def weight_uom_name(self):
-        """≙ ``weight_uom_name`` / ``_compute_weight_uom_name`` (``:28``, ``:85-87``)."""
+        """
+        ≙ ``weight_uom_name`` / ``_compute_weight_uom_name`` (``:28``,
+        ``:85-87``).
+        """
         return self.get_default_weight_uom()
 
     @property
     def length_uom_name(self):
-        """≙ ``length_uom_name`` / ``_compute_length_uom_name`` (``:29``, ``:81-83``)."""
+        """
+        ≙ ``length_uom_name`` / ``_compute_length_uom_name`` (``:29``,
+        ``:81-83``).
+        """
         return self.get_default_length_uom()
 
     @property
@@ -288,7 +327,8 @@ class StockPackageType(models.DefaultGetMixin, TimeStampedModel):
         empresa = company if company is not None else self.company
         if self.sequence_ref is None:
             self.sequence_ref = IrSequence.objects.create(
-                padding=SEQUENCE_PADDING, company=empresa, **valores)
+                padding=SEQUENCE_PADDING, company=empresa, **valores
+            )
         else:
             for clave, valor in valores.items():
                 setattr(self.sequence_ref, clave, valor)
@@ -308,9 +348,11 @@ class StockPackageType(models.DefaultGetMixin, TimeStampedModel):
         referencia, que deja su id en ``vals['sequence_id']``.
 
         La referencia recibe ``vals_list`` y devuelve el recordset; desde
-        :ref:`h-api-1108` la firma es la misma aquí — ``@api.model_create_multi``
+        :ref:`h-api-1108` la firma es la misma aquí —
+        ``@api.model_create_multi``
         convierte un dict suelto en ``[vals]`` — y ``super().create`` es
-        ``DefaultGetMixin.create`` (``orm/models.py``), el porte por contenido de
+        ``DefaultGetMixin.create`` (``orm/models.py``), el porte por contenido
+        de
         ``BaseModel.create``.
         """
         for vals in vals_list:
@@ -345,11 +387,21 @@ class StockPackageType(models.DefaultGetMixin, TimeStampedModel):
         return self
 
     def copy_data(self, default=None):
-        """≙ ``copy_data`` (``odoo19c: :89-91``) — el duplicado lleva «(copia)»."""
+        """
+        ≙ ``copy_data`` (``odoo19c: :89-91``) — el duplicado lleva «(copia)».
+        """
         valores = dict(default or {})
         valores.setdefault('name', f'{self.name} (copia)')
-        for campo in ('sequence', 'height', 'width', 'packaging_length',
-                      'base_weight', 'max_weight', 'package_use', 'company'):
+        for campo in (
+            'sequence',
+            'height',
+            'width',
+            'packaging_length',
+            'base_weight',
+            'max_weight',
+            'package_use',
+            'company',
+        ):
             valores.setdefault(campo, getattr(self, campo))
         return valores
 

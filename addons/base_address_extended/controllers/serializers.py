@@ -1,11 +1,14 @@
 """Serializers — consulta pública de código postal.
 
-La respuesta **no** es la fila del modelo: es el CP agrupado. ``CatalogPostalCode``
+La respuesta **no** es la fila del modelo: es el CP agrupado.
+``CatalogPostalCode``
 guarda una fila por asentamiento, y el consumidor (el formulario de dirección)
 necesita lo contrario — los datos comunes una vez y la lista de asentamientos
-para poblar el selector. Por eso hay dos serializers y no un ``ModelSerializer``
+para poblar el selector. Por eso hay dos serializers y no un
+``ModelSerializer``
 sobre el queryset.
 """
+
 from rest_framework import serializers
 
 

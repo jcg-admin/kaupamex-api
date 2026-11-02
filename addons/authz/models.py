@@ -1,4 +1,5 @@
-"""Models — addons.authz (modelo de capacidades propio, Opción B / DEC-AUTHZ-01).
+"""
+Models — addons.authz (modelo de capacidades propio, Opción B / DEC-AUTHZ-01).
 
 Reemplaza la autorización nativa de Django. Vocabulario IGA (referencia
 Oracle/Tuebora, patente US 9,489,390): *entitlement* = el vínculo
@@ -13,8 +14,10 @@ Diseño: :ref:`arq-mod-authz` (MOD-027). Entidades:
 - ``Role`` + ``RoleAssignment`` — agrupación e indirect entitlement.
 - ``DirectEntitlement`` + ``EntitlementRevocation`` — grant directo + tombstone
   auditable.
-- ``AuthzEvent`` — auditoría append-only (403 + uso de capacidad sensible, DEC-07).
+- ``AuthzEvent`` — auditoría append-only (403 + uso de capacidad sensible,
+  DEC-07).
 """
+
 from django.conf import settings
 import fields
 import models
@@ -36,7 +39,10 @@ class Module(TimeStampedModel):
     """
 
     class Tier(models.TextChoices):
-        """Nivel de cobro del módulo (← manifest ``license``: LGPL-3 vs OEEL-1)."""
+        """
+        Nivel de cobro del módulo (← manifest ``license``: LGPL-3 vs OEEL-1).
+        """
+
         FREE = 'free', 'Gratis'
         PAID = 'paid', 'De pago'
 
@@ -47,29 +53,46 @@ class Module(TimeStampedModel):
     # exige que sus ``depends`` estén activos (p.ej. pos depende de
     # inventory+catalogue). No simétrico: A depende de B ≠ B depende de A.
     depends = fields.Many2many(
-        'self', symmetrical=False, related_name='dependents', blank=True,
+        'self',
+        symmetrical=False,
+        related_name='dependents',
+        blank=True,
         verbose_name='Depende de',
     )
     # Metadata de catálogo L0 (contrato __manifest__ de Odoo).
     is_application = fields.Boolean(
-        default=False, verbose_name='App vendible',
-        help_text='Vendible (top-level) vs módulo técnico (dependencia interna).',
+        default=False,
+        verbose_name='App vendible',
+        help_text=(
+            'Vendible (top-level) vs módulo técnico (dependencia interna).'
+        ),
     )
     tier = fields.Selection(
-        max_length=8, choices=Tier.choices, default=Tier.FREE,
+        max_length=8,
+        choices=Tier.choices,
+        default=Tier.FREE,
         verbose_name='Tier',
     )
     category = fields.Char(
-        max_length=50, blank=True, default='', verbose_name='Categoría',
+        max_length=50,
+        blank=True,
+        default='',
+        verbose_name='Categoría',
     )
     version = fields.Char(
-        max_length=20, blank=True, default='', verbose_name='Versión',
+        max_length=20,
+        blank=True,
+        default='',
+        verbose_name='Versión',
     )
     description = fields.Text(
-        blank=True, default='', verbose_name='Descripción',
+        blank=True,
+        default='',
+        verbose_name='Descripción',
     )
     auto_install = fields.Boolean(
-        default=False, verbose_name='Auto-instalar',
+        default=False,
+        verbose_name='Auto-instalar',
         help_text='Se activa solo cuando sus dependencias están presentes.',
     )
 
@@ -84,13 +107,17 @@ class Module(TimeStampedModel):
 
 
 class AccessLevel(models.IntegerChoices):
-    """Nivel de acceso graduado (DEC-11, modelo NetSuite VIEW<CREATE<EDIT<FULL).
+    """
+    Nivel de acceso graduado (DEC-11, modelo NetSuite VIEW<CREATE<EDIT<FULL).
 
-    ``NONE`` es el piso (ausencia de nivel). Los niveles son sucesivos: cada uno
+    ``NONE`` es el piso (ausencia de nivel). Los niveles son sucesivos: cada
+    uno
     implica los inferiores (EDIT ⇒ CREATE ⇒ VIEW). El verbo de un ``code``
-    ``dominio.verbo`` en un call-site expresa el nivel MÍNIMO requerido; se mapea
+    ``dominio.verbo`` en un call-site expresa el nivel MÍNIMO requerido; se
+    mapea
     con ``for_verb``.
     """
+
     NONE = 0, 'Ninguno'
     VIEW = 10, 'Ver'
     CREATE = 20, 'Crear'
@@ -108,7 +135,9 @@ class AccessLevel(models.IntegerChoices):
         }.get(verb, cls.NONE)
 
     def implied_verbs(self):
-        """Verbos CRUD que este nivel concede (para expandir noun→noun.verbo)."""
+        """
+        Verbos CRUD que este nivel concede (para expandir noun→noun.verbo).
+        """
         verbs = []
         if self >= AccessLevel.VIEW:
             verbs.append('view')
@@ -122,21 +151,32 @@ class AccessLevel(models.IntegerChoices):
 
 
 class Capability(TimeStampedModel):
-    """Un permiso atómico. ``code`` = ``dominio.verbo`` (cara técnica); el resto
+    """
+    Un permiso atómico. ``code`` = ``dominio.verbo`` (cara técnica); el resto
     es la cara de negocio (un solo registro, sin split lógico/físico)."""
+
     module = fields.Many2one(
-        Module, on_delete=models.PROTECT, related_name='capabilities',
+        Module,
+        on_delete=models.PROTECT,
+        related_name='capabilities',
         verbose_name='Módulo',
     )
     code = fields.Char(
-        max_length=100, unique=True,
-        verbose_name='Código', help_text="Formato 'dominio.verbo' (p.ej. orders.refund).",
+        max_length=100,
+        unique=True,
+        verbose_name='Código',
+        help_text="Formato 'dominio.verbo' (p.ej. orders.refund).",
     )
     name = fields.Char(max_length=150, verbose_name='Nombre')
-    description = fields.Text(blank=True, default='', verbose_name='Descripción')
-    category = fields.Char(max_length=50, blank=True, default='', verbose_name='Categoría')
+    description = fields.Text(
+        blank=True, default='', verbose_name='Descripción'
+    )
+    category = fields.Char(
+        max_length=50, blank=True, default='', verbose_name='Categoría'
+    )
     is_sensitive = fields.Boolean(
-        default=False, verbose_name='Sensible',
+        default=False,
+        verbose_name='Sensible',
         help_text='Su uso exitoso se audita en AuthzEvent (DEC-07).',
     )
     is_active = fields.Boolean(default=True, verbose_name='Activa')
@@ -152,11 +192,17 @@ class Capability(TimeStampedModel):
 
 
 class Role(TimeStampedModel):
-    """Agrupación de capacidades. El acceso vía Role es *indirect entitlement*."""
+    """
+    Agrupación de capacidades. El acceso vía Role es *indirect entitlement*.
+    """
+
     code = models.SlugField(max_length=50, unique=True, verbose_name='Código')
     name = fields.Char(max_length=100, verbose_name='Nombre')
     capabilities = fields.Many2many(
-        Capability, through='RoleCapability', related_name='roles', blank=True,
+        Capability,
+        through='RoleCapability',
+        related_name='roles',
+        blank=True,
         verbose_name='Capacidades',
     )
 
@@ -171,21 +217,29 @@ class Role(TimeStampedModel):
 
 
 class RoleCapability(TimeStampedModel):
-    """Grade de una capacidad dentro de un rol (through de ``Role.capabilities``,
+    """
+    Grade de una capacidad dentro de un rol (through de ``Role.capabilities``,
     DEC-11). Reemplaza el M2M plano: cada par rol↔capacidad lleva su
-    ``AccessLevel``. Para capacidades de acción nombrada (``code`` con punto que
+    ``AccessLevel``. Para capacidades de acción nombrada (``code`` con punto
+    que
     no es verbo CRUD, p.ej. ``account.profile``) el nivel es irrelevante y se
     guarda ``FULL`` — el resolver las trata por membresía, no por escala."""
+
     role = fields.Many2one(
-        Role, on_delete=models.CASCADE, related_name='role_capabilities',
+        Role,
+        on_delete=models.CASCADE,
+        related_name='role_capabilities',
         verbose_name='Rol',
     )
     capability = fields.Many2one(
-        Capability, on_delete=models.CASCADE, related_name='role_capabilities',
+        Capability,
+        on_delete=models.CASCADE,
+        related_name='role_capabilities',
         verbose_name='Capacidad',
     )
     level = fields.Integer(
-        choices=AccessLevel.choices, default=AccessLevel.FULL,
+        choices=AccessLevel.choices,
+        default=AccessLevel.FULL,
         verbose_name='Nivel de acceso',
     )
 
@@ -201,18 +255,29 @@ class RoleCapability(TimeStampedModel):
 
 
 class RoleAssignment(TimeStampedModel):
-    """Asignación usuario↔Role (indirect entitlement). ``expires_at`` NULL = sin
+    """
+    Asignación usuario↔Role (indirect entitlement). ``expires_at`` NULL = sin
     expiración (gancho JIT/least-privilege)."""
+
     user = fields.Many2one(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-        related_name='role_assignments', verbose_name='Usuario',
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='role_assignments',
+        verbose_name='Usuario',
     )
     role = fields.Many2one(
-        Role, on_delete=models.CASCADE, related_name='assignments', verbose_name='Rol',
+        Role,
+        on_delete=models.CASCADE,
+        related_name='assignments',
+        verbose_name='Rol',
     )
     assigned_by = fields.Many2one(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='+', verbose_name='Asignado por',
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+',
+        verbose_name='Asignado por',
     )
     expires_at = fields.Datetime(null=True, blank=True, verbose_name='Expira')
 
@@ -221,7 +286,9 @@ class RoleAssignment(TimeStampedModel):
         verbose_name = 'Asignación de rol'
         verbose_name_plural = 'Asignaciones de rol'
         constraints = [
-            models.UniqueConstraint(fields=['user', 'role'], name='uq_authz_role_assignment'),
+            models.UniqueConstraint(
+                fields=['user', 'role'], name='uq_authz_role_assignment'
+            ),
         ]
         indexes = [models.Index(fields=['user', 'role'])]
 
@@ -230,18 +297,30 @@ class RoleAssignment(TimeStampedModel):
 
 
 class DirectEntitlement(TimeStampedModel):
-    """Grant directo positivo usuario↔Capability (direct entitlement, DEC-AUTHZ-01)."""
+    """
+    Grant directo positivo usuario↔Capability (direct entitlement,
+    DEC-AUTHZ-01).
+    """
+
     user = fields.Many2one(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-        related_name='direct_entitlements', verbose_name='Usuario',
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='direct_entitlements',
+        verbose_name='Usuario',
     )
     capability = fields.Many2one(
-        Capability, on_delete=models.CASCADE, related_name='direct_entitlements',
+        Capability,
+        on_delete=models.CASCADE,
+        related_name='direct_entitlements',
         verbose_name='Capacidad',
     )
     granted_by = fields.Many2one(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='+', verbose_name='Otorgado por',
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+',
+        verbose_name='Otorgado por',
     )
     expires_at = fields.Datetime(null=True, blank=True, verbose_name='Expira')
 
@@ -250,7 +329,10 @@ class DirectEntitlement(TimeStampedModel):
         verbose_name = 'Grant directo'
         verbose_name_plural = 'Grants directos'
         constraints = [
-            models.UniqueConstraint(fields=['user', 'capability'], name='uq_authz_direct_entitlement'),
+            models.UniqueConstraint(
+                fields=['user', 'capability'],
+                name='uq_authz_direct_entitlement',
+            ),
         ]
         indexes = [models.Index(fields=['user', 'capability'])]
 
@@ -261,17 +343,26 @@ class DirectEntitlement(TimeStampedModel):
 class EntitlementRevocation(TimeStampedModel):
     """Tombstone auditable: cancela un grant directo usuario↔Capability
     (DEC-AUTHZ-01). No cancela capacidades heredadas de rol."""
+
     user = fields.Many2one(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-        related_name='entitlement_revocations', verbose_name='Usuario',
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='entitlement_revocations',
+        verbose_name='Usuario',
     )
     capability = fields.Many2one(
-        Capability, on_delete=models.CASCADE, related_name='entitlement_revocations',
+        Capability,
+        on_delete=models.CASCADE,
+        related_name='entitlement_revocations',
         verbose_name='Capacidad',
     )
     revoked_by = fields.Many2one(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='+', verbose_name='Revocado por',
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+',
+        verbose_name='Revocado por',
     )
     reason = fields.Text(blank=True, default='', verbose_name='Motivo')
 
@@ -280,7 +371,10 @@ class EntitlementRevocation(TimeStampedModel):
         verbose_name = 'Revocación de grant'
         verbose_name_plural = 'Revocaciones de grant'
         constraints = [
-            models.UniqueConstraint(fields=['user', 'capability'], name='uq_authz_entitlement_revocation'),
+            models.UniqueConstraint(
+                fields=['user', 'capability'],
+                name='uq_authz_entitlement_revocation',
+            ),
         ]
         indexes = [models.Index(fields=['user', 'capability'])]
 
@@ -290,12 +384,15 @@ class EntitlementRevocation(TimeStampedModel):
 
 # Modelos movidos a apps de feature opcional al estilo Odoo (SOL-094 frente B,
 # DEC-01), con tabla física intacta (SeparateDatabaseAndState):
-#   - AuthzEvent (auditoría DEC-07)     -> ``addons.authz_audit``  (~ account_audit_trail)
-#   - ReauthSession (step-up DEC-12)    -> ``addons.authz_reauth`` (~ authz_totp)
+# - AuthzEvent (auditoría DEC-07)     -> ``addons.authz_audit``  (~
+# account_audit_trail)
+# - ReauthSession (step-up DEC-12)    -> ``addons.authz_reauth`` (~
+# authz_totp)
 # Importar desde ``addons.authz_audit.models`` / ``addons.authz_reauth.models``
 # respectivamente.
 #
 # El menú (antes ``MenuItem`` en ``addons.authz_menu``) se movió a
-# ``base.IrUiMenu`` — tabla ``ir_ui_menu``. En la referencia ``ir.ui.menu`` vive
+# ``base.IrUiMenu`` — tabla ``ir_ui_menu``. En la referencia
+# ``ir.ui.menu`` vive
 # en ``base``, junto al motor de permisos, y el addon intermedio no aportaba
 # nada: el modelo es del núcleo, no una feature opcional.

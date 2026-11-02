@@ -9,6 +9,7 @@ Cada clase declara qué haría fallar a sus casos. La medición de esa
 declaración —anular la rama y ver caer exactamente los casos que dependen de
 ella— está en ``scripts/evidence/neutering-http-routing-*.txt``.
 """
+
 import pytest
 
 from addons.base.models.ir_http import IrHttp
@@ -27,10 +28,15 @@ class _Record:
 
 
 class TestTheNameIsCarriedIntoTheSlug:
-    """Falla si ``_slug`` devolviera sólo el id — el ``base.slug`` de siempre."""
+    """
+    Falla si ``_slug`` devolviera sólo el id — el ``base.slug`` de siempre.
+    """
 
     def test_a_record_gives_name_then_id(self):
-        assert IrHttp._slug(_Record(42, 'Silla de Oficina')) == 'silla-de-oficina-42'
+        assert (
+            IrHttp._slug(_Record(42, 'Silla de Oficina'))
+            == 'silla-de-oficina-42'
+        )
 
     def test_a_name_search_tuple_gives_the_same(self):
         # ≙ el ``except AttributeError`` de la fuente: la tupla (id, nombre).
@@ -45,13 +51,18 @@ class TestTheNameIsCarriedIntoTheSlug:
 class TestNonAsciiSurvives:
     """Falla si el ``slugify`` fuera el de Django (``allow_unicode=False``)."""
 
-    @pytest.mark.parametrize('name,expected', [
-        ('手工皂', '手工皂-42'),
-        ('صابون يدوي', 'صابون-يدوي-42'),
-        ('Café Orgánico', 'cafe-organico-42'),
-        ('Ñandú_edición 2026', 'nandu-edicion-2026-42'),
-    ])
-    def test_the_script_is_kept_and_the_accent_is_stripped(self, name, expected):
+    @pytest.mark.parametrize(
+        'name,expected',
+        [
+            ('手工皂', '手工皂-42'),
+            ('صابون يدوي', 'صابون-يدوي-42'),
+            ('Café Orgánico', 'cafe-organico-42'),
+            ('Ñandú_edición 2026', 'nandu-edicion-2026-42'),
+        ],
+    )
+    def test_the_script_is_kept_and_the_accent_is_stripped(
+        self, name, expected
+    ):
         assert IrHttp._slug(_Record(42, name)) == expected
 
 
@@ -71,22 +82,36 @@ class TestTheNonExistentRecordRaises:
 
     @pytest.mark.parametrize('identifier', [None, 0, False])
     def test_a_record_without_id_cannot_be_slugged(self, identifier):
-        with pytest.raises(ValueError, match='Cannot slug non-existent record'):
+        with pytest.raises(
+            ValueError, match='Cannot slug non-existent record'
+        ):
             IrHttp._slug(_Record(identifier, 'Silla'))
 
 
 class TestUnslugIsTheInverse:
-    """Falla si ``_unslug`` devolviera el entero pelado o perdiera el nombre."""
+    """
+    Falla si ``_unslug`` devolviera el entero pelado o perdiera el nombre.
+    """
 
-    @pytest.mark.parametrize('name', [
-        'Silla de Oficina', '手工皂', 'Café Orgánico', 'A', 'ab',
-    ])
+    @pytest.mark.parametrize(
+        'name',
+        [
+            'Silla de Oficina',
+            '手工皂',
+            'Café Orgánico',
+            'A',
+            'ab',
+        ],
+    )
     def test_round_trip_recovers_the_identifier(self, name):
         slug = IrHttp._slug(_Record(7, name))
         assert IrHttp._unslug(slug)[1] == 7
 
     def test_it_returns_a_two_tuple_with_the_readable_part(self):
-        assert IrHttp._unslug('silla-de-oficina-42') == ('silla-de-oficina', 42)
+        assert IrHttp._unslug('silla-de-oficina-42') == (
+            'silla-de-oficina',
+            42,
+        )
 
     def test_a_bare_identifier_has_no_readable_part(self):
         assert IrHttp._unslug('42') == (None, 42)

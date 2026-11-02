@@ -17,6 +17,7 @@ operador L0), NO el de una empresa concreta — cada L1 es una entre
 potencialmente varias, y su remitente se siembra por bootstrap
 (``company_create --setting``), no por constante de código (DEC-3).
 """
+
 import pytest
 
 from orm.environments import company_scope
@@ -30,18 +31,26 @@ pytestmark = pytest.mark.django_db
 
 
 class TestNotificationsFromEmail:
-    """``addons.mail.models.notification_emails._from_email()`` — empresa ambiente."""
+    """
+    ``addons.mail.models.notification_emails._from_email()`` — empresa
+    ambiente.
+    """
 
     def test_ambient_company_resolves_its_own_sender(self):
         acme = ResCompany.objects.create(code='acme-from-email', name='Acme')
         CompanySetting.set_setting(
-            'notifications.from_email', 'noreply@acme.com', acme)
+            'notifications.from_email', 'noreply@acme.com', acme
+        )
         with company_scope(acme.pk):
             assert _from_email() == 'noreply@acme.com'
 
-    def test_ambient_company_without_row_falls_to_neutral_platform_default(self):
+    def test_ambient_company_without_row_falls_to_neutral_platform_default(
+        self,
+    ):
         # Una empresa sin su fila propia NO hereda la de otra: cae al neutral.
-        globex = ResCompany.objects.create(code='globex-from-email', name='Globex')
+        globex = ResCompany.objects.create(
+            code='globex-from-email', name='Globex'
+        )
         with company_scope(globex.pk):
             assert _from_email() == NOTIFICATIONS_FROM_EMAIL_DEFAULT
 

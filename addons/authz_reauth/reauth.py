@@ -7,6 +7,7 @@ por vista. El **superadmin NO está exento**: es la cuenta más privilegiada la
 que DEC-12 quiere proteger. Vive en su propia app instalable (análoga a
 ``auth_totp`` de Odoo); ``addons.authz`` la invoca vía el facade ``services``.
 """
+
 from datetime import timedelta
 
 from django.utils import timezone
@@ -18,7 +19,8 @@ from addons.authz_audit.models import AuthzEvent
 from addons.authz_reauth.models import ReauthSession
 from addons.base.models import SystemParameter
 
-# Código de auditoría de la re-autenticación (no es una Capability gateada; es la
+# Código de auditoría de la re-autenticación (no es una Capability
+# gateada; es la
 # etiqueta del AuthzEvent de apertura/cierre). Deliberadamente NO "sudo".
 REAUTH_CAP_CODE = 'authz.reauth'
 
@@ -41,19 +43,22 @@ def has_active_reauth_session(user, session_key):
     if not getattr(user, 'is_authenticated', False) or user.pk is None:
         return False
     return ReauthSession.objects.filter(
-        user_id=user.pk, session_key=session_key or '',
+        user_id=user.pk,
+        session_key=session_key or '',
         expires_at__gt=timezone.now(),
     ).exists()
 
 
 def open_reauth_session(user, session_key, ip_addr=None):
-    """Abre (o refresca) la sesión reautenticada de ``user`` para ``session_key``.
+    """
+    Abre (o refresca) la sesión reautenticada de ``user`` para ``session_key``.
 
     Una fila por ``(user, session_key)``: reabrir renueva ``started_at`` y
     ``expires_at``. Devuelve la fila."""
     now = timezone.now()
     obj, _ = ReauthSession.objects.update_or_create(
-        user_id=user.pk, session_key=session_key or '',
+        user_id=user.pk,
+        session_key=session_key or '',
         defaults={
             'started_at': now,
             'expires_at': now + timedelta(seconds=_reauth_ttl()),
@@ -66,23 +71,29 @@ def open_reauth_session(user, session_key, ip_addr=None):
 def close_reauth_session(user, session_key):
     """Cierra la sesión reautenticada de ``user`` para ``session_key``."""
     ReauthSession.objects.filter(
-        user_id=user.pk, session_key=session_key or '',
+        user_id=user.pk,
+        session_key=session_key or '',
     ).delete()
 
 
 def assert_session_fresh(request, code, unsafe_method):
-    """Gate DEC-12: si ejercer ``code`` exige re-autenticación y no hay una sesión
+    """
+    Gate DEC-12: si ejercer ``code`` exige re-autenticación y no hay una sesión
     reautenticada fresca, audita el ``DENY`` y lanza ``ReauthRequired`` (403
     ``REAUTH_REQUIRED``).
 
     Invocado desde ``HasCapability.has_permission`` **después** de confirmar la
-    capacidad — data-driven, sin cablear vista por vista. El **superadmin NO está
+    capacidad — data-driven, sin cablear vista por vista. El **superadmin NO
+    está
     exento**: es la cuenta más privilegiada la que DEC-12 quiere proteger."""
     if not code_requires_fresh_session(code, unsafe_method):
         return
     if has_active_reauth_session(request.user, _session_key(request)):
         return
     audit_authz_event(
-        request, AuthzEvent.ACTION_DENY, code, {'reason': 'reauth_required'},
+        request,
+        AuthzEvent.ACTION_DENY,
+        code,
+        {'reason': 'reauth_required'},
     )
     raise ReauthRequired(window_seconds=_reauth_ttl())

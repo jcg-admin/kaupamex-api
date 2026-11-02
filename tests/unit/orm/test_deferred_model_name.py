@@ -1,11 +1,14 @@
-r"""El nombre punteado de la fuente llega a Django sin que derive una clave falsa.
+r"""
+El nombre punteado de la fuente llega a Django sin que derive una clave falsa.
 
 LA FUENTE NO DERIVA NINGUNA CLAVE. ``Field.comodel_name`` es una cadena
-(``odoo19c: odoo/orm/fields_relational.py:36``) y la existencia del destinatario
+(``odoo19c: odoo/orm/fields_relational.py:36``) y la existencia del
+destinatario
 se afirma en una **fase**: ``setup_nonrelated`` hace
 ``assert self.comodel_name in model.pool`` (``:92-94``), contra un registro
 —``Registry(Mapping[str, type[BaseModel]])``, ``odoo/orm/registry.py:84``— cuya
-clave **es** el nombre punteado. Late binding por nombre, nunca aritmética sobre
+clave **es** el nombre punteado. Late binding por nombre, nunca aritmética
+sobre
 la cadena.
 
 Django hace lo contrario, y la conducta está medida (M18): su
@@ -24,9 +27,11 @@ que es el atributo que la fuente declara.
 Son DOS mecanismos porque el orden de declaración tiene dos casos, y cada uno
 cae con su propia anulación:
 
-- **destino-primero** — el destino ya está en el registro al construir el campo,
+- **destino-primero** — el destino ya está en el registro al construir el
+  campo,
   así que se le entrega su clase a Django y no hay nada que diferir;
-- **referente-primero y auto-referencia** — el destino aún no existe, así que se
+- **referente-primero y auto-referencia** — el destino aún no existe, así que
+  se
   entrega el centinela y el vaciado ocurre en ``class_prepared`` del destino.
 
 Qué haría FALLAR este control (sub-patrón D): que el puerto tradujera la cadena
@@ -44,6 +49,7 @@ ante 2+ puntos por OTRO mecanismo y exige otro puerto (sucesor declarado); y al
 campo declarado con **etiqueta de Django** (``'base.ResPartner'``), que no toma
 ninguno de los tres caminos de M18.
 """
+
 import pytest
 from django.apps import apps
 from django.db import models
@@ -75,7 +81,10 @@ class TestThePositiveThatM18Measured:
         assert field.remote_field.model is IrModelFields
 
     def test_the_source_name_survives_on_the_field(self):
-        """``comodel_name`` es el atributo de la fuente, no el asa de Django."""
+        """
+        ``comodel_name`` es el atributo de la fuente, no el asa de Django.
+        """
+
         class KeepsTheSourceNameProbe(models.Model):
             field_id = fields.Many2one('ir.model.fields', null=True)
 
@@ -131,6 +140,7 @@ class TestTheOrderOfDeclarationHasTwoCases:
 
     def test_target_first_resolves_at_construction(self):
         """El destino ya esta registrado: se entrega su clase, sin diferir."""
+
         class TargetDeclaredFirstProbe(models.Model):
             _name = 'test.deferred.alpha'
 
@@ -149,6 +159,7 @@ class TestTheOrderOfDeclarationHasTwoCases:
 
     def test_referrer_first_resolves_when_the_target_is_prepared(self):
         """El destino no existe al construir: centinela y vaciado posterior."""
+
         class ReferrerDeclaredFirstProbe(models.Model):
             beta_id = fields.Many2one('test.deferred.beta', null=True)
 
@@ -156,8 +167,9 @@ class TestTheOrderOfDeclarationHasTwoCases:
                 app_label = 'base'
 
         field = ReferrerDeclaredFirstProbe._meta.get_field('beta_id')
-        assert isinstance(field.remote_field.model, str), (
-            'sin el destino declarado, el campo tiene que seguir difiriendo')
+        assert isinstance(
+            field.remote_field.model, str
+        ), 'sin el destino declarado, el campo tiene que seguir difiriendo'
 
         class TargetDeclaredSecondProbe(models.Model):
             _name = 'test.deferred.beta'
@@ -190,10 +202,12 @@ class TestWhatWasAlreadyWorkingStaysWorking:
 
     def test_the_django_label_is_untouched(self):
         """Django la resuelve **en el acto**: el modelo ya esta registrado, asi
-        que ``lazy_model_operation`` toma su rama ``else`` y aplica la clase sin
+        que ``lazy_model_operation`` toma su rama ``else`` y aplica la clase
+        sin
         encolar nada (``apps/registry.py:417-426``). Lo que este caso mide es
         que el puerto no se interpone: el discriminador de caja deja pasar la
         etiqueta con mayuscula sin tocarla."""
+
         class UsesDjangoLabelProbe(models.Model):
             partner_id = fields.Many2one('base.ResPartner', null=True)
 
@@ -251,6 +265,7 @@ class TestWhatWasAlreadyWorkingStaysWorking:
         este; los otros tres de la clase sobreviven porque ninguno toma esa
         rama.
         """
+
         class UsesLowercaseDjangoLabelProbe(models.Model):
             partner_id = fields.Many2one('base.respartner', null=True)
 
@@ -271,11 +286,13 @@ class TestTheSentinelLabelIsLegalAndUnambiguous:
         assert label not in apps.app_configs
 
     def test_the_sentinel_is_what_make_model_tuple_would_derive(self):
-        assert make_model_tuple(sentinel_label('ir.model.fields')) == \
-            sentinel_key('ir.model.fields')
+        assert make_model_tuple(
+            sentinel_label('ir.model.fields')
+        ) == sentinel_key('ir.model.fields')
 
-    @pytest.mark.parametrize('name', ['ir.model.fields', 'ir.model',
-                                      'account.move.line'])
+    @pytest.mark.parametrize(
+        'name', ['ir.model.fields', 'ir.model', 'account.move.line']
+    )
     def test_every_dotted_name_collapses_to_one_segment(self, name):
         _label, model_name = sentinel_key(name)
 

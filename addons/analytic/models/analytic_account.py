@@ -21,6 +21,7 @@ plan — depende 100% de la magia de columna dinámica), ``copy_data`` (botón
 ``_read_group_postprocess_aggregate`` (agregación del cliente web de Odoo,
 sin análogo en esta API DRF).
 """
+
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -36,18 +37,28 @@ class AccountAnalyticAccount(MailThread, models.Model):
     """``account.analytic.account`` — cuenta analítica (centro de costo)."""
 
     name = fields.Char(
-        max_length=255, db_index=True, verbose_name='Cuenta analítica',
-        help_text='Odoo name (requerido, traducible, index=trigram en la '
-                   'referencia — aquí índice simple de MariaDB).',
+        max_length=255,
+        db_index=True,
+        verbose_name='Cuenta analítica',
+        help_text=(
+            'Odoo name (requerido, traducible, index=trigram en la '
+            'referencia — aquí índice simple de MariaDB).'
+        ),
     )
     code = fields.Char(
-        max_length=64, blank=True, default='', db_index=True,
-        verbose_name='Referencia', help_text='Odoo code.',
+        max_length=64,
+        blank=True,
+        default='',
+        db_index=True,
+        verbose_name='Referencia',
+        help_text='Odoo code.',
     )
     active = fields.Boolean(default=True, verbose_name='Activo')
     plan = fields.Many2one(
-        'analytic.AccountAnalyticPlan', on_delete=models.PROTECT,
-        related_name='accounts', verbose_name='Plan',
+        'analytic.AccountAnalyticPlan',
+        on_delete=models.PROTECT,
+        related_name='accounts',
+        verbose_name='Plan',
         help_text=(
             'Odoo plan_id (requerido). on_delete=PROTECT: un plan con '
             'cuentas no se puede borrar por accidente (Odoo no fija '
@@ -55,12 +66,20 @@ class AccountAnalyticAccount(MailThread, models.Model):
         ),
     )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='analytic_accounts', verbose_name='Empresa',
+        'base.ResCompany',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='analytic_accounts',
+        verbose_name='Empresa',
     )
     partner = fields.Many2one(
-        'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='analytic_accounts', verbose_name='Cliente',
+        'base.ResPartner',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='analytic_accounts',
+        verbose_name='Cliente',
         help_text='Odoo partner_id.',
     )
 
@@ -89,15 +108,21 @@ class AccountAnalyticAccount(MailThread, models.Model):
         super().clean()
         if self.pk is not None and self.company_id is not None:
             if self.lines.exclude(company_id=self.company_id).exists():
-                raise ValidationError({
-                    'company': 'ANALYTIC_ACCOUNT_COMPANY_MISMATCH_WITH_LINES',
-                })
+                raise ValidationError(
+                    {
+                        'company': (
+                            'ANALYTIC_ACCOUNT_COMPANY_MISMATCH_WITH_LINES'
+                        ),
+                    }
+                )
 
     # -- "related" fields de la referencia, sin columna propia --------------
 
     @property
     def root_plan(self):
-        """Odoo ``root_plan_id`` (``related="plan_id.root_id", store=True``)."""
+        """
+        Odoo ``root_plan_id`` (``related="plan_id.root_id", store=True``).
+        """
         return self.plan.root
 
     @property
@@ -122,12 +147,16 @@ class AccountAnalyticAccount(MailThread, models.Model):
         línea, sin conversión de tipo de cambio (fuera de alcance de este
         corte — no hay infraestructura de fx invocada desde este addon).
         """
-        total = self.lines.filter(amount__gte=0).aggregate(total=Sum('amount'))['total']
+        total = self.lines.filter(amount__gte=0).aggregate(
+            total=Sum('amount')
+        )['total']
         return total if total is not None else Decimal('0.00')
 
     @property
     def debit(self):
-        total = self.lines.filter(amount__lt=0).aggregate(total=Sum('amount'))['total']
+        total = self.lines.filter(amount__lt=0).aggregate(total=Sum('amount'))[
+            'total'
+        ]
         return -total if total is not None else Decimal('0.00')
 
     @property

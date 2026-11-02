@@ -1,6 +1,7 @@
 """``_gc_orm_signaling`` — la poda de las tablas del eje de señalización.
 
-Contrato de la fuente (``odoo19c: odoo/addons/base/models/ir_autovacuum.py:64-75``),
+Contrato de la fuente (``odoo19c:
+odoo/addons/base/models/ir_autovacuum.py:64-75``),
 con su comentario verbatim: *"keep the last 10 entries for each signal, and all
 entries from the last hour"*. Las dos condiciones se conjugan con ``AND`` en el
 ``DELETE``, así que una fila **sobrevive** si está entre las diez últimas **o**
@@ -21,6 +22,7 @@ sólo ``id``                   10         sí, cae
 sólo fecha                     5         sí, cae
 ============================  =========  ============
 """
+
 import pytest
 from django.db import connection
 
@@ -34,7 +36,8 @@ TABLE = 'orm_signaling_default'
 
 
 def seed(table, fresh, old):
-    """Vacía ``table`` e inserta ``fresh`` filas recientes y luego ``old`` viejas.
+    """
+    Vacía ``table`` e inserta ``fresh`` filas recientes y luego ``old`` viejas.
 
     El orden importa: las recientes reciben los ``id`` **más bajos**, así que
     quedan fuera de las diez últimas y sólo la cláusula de fecha las salva.
@@ -46,7 +49,8 @@ def seed(table, fresh, old):
         for _ in range(old):
             cr.execute(
                 f'INSERT INTO "{table}" (date) '
-                f"VALUES (NOW() - interval '2 hours')")
+                f"VALUES (NOW() - interval '2 hours')"
+            )
 
 
 def count(table):
@@ -88,7 +92,9 @@ class TestThePruningKeepsBothClauses:
         assert count(TABLE) == 15
 
     def test_ten_old_rows_are_untouched(self, db):
-        """El borde: con diez o menos, ``max(id)-9`` no deja nada por debajo."""
+        """
+        El borde: con diez o menos, ``max(id)-9`` no deja nada por debajo.
+        """
         seed(TABLE, fresh=0, old=10)
         IrAutovacuum._gc_orm_signaling()
         assert count(TABLE) == 10
@@ -98,12 +104,15 @@ class TestTheSweepCoversEveryTable:
     """El barrido recorre las siete, no la que dé el ejemplo."""
 
     def test_every_signaling_table_is_pruned(self, db):
-        """Un cuerpo que nombrara una sola tabla dejaría quince en las otras."""
+        """
+        Un cuerpo que nombrara una sola tabla dejaría quince en las otras.
+        """
         for table in signaling_table_names():
             seed(table, fresh=0, old=15)
         IrAutovacuum._gc_orm_signaling()
         assert {table: count(table) for table in signaling_table_names()} == {
-            table: 10 for table in signaling_table_names()}
+            table: 10 for table in signaling_table_names()
+        }
 
     def test_the_list_is_the_one_the_axis_declares(self, db):
         """No hay una segunda copia de los siete nombres en el barrido."""
@@ -118,18 +127,23 @@ class TestTheMethodIsCollected:
         assert is_autovacuum(IrAutovacuum._gc_orm_signaling)
 
     def test_the_collector_finds_it(self, db):
-        """El control: lo que importa no es la marca sino que el colector la vea.
+        """
+        El control: lo que importa no es la marca sino que el colector la vea.
 
         ``_collect_methods`` recorre ``apps.get_models()`` con
         ``inspect.getmembers``; un método marcado en una clase que el registro
         no conociera quedaría invisible y este caso lo delataría.
         """
-        found = [(model, attr) for model, attr, _ in IrAutovacuum._collect_methods()
-                 if attr == '_gc_orm_signaling']
+        found = [
+            (model, attr)
+            for model, attr, _ in IrAutovacuum._collect_methods()
+            if attr == '_gc_orm_signaling'
+        ]
         assert found == [(IrAutovacuum, '_gc_orm_signaling')], found
 
     def test_its_name_stays_private(self):
         """El guion bajo es el contrato — ``porte-completo-no-parcial.md``."""
+
         def gc_public():
             pass
 

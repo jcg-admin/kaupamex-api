@@ -15,6 +15,7 @@ defecto **no** invoca la previa cuando la nueva devuelve algo distinto de
 
 Referencia: ``odoo19c: addons/web/models/res_users_settings.py:9-14``.
 """
+
 import pytest
 from django.contrib.auth import get_user_model
 
@@ -24,19 +25,21 @@ from addons.web.models.res_users_settings_embedded_action import (
     ResUsersSettingsEmbeddedAction,
 )
 
-
 pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
 def settings():
     user = get_user_model().objects.create_user(
-        login='dueno.de.acciones.embebidas', password='X9v!kQ2mZr4t')
+        login='dueno.de.acciones.embebidas', password='X9v!kQ2mZr4t'
+    )
     return ResUsersSettings._find_or_create_for_user(user)
 
 
 def test_the_web_link_keeps_the_keys_that_base_contributes(settings):
-    """El control de composición: sin encadenar, ``id`` y ``user`` no llegan."""
+    """
+    El control de composición: sin encadenar, ``id`` y ``user`` no llegan.
+    """
     formatted = settings._format_settings(['id', 'user'])
     assert formatted['id'] == settings.pk
     assert formatted['user'] == {'id': settings.user_id}
@@ -44,19 +47,27 @@ def test_the_web_link_keeps_the_keys_that_base_contributes(settings):
 
 def test_the_web_link_adds_its_own_key_on_top(settings):
     action = IrActionsActWindow.objects.create(
-        name='Ventas embebidas', res_model='sale.SaleOrder')
+        name='Ventas embebidas', res_model='sale.SaleOrder'
+    )
     ResUsersSettingsEmbeddedAction.objects.create(
-        user_setting_id=settings, action_id_id=action.pk, res_id=1,
-        embedded_actions_order='7,false', embedded_actions_visibility='7')
+        user_setting_id=settings,
+        action_id_id=action.pk,
+        res_id=1,
+        embedded_actions_order='7,false',
+        embedded_actions_visibility='7',
+    )
 
     formatted = settings._format_settings(
-        ['id', 'embedded_actions_config_ids'])
+        ['id', 'embedded_actions_config_ids']
+    )
 
     assert formatted['id'] == settings.pk
     assert formatted['embedded_actions_config_ids']
 
 
-def test_the_default_format_reaches_the_relation_that_web_contributes(settings):
+def test_the_default_format_reaches_the_relation_that_web_contributes(
+    settings,
+):
     """``_fields`` de la referencia incluye el One2many; aquí lo aporta el
     ``related_name`` del modelo hijo, y ``concrete_fields`` no lo ve."""
     formatted = settings._res_users_settings_format()

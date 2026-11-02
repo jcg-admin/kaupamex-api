@@ -10,6 +10,7 @@ su código de barras es válido, cuántas recepciones y entregas cerró el últi
 año. Ninguno es cosmético — ``_update_uom`` veta un cambio que
 reinterpretaría cantidades ya registradas.
 """
+
 from datetime import timedelta
 from decimal import Decimal
 
@@ -18,9 +19,17 @@ from django.utils import timezone
 
 from addons.base.models import ResCompany
 from addons.product.models import ProductCategory, ProductProduct
-from addons.stock.models import (StockLocation, StockLot, StockMove,
-                                 StockMoveLine, StockPicking, StockPickingType,
-                                 StockQuant, StockRoute, StockWarehouse)
+from addons.stock.models import (
+    StockLocation,
+    StockLot,
+    StockMove,
+    StockMoveLine,
+    StockPicking,
+    StockPickingType,
+    StockQuant,
+    StockRoute,
+    StockWarehouse,
+)
 from addons.uom.models.uom_uom import Uom
 from exceptions import UserError
 from tests.factories.product_factory import make_product
@@ -29,7 +38,9 @@ pytestmark = pytest.mark.integration
 
 
 def _location(name, usage=StockLocation.USAGE_INTERNAL, parent=None):
-    return StockLocation.objects.create(name=name, usage=usage, location=parent)
+    return StockLocation.objects.create(
+        name=name, usage=usage, location=parent
+    )
 
 
 def _done_line(product, picking_type, source, dest, company):
@@ -40,22 +51,44 @@ def _done_line(product, picking_type, source, dest, company):
     ``_compute_picking_type_id`` de la fuente.
     """
     picking = StockPicking.objects.create(
-        picking_type=picking_type, location=source, location_dest=dest,
-        state='done')
+        picking_type=picking_type,
+        location=source,
+        location_dest=dest,
+        state='done',
+    )
     move = StockMove.objects.create(
-        product=product, product_uom=product.uom, product_uom_qty=Decimal('1'),
-        location=source, location_dest=dest, state='done', picking=picking)
+        product=product,
+        product_uom=product.uom,
+        product_uom_qty=Decimal('1'),
+        location=source,
+        location_dest=dest,
+        state='done',
+        picking=picking,
+    )
     return StockMoveLine.objects.create(
-        move=move, picking=picking, product=product, product_uom=product.uom,
-        quantity=Decimal('1'), location=source, location_dest=dest,
-        state='done', company=company)
+        move=move,
+        picking=picking,
+        product=product,
+        product_uom=product.uom,
+        quantity=Decimal('1'),
+        location=source,
+        location_dest=dest,
+        state='done',
+        company=company,
+    )
 
 
 def _warehouse_for(company, view, stock):
-    """El almacén que la rama por defecto de ``_get_domain_locations`` exige."""
+    """
+    El almacén que la rama por defecto de ``_get_domain_locations`` exige.
+    """
     return StockWarehouse.objects.create(
-        name='Main', code='WH', company=company,
-        view_location=view, lot_stock=stock)
+        name='Main',
+        code='WH',
+        company=company,
+        view_location=view,
+        lot_stock=stock,
+    )
 
 
 # === contadores de movimiento (``odoo19c: :292-309``) =======================
@@ -66,8 +99,12 @@ def test_the_counters_split_receipts_from_deliveries(db, active_company):
     product = make_product(name='With traffic')
     source = _location('Vendors', StockLocation.USAGE_SUPPLIER)
     dest = _location('WH/Stock')
-    incoming = StockPickingType.objects.create(name='Receipts', code='incoming')
-    outgoing = StockPickingType.objects.create(name='Delivery', code='outgoing')
+    incoming = StockPickingType.objects.create(
+        name='Receipts', code='incoming'
+    )
+    outgoing = StockPickingType.objects.create(
+        name='Delivery', code='outgoing'
+    )
     for picking_type, veces in ((incoming, 2), (outgoing, 1)):
         for _ in range(veces):
             _done_line(product, picking_type, source, dest, active_company)
@@ -82,10 +119,12 @@ def test_the_counters_ignore_what_is_older_than_a_year(db, active_company):
     source = _location('Vendors', StockLocation.USAGE_SUPPLIER)
     dest = _location('WH/Stock')
     picking_type = StockPickingType.objects.create(
-        name='Receipts', code='incoming')
+        name='Receipts', code='incoming'
+    )
     line = _done_line(product, picking_type, source, dest, active_company)
     StockMoveLine.objects.filter(pk=line.pk).update(
-        date=timezone.now() - timedelta(days=400))
+        date=timezone.now() - timedelta(days=400)
+    )
 
     assert product.nbr_moves_in == 0
 
@@ -120,7 +159,7 @@ def test_a_product_without_stock_hides_the_buttons(db):
 def test_a_valid_gtin14_is_reported_as_valid(db):
     """≙ ``_compute_valid_ean`` — el dígito verificador manda."""
     product = make_product(name='With barcode')
-    product.barcode = '00000000000017'   # GTIN-14 con verificador correcto
+    product.barcode = '00000000000017'  # GTIN-14 con verificador correcto
     product.save()
 
     assert product.valid_ean is True
@@ -167,7 +206,8 @@ def test_only_qty_available_skips_the_moves(db, active_company):
     stock = _location('WH/Stock', parent=view)
     _warehouse_for(active_company, view, stock)
     StockQuant.objects.create(
-        product=product, location=stock, quantity=Decimal('5'))
+        product=product, location=stock, quantity=Decimal('5')
+    )
 
     assert ProductProduct._get_only_qty_available([product])[product.pk] == 5.0
 
@@ -202,13 +242,19 @@ def test_changing_the_uom_with_moves_in_another_unit_is_blocked(db):
     """≙ la guarda de ``_update_uom`` (``odoo19c: :770-794``)."""
     unit = Uom.objects.create(name='Unidad', relative_factor=1.0)
     dozen = Uom.objects.create(
-        name='Docena', relative_factor=12.0, relative_uom_id=unit)
+        name='Docena', relative_factor=12.0, relative_uom_id=unit
+    )
     product = make_product(name='Already moved')
     source = _location('Vendors', StockLocation.USAGE_SUPPLIER)
     dest = _location('WH/Stock')
     StockMove.objects.create(
-        product=product, product_uom=dozen, product_uom_qty=Decimal('1'),
-        location=source, location_dest=dest, state='confirmed')
+        product=product,
+        product_uom=dozen,
+        product_uom_qty=Decimal('1'),
+        location=source,
+        location_dest=dest,
+        state='confirmed',
+    )
 
     with pytest.raises(UserError):
         product._update_uom(unit)
@@ -221,9 +267,13 @@ def test_the_uom_warning_fires_only_with_moves(db):
 
     moved = make_product(name='Moved once')
     StockMove.objects.create(
-        product=moved, product_uom=moved.uom, product_uom_qty=Decimal('1'),
+        product=moved,
+        product_uom=moved.uom,
+        product_uom_qty=Decimal('1'),
         location=_location('Vendors', StockLocation.USAGE_SUPPLIER),
-        location_dest=_location('WH/Stock'), state='confirmed')
+        location_dest=_location('WH/Stock'),
+        state='confirmed',
+    )
     assert moved._trigger_uom_warning() is True
 
 
@@ -241,7 +291,8 @@ def test_the_tracking_warning_needs_stock_on_hand(db, active_company):
     stock = _location('WH/Stock', parent=view)
     _warehouse_for(active_company, view, stock)
     StockQuant.objects.create(
-        product=product, location=stock, quantity=Decimal('3'))
+        product=product, location=stock, quantity=Decimal('3')
+    )
 
     assert product.qty_available == 3.0
     assert product._onchange_tracking() is not None

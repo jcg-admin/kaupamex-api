@@ -8,7 +8,8 @@ obligatorio tambien en tracebacks: los
 ``card_token=...``.
 
 Alcance = **Nivel 1 (secretos)** de DEC-LOG-03: NUNCA se almacenan, ni cifrados
-(PCI: el CVV no se persiste). El Nivel 2 (PII) no se copia por diseno (se guarda
+(PCI: el CVV no se persiste). El Nivel 2 (PII) no se copia por diseno (se
+guarda
 la FK ``user`` / ``order_number``), asi que el scrubber no intenta enmascarar
 nombres/emails — esos nunca deberian entrar al log.
 
@@ -29,6 +30,7 @@ redacta un secreto de un traceback. El scrubber es mecanismo **propio**
 —lo exige DEC-LOG-03, no la referencia—; su sitio lo elegimos nosotros.
 Ver :ref:`h-api-855`.
 """
+
 import re
 
 # Marcador de redaccion. Constante publica para que los tests no dependan del
@@ -42,11 +44,24 @@ REDACTED = "***REDACTED***"
 # token CSRF; los tokens de auth son ``access_token`` / ``refresh_token``,
 # listados explicitamente).
 _SECRET_KEYS = [
-    "password", "passwd", "pwd",
-    "access_token", "refresh_token", "id_token", "card_token", "token",
-    "authorization", "auth_token",
-    "client_secret", "secret", "api_key", "apikey",
-    "cvv", "cvc", "csc", "pan",
+    "password",
+    "passwd",
+    "pwd",
+    "access_token",
+    "refresh_token",
+    "id_token",
+    "card_token",
+    "token",
+    "authorization",
+    "auth_token",
+    "client_secret",
+    "secret",
+    "api_key",
+    "apikey",
+    "cvv",
+    "cvc",
+    "csc",
+    "pan",
 ]
 
 # Alternacion con las claves mas largas primero para que ``access_token`` gane
@@ -56,7 +71,8 @@ _KEY_ALT = "|".join(
 )
 
 # ``key <sep> value`` en cualquier forma comun: ``key=value``, ``key: value``,
-# ``"key": "value"``, ``'key': 'value'``, ``key => value``. El valor puede venir
+# ``"key": "value"``, ``'key': 'value'``, ``key => value``. El valor
+# puede venir
 # entre comillas (se conservan) o desnudo hasta el proximo delimitador.
 _KV_RE = re.compile(
     r"""(?ix)
@@ -67,10 +83,12 @@ _KV_RE = re.compile(
       | '(?:[^'\\]|\\.)*'
       | [^\s,;&}{)\]]+
     )
-    """ % _KEY_ALT,
+    """
+    % _KEY_ALT,
 )
 
-# ``Bearer <token>`` / ``Basic <token>`` en headers o logs (aunque no venga como
+# ``Bearer <token>`` / ``Basic <token>`` en headers o logs (aunque no
+# venga como
 # ``key=value``).
 _BEARER_RE = re.compile(r"(?i)\b(Bearer|Basic)\s+[A-Za-z0-9._\-+/=]+")
 

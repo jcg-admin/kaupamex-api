@@ -13,5 +13,6 @@ en ``report/vendor_delay_report.py``— y ahí está escrito por qué no se decl
 aquí (es una vista SQL cuyas columnas de origen no existen todavía).
 
 El orden de esta lista espeja el de ``odoo19c: addons/purchase_stock/models/
-__init__.py`` (12 módulos); la lista viva es ``PurchaseStockConfig._EXTENSIONES``.
+__init__.py`` (12 módulos); la lista viva es
+``PurchaseStockConfig._EXTENSIONES``.
 """

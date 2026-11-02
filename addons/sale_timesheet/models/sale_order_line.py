@@ -80,7 +80,8 @@ Porte símbolo por símbolo
        servicio del producto. Concatenación de lista (``extend_list``); es
        dato puro, sin lectura de campo, así que sobrevive a que
        ``service_policy`` todavía no exista — mismo criterio que
-       ``_get_service_policy_to_invoice_type`` en ``models/project_project.py``.
+       ``_get_service_policy_to_invoice_type`` en
+       ``models/project_project.py``.
    * - ``_compute_display_name`` (:18-43)
      - no portado — decora el nombre visible con las horas restantes para el
        buscador del cliente web de Odoo; además depende de
@@ -89,7 +90,8 @@ Porte símbolo por símbolo
        ``_compute_remaining_hours`` (:52-60)
      - BLOQUEADOS — ver los campos homónimos.
    * - ``_compute_qty_delivered_method`` (:62-68) /
-       ``_compute_qty_delivered`` (:70-72) / ``_prepare_qty_delivered`` (:74-81)
+       ``_compute_qty_delivered`` (:70-72) / ``_prepare_qty_delivered``
+       (:74-81)
      - BLOQUEADOS por ``qty_delivered``/``qty_delivered_method``
        (``addons/sale``) y por ``product.service_type``.
    * - ``_timesheet_compute_delivered_quantity_domain`` (:83-88)
@@ -116,6 +118,7 @@ Porte símbolo por símbolo
      - no portado — navegación pura (``_for_xml_id`` + ids para el cliente
        web), y depende de ``so_line``.
 """
+
 import fields
 
 from orm.method_chain import chain_method, extend_list
@@ -157,8 +160,12 @@ def _chain_sale_order_line_hooks(model):
     """Encadena el hook de lista con ``extend_list`` — el ``luego`` de
     ``extend_model``, porque su bloque ``metodos`` usa el relevo por ``None``
     y aquí la semántica correcta es la concatenación."""
-    chain_method(model, '_get_product_service_policy',
-                 _get_product_service_policy, combine=extend_list)
+    chain_method(
+        model,
+        '_get_product_service_policy',
+        _get_product_service_policy,
+        combine=extend_list,
+    )
 
 
 def apply_sale_timesheet_sale_order_line_extensions():
@@ -168,14 +175,17 @@ def apply_sale_timesheet_sale_order_line_extensions():
     Par de Django porque el destino no declara ``_name``.
     """
     extend_model(
-        'sale', 'SaleOrderLine',
+        'sale',
+        'SaleOrderLine',
         campos={
             'has_displayed_warning_upsell': fields.Boolean(
                 default=False,
                 verbose_name='Aviso de venta adicional ya mostrado',
-                help_text='Odoo has_displayed_warning_upsell (copy=False). '
-                          'Quién la escribe está bloqueado por qty_delivered '
-                          '— ver el docstring del módulo.',
+                help_text=(
+                    'Odoo has_displayed_warning_upsell (copy=False). '
+                    'Quién la escribe está bloqueado por qty_delivered '
+                    '— ver el docstring del módulo.'
+                ),
             ),
         },
         luego=_chain_sale_order_line_hooks,

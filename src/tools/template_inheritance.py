@@ -1,4 +1,5 @@
-"""Herencia de vistas por XPath — fiel a ``odoo/tools/template_inheritance.py``.
+"""
+Herencia de vistas por XPath — fiel a ``odoo/tools/template_inheritance.py``.
 
 Adaptado de Odoo Community 19 (LGPL-3), ``odoo-tools@622ddc2aa5`` — atribución
 y aviso de licencia preservados (DEC-KX-03). Gobierna 19 sobre 18 porque
@@ -17,6 +18,7 @@ Divergencias declaradas respecto de la referencia:
 - ``html_escape`` viene de ``tools.misc``, que lo resuelve con Django en vez
   de ``markupsafe`` (decisión anotada allí).
 """
+
 import copy
 import itertools
 import logging
@@ -37,7 +39,14 @@ RSTRIP_REGEXP = re.compile(r'\n[ \t]*$')
 
 # Atributos cuyo valor es una expresión Python: al componer ``add``/``remove``
 # el separador debe ser un operador booleano, no una coma.
-PYTHON_ATTRIBUTES = {'readonly', 'required', 'invisible', 'column_invisible', 't-if', 't-elif'}
+PYTHON_ATTRIBUTES = {
+    'readonly',
+    'required',
+    'invisible',
+    'column_invisible',
+    't-if',
+    't-elif',
+}
 
 
 def add_stripped_items_before(node, spec, extract):
@@ -47,7 +56,17 @@ def add_stripped_items_before(node, spec, extract):
     text = spec.text or ''
 
     before_text = ''
-    prev = next((n for n in node.itersiblings(preceding=True) if not (n.tag == etree.ProcessingInstruction and n.target == "apply-inheritance-specs-node-removal")), None)
+    prev = next(
+        (
+            n
+            for n in node.itersiblings(preceding=True)
+            if not (
+                n.tag == etree.ProcessingInstruction
+                and n.target == "apply-inheritance-specs-node-removal"
+            )
+        ),
+        None,
+    )
     if prev is None:
         parent = node.getparent()
         result = parent.text and RSTRIP_REGEXP.search(parent.text)
@@ -106,11 +125,15 @@ def locate_node(arch, spec):
     if spec.tag == 'xpath':
         expr = spec.get('expr')
         if expr is None:
-            raise ValidationError(_("Missing 'expr' attribute in xpath specification"))
+            raise ValidationError(
+                _("Missing 'expr' attribute in xpath specification")
+            )
         try:
             xPath = etree.ETXPath(expr)
         except etree.XPathSyntaxError as e:
-            raise ValidationError(_("Invalid Expression while parsing xpath “%s”") % expr) from e
+            raise ValidationError(
+                _("Invalid Expression while parsing xpath “%s”") % expr
+            ) from e
         nodes = xPath(arch)
         return nodes[0] if nodes else None
     elif spec.tag == 'field':
@@ -123,12 +146,18 @@ def locate_node(arch, spec):
         return None
 
     for node in arch.iter(spec.tag):
-        if all(node.get(attr) == spec.get(attr) for attr in spec.attrib if attr != 'position'):
+        if all(
+            node.get(attr) == spec.get(attr)
+            for attr in spec.attrib
+            if attr != 'position'
+        ):
             return node
     return None
 
 
-def apply_inheritance_specs(source, specs_tree, inherit_branding=False, pre_locate=None):
+def apply_inheritance_specs(
+    source, specs_tree, inherit_branding=False, pre_locate=None
+):
     """Aplica una vista heredante (descendiente de la vista base).
 
     Aplica sobre una arquitectura fuente todos los nodos *spec* (nodos que
@@ -154,7 +183,8 @@ def apply_inheritance_specs(source, specs_tree, inherit_branding=False, pre_loca
         # lo devuelve — el primitivo de ``position="move"``.
         if len(spec):
             raise ValueError(
-                _("Invalid specification for moved nodes: “%s”") % etree.tostring(spec, encoding='unicode')
+                _("Invalid specification for moved nodes: “%s”")
+                % etree.tostring(spec, encoding='unicode')
             )
         pre_locate(spec)
         to_extract = locate_node(source, spec)
@@ -163,7 +193,8 @@ def apply_inheritance_specs(source, specs_tree, inherit_branding=False, pre_loca
             return to_extract
         else:
             raise ValueError(
-                _("Element “%s” cannot be located in parent view") % etree.tostring(spec, encoding='unicode')
+                _("Element “%s” cannot be located in parent view")
+                % etree.tostring(spec, encoding='unicode')
             )
 
     while len(specs):
@@ -214,7 +245,12 @@ def apply_inheritance_specs(source, specs_tree, inherit_branding=False, pre_loca
                         # No se marca un nodo que ya trae branding xpath de
                         # raíz: rompería el branding de los hermanos.
                         if inherit_branding and not node.get('data-oe-xpath'):
-                            node.addprevious(etree.ProcessingInstruction('apply-inheritance-specs-node-removal', node.tag))
+                            node.addprevious(
+                                etree.ProcessingInstruction(
+                                    'apply-inheritance-specs-node-removal',
+                                    node.tag,
+                                )
+                            )
 
                         for child in spec:
                             if child.get('position') == 'move':
@@ -235,7 +271,9 @@ def apply_inheritance_specs(source, specs_tree, inherit_branding=False, pre_loca
                     # limpia node.text primero para que no se fusione con el
                     # texto del contenido nuevo.
                     node.text = None
-                    add_stripped_items_before(sentinel, copy.deepcopy(spec), extract)
+                    add_stripped_items_before(
+                        sentinel, copy.deepcopy(spec), extract
+                    )
                     # y ahora se retira el contenido viejo junto al sentinel
                     for child in reversed(node):
                         node.remove(child)
@@ -256,32 +294,47 @@ def apply_inheritance_specs(source, specs_tree, inherit_branding=False, pre_loca
                         and not key.startswith('data-oe-')
                     ]
                     if unknown:
-                        raise ValueError(_(
-                            "Invalid attributes %s in element <attribute>"
-                        ) % ", ".join(map(repr, unknown)))
+                        raise ValueError(
+                            _("Invalid attributes %s in element <attribute>")
+                            % ", ".join(map(repr, unknown))
+                        )
 
                     attribute = child.get('name')
                     value = None
 
                     if child.get('add') or child.get('remove'):
                         if child.text:
-                            raise ValueError(_(
-                                "Element <attribute> with 'add' or 'remove' cannot contain text %s"
-                            ) % repr(child.text))
+                            raise ValueError(
+                                _(
+                                    "Element <attribute> with 'add' or"
+                                    " 'remove' cannot contain text %s"
+                                )
+                                % repr(child.text)
+                            )
                         value = node.get(attribute, '')
                         add = child.get('add', '')
                         remove = child.get('remove', '')
                         separator = child.get('separator')
 
-                        if attribute in PYTHON_ATTRIBUTES or attribute.startswith('decoration-'):
+                        if (
+                            attribute in PYTHON_ATTRIBUTES
+                            or attribute.startswith('decoration-')
+                        ):
                             # atributo con expresión Python: el separador es
                             # un operador booleano
                             separator = separator.strip()
                             if separator not in ('and', 'or'):
-                                raise ValueError(_(
-                                    "Invalid separator %(separator)s for python expression %(expression)s; "
-                                    "valid values are 'and' and 'or'"
-                                ) % {'separator': repr(separator), 'expression': repr(attribute)})
+                                raise ValueError(
+                                    _(
+                                        "Invalid separator %(separator)s for"
+                                        " python expression %(expression)s;"
+                                        " valid values are 'and' and 'or'"
+                                    )
+                                    % {
+                                        'separator': repr(separator),
+                                        'expression': repr(attribute),
+                                    }
+                                )
                             if remove:
                                 if re.match(rf'^\(*{remove}\)*$', value):
                                     value = ''
@@ -295,22 +348,41 @@ def apply_inheritance_specs(source, specs_tree, inherit_branding=False, pre_loca
                                     for pattern in patterns:
                                         index = value.find(pattern)
                                         if index != -1:
-                                            value = value[:index] + value[index + len(pattern):]
+                                            value = (
+                                                value[:index]
+                                                + value[index + len(pattern):]
+                                            )
                                             break
                             if add:
-                                value = f"({value}) {separator} ({add})" if value else add
+                                value = (
+                                    f"({value}) {separator} ({add})"
+                                    if value
+                                    else add
+                                )
                         else:
                             if separator is None:
                                 separator = ','
                             elif separator == ' ':
-                                separator = None    # colapsa espacios
-                            values = (s.strip() for s in value.split(separator))
-                            to_add = filter(None, (s.strip() for s in add.split(separator)))
-                            to_remove = {s.strip() for s in remove.split(separator)}
-                            value = (separator or ' ').join(itertools.chain(
-                                (v for v in values if v and v not in to_remove),
-                                to_add
-                            ))
+                                separator = None  # colapsa espacios
+                            values = (
+                                s.strip() for s in value.split(separator)
+                            )
+                            to_add = filter(
+                                None, (s.strip() for s in add.split(separator))
+                            )
+                            to_remove = {
+                                s.strip() for s in remove.split(separator)
+                            }
+                            value = (separator or ' ').join(
+                                itertools.chain(
+                                    (
+                                        v
+                                        for v in values
+                                        if v and v not in to_remove
+                                    ),
+                                    to_add,
+                                )
+                            )
                     else:
                         value = child.text or ''
 
@@ -342,11 +414,13 @@ def apply_inheritance_specs(source, specs_tree, inherit_branding=False, pre_loca
                 raise ValueError(_("Invalid position attribute: '%s'") % pos)
 
         else:
-            attrs = ''.join([
-                ' %s="%s"' % (attr, html_escape(spec.get(attr)))
-                for attr in spec.attrib
-                if attr != 'position'
-            ])
+            attrs = ''.join(
+                [
+                    ' %s="%s"' % (attr, html_escape(spec.get(attr)))
+                    for attr in spec.attrib
+                    if attr != 'position'
+                ]
+            )
             tag = "<%s%s>" % (spec.tag, attrs)
             raise ValueError(
                 _("Element '%s' cannot be located in parent view") % tag

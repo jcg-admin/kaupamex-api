@@ -1,4 +1,5 @@
-r"""Sonda: las tres piezas de QWeb, ¿se hacen de forma nativa con nuestro stack?
+r"""
+Sonda: las tres piezas de QWeb, ¿se hacen de forma nativa con nuestro stack?
 
 Pregunta del ejecutor 2026-08-29: *"esas tres piezas que QWeb aporta, ¿las
 podemos hacer de forma nativa, de acuerdo a nuestro stack? que es python,
@@ -20,6 +21,7 @@ mismo juego de expresiones y el mismo documento.
 opcodes sobrevive a un cambio de versión de CPython — de eso sólo se mide el
 mecanismo que lo amortigua, no su conducta bajo una versión futura.
 """
+
 import ast
 import dis
 import operator
@@ -47,8 +49,13 @@ CONTEXT = {'a': 1, 'line': Line(), 'rows': [10, 20]}
 #: escribe aquí, en seis nombres, para medir que la pieza 1 se construye con
 #: primitivas de la biblioteca estándar y nada más.
 MINIMAL_ALLOWLIST = {
-    'RESUME', 'LOAD_CONST', 'LOAD_NAME', 'LOAD_ATTR', 'BINARY_OP',
-    'BINARY_SUBSCR', 'RETURN_VALUE',
+    'RESUME',
+    'LOAD_CONST',
+    'LOAD_NAME',
+    'LOAD_ATTR',
+    'BINARY_OP',
+    'BINARY_SUBSCR',
+    'RETURN_VALUE',
 }
 
 
@@ -62,14 +69,21 @@ def compile_within(source, allowlist=MINIMAL_ALLOWLIST):
 
 
 class TestPieceOneTheStdlibBringsThePrimitivesNotTheMechanism:
-    """Contención: el stack NO la trae hecha, pero la construye sin nada de fuera."""
+    """
+    Contención: el stack NO la trae hecha, pero la construye sin nada de fuera.
+    """
 
-    @pytest.mark.parametrize('source', [
-        '1 + 1',            # ni siquiera una suma de constantes
-        'line.price',       # ni un acceso a atributo
-        'a + 1',
-    ])
-    def test_literal_eval_is_native_and_contained_and_cannot_do_the_job(self, source):
+    @pytest.mark.parametrize(
+        'source',
+        [
+            '1 + 1',  # ni siquiera una suma de constantes
+            'line.price',  # ni un acceso a atributo
+            'a + 1',
+        ],
+    )
+    def test_literal_eval_is_native_and_contained_and_cannot_do_the_job(
+        self, source
+    ):
         # `ast.literal_eval` es lo más nativo que hay para «evaluar seguro»:
         # stdlib, cero configuración, imposible de escapar. Y no sirve para un
         # documento: sólo acepta literales.
@@ -79,23 +93,33 @@ class TestPieceOneTheStdlibBringsThePrimitivesNotTheMechanism:
     def test_but_it_does_parse_a_pure_literal(self):
         """Control positivo: el rechazo de arriba es por la gramática, no por
         que el parámetro esté mal formado."""
-        assert ast.literal_eval("{'a': 1, 'b': [2, 3]}") == {'a': 1, 'b': [2, 3]}
+        assert ast.literal_eval("{'a': 1, 'b': [2, 3]}") == {
+            'a': 1,
+            'b': [2, 3],
+        }
 
     def test_compile_and_dis_are_enough_to_build_the_containment(self):
         # Las tres primitivas —`compile`, `dis`, `opcode`— son stdlib, y con
         # ellas el allowlist ya discrimina. Esto ES lo que safe_eval hace.
         assert compile_within('line.price * line.qty') is not None
 
-    @pytest.mark.parametrize('source, forbidden', [
-        ('lambda: 1', 'MAKE_FUNCTION'),
-        ('[x for x in rows]', 'FOR_ITER'),
-    ])
-    def test_and_the_allowlist_rejects_what_is_not_in_it(self, source, forbidden):
+    @pytest.mark.parametrize(
+        'source, forbidden',
+        [
+            ('lambda: 1', 'MAKE_FUNCTION'),
+            ('[x for x in rows]', 'FOR_ITER'),
+        ],
+    )
+    def test_and_the_allowlist_rejects_what_is_not_in_it(
+        self, source, forbidden
+    ):
         with pytest.raises(ValueError) as excinfo:
             compile_within(source)
         assert forbidden in str(excinfo.value)
 
-    def test_the_ported_containment_imports_nothing_from_outside_the_stack(self):
+    def test_the_ported_containment_imports_nothing_from_outside_the_stack(
+        self,
+    ):
         """La medición que responde la pregunta para la pieza 1.
 
         Si `safe_eval` necesitara una dependencia ajena, «nativo» sería falso.
@@ -106,7 +130,11 @@ class TestPieceOneTheStdlibBringsThePrimitivesNotTheMechanism:
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 roots.update(alias.name.split('.')[0] for alias in node.names)
-            elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
+            elif (
+                isinstance(node, ast.ImportFrom)
+                and node.module
+                and node.level == 0
+            ):
                 roots.add(node.module.split('.')[0])
 
         stdlib = set(sys.stdlib_module_names)
@@ -121,11 +149,16 @@ class TestPieceOneTheStdlibBringsThePrimitivesNotTheMechanism:
         assert outside == {'dateutil'}, sorted(outside)
 
     def test_and_that_third_party_import_sits_below_the_containment(self):
-        """Control del comentario de arriba: la posición se mide, no se afirma."""
+        """
+        Control del comentario de arriba: la posición se mide, no se afirma.
+        """
         lines = Path(safe_eval_module.__file__).read_text().splitlines()
+
         def line_of(prefix):
-            return next(i for i, text in enumerate(lines, 1)
-                        if text.startswith(prefix))
+            return next(
+                i for i, text in enumerate(lines, 1) if text.startswith(prefix)
+            )
+
         assert line_of('def assert_valid_codeobj') < line_of('import dateutil')
         assert line_of('def safe_eval') < line_of('import dateutil')
 
@@ -138,8 +171,12 @@ class TestPieceOneTheStdlibBringsThePrimitivesNotTheMechanism:
         prohibido. `safe_eval.py` no lleva ninguna guarda por versión de
         CPython — se apoya en esa propiedad.
         """
-        assert list(safe_eval_module.to_opcodes(['ESTE_OPCODE_NO_EXISTE'])) == []
-        assert list(safe_eval_module.to_opcodes(['RETURN_VALUE'])) == [opmap['RETURN_VALUE']]
+        assert (
+            list(safe_eval_module.to_opcodes(['ESTE_OPCODE_NO_EXISTE'])) == []
+        )
+        assert list(safe_eval_module.to_opcodes(['RETURN_VALUE'])) == [
+            opmap['RETURN_VALUE']
+        ]
         source = Path(safe_eval_module.__file__).read_text()
         assert 'version_info' not in source
 
@@ -155,7 +192,9 @@ class TestPieceTwoDjangoBringsItDone:
 
     def test_django_variable_resolves_and_does_contain(self):
         assert Variable('line.price').resolve(Context(CONTEXT)) == 10.5
-        with pytest.raises(TemplateSyntaxError, match='may not begin with underscores'):
+        with pytest.raises(
+            TemplateSyntaxError, match='may not begin with underscores'
+        ):
             Variable('line.__class__')
 
     def test_lxml_xpath_resolves_over_a_tree_without_running_python(self):
@@ -174,8 +213,11 @@ class TestPieceThreeBothDjangoAndLxmlCompileTemplatesNatively:
         # compila a un árbol de nodos que se recorre, no a código Python que se
         # ejecuta. No hay un `compile()` de por medio.
         template = Engine(autoescape=False).from_string(
-            '{% for r in rows %}{{ r }}{% endfor %}')
-        assert [type(node).__name__ for node in template.nodelist] == ['ForNode']
+            '{% for r in rows %}{{ r }}{% endfor %}'
+        )
+        assert [type(node).__name__ for node in template.nodelist] == [
+            'ForNode'
+        ]
         assert not hasattr(template, 'co_code')
 
     def test_lxml_compiles_a_stylesheet_into_a_transformer(self):
@@ -186,14 +228,24 @@ class TestPieceThreeBothDjangoAndLxmlCompileTemplatesNatively:
                 '<xsl:template match="/doc"><out><xsl:for-each select="line">'
                 '<amount><xsl:value-of'
                 ' select="format-number(@price * @qty, \'#0.00\')"/></amount>'
-                '</xsl:for-each></out></xsl:template></xsl:stylesheet>'),
-            access_control=etree.XSLTAccessControl.DENY_ALL)
-        output = sheet(etree.fromstring(
-            '<doc><line price="10.5" qty="2"/><line price="3" qty="4"/></doc>'))
-        assert etree.tostring(output.getroot()) == (
-            b'<out><amount>21.00</amount><amount>12.00</amount></out>')
+                '</xsl:for-each></out></xsl:template></xsl:stylesheet>'
+            ),
+            access_control=etree.XSLTAccessControl.DENY_ALL,
+        )
+        output = sheet(
+            etree.fromstring(
+                '<doc><line price="10.5" qty="2"/><line price="3"'
+                ' qty="4"/></doc>'
+            )
+        )
+        assert (
+            etree.tostring(output.getroot())
+            == b'<out><amount>21.00</amount><amount>12.00</amount></out>'
+        )
 
-    def test_the_stylesheet_does_the_per_node_arithmetic_xpath_alone_cannot(self):
+    def test_the_stylesheet_does_the_per_node_arithmetic_xpath_alone_cannot(
+        self,
+    ):
         """El control que separa las dos piezas de lxml.
 
         XPath 1.0 suelto no multiplica atributo por atributo a lo largo de una
@@ -201,8 +253,12 @@ class TestPieceThreeBothDjangoAndLxmlCompileTemplatesNatively:
         del `xsl:for-each` de arriba y no de una sola expresión XPath.
         """
         doc = etree.fromstring('<doc><line price="10.5" qty="2"/></doc>')
-        # Sobre UN nodo sí opera; lo que no hay es el producto a lo largo del set.
-        assert doc.xpath('number(/doc/line/@price) * number(/doc/line/@qty)') == 21.0
+        # Sobre UN nodo sí opera; lo que no hay es el producto a lo
+        # largo del set.
+        assert (
+            doc.xpath('number(/doc/line/@price) * number(/doc/line/@qty)')
+            == 21.0
+        )
         with pytest.raises(etree.XPathEvalError):
             doc.xpath('sum(/doc/line/@price * /doc/line/@qty)')
 
@@ -216,7 +272,9 @@ class TestWhatTheStackDoesNotBring:
 
     def test_attrgetter_reads_it_as_one_attribute_name(self):
         # No evalúa: busca un atributo llamado literalmente `price * qty`.
-        with pytest.raises(AttributeError, match=r"no attribute 'price \* qty'"):
+        with pytest.raises(
+            AttributeError, match=r"no attribute 'price \* qty'"
+        ):
             operator.attrgetter('price * qty')(Line())
 
     def test_django_variable_reads_it_as_a_lookup_that_does_not_exist(self):

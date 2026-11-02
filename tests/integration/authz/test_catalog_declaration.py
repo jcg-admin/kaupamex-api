@@ -1,17 +1,25 @@
-"""Declaración del catálogo L0 por addon — el seed recolecta, no declara (#179).
+"""
+Declaración del catálogo L0 por addon — el seed recolecta, no declara (#179).
 
-Cubre el mecanismo que SOL-100 introduce (``addons.authz.declaration``) y, sobre
+Cubre el mecanismo que SOL-100 introduce (``addons.authz.declaration``) y,
+sobre
 todo, la propiedad que motivó el cambio: que **agregar un addon no obligue a
-recordar editar un archivo central**. H-API-106 midió el costo de lo contrario —
+recordar editar un archivo central**. H-API-106 midió el costo de lo contrario
+—
 9 de 77 carpetas con ``Module.code`` homónimo y el código ``orders``
 sobreviviendo al addon retirado en ``api@77bd1f0`` con cuatro aristas colgando.
 """
+
 import pytest
 from django.core.management import call_command
 
 from addons.authz.declaration import (
-    CapabilitySpec, DuplicateDeclaration, ModuleSpec, discover,
-    orphan_capabilities, unknown_depends,
+    CapabilitySpec,
+    DuplicateDeclaration,
+    ModuleSpec,
+    discover,
+    orphan_capabilities,
+    unknown_depends,
 )
 from addons.authz.models import Capability, Module
 
@@ -23,9 +31,9 @@ def test_discover_finds_addon_declarations():
     assert capabilities, 'ningún addon declaró capacidades'
     # Muestras de dominios distintos: si el recorrido se rompiera para un addon
     # concreto, un solo assert genérico no lo notaría.
-    assert 'catalogue' in modules      # declarado por addons.product
-    assert 'orders' in modules         # declarado por addons.sale (SOL-098)
-    assert 'platform' in modules       # declarado por addons.sale_subscription
+    assert 'catalogue' in modules  # declarado por addons.product
+    assert 'orders' in modules  # declarado por addons.sale (SOL-098)
+    assert 'platform' in modules  # declarado por addons.sale_subscription
     assert 'account.profile' in capabilities
 
 
@@ -55,25 +63,32 @@ def test_duplicate_declaration_fails_loudly():
         # declaraciones. Se levanta explícitamente porque montar dos addons
         # falsos en INSTALLED_APPS exigiría reconstruir el app registry.
         if spec.code in modules:
-            raise DuplicateDeclaration(f'El módulo {spec.code!r} tiene dos dueños.')
+            raise DuplicateDeclaration(
+                f'El módulo {spec.code!r} tiene dos dueños.'
+            )
 
 
 def test_capability_spec_derives_its_module():
     """Sustantivo → él mismo; acción nombrada → el prefijo antes del punto."""
     assert CapabilitySpec(code='catalogue', name='C').module == 'catalogue'
-    assert CapabilitySpec(code='inventory.adjust', name='A').module == 'inventory'
+    assert (
+        CapabilitySpec(code='inventory.adjust', name='A').module == 'inventory'
+    )
     assert CapabilitySpec(code='x.y', name='N', module='z').module == 'z'
 
 
 @pytest.mark.django_db
 def test_seed_stores_exactly_what_is_declared():
-    """El seed es un recolector fiel: ni inventa filas ni omite declaraciones."""
+    """
+    El seed es un recolector fiel: ni inventa filas ni omite declaraciones.
+    """
     call_command('seed_authz')
     modules, capabilities = discover()
 
     stored_modules = set(Module.objects.values_list('code', flat=True))
     assert set(modules) <= stored_modules, (
-        f'módulos declarados y no sembrados: {sorted(set(modules) - stored_modules)}'
+        'módulos declarados y no sembrados:'
+        f' {sorted(set(modules) - stored_modules)}'
     )
     stored_caps = set(Capability.objects.values_list('code', flat=True))
     assert set(capabilities) <= stored_caps, (
@@ -84,7 +99,9 @@ def test_seed_stores_exactly_what_is_declared():
 
 @pytest.mark.django_db
 def test_seed_propagates_metadata_and_dependency_graph():
-    """La metadata de catálogo (#179) y el grafo (SOL-085 S3) llegan a la DB."""
+    """
+    La metadata de catálogo (#179) y el grafo (SOL-085 S3) llegan a la DB.
+    """
     call_command('seed_authz')
     modules, _ = discover()
 
@@ -101,12 +118,16 @@ def test_seed_propagates_metadata_and_dependency_graph():
     orders = Module.objects.get(code='orders')
     declared_depends = set(modules['orders'].depends)
     assert declared_depends, 'orders dejó de declarar dependencias'
-    assert set(orders.depends.values_list('code', flat=True)) == declared_depends
+    assert (
+        set(orders.depends.values_list('code', flat=True)) == declared_depends
+    )
 
 
 @pytest.mark.django_db
 def test_seed_is_idempotent():
-    """Re-sembrar no duplica: es la propiedad que permite correrlo en cada deploy."""
+    """
+    Re-sembrar no duplica: es la propiedad que permite correrlo en cada deploy.
+    """
     call_command('seed_authz')
     before = (Module.objects.count(), Capability.objects.count())
     call_command('seed_authz')

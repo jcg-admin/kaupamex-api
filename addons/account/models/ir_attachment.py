@@ -1,4 +1,6 @@
-r"""``ir.attachment`` extendido por ``account`` — un método portado, cuatro bloqueados.
+r"""
+``ir.attachment`` extendido por ``account`` — un método portado, cuatro
+bloqueados.
 
 Adaptación de ``addons/account/models/ir_attachment.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3, 90 líneas) — atribución y
@@ -91,7 +93,8 @@ dentro del ``.zip`` (nombre visible de cada entrada).
 Segunda divergencia declarada — sin recordset, no hay ``self`` sobre varios
 =================================================================================
 
-La referencia invoca esto como ``some_attachments._build_zip_from_attachments()``,
+La referencia invoca esto como
+``some_attachments._build_zip_from_attachments()``,
 donde ``self`` puede ser un recordset de N filas — es el modelo de Odoo. Este
 ORM es Django puro: una instancia de modelo es UNA fila, nunca un conjunto.
 Colgar el método como método de instancia (``IrAttachment.method =
@@ -106,6 +109,7 @@ recordset" de la referencia se vuelve un parámetro explícito, mismo criterio
 que ``res_currency.assert_rounding_can_change`` recibe el valor nuevo en vez
 de leerlo de un ``write(vals)`` ambiente.
 """
+
 import io
 import zipfile
 
@@ -145,4 +149,3 @@ def apply_account_extensions():
     ``res_config_settings.py`` de este mismo pase no la declara en absoluto
     por no tener ningún símbolo colgable.
     """
-

@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
-"""``account_check_printing`` — impresión de cheques (Odoo ``account_check_printing``).
+"""
+``account_check_printing`` — impresión de cheques (Odoo
+``account_check_printing``).
 
-Adaptación de ``odoo19c: addons/account_check_printing/`` (``odoo-tools@622ddc2a``,
+Adaptación de ``odoo19c: addons/account_check_printing/``
+(``odoo-tools@622ddc2a``,
 LGPL-3 — atribución y aviso de licencia preservados, DEC-KX-03). Ofrece las
 funcionalidades básicas para pagar imprimiendo cheques: numeración de
 diario/pago, diseño de talón por empresa y el asistente de cheques
@@ -10,7 +13,8 @@ prenumerados.
 Sin ``post_init_hook`` — Django no lo tiene
 ================================================
 
-La referencia usa ``'post_init_hook': 'create_check_sequence_on_bank_journals'``
+La referencia usa ``'post_init_hook':
+'create_check_sequence_on_bank_journals'``
 (``__manifest__.py:24``) para dar de alta la secuencia de cheques en los
 diarios de banco YA existentes al instalar el módulo. Django no tiene un
 gancho de post-instalación equivalente — el análogo es una **migración de

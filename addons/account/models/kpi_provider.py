@@ -1,4 +1,6 @@
-r"""``kpi.provider`` extendido por ``account`` — bloqueado, con la mitad SQL portada.
+r"""
+``kpi.provider`` extendido por ``account`` — bloqueado, con la mitad SQL
+portada.
 
 Adaptación de ``addons/account/models/kpi_provider.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3, 80 líneas) — atribución y
@@ -79,6 +81,7 @@ código Python, no en una tabla. Se resuelve con el diccionario de
 el resultado final —``(tipo, nombre_traducido, cuenta)``— es el mismo
 contrato.
 """
+
 from django.db import DEFAULT_DB_ALIAS, connections
 
 from addons.account.models.account_journal import AccountJournal
@@ -125,23 +128,24 @@ def get_kpi_summary(uid, using=DEFAULT_DB_ALIAS):
             return []
 
         cursor.execute(
-            "SELECT journal.type, COUNT(*) "
-            "  FROM account_move move "
-            "  JOIN account_journal journal ON move.journal_id = journal.id "
-            "  LEFT JOIN account_bank_statement_line st_line "
-            "         ON move.statement_line_id = st_line.id "
-            " WHERE (move.state = 'draft' "
-            "        OR (move.state = 'posted' AND NOT move.checked) "
-            "        OR (move.state = 'posted' AND journal.type = 'bank' "
-            "            AND (st_line.id IS NULL OR NOT st_line.is_reconciled)))"
-            " GROUP BY journal.type",
+            "SELECT journal.type, COUNT(*)   FROM account_move move   JOIN"
+            " account_journal journal ON move.journal_id = journal.id   LEFT"
+            " JOIN account_bank_statement_line st_line          ON"
+            " move.statement_line_id = st_line.id  WHERE (move.state = 'draft'"
+            "         OR (move.state = 'posted' AND NOT move.checked)        "
+            " OR (move.state = 'posted' AND journal.type = 'bank'            "
+            " AND (st_line.id IS NULL OR NOT st_line.is_reconciled))) GROUP BY"
+            " journal.type",
         )
         rows = cursor.fetchall()
 
     names = dict(AccountJournal.JOURNAL_TYPES)
-    return [{
-        'id': f'account_journal_type.{journal_type}',
-        'name': names.get(journal_type, journal_type),
-        'type': 'integer',
-        'value': count,
-    } for journal_type, count in rows]
+    return [
+        {
+            'id': f'account_journal_type.{journal_type}',
+            'name': names.get(journal_type, journal_type),
+            'type': 'integer',
+            'value': count,
+        }
+        for journal_type, count in rows
+    ]

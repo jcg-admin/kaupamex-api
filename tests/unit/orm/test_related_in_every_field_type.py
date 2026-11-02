@@ -21,6 +21,7 @@ Y cuando SÍ se guarda, el comodelo vuelve a hacer falta porque hay columna::
 clave — la **tragaba** en su ``**kwargs`` y devolvía un campo sin ella. El
 sitio de declaración se leía correcto y no hacía nada.
 """
+
 import pytest
 from django.apps import apps
 from django.db import models
@@ -44,7 +45,9 @@ UNCOVERED = [
 
 
 class TestEveryConstructorAcceptsTheKey:
-    """El mecanismo es del campo, no del tipo — ninguno puede quedarse fuera."""
+    """
+    El mecanismo es del campo, no del tipo — ninguno puede quedarse fuera.
+    """
 
     @pytest.mark.parametrize('type_name,arguments', UNCOVERED)
     def test_the_constructor_takes_related(self, type_name, arguments):
@@ -52,20 +55,26 @@ class TestEveryConstructorAcceptsTheKey:
         assert field.related == 'partner.name', type_name
 
     @pytest.mark.parametrize('type_name,arguments', UNCOVERED)
-    def test_without_store_the_carrier_is_the_non_stored_one(self, type_name,
-                                                             arguments):
+    def test_without_store_the_carrier_is_the_non_stored_one(
+        self, type_name, arguments
+    ):
         """``:455`` — un related no se guarda por defecto, así que no hay
         columna que declarar y el portador es el descriptor."""
         field = getattr(fields, type_name)(*arguments, related='partner.name')
-        assert isinstance(field, NonStored), (
-            f'{type_name} devolvió {type(field).__name__}')
+        assert isinstance(
+            field, NonStored
+        ), f'{type_name} devolvió {type(field).__name__}'
 
     @pytest.mark.parametrize('type_name,arguments', UNCOVERED)
     def test_the_four_defaults_of_the_source_apply(self, type_name, arguments):
         """``:456-458`` — los mismos cuatro, sea cual sea el tipo."""
         field = getattr(fields, type_name)(*arguments, related='partner.name')
-        assert (field.store, field.compute_sudo, field.copy, field.readonly) \
-            == (False, True, False, True), type_name
+        assert (
+            field.store,
+            field.compute_sudo,
+            field.copy,
+            field.readonly,
+        ) == (False, True, False, True), type_name
 
 
 class TestTheRelationalArgumentsBecomeOptional:
@@ -87,8 +96,12 @@ class TestTheRelationalArgumentsBecomeOptional:
         rama con columna existe.
         """
         field = fields.Many2one(
-            'base.ResCompany', related='journal.company', store=True,
-            on_delete=models.SET_NULL, null=True)
+            'base.ResCompany',
+            related='journal.company',
+            store=True,
+            on_delete=models.SET_NULL,
+            null=True,
+        )
         assert isinstance(field, models.ForeignKey), type(field).__name__
         assert field.store is True
 
@@ -129,12 +142,15 @@ class TestTheChainResolvesForEachShape:
     def account(self, db):
         def base(name):
             return apps.get_model('base', name)
+
         country, _created = base('ResCountry').objects.get_or_create(
-            code='MX', defaults={'name': 'México'})
+            code='MX', defaults={'name': 'México'}
+        )
         bank = base('ResBank').objects.create(name='Banco', country=country)
         partner = base('ResPartner').objects.create(name='Titular')
         return base('ResPartnerBank').objects.create(
-            acc_number='0123456789', partner=partner, bank=bank)
+            acc_number='0123456789', partner=partner, bank=bank
+        )
 
     def test_a_many2one_chain_gives_the_instance_at_the_end(self, account):
         """El extremo es un registro, no un escalar: el recorrido no cambia."""

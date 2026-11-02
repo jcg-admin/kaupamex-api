@@ -134,6 +134,7 @@ que ``Serialized`` es un ``JSONField`` sobre ``jsonb`` nativo: el mapa se
 guarda estructurado, no como texto. Los tres métodos de conversión conservan
 su nombre y su firma; sus cuerpos son la misma operación contra ese almacén.
 """
+
 import copy
 import json
 
@@ -168,12 +169,14 @@ class Serialized(models.JSONField):
     ==========================  ==================================================
     """
 
-    def convert_to_column_insert(self, value, record, values=None,
-                                 validate=True):
+    def convert_to_column_insert(
+        self, value, record, values=None, validate=True
+    ):
         """El valor tal como va a la columna — ≙ ``odoo19c: fields.py:85``.
 
         Cuerpo verbatim de la fuente: delega en :meth:`convert_to_cache` con el
-        mismo ``validate``. ``values`` se acepta porque la firma de la fuente lo
+        mismo ``validate``. ``values`` se acepta porque la firma de la fuente
+        lo
         declara y quien la llame puede pasarlo; aquí no participa, igual que
         allá (su cuerpo tampoco lo usa).
         """
@@ -185,7 +188,8 @@ class Serialized(models.JSONField):
         La fuente devuelve ``json.dumps(value)`` para un ``dict`` y ``value or
         None`` para lo demás, porque su columna es ``text``. Aquí la columna es
         ``jsonb``: el ``dict`` viaja **estructurado**, así que la conversión es
-        la del propio ``JSONField`` (``get_prep_value``, medido arriba: devuelve
+        la del propio ``JSONField`` (``get_prep_value``, medido arriba:
+        devuelve
         el ``dict``) y el driver lo adapta.
 
         La segunda mitad de la fuente se conserva **verbatim**: lo que no es un
@@ -219,7 +223,9 @@ class Serialized(models.JSONField):
         super().__init__(*args, **kwargs)
 
     def deconstruct(self):
-        """Omite del migration los defaults que este campo fija por sí mismo."""
+        """
+        Omite del migration los defaults que este campo fija por sí mismo.
+        """
         name, path, args, kwargs = super().deconstruct()
         if kwargs.get('default') is dict:
             del kwargs['default']
@@ -238,8 +244,15 @@ class Sparse:
     descriptor sin saber su propio nombre.
     """
 
-    def __init__(self, sparse, *, default=None, coerce=None,
-                 relational_model=None, help_text=''):
+    def __init__(
+        self,
+        sparse,
+        *,
+        default=None,
+        coerce=None,
+        relational_model=None,
+        help_text='',
+    ):
         if not sparse:
             raise ValueError('Sparse requiere el nombre del campo serializado')
         self.sparse = sparse

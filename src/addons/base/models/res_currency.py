@@ -34,7 +34,8 @@ entero en ``api@43f91c31`` (:ref:`h-api-851`): sus diez métodos existen, con la
 restricción ``rate > 0`` y la unicidad por día. El consumidor que faltaba es
 exactamente esa clase, y ahora está.
 
-Por eso el motor se porta aquí, no se difiere: ``principio-rector-rup-arquitectura.md``
+Por eso el motor se porta aquí, no se difiere:
+``principio-rector-rup-arquitectura.md``
 Cláusula 2 — estado heredado que el análisis actual muestra incorrecto se
 corrige en el mismo pase, no se respeta por ser previo. «Sin consumidor»
 tampoco era uno de los tres desenlaces válidos de
@@ -107,11 +108,15 @@ método, y la restricción cubre la fila — son dos capas, no una alternativa.
 ``res.currency.rate`` — el historial de tipos de cambio
 =========================================================
 
-Vive en este archivo porque la referencia lo declara aquí: ``odoo19c: odoo/addons/base/models/res_currency.py:346`` es la misma
-clase en el mismo módulo. Estuvo en un ``res_currency_rate.py`` propio y eso era el defecto de :ref:`h-api-578` —un archivo en una raíz
-espejada que la fuente no tiene—; ``check_porte_completo`` lo reportaba como CLASE FUERA DE SITIO. Cerrado en la tarea **#119**.
+Vive en este archivo porque la referencia lo declara aquí: ``odoo19c:
+odoo/addons/base/models/res_currency.py:346`` es la misma
+clase en el mismo módulo. Estuvo en un ``res_currency_rate.py`` propio y eso
+era el defecto de :ref:`h-api-578` —un archivo en una raíz
+espejada que la fuente no tiene—; ``check_porte_completo`` lo reportaba como
+CLASE FUERA DE SITIO. Cerrado en la tarea **#119**.
 
-El bloqueo que aquel archivo declaraba para no moverse —*«arrastra migraciones que importan el módulo por ruta»*— **era falso**: medido,
+El bloqueo que aquel archivo declaraba para no moverse —*«arrastra migraciones
+que importan el módulo por ruta»*— **era falso**: medido,
 ninguna migración de ``src/addons/base/migrations/`` importa
 ``addons.base.models.res_currency_rate``. El caso hermano de
 ``ResPartnerBank`` (**#118**) sí lo tiene, y por eso ése sigue aparte.
@@ -121,6 +126,7 @@ Adaptación de ``odoo/addons/base/models/res_currency.py`` (clase
 preservados (DEC-KX-03). Una fila = el tipo de cambio de una moneda en una
 fecha para una empresa.
 """
+
 import datetime
 import logging
 import math
@@ -143,8 +149,6 @@ from decimal import Decimal, InvalidOperation
 from orm.environments import get_current_company
 from tools.misc import parse_date
 
-_logger = logging.getLogger(__name__)
-
 try:
     from num2words import num2words
 except ImportError:
@@ -152,24 +156,34 @@ except ImportError:
     # (``odoo19c: res_currency.py:13-17``). La biblioteca es opcional allá y
     # aquí no está instalada; ``amount_to_text`` degrada con aviso, que es
     # exactamente lo que la fuente hace.
-    _logger.warning(
+    logging.getLogger(__name__).warning(
         'La biblioteca num2words no está instalada; el importe en palabras '
-        'no estará disponible.')
+        'no estará disponible.'
+    )
     num2words = None
 
 
-class ResCurrency(models.DefaultGetMixin, models.RecordLoaderMixin,
-                  models.CheckCompanyMixin, models.Model):
+_logger = logging.getLogger(__name__)
+
+
+class ResCurrency(
+    models.DefaultGetMixin,
+    models.RecordLoaderMixin,
+    models.CheckCompanyMixin,
+    models.Model,
+):
     """``res.currency`` — moneda ISO 4217 (Odoo base).
 
-    Fiel a ``res_currency.py`` (18:23-47 / 19:21-49): ``name`` (código ISO 4217,
-    3 letras), ``full_name``, ``symbol``, ``rounding`` (factor), ``decimal_places``
+    Fiel a ``res_currency.py`` (18:23-47 / 19:21-49): ``name`` (código ISO
+    4217,
+    3 letras), ``full_name``, ``symbol``, ``rounding`` (factor),
+    ``decimal_places``
     (compute = ``ceil(log10(1/rounding))``, o18:41 / o19:39), ``position``
     (before/after), ``active``, ``currency_unit_label``. Más ``round``/
     ``compare_amounts``/``is_zero`` (o19:216-261, ver docstring del módulo).
     """
 
-    POSITION_AFTER  = 'after'
+    POSITION_AFTER = 'after'
     POSITION_BEFORE = 'before'
     POSITION_CHOICES = [
         (POSITION_AFTER, 'Después del importe'),
@@ -181,44 +195,59 @@ class ResCurrency(models.DefaultGetMixin, models.RecordLoaderMixin,
     _rec_names_search = ['name', 'full_name']
     _order = 'active desc, name'
 
-    name                = fields.Char(
-        max_length=3, unique=True,
+    name = fields.Char(
+        max_length=3,
+        unique=True,
         help_text='Código de moneda ISO 4217 (Odoo res.currency.name).',
     )
-    full_name           = fields.Char(
-        max_length=64, blank=True, default='',
+    full_name = fields.Char(
+        max_length=64,
+        blank=True,
+        default='',
         help_text='Nombre de la moneda (Odoo full_name).',
     )
-    symbol              = fields.Char(
+    symbol = fields.Char(
         max_length=8,
         help_text='Signo de la moneda (Odoo symbol).',
     )
-    rounding            = fields.Monetary(
-        max_digits=12, decimal_places=6, default=Decimal('0.01'),
+    rounding = fields.Monetary(
+        max_digits=12,
+        decimal_places=6,
+        default=Decimal('0.01'),
         help_text='Factor de redondeo (Odoo rounding).',
     )
-    decimal_places      = fields.Integer(
+    decimal_places = fields.Integer(
         default=2,
         help_text='Decimales, computado de rounding (Odoo decimal_places).',
     )
-    position            = fields.Selection(
-        max_length=6, choices=POSITION_CHOICES, default=POSITION_AFTER,
+    position = fields.Selection(
+        max_length=6,
+        choices=POSITION_CHOICES,
+        default=POSITION_AFTER,
         help_text='Posición del símbolo (Odoo position).',
     )
-    active              = fields.Boolean(
-        default=True, help_text='Moneda activa (Odoo active).',
+    active = fields.Boolean(
+        default=True,
+        help_text='Moneda activa (Odoo active).',
     )
     currency_unit_label = fields.Char(
-        max_length=32, blank=True, default='',
+        max_length=32,
+        blank=True,
+        default='',
         help_text='Etiqueta de la unidad (Odoo currency_unit_label).',
     )
     currency_subunit_label = fields.Char(
-        max_length=32, blank=True, default='',
-        help_text='Etiqueta de la subunidad (Odoo currency_subunit_label). '
-                  'La consume amount_to_text para la parte fraccionaria.',
+        max_length=32,
+        blank=True,
+        default='',
+        help_text=(
+            'Etiqueta de la subunidad (Odoo currency_subunit_label). '
+            'La consume amount_to_text para la parte fraccionaria.'
+        ),
     )
-    iso_numeric         = fields.Integer(
-        null=True, blank=True,
+    iso_numeric = fields.Integer(
+        null=True,
+        blank=True,
         help_text='Código numérico ISO 4217 (Odoo iso_numeric).',
     )
 
@@ -226,7 +255,8 @@ class ResCurrency(models.DefaultGetMixin, models.RecordLoaderMixin,
         db_table = 'res_currency'
         # Derivado de ``_order``: ``active desc, name``. El orden importa y no
         # es cosmético — una divisa archivada no debe encabezar un selector por
-        # tener un nombre que empieza por A. El nuestro decía sólo ``['name']``.
+        # tener un nombre que empieza por A. El nuestro decía sólo
+        # ``['name']``.
         ordering = ['-active', 'name']
         verbose_name = 'Moneda'
         verbose_name_plural = 'Monedas'
@@ -238,14 +268,17 @@ class ResCurrency(models.DefaultGetMixin, models.RecordLoaderMixin,
             #
             # El docstring del módulo lo declaraba DESCONOCIDO porque «requiere
             # una migración de CheckConstraint». Eso es un **costo**, no un
-            # bloqueo: la guarda de división por cero de ``round()`` corta antes
+            # bloqueo: la guarda de división por cero de ``round()``
+            # corta antes
             # de dividir, pero no impide que una escritura deje la fila con
             # ``rounding <= 0``, que es justo lo que la restricción existe para
             # impedir.
             models.CheckConstraint(
                 condition=models.Q(rounding__gt=0),
                 name='res_currency_rounding_gt_zero',
-                violation_error_message='El factor de redondeo debe ser mayor que 0.',
+                violation_error_message=(
+                    'El factor de redondeo debe ser mayor que 0.'
+                ),
             ),
         ]
 
@@ -295,9 +328,11 @@ class ResCurrency(models.DefaultGetMixin, models.RecordLoaderMixin,
         últimas ocurren por la vía de ``save()``, que la fila recorre.
 
         La referencia recibe ``vals_list`` y devuelve el recordset; desde
-        :ref:`h-api-1108` la firma es la misma aquí — ``@api.model_create_multi``
+        :ref:`h-api-1108` la firma es la misma aquí —
+        ``@api.model_create_multi``
         convierte un dict suelto en ``[vals]`` — y ``super().create`` es
-        ``DefaultGetMixin.create`` (``orm/models.py``), el porte por contenido de
+        ``DefaultGetMixin.create`` (``orm/models.py``), el porte por contenido
+        de
         ``BaseModel.create``.
         """
         return super().create(vals_list)
@@ -319,7 +354,8 @@ class ResCurrency(models.DefaultGetMixin, models.RecordLoaderMixin,
     # === Derivados =========================================================
 
     def _compute_decimal_places(self):
-        """≙ ``_compute_decimal_places`` (``odoo19c: res_currency.py:162-168``).
+        """
+        ≙ ``_compute_decimal_places`` (``odoo19c: res_currency.py:162-168``).
 
         ``ceil(log10(1/rounding))`` cuando ``0 < rounding < 1``; 0 si no. Es lo
         que hace que un ``rounding`` de ``0.01`` publique dos decimales y uno
@@ -407,15 +443,21 @@ class ResCurrency(models.DefaultGetMixin, models.RecordLoaderMixin,
 
         rates = {}
         for currency in currencies:
-            base = rate_model.objects.filter(company_filter, currency=currency,
-                                             rate__gt=0)
-            found = base.filter(name__lte=date).order_by(
-                F('company_id').asc(nulls_last=True), '-name').first()
+            base = rate_model.objects.filter(
+                company_filter, currency=currency, rate__gt=0
+            )
+            found = (
+                base.filter(name__lte=date)
+                .order_by(F('company_id').asc(nulls_last=True), '-name')
+                .first()
+            )
             if found is None:
                 found = base.order_by(
-                    F('company_id').asc(nulls_last=True), 'name').first()
-            rates[currency.pk] = (found.rate if found is not None
-                                  else Decimal('1.0'))
+                    F('company_id').asc(nulls_last=True), 'name'
+                ).first()
+            rates[currency.pk] = (
+                found.rate if found is not None else Decimal('1.0')
+            )
         return rates
 
     def _compute_current_rate(self, to_currency=None, company=None, date=None):
@@ -435,11 +477,15 @@ class ResCurrency(models.DefaultGetMixin, models.RecordLoaderMixin,
         """
         date = date or datetime.date.today()
         company_id = get_current_company()
-        env_company = (self.companies.model.objects.filter(pk=company_id).first()
-                       if company_id is not None else None)
+        env_company = (
+            self.companies.model.objects.filter(pk=company_id).first()
+            if company_id is not None
+            else None
+        )
         company = company or env_company
-        to_currency = to_currency or (company.currency if company is not None
-                                      else self)
+        to_currency = to_currency or (
+            company.currency if company is not None else self
+        )
 
         rates = type(self)._get_rates([self, to_currency], env_company, date)
         divisor = rates.get(to_currency.pk) or Decimal('1.0')
@@ -468,8 +514,9 @@ class ResCurrency(models.DefaultGetMixin, models.RecordLoaderMixin,
         return self._compute_current_rate()[2]
 
     @classmethod
-    def _get_conversion_rate(cls, from_currency, to_currency, company=None,
-                             date=None):
+    def _get_conversion_rate(
+        cls, from_currency, to_currency, company=None, date=None
+    ):
         """≙ ``_get_conversion_rate`` (``odoo19c: res_currency.py:271-281``).
 
         El factor por el que hay que multiplicar un importe en
@@ -486,8 +533,9 @@ class ResCurrency(models.DefaultGetMixin, models.RecordLoaderMixin,
         origin = rates.get(from_currency.pk) or Decimal('1.0')
         return (rates.get(to_currency.pk) or Decimal('1.0')) / origin
 
-    def _convert(self, from_amount, to_currency, company=None, date=None,
-                 round=True):
+    def _convert(
+        self, from_amount, to_currency, company=None, date=None, round=True
+    ):
         """≙ ``_convert`` (``odoo19c: res_currency.py:283-302``).
 
         Convierte ``from_amount`` de esta moneda a ``to_currency``.
@@ -500,12 +548,14 @@ class ResCurrency(models.DefaultGetMixin, models.RecordLoaderMixin,
         if not from_amount:
             return Decimal('0')
         amount = Decimal(str(from_amount)) * type(self)._get_conversion_rate(
-            self, to_currency, company, date)
+            self, to_currency, company, date
+        )
         return to_currency.round(amount) if round else amount
 
     @classmethod
     def _select_companies_rates(cls):
-        """≙ ``_select_companies_rates`` (``odoo19c: res_currency.py:304-319``).
+        """
+        ≙ ``_select_companies_rates`` (``odoo19c: res_currency.py:304-319``).
 
         El SQL que da, por moneda y empresa, la ventana de vigencia de cada
         tasa: ``date_start`` es su propia fecha y ``date_end`` la de la
@@ -566,8 +616,10 @@ class ResCurrency(models.DefaultGetMixin, models.RecordLoaderMixin,
             # ≙ el ``if group_user and group_mc:`` de la fuente — mientras la
             # siembra no haya dejado los xmlid, la pregunta no tiene sentido.
             return None, None
-        return (res_groups.objects.filter(pk=user_id).first(),
-                res_groups.objects.filter(pk=multi_id).first())
+        return (
+            res_groups.objects.filter(pk=user_id).first(),
+            res_groups.objects.filter(pk=multi_id).first(),
+        )
 
     @classmethod
     def _activate_group_multi_currency(cls):
@@ -603,7 +655,8 @@ class ResCurrency(models.DefaultGetMixin, models.RecordLoaderMixin,
         if self.companies.exists():
             raise ValidationError(
                 'Esta moneda está asignada a una empresa, así que no se puede '
-                'desactivar.')
+                'desactivar.'
+            )
 
     # === Presentación ======================================================
 
@@ -679,7 +732,8 @@ class ResCurrency(models.DefaultGetMixin, models.RecordLoaderMixin,
         if num2words is None:
             _logger.warning(
                 "Falta la biblioteca 'num2words'; no se puede escribir el "
-                "importe en palabras.")
+                "importe en palabras."
+            )
             return ''
 
         lang = get_lang()
@@ -692,17 +746,21 @@ class ResCurrency(models.DefaultGetMixin, models.RecordLoaderMixin,
                 return num2words(number, lang='en').title()
 
         integral, _sep, fractional = (
-            f'{amount:.{self.decimal_places}f}'.partition('.'))
+            f'{amount:.{self.decimal_places}f}'.partition('.')
+        )
         integer_value = int(integral)
         if self.is_zero(Decimal(str(amount)) - integer_value):
             return f'{_num2words(integer_value)} {self.currency_unit_label}'
-        return (f'{_num2words(integer_value)} {self.currency_unit_label} y '
-                f'{_num2words(int(fractional or 0))} '
-                f'{self.currency_subunit_label}')
+        return (
+            f'{_num2words(integer_value)} {self.currency_unit_label} y '
+            f'{_num2words(int(fractional or 0))} '
+            f'{self.currency_subunit_label}'
+        )
 
     @classmethod
     def _company_currency_name(cls, company=None):
-        """El nombre de la moneda de la empresa — el insumo de las dos de abajo.
+        """
+        El nombre de la moneda de la empresa — el insumo de las dos de abajo.
 
         Sin contraparte de nombre: la fuente lo escribe en línea, dos veces.
         """
@@ -711,7 +769,8 @@ class ResCurrency(models.DefaultGetMixin, models.RecordLoaderMixin,
             if company_id is None:
                 return ''
             company = cls.companies.rel.related_model.objects.filter(
-                pk=company_id).first()
+                pk=company_id
+            ).first()
         if company is None or company.currency_id is None:
             return ''
         return company.currency.name
@@ -728,8 +787,12 @@ class ResCurrency(models.DefaultGetMixin, models.RecordLoaderMixin,
         representación del serializer— y por eso el método devuelve la llave y
         no toca ningún caché: quien cachea decide dónde.
         """
-        return (cls._name, view_type, tuple(sorted(options.items())),
-                cls._company_currency_name(company))
+        return (
+            cls._name,
+            view_type,
+            tuple(sorted(options.items())),
+            cls._company_currency_name(company),
+        )
 
     @classmethod
     def _get_view(cls, view_type='form', company=None, **options):
@@ -770,11 +833,15 @@ class ResCurrency(models.DefaultGetMixin, models.RecordLoaderMixin,
         :param amount: importe a redondear (``Decimal`` o convertible).
         :return: ``Decimal`` redondeado a la precisión de ``self.rounding``.
         """
-        amount = amount if isinstance(amount, Decimal) else Decimal(str(amount))
+        amount = (
+            amount if isinstance(amount, Decimal) else Decimal(str(amount))
+        )
         if amount == 0 or not self.rounding:
             return Decimal('0')
         rounding = Decimal(str(self.rounding))
-        quantized = (amount / rounding).to_integral_value(rounding=ROUND_HALF_UP) * rounding
+        quantized = (amount / rounding).to_integral_value(
+            rounding=ROUND_HALF_UP
+        ) * rounding
         quantum = Decimal('1').scaleb(-self.decimal_places)
         return quantized.quantize(quantum)
 
@@ -821,8 +888,12 @@ class ResCurrency(models.DefaultGetMixin, models.RecordLoaderMixin,
         return self.round(amount) == 0
 
 
-class ResCurrencyRate(models.DefaultGetMixin, models.RecordLoaderMixin,
-                      models.CheckCompanyMixin, models.Model):
+class ResCurrencyRate(
+    models.DefaultGetMixin,
+    models.RecordLoaderMixin,
+    models.CheckCompanyMixin,
+    models.Model,
+):
     """``res.currency.rate`` — tipo de cambio de una moneda en una fecha."""
 
     _name = 'res.currency.rate'
@@ -830,23 +901,32 @@ class ResCurrencyRate(models.DefaultGetMixin, models.RecordLoaderMixin,
     _rec_names_search = ['name', 'rate']
     _order = "name desc, id"
 
-    name         = fields.Date(
+    name = fields.Date(
         db_index=True,
         help_text='Fecha del tipo de cambio (Odoo name, requerido).',
     )
-    rate         = fields.Monetary(
-        max_digits=24, decimal_places=12, default=Decimal('1.0'),
-        help_text='Tasa por unidad de la moneda de tasa 1 (Odoo rate). Es la '
-                  'ÚNICA de las tres que se almacena.',
+    rate = fields.Monetary(
+        max_digits=24,
+        decimal_places=12,
+        default=Decimal('1.0'),
+        help_text=(
+            'Tasa por unidad de la moneda de tasa 1 (Odoo rate). Es la '
+            'ÚNICA de las tres que se almacena.'
+        ),
     )
-    currency     = fields.Many2one(
-        'base.ResCurrency', on_delete=models.CASCADE, related_name='rates',
+    currency = fields.Many2one(
+        'base.ResCurrency',
+        on_delete=models.CASCADE,
+        related_name='rates',
         db_index=True,
         help_text='Moneda (Odoo currency_id).',
     )
-    company      = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, related_name='currency_rates',
-        null=True, blank=True,
+    company = fields.Many2one(
+        'base.ResCompany',
+        on_delete=models.CASCADE,
+        related_name='currency_rates',
+        null=True,
+        blank=True,
         help_text='Empresa (Odoo company_id). Null = la tasa aplica a todas.',
     )
 
@@ -855,12 +935,14 @@ class ResCurrencyRate(models.DefaultGetMixin, models.RecordLoaderMixin,
         # Derivado de ``_order``: ``name desc, id``.
         ordering = ['-name', 'id']
         constraints = [
-            # ≙ ``_unique_name_per_day`` (``odoo19c: res_currency.py:379-382``).
+            # ≙ ``_unique_name_per_day`` (``odoo19c:
+            # res_currency.py:379-382``).
             models.UniqueConstraint(
                 fields=['currency', 'company', 'name'],
                 name='unique_currency_rate_per_day',
             ),
-            # ≙ ``_currency_rate_check`` (``odoo19c: res_currency.py:383-386``),
+            # ≙ ``_currency_rate_check`` (``odoo19c:
+            # res_currency.py:383-386``),
             # objeto de tabla de la referencia. Su hogar aquí es
             # ``Meta.constraints`` con el nombre conservado
             # (``atributos-de-clase-de-modelo.md``).
@@ -871,7 +953,9 @@ class ResCurrencyRate(models.DefaultGetMixin, models.RecordLoaderMixin,
             models.CheckConstraint(
                 condition=models.Q(rate__gt=0),
                 name='res_currency_rate_currency_rate_check',
-                violation_error_message='El tipo de cambio debe ser estrictamente positivo.',
+                violation_error_message=(
+                    'El tipo de cambio debe ser estrictamente positivo.'
+                ),
             ),
         ]
         verbose_name = 'Tipo de cambio'
@@ -889,14 +973,20 @@ class ResCurrencyRate(models.DefaultGetMixin, models.RecordLoaderMixin,
         """
         if not self.name:
             raise ValidationError(
-                'La fecha de la tasa está vacía. Hay que ponerla.')
+                'La fecha de la tasa está vacía. Hay que ponerla.'
+            )
         company = self.company or self._current_company()
-        return type(self).objects.filter(
-            currency=self.currency_id,
-            company=company,
-            name__lt=self.name,
-            rate__gt=0,
-        ).order_by('name').last()
+        return (
+            type(self)
+            .objects.filter(
+                currency=self.currency_id,
+                company=company,
+                name__lt=self.name,
+                rate__gt=0,
+            )
+            .order_by('name')
+            .last()
+        )
 
     @classmethod
     def _get_last_rates_for_companies(cls, companies):
@@ -915,13 +1005,20 @@ class ResCurrencyRate(models.DefaultGetMixin, models.RecordLoaderMixin,
         for company in companies:
             if company is None:
                 continue
-            latest = cls.objects.filter(
-                currency=company.currency_id,
-                rate__gt=0,
-            ).filter(
-                models.Q(company=company) | models.Q(company__isnull=True)
-            ).order_by('name').last()
-            rates[company.pk] = latest.rate if latest is not None else Decimal('1.0')
+            latest = (
+                cls.objects.filter(
+                    currency=company.currency_id,
+                    rate__gt=0,
+                )
+                .filter(
+                    models.Q(company=company) | models.Q(company__isnull=True)
+                )
+                .order_by('name')
+                .last()
+            )
+            rates[company.pk] = (
+                latest.rate if latest is not None else Decimal('1.0')
+            )
         return rates
 
     def _compute_rate(self):
@@ -950,7 +1047,8 @@ class ResCurrencyRate(models.DefaultGetMixin, models.RecordLoaderMixin,
         """≙ ``_inverse_company_rate`` (``odoo19c: res_currency.py:433-437``).
 
         El lado de escritura: fijar ``company_rate`` reescribe ``rate``, que es
-        la única columna. Devuelve el valor en vez de asignarlo — quien lo llama
+        la única columna. Devuelve el valor en vez de asignarlo — quien lo
+        llama
         decide si guarda.
         """
         company = self.company or self._current_company()
@@ -959,7 +1057,8 @@ class ResCurrencyRate(models.DefaultGetMixin, models.RecordLoaderMixin,
     def _compute_inverse_company_rate(self):
         """≙ ``_compute_inverse_company_rate`` (``odoo19c: :439-443``).
 
-        El recíproco de ``company_rate``. La fuente cae a 1 cuando la tasa de la
+        El recíproco de ``company_rate``. La fuente cae a 1 cuando la tasa de
+        la
         empresa es falsa, y con eso evita la división por cero; aquí igual.
         """
         company_rate = self._compute_company_rate() or Decimal('1.0')
@@ -1011,7 +1110,8 @@ class ResCurrencyRate(models.DefaultGetMixin, models.RecordLoaderMixin,
         """
         if self.company is not None and self.company.parent_id:
             raise ValidationError(
-                'Los tipos de cambio sólo se crean para empresas matrices.')
+                'Los tipos de cambio sólo se crean para empresas matrices.'
+            )
 
     @staticmethod
     def _sanitize_vals(vals):
@@ -1026,7 +1126,8 @@ class ResCurrencyRate(models.DefaultGetMixin, models.RecordLoaderMixin,
         """
         vals = dict(vals)
         if 'inverse_company_rate' in vals and (
-                'company_rate' in vals or 'rate' in vals):
+            'company_rate' in vals or 'rate' in vals
+        ):
             del vals['inverse_company_rate']
         if 'company_rate' in vals and 'rate' in vals:
             del vals['company_rate']
@@ -1057,7 +1158,8 @@ class ResCurrencyRate(models.DefaultGetMixin, models.RecordLoaderMixin,
         es opcional en la práctica**: el divisor sale de la empresa y la moneda
         de la fila, y en un ``write`` esos dos valores viven en la fila, no en
         ``vals``. Medido: sin ``base``, ``row.write({'company_rate': 4})`` con
-        un divisor de 2 guardaba **4** en vez de 8 — la resolución corría contra
+        un divisor de 2 guardaba **4** en vez de 8 — la resolución corría
+        contra
         una instancia vacía cuyo divisor caía a 1.
 
         Devuelve ``(vals_limpios, rate_o_None)``.
@@ -1067,8 +1169,11 @@ class ResCurrencyRate(models.DefaultGetMixin, models.RecordLoaderMixin,
         if not any(key in vals for key in derived):
             return vals, vals.get('rate')
 
-        context = {key: value for key, value in vals.items()
-                   if key not in derived and key != 'rate'}
+        context = {
+            key: value
+            for key, value in vals.items()
+            if key not in derived and key != 'rate'
+        }
         if base is not None:
             probe = base
             for key, value in context.items():
@@ -1080,7 +1185,8 @@ class ResCurrencyRate(models.DefaultGetMixin, models.RecordLoaderMixin,
             rate = probe._inverse_company_rate(vals.pop('company_rate'))
         else:
             rate = probe._inverse_inverse_company_rate(
-                vals.pop('inverse_company_rate'))
+                vals.pop('inverse_company_rate')
+            )
         vals['rate'] = rate
         return vals, rate
 
@@ -1095,12 +1201,16 @@ class ResCurrencyRate(models.DefaultGetMixin, models.RecordLoaderMixin,
         método porta— se aplica a cada ``vals`` antes de delegar, como allá.
 
         La referencia recibe ``vals_list`` y devuelve el recordset; desde
-        :ref:`h-api-1108` la firma es la misma aquí — ``@api.model_create_multi``
+        :ref:`h-api-1108` la firma es la misma aquí —
+        ``@api.model_create_multi``
         convierte un dict suelto en ``[vals]`` — y ``super().create`` es
-        ``DefaultGetMixin.create`` (``orm/models.py``), el porte por contenido de
+        ``DefaultGetMixin.create`` (``orm/models.py``), el porte por contenido
+        de
         ``BaseModel.create``.
         """
-        return super().create([cls._rate_from_vals(vals)[0] for vals in vals_list])
+        return super().create(
+            [cls._rate_from_vals(vals)[0] for vals in vals_list]
+        )
 
     def write(self, vals):
         """≙ ``write`` (``odoo19c: res_currency.py:394-397``).
@@ -1120,7 +1230,8 @@ class ResCurrencyRate(models.DefaultGetMixin, models.RecordLoaderMixin,
     def _search_display_name(cls, operator, value):
         """≙ ``_search_display_name`` (``odoo19c: res_currency.py:479-485``).
 
-        Lo que la fuente hace es **una** cosa: pasar el valor por ``parse_date``
+        Lo que la fuente hace es **una** cosa: pasar el valor por
+        ``parse_date``
         antes de delegar en la búsqueda por ``_rec_names_search``. Sin ese
         paso, teclear ``15/03/2026`` en el buscador de un campo ``Date`` no
         encuentra nada — y el que busca no se entera de por qué.
@@ -1166,17 +1277,20 @@ class ResCurrencyRate(models.DefaultGetMixin, models.RecordLoaderMixin,
 
     @classmethod
     def _company_currency_name(cls, company=None):
-        """El nombre de la moneda de la empresa — el insumo de las dos de abajo.
+        """
+        El nombre de la moneda de la empresa — el insumo de las dos de abajo.
 
         Sin contraparte de nombre: la fuente lo escribe en línea, dos veces,
-        como ``(browse(context['company_id']) or env.company).currency_id.name``.
+        como ``(browse(context['company_id']) or
+        env.company).currency_id.name``.
         """
         if company is None:
             company_id = get_current_company()
             if company_id is None:
                 return ''
             company = cls.company.field.related_model.objects.filter(
-                pk=company_id).first()
+                pk=company_id
+            ).first()
         if company is None or company.currency_id is None:
             return ''
         return company.currency.name
@@ -1195,8 +1309,12 @@ class ResCurrencyRate(models.DefaultGetMixin, models.RecordLoaderMixin,
         caché es ``django.core.cache``. Por eso el método devuelve la **llave**
         y no toca ningún caché — quien cachea decide dónde.
         """
-        return (cls._name, view_type, tuple(sorted(options.items())),
-                cls._company_currency_name(company))
+        return (
+            cls._name,
+            view_type,
+            tuple(sorted(options.items())),
+            cls._company_currency_name(company),
+        )
 
     @classmethod
     def _get_view(cls, view_type='list', company=None, **options):
@@ -1243,16 +1361,24 @@ class ResCurrencyRate(models.DefaultGetMixin, models.RecordLoaderMixin,
         company_id = get_current_company()
         if company_id is None:
             return None
-        company = type(self).company.field.related_model.objects.filter(
-            pk=company_id).first()
+        company = (
+            type(self)
+            .company.field.related_model.objects.filter(pk=company_id)
+            .first()
+        )
         return company.root_id if company is not None else None
 
     def _divisor_for(self, company):
-        """La última tasa de la moneda de ``company``, o 1 si no hay empresa."""
+        """
+        La última tasa de la moneda de ``company``, o 1 si no hay empresa.
+        """
         if company is None:
             return Decimal('1.0')
-        return type(self)._get_last_rates_for_companies([company]).get(
-            company.pk, Decimal('1.0'))
+        return (
+            type(self)
+            ._get_last_rates_for_companies([company])
+            .get(company.pk, Decimal('1.0'))
+        )
 
     def __str__(self) -> str:
         return f'{self.currency_id} @ {self.name}: {self.rate}'

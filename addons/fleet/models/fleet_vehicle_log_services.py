@@ -3,6 +3,7 @@
 Adaptación fiel de Odoo fleet/models/fleet_vehicle_log_services.py
 (odoo-tools@622ddc2a, odoo19c:, LGPL-3).
 """
+
 from datetime import date
 
 import fields
@@ -30,43 +31,78 @@ class FleetVehicleLogServices(MailThread, TimeStampedModel):
 
     active = fields.Boolean(default=True, help_text='Odoo active.')
     vehicle = fields.Many2one(
-        'fleet.FleetVehicle', on_delete=models.CASCADE,
-        related_name='log_services', help_text='Odoo vehicle_id (required).',
+        'fleet.FleetVehicle',
+        on_delete=models.CASCADE,
+        related_name='log_services',
+        help_text='Odoo vehicle_id (required).',
     )
     amount = fields.Monetary(
-        max_digits=12, decimal_places=2, null=True, blank=True, help_text='Odoo amount.',
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text='Odoo amount.',
     )
-    description = fields.Char(max_length=255, blank=True, default='', help_text='Odoo description.')
+    description = fields.Char(
+        max_length=255, blank=True, default='', help_text='Odoo description.'
+    )
     odometer_log = fields.Many2one(
-        'fleet.FleetVehicleOdometer', on_delete=models.SET_NULL, null=True, blank=True,
+        'fleet.FleetVehicleOdometer',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='service_logs',
-        help_text='Odoo odometer_id — lectura de odómetro al momento del '
-                   'servicio. Ver la property ``odometer`` para el atajo '
-                   'get/set fiel a ``_get_odometer``/``_set_odometer``.',
+        help_text=(
+            'Odoo odometer_id — lectura de odómetro al momento del '
+            'servicio. Ver la property ``odometer`` para el atajo '
+            'get/set fiel a ``_get_odometer``/``_set_odometer``.'
+        ),
     )
-    date = fields.Date(null=True, blank=True, help_text='Odoo date (default hoy).')
+    date = fields.Date(
+        null=True, blank=True, help_text='Odoo date (default hoy).'
+    )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='fleet_service_logs', help_text='Odoo company_id.',
+        'base.ResCompany',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='fleet_service_logs',
+        help_text='Odoo company_id.',
     )
     purchaser = fields.Many2one(
-        'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,
+        'base.ResPartner',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='fleet_service_logs_as_purchaser',
-        help_text='Conductor (Odoo purchaser_id, compute+store con default '
-                   'vehicle.driver_id — no auto-aplicado; ver sync_defaults).',
+        help_text=(
+            'Conductor (Odoo purchaser_id, compute+store con default '
+            'vehicle.driver_id — no auto-aplicado; ver sync_defaults).'
+        ),
     )
-    inv_ref = fields.Char(max_length=150, blank=True, default='', help_text='Odoo inv_ref.')
+    inv_ref = fields.Char(
+        max_length=150, blank=True, default='', help_text='Odoo inv_ref.'
+    )
     vendor = fields.Many2one(
-        'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='fleet_service_logs_as_vendor', help_text='Odoo vendor_id.',
+        'base.ResPartner',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='fleet_service_logs_as_vendor',
+        help_text='Odoo vendor_id.',
     )
     notes = fields.Text(blank=True, default='', help_text='Odoo notes.')
     service_type = fields.Many2one(
-        'fleet.FleetServiceType', on_delete=models.PROTECT,
-        related_name='service_logs', help_text='Odoo service_type_id (required).',
+        'fleet.FleetServiceType',
+        on_delete=models.PROTECT,
+        related_name='service_logs',
+        help_text='Odoo service_type_id (required).',
     )
     state = fields.Selection(
-        max_length=9, choices=STATES, default=STATE_NEW, help_text='Odoo state.',
+        max_length=9,
+        choices=STATES,
+        default=STATE_NEW,
+        help_text='Odoo state.',
     )
 
     class Meta:
@@ -121,7 +157,9 @@ class FleetVehicleLogServices(MailThread, TimeStampedModel):
         if not value:
             return
         log = FleetVehicleOdometer.objects.create(
-            value=value, date=self.date or date.today(), vehicle=self.vehicle,
+            value=value,
+            date=self.date or date.today(),
+            vehicle=self.vehicle,
         )
         self.odometer_log = log
         if self.pk:
@@ -129,6 +167,8 @@ class FleetVehicleLogServices(MailThread, TimeStampedModel):
 
     def sync_defaults(self):
         """``_compute_purchaser_id`` — conductor del vehículo si no viene
-        dado. NO auto-invocado en ``save()`` (ver ``fleet_vehicle.py`` punto 2)."""
+        dado. NO auto-invocado en ``save()`` (ver ``fleet_vehicle.py`` punto
+        2).
+        """
         if self.vehicle_id and not self.purchaser_id:
             self.purchaser = self.vehicle.driver

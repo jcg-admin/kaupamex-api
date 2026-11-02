@@ -11,11 +11,16 @@ siguen al dominio local por sus FK. ``orm`` no registra
 ninguna entidad. La lista de bases de empresa se descubre de
 ``information_schema`` (== ``list_dbs`` de Odoo), no de una tabla.
 """
+
 import pytest
 from django.test import override_settings
 
 from orm.environments import company_scope, set_current_company
-from orm.routers import CompanyContextRequired, CompanyDatabaseRouter, company_db_alias
+from orm.routers import (
+    CompanyContextRequired,
+    CompanyDatabaseRouter,
+    company_db_alias,
+)
 
 # Routing DB-per-company (N>1) sólo activa cuando la base de la empresa está
 # configurada en ``settings.DATABASES``. Bajo N=1 (settings de testing, sin
@@ -23,8 +28,14 @@ from orm.routers import CompanyContextRequired, CompanyDatabaseRouter, company_d
 # para no romper el row-scoping SOL-085 (H-API-091-06). Los tests que verifican
 # el ruteo a ``company_5_db`` configuran ese alias explícitamente.
 _WITH_COMPANY_5 = {
-    'default': {'ENGINE': 'django.db.backends.postgresql', 'NAME': 'kaupamex_core'},
-    'company_5_db': {'ENGINE': 'django.db.backends.postgresql', 'NAME': 'company_5_db'},
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'kaupamex_core',
+    },
+    'company_5_db': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'company_5_db',
+    },
 }
 
 
@@ -35,14 +46,16 @@ class _Meta:
 
 
 class _Model:
-    """Modelo falso: el router sólo lee ``_meta.app_label`` / ``model_name``."""
+    """
+    Modelo falso: el router sólo lee ``_meta.app_label`` / ``model_name``.
+    """
 
     def __init__(self, app_label, model_name='thing'):
         self._meta = _Meta(app_label, model_name)
 
 
 DOMAIN = _Model('catalogue', 'product')
-SESSION = _Model('sessions', 'session')       # plano de control (infra Django)
+SESSION = _Model('sessions', 'session')  # plano de control (infra Django)
 CONTENTTYPE = _Model('contenttypes', 'contenttype')
 
 router = CompanyDatabaseRouter()
@@ -60,8 +73,8 @@ router = CompanyDatabaseRouter()
 #: —una consulta real, un ``django_db``—. Ahí el peligro que Django nombra sí
 #: aplica y el filtro estaría escondiendo un fallo, no un ruido.
 pytestmark = pytest.mark.filterwarnings(
-    'ignore:Overriding setting DATABASES:UserWarning')
-
+    'ignore:Overriding setting DATABASES:UserWarning'
+)
 
 
 def test_company_db_alias_maps_id_to_alias():
@@ -104,9 +117,17 @@ def test_sessions_stay_central_and_metadata_follows_company():
 def test_allow_migrate_keeps_sessions_central_and_metadata_local():
     assert router.allow_migrate('default', 'sessions', 'session') is True
     assert router.allow_migrate('company_5_db', 'sessions', 'session') is False
-    assert router.allow_migrate('default', 'contenttypes', 'contenttype') is True
-    assert router.allow_migrate('company_5_db', 'contenttypes', 'contenttype') is True
-    assert router.allow_migrate('company_6_db', 'contenttypes', 'contenttype') is False
+    assert (
+        router.allow_migrate('default', 'contenttypes', 'contenttype') is True
+    )
+    assert (
+        router.allow_migrate('company_5_db', 'contenttypes', 'contenttype')
+        is True
+    )
+    assert (
+        router.allow_migrate('company_6_db', 'contenttypes', 'contenttype')
+        is False
+    )
 
 
 @override_settings(DATABASES=_WITH_COMPANY_5)
@@ -131,5 +152,6 @@ def test_allow_migrate_domain_in_company_db_and_default_for_n1():
 def test_allow_relation_only_within_same_alias():
     with company_scope(5):
         assert router.allow_relation(DOMAIN, _Model('orders', 'order')) is True
-        # dominio (company_5_db) vs infra de control (default) -> distinto alias.
+        # dominio (company_5_db) vs infra de control (default) ->
+        # distinto alias.
         assert router.allow_relation(DOMAIN, SESSION) is False

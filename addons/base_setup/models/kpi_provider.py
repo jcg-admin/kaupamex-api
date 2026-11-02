@@ -8,6 +8,7 @@ manifiesto admite).
 Los 3 símbolos de la fuente están portados: los dos atributos de clase y
 ``get_kpi_summary``.
 """
+
 import models
 
 
@@ -28,7 +29,8 @@ class KpiProvider(models.Model):
 
     @classmethod
     def get_kpi_summary(cls):
-        """≙ ``get_kpi_summary`` (``odoo19c: :8-25``), con su docstring verbatim:
+        """
+        ≙ ``get_kpi_summary`` (``odoo19c: :8-25``), con su docstring verbatim:
 
             Other modules can override this method to add their own KPIs to
             the list. This method will be called by the databases module to
@@ -42,7 +44,8 @@ class KpiProvider(models.Model):
             - value: either the numeric value (for `type=integer`) or one of
               the statuses (for `type=return_status`):
 
-              - late       one return of this type should have been done already
+              - late       one return of this type should have been done
+                already
               - longterm   the deadline of the closest uncompleted return is in
                 more than 3 months
               - to_do      the deadline of the closest uncompleted return is in

@@ -15,6 +15,7 @@ Uso::
     DJANGO_SETTINGS_MODULE=config.settings.testing \\
         uv run python scripts/evidence/control_312_guards.py
 """
+
 import hashlib
 import pathlib
 import subprocess
@@ -64,20 +65,33 @@ def sha256(path):
 
 
 def run_subset(selector=None):
-    """Corre el módulo (o una clase suya) y devuelve la última línea de pytest."""
+    """
+    Corre el módulo (o una clase suya) y devuelve la última línea de pytest.
+    """
     target = MODULE if selector is None else f'{MODULE}::{selector}'
     out = subprocess.run(
-        ['uv', 'run', 'pytest', target, '-q', '--reuse-db',
-         '-p', 'no:cacheprovider'],
-        cwd=ROOT, capture_output=True, text=True,
+        [
+            'uv',
+            'run',
+            'pytest',
+            target,
+            '-q',
+            '--reuse-db',
+            '-p',
+            'no:cacheprovider',
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
     )
-    lines = [l for l in out.stdout.splitlines() if l.strip()]
+    lines = [item for item in out.stdout.splitlines() if item.strip()]
     return lines[-1] if lines else '(sin salida)'
 
 
 def git_diff_stat():
-    return subprocess.run(['git', 'diff', '--stat'], cwd=ROOT,
-                          capture_output=True, text=True).stdout
+    return subprocess.run(
+        ['git', 'diff', '--stat'], cwd=ROOT, capture_output=True, text=True
+    ).stdout
 
 
 def main():
@@ -106,7 +120,8 @@ def main():
         if 'failed' not in result and 'error' not in result:
             failures.append(
                 f'{name}: con la guarda anulada {klass} sigue verde — '
-                'el caso no la mide')
+                'el caso no la mide'
+            )
         after = sha256(path)
         if before != after:
             failures.append(f'{name}: sha256 distinto tras restaurar')

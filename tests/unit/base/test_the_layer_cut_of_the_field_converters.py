@@ -1,4 +1,5 @@
-r"""El corte de capas de los 21 conversores, ratificado con la referencia al lado.
+r"""
+El corte de capas de los 21 conversores, ratificado con la referencia al lado.
 
 Directiva del ejecutor 2026-08-30: cerrar las piezas que quedan del desmontaje
 de QWeb con el criterio de las dos categorías —*el stack lo trae hecho* frente
@@ -26,6 +27,7 @@ qué» — el sub-patrón D de ``metrica-decide-la-conclusion.md``.
 locale dada — eso se mide en ``ui``, no aquí; y a los conversores cuyo contrato
 exige una fila de base de datos, que este archivo no construye.
 """
+
 import datetime
 
 import pytest
@@ -63,7 +65,8 @@ EXPECTED_NAMES = {
 }
 
 #: Los que **no** resuelven aquí, con la palabra que su razón declara. Ninguno
-#: calla: el contrato observable es un ``NotImplementedError`` que dice por qué.
+#: calla: el contrato observable es un ``NotImplementedError`` que dice
+#: por qué.
 #:
 #: ``IrFieldConverterMonetary`` **salió de esta tabla** en la tarea #197: su
 #: razón —la ausencia de ``babel``— resultó cubrir sólo la mitad de su caso, y
@@ -105,14 +108,20 @@ class TestWhatThisTreeResolvesInTheServer:
     """El API entrega el **valor**; ninguno compone presentación por locale."""
 
     def test_a_date_comes_out_in_iso_not_in_a_locale_pattern(self):
-        assert conv.IrFieldConverterDate.value_to_html(
-            datetime.date(2026, 1, 2)) == '2026-01-02'
+        assert (
+            conv.IrFieldConverterDate.value_to_html(datetime.date(2026, 1, 2))
+            == '2026-01-02'
+        )
 
     def test_a_datetime_comes_out_in_utc_and_the_zone_is_the_clients(self):
         # La fuente convierte a la zona del usuario con ``babel``; aquí el
         # valor viaja en UTC y la zona la aplica quien sabe cuál es.
-        assert conv.IrFieldConverterDatetime.value_to_html(
-            datetime.datetime(2026, 1, 2, 3, 4, 5)) == '2026-01-02T03:04:05'
+        assert (
+            conv.IrFieldConverterDatetime.value_to_html(
+                datetime.datetime(2026, 1, 2, 3, 4, 5)
+            )
+            == '2026-01-02T03:04:05'
+        )
 
     def test_the_numeric_ones_come_out_formatted_without_any_markup(self):
         for converter, sample, expected in (
@@ -125,11 +134,15 @@ class TestWhatThisTreeResolvesInTheServer:
             assert '<span' not in out and 'class=' not in out
 
     def test_the_relational_ones_join_names_without_markup(self):
-        assert conv.IrFieldConverterMany2many.value_to_html(['a', 'b']) == 'a, b'
+        assert (
+            conv.IrFieldConverterMany2many.value_to_html(['a', 'b']) == 'a, b'
+        )
         # ``one2many`` hereda de ``many2many``, y eso es fiel: en la fuente los
         # dos cuerpos son el mismo texto — repetido allá porque sus dos clases
         # derivan de ``AbstractModel`` y no pueden heredar una de la otra.
-        assert conv.IrFieldConverterOne2many.value_to_html(['a', 'b']) == 'a, b'
+        assert (
+            conv.IrFieldConverterOne2many.value_to_html(['a', 'b']) == 'a, b'
+        )
 
 
 class TestTheOnesThatDoNotResolveSayWhy:
@@ -141,10 +154,11 @@ class TestTheOnesThatDoNotResolveSayWhy:
             getattr(conv, class_name).value_to_html('x')
 
     @pytest.mark.parametrize(
-        'class_name, word',
-        sorted((c, w) for c, w in DELEGATED.items() if w))
+        'class_name, word', sorted((c, w) for c, w in DELEGATED.items() if w)
+    )
     def test_and_the_refusal_names_the_layer_that_does_resolve_it(
-            self, class_name, word):
+        self, class_name, word
+    ):
         with pytest.raises(NotImplementedError) as excinfo:
             getattr(conv, class_name).value_to_html('x')
         assert word in str(excinfo.value).lower(), class_name
@@ -154,7 +168,9 @@ class TestTheOnesThatDoNotResolveSayWhy:
         # idioma se va, lo que no, se queda.
         ahora = datetime.datetime(2026, 1, 2, 0, 0, 0)
         antes = datetime.datetime(2026, 1, 1, 0, 0, 0)
-        assert conv.IrFieldConverterRelative.delta_seconds(antes, ahora) == -86400
+        assert (
+            conv.IrFieldConverterRelative.delta_seconds(antes, ahora) == -86400
+        )
 
 
 class TestTheMarkupIsWhereTheReferenceDiffersFromUs:
@@ -167,8 +183,10 @@ class TestTheMarkupIsWhereTheReferenceDiffersFromUs:
     ONLY_ONE_EMITS_MARKUP = 'IrFieldConverterImage_Url'
 
     def test_the_url_image_is_the_only_one_that_adds_a_tag(self):
-        assert conv.IrFieldConverterImage_Url.value_to_html('/x.png') == (
-            '<img src="/x.png">')
+        assert (
+            conv.IrFieldConverterImage_Url.value_to_html('/x.png')
+            == '<img src="/x.png">'
+        )
 
     def test_contact_escapes_instead_of_composing_the_card(self):
         # Allá ``contact`` compone una tarjeta con ``<div>``; aquí el valor

@@ -11,13 +11,17 @@ Símbolos de la referencia — qué pasa aquí (medido, no supuesto)
 Símbolo de la referencia            Qué pasa aquí
 =================================  ===========================================
 ``_default_outbound_payment_methods``  NO — Divergencia 1
-``check_manual_sequencing``         PORTADO — ``CheckPrintingJournalSettings.manual_sequencing``
-``check_sequence_id``               PORTADO — ``CheckPrintingJournalSettings.sequence``
+``check_manual_sequencing``         PORTADO —
+``CheckPrintingJournalSettings.manual_sequencing``
+``check_sequence_id``               PORTADO —
+``CheckPrintingJournalSettings.sequence``
 ``check_next_number`` (compute)     PORTADO — ``next_check_number()``
 ``_compute_check_next_number``      PORTADO — cuerpo de ``next_check_number()``
 ``_inverse_check_next_number``      PORTADO — ``set_next_check_number()``
-``bank_check_printing_layout``      PORTADO — ``CheckPrintingJournalSettings.layout``
-``_get_check_printing_layouts``     PORTADO — ``CheckPrintingCompanySettings.available_layouts``
+``bank_check_printing_layout``      PORTADO —
+``CheckPrintingJournalSettings.layout``
+``_get_check_printing_layouts``     PORTADO —
+``CheckPrintingCompanySettings.available_layouts``
 ``create`` (auto-provisión)         PORTADO por OTRO mecanismo — Divergencia 2
 ``_create_check_sequence``          PORTADO — ``ensure_check_sequence()``
 ``_get_journal_dashboard_data_batched``  NO — Divergencia 3
@@ -67,6 +71,7 @@ DRF-view en este pase; mismo criterio que
 expondrían SÍ es consultable — ver
 ``CheckPrintingPaymentInfo.checks_to_print_queryset``.
 """
+
 import re
 
 from django.db import models as dj_models
@@ -74,7 +79,9 @@ from django.db import models as dj_models
 import fields
 import models
 from addons.account.models import AccountJournal
-from addons.account_check_printing.models.res_company import CheckPrintingCompanySettings
+from addons.account_check_printing.models.res_company import (
+    CheckPrintingCompanySettings,
+)
 from addons.base.models import IrSequence, TimeStampedModel
 from exceptions import ValidationError
 from tools.translate import _
@@ -94,26 +101,38 @@ class CheckPrintingJournalSettings(TimeStampedModel):
     ``check_*``/``bank_check_printing_layout`` de ``account.journal``."""
 
     journal = models.OneToOneField(
-        AccountJournal, on_delete=models.CASCADE,
+        AccountJournal,
+        on_delete=models.CASCADE,
         related_name='check_printing_settings',
         help_text='Diario (Odoo _inherit account.journal).',
     )
     manual_sequencing = fields.Boolean(
-        default=False, verbose_name='Numeración manual',
-        help_text='Marcar si los cheques preimpresos no vienen numerados '
-                  '(Odoo check_manual_sequencing).',
+        default=False,
+        verbose_name='Numeración manual',
+        help_text=(
+            'Marcar si los cheques preimpresos no vienen numerados '
+            '(Odoo check_manual_sequencing).'
+        ),
     )
     sequence = fields.Many2one(
-        IrSequence, on_delete=dj_models.SET_NULL, null=True, blank=True,
+        IrSequence,
+        on_delete=dj_models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='+',
-        help_text='Secuencia de numeración de cheques de este diario (Odoo '
-                  'check_sequence_id).',
+        help_text=(
+            'Secuencia de numeración de cheques de este diario (Odoo '
+            'check_sequence_id).'
+        ),
     )
     layout = fields.Char(
-        max_length=64, blank=True, default='',
+        max_length=64,
+        blank=True,
+        default='',
         verbose_name='Diseño de cheque',
-        help_text='Vacío = usa el de la empresa (Odoo '
-                  'bank_check_printing_layout).',
+        help_text=(
+            'Vacío = usa el de la empresa (Odoo bank_check_printing_layout).'
+        ),
     )
 
     class Meta:
@@ -143,8 +162,11 @@ class CheckPrintingJournalSettings(TimeStampedModel):
         if row.sequence_id:
             return row
         row.sequence = IrSequence.objects.create(
-            name=_('%(journal)s: Check Number Sequence') % {'journal': journal.name},
-            implementation='no_gap', padding=5, number_increment=1,
+            name=_('%(journal)s: Check Number Sequence')
+            % {'journal': journal.name},
+            implementation='no_gap',
+            padding=5,
+            number_increment=1,
             company=journal.company,
         )
         row.save(update_fields=['sequence', 'updated_at'])
@@ -175,19 +197,33 @@ class CheckPrintingJournalSettings(TimeStampedModel):
         retroceda respecto al último impreso, y el límite de 32 bits, antes
         de reescribir la secuencia."""
         if value and not re.match(r'^[0-9]+$', value):
-            raise ValidationError(_('Next Check Number should only contains numbers.'))
+            raise ValidationError(
+                _('Next Check Number should only contains numbers.')
+            )
         next_num = int(value)
-        row = self if self.sequence_id else self.ensure_check_sequence(self.journal)
+        row = (
+            self
+            if self.sequence_id
+            else self.ensure_check_sequence(self.journal)
+        )
         if next_num < row.sequence.number_next:
-            raise ValidationError(_(
-                'The last check number was %(number)s. In order to avoid a '
-                'check being rejected by the bank, you can only use a '
-                'greater number.') % {'number': row.sequence.number_next})
+            raise ValidationError(
+                _(
+                    'The last check number was %(number)s. In order to avoid a'
+                    ' check being rejected by the bank, you can only use a'
+                    ' greater number.'
+                )
+                % {'number': row.sequence.number_next}
+            )
         if next_num > MAX_INT32:
-            raise ValidationError(_(
-                'The check number you entered (%(num)s) exceeds the maximum '
-                'allowed value of %(max)d. Please enter a smaller number.'
-            ) % {'num': next_num, 'max': MAX_INT32})
+            raise ValidationError(
+                _(
+                    'The check number you entered (%(num)s) exceeds the'
+                    ' maximum allowed value of %(max)d. Please enter a smaller'
+                    ' number.'
+                )
+                % {'num': next_num, 'max': MAX_INT32}
+            )
         row.sequence.number_next = next_num
         row.sequence.padding = len(value)
         row.sequence.save(update_fields=['number_next', 'padding'])

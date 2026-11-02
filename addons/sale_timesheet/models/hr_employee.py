@@ -37,6 +37,7 @@ Porte símbolo por símbolo — 1 de 1
    por sí solo: el ``default_get`` de la fuente lo consume **el formulario**,
    que no pasa por ningún llamador nuestro.
 """
+
 from orm.environments import get_context
 from orm.method_chain import chain_method
 from orm.model_classes import extend_model
@@ -63,14 +64,17 @@ def default_get(cls, fields):
     :param fields: nombres de los campos cuyo default se pide, verbatim de la
       firma de ``orm.models.BaseModel.default_get``.
     """
-    project_company_id = get_context().get(CREATE_PROJECT_EMPLOYEE_MAPPING, False)
+    project_company_id = get_context().get(
+        CREATE_PROJECT_EMPLOYEE_MAPPING, False
+    )
     if project_company_id:
         return {'company_id': project_company_id}
     return {}
 
 
 def _merge_defaults(new, previous):
-    """``combine=`` de ``chain_method`` — ≙ ``result[...] = ...; return result``.
+    """
+    ``combine=`` de ``chain_method`` — ≙ ``result[...] = ...; return result``.
 
     Va con ``combine`` y **no** con el relevo por ``None`` que
     ``extend_model(metodos=)`` aplica: el relevo corre el eslabón previo sólo
@@ -92,8 +96,9 @@ def _chain_hr_employee_default_get(model):
     """El ``luego`` de ``extend_model``: ``default_get`` necesita ``combine=``,
     y el bloque ``metodos=`` no lo expone — instala con relevo por ``None``.
     """
-    chain_method(model, 'default_get', classmethod(default_get),
-                 combine=_merge_defaults)
+    chain_method(
+        model, 'default_get', classmethod(default_get), combine=_merge_defaults
+    )
 
 
 def apply_sale_timesheet_hr_employee_extensions():
@@ -105,5 +110,8 @@ def apply_sale_timesheet_hr_employee_extensions():
     extend_model('hr', 'HrEmployee', luego=_chain_hr_employee_default_get)
 
 
-__all__ = ['apply_sale_timesheet_hr_employee_extensions', 'default_get',
-           'CREATE_PROJECT_EMPLOYEE_MAPPING']
+__all__ = [
+    'apply_sale_timesheet_hr_employee_extensions',
+    'default_get',
+    'CREATE_PROJECT_EMPLOYEE_MAPPING',
+]

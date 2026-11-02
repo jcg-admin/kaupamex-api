@@ -49,7 +49,8 @@ Divergencias declaradas
    punto de enganche equivalente es ``save()``: el idioma que este árbol ya
    usa para «suplir un valor en el alta»
    (``account/models/account_analytic_line.py:268``,
-   ``chain_method(AccountAnalyticLine, 'save', _derive_general_account_on_save)``).
+   ``chain_method(AccountAnalyticLine, 'save',
+   _derive_general_account_on_save)``).
    El gancho retorna ``None`` para que ``chain_method`` siga con el ``save()``
    real — semántica de relevo.
 2. **El término ``parent_id`` de la guarda cae.** La referencia exige
@@ -69,6 +70,7 @@ Divergencias declaradas
    plano es idempotente, y la descripción del to-do llega como HTML del
    editor cuando el cliente lo envía.
 """
+
 from orm.model_classes import extend_model
 from orm.method_chain import chain_method
 from tools.mail import html2plaintext

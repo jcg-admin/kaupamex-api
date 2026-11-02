@@ -5,6 +5,7 @@ estado de la company + resumen de módulos activos y conteo de usuarios, sin
 datos sensibles de otras companies (el operador L0 es cross-company por
 definición).
 """
+
 from rest_framework import serializers
 
 from addons.authz.models import Module
@@ -29,8 +30,15 @@ class ModulePriceSerializer(serializers.ModelSerializer):
     class Meta:
         model = ModulePrice
         fields = [
-            'id', 'module', 'module_code', 'billing_cycle', 'price',
-            'currency', 'effective_from', 'effective_to', 'created_at',
+            'id',
+            'module',
+            'module_code',
+            'billing_cycle',
+            'price',
+            'currency',
+            'effective_from',
+            'effective_to',
+            'created_at',
         ]
         read_only_fields = ['id', 'module_code', 'created_at']
 
@@ -46,14 +54,24 @@ class ModuleCatalogSerializer(serializers.ModelSerializer):
     """
 
     depends = serializers.SlugRelatedField(
-        slug_field='code', many=True, read_only=True,
+        slug_field='code',
+        many=True,
+        read_only=True,
     )
 
     class Meta:
         model = Module
         fields = [
-            'id', 'code', 'name', 'is_application', 'tier', 'category',
-            'version', 'description', 'depends', 'is_active',
+            'id',
+            'code',
+            'name',
+            'is_application',
+            'tier',
+            'category',
+            'version',
+            'description',
+            'depends',
+            'is_active',
         ]
         read_only_fields = fields
 
@@ -75,9 +93,16 @@ class CompanySerializer(serializers.ModelSerializer):
     class Meta:
         model = ResCompany
         fields = [
-            'id', 'code', 'name', 'status',
-            'billing_email', 'billing_name', 'tax_id',
-            'active_modules', 'user_count', 'created_at',
+            'id',
+            'code',
+            'name',
+            'status',
+            'billing_email',
+            'billing_name',
+            'tax_id',
+            'active_modules',
+            'user_count',
+            'created_at',
         ]
         read_only_fields = fields
 
@@ -99,7 +124,8 @@ class CompanyCreateSerializer(serializers.ModelSerializer):
 
     name = serializers.CharField(max_length=200)
     tax_id = serializers.CharField(
-        max_length=32, required=False, allow_blank=True, default='')
+        max_length=32, required=False, allow_blank=True, default=''
+    )
 
     class Meta:
         model = ResCompany
@@ -134,15 +160,29 @@ class CompanyModuleSubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = CompanyModuleSubscription
         fields = [
-            'id', 'company', 'company_code', 'module', 'module_code',
-            'status', 'started_at', 'expires_at', 'billing_cycle', 'price',
-            'is_active', 'created_at',
+            'id',
+            'company',
+            'company_code',
+            'module',
+            'module_code',
+            'status',
+            'started_at',
+            'expires_at',
+            'billing_cycle',
+            'price',
+            'is_active',
+            'created_at',
         ]
         # ``price`` es DERIVADO: se copia del catálogo ``ModulePrice`` vigente
         # según ``billing_cycle`` al contratar (DEC-T6, S4) — no lo fija el
         # cliente, para que un cambio de tarifa no reescriba lo ya cobrado.
         read_only_fields = [
-            'id', 'company_code', 'module_code', 'price', 'is_active', 'created_at',
+            'id',
+            'company_code',
+            'module_code',
+            'price',
+            'is_active',
+            'created_at',
         ]
 
     def create(self, validated_data):
@@ -158,7 +198,8 @@ class CompanyModuleSubscriptionSerializer(serializers.ModelSerializer):
         )
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-        # Re-copiar el precio solo si cambió el ciclo (re-cotización explícita);
+        # Re-copiar el precio solo si cambió el ciclo (re-cotización
+        # explícita);
         # un update que no toca el ciclo NO reescribe el precio congelado.
         if cycle_changed:
             instance.apply_current_price()
@@ -172,19 +213,39 @@ class CompanyModuleSubscriptionSerializer(serializers.ModelSerializer):
         # Guard S3: activar exige dependencias activas. Se construye una
         # instancia transitoria (con los campos ya validados + los actuales en
         # update) y se consulta missing_dependencies() -> 400 legible.
-        instance = CompanyModuleSubscription(**{
-            **{f: getattr(self.instance, f, None) for f in ('company', 'module', 'status')},
-            **{k: v for k, v in attrs.items() if k in ('company', 'module', 'status')},
-        }) if self.instance else CompanyModuleSubscription(**attrs)
-        if instance.status == CompanyModuleSubscription.Status.ACTIVE and instance.company_id and instance.module_id:
+        instance = (
+            CompanyModuleSubscription(
+                **{
+                    **{
+                        f: getattr(self.instance, f, None)
+                        for f in ('company', 'module', 'status')
+                    },
+                    **{
+                        k: v
+                        for k, v in attrs.items()
+                        if k in ('company', 'module', 'status')
+                    },
+                }
+            )
+            if self.instance
+            else CompanyModuleSubscription(**attrs)
+        )
+        if (
+            instance.status == CompanyModuleSubscription.Status.ACTIVE
+            and instance.company_id
+            and instance.module_id
+        ):
             missing = instance.missing_dependencies()
             if missing:
-                raise serializers.ValidationError({
-                    'module': (
-                        f"El módulo '{instance.module.code}' requiere módulos "
-                        f"activos que la empresa no tiene: {', '.join(sorted(missing))}."
-                    )
-                })
+                raise serializers.ValidationError(
+                    {
+                        'module': (
+                            f"El módulo '{instance.module.code}' requiere"
+                            " módulos activos que la empresa no tiene:"
+                            f" {', '.join(sorted(missing))}."
+                        )
+                    }
+                )
         return attrs
 
 
@@ -196,26 +257,46 @@ class SubscriptionBillingRunSerializer(serializers.ModelSerializer):
     class Meta:
         model = SubscriptionBillingRun
         fields = [
-            'run_id', 'period', 'triggered_by', 'invoices_issued',
-            'amount_charged', 'currency', 'failures', 'started_at',
+            'run_id',
+            'period',
+            'triggered_by',
+            'invoices_issued',
+            'amount_charged',
+            'currency',
+            'failures',
+            'started_at',
             'finished_at',
         ]
         read_only_fields = fields
 
 
 class SubscriptionInvoiceSerializer(serializers.ModelSerializer):
-    """Factura de suscripción L0 (documento de cobro por período, UC-PLT-18)."""
+    """
+    Factura de suscripción L0 (documento de cobro por período, UC-PLT-18).
+    """
 
     company_code = serializers.CharField(source='company.code', read_only=True)
     module_code = serializers.CharField(
-        source='subscription.module.code', read_only=True,
+        source='subscription.module.code',
+        read_only=True,
     )
 
     class Meta:
         model = SubscriptionInvoice
         fields = [
-            'id', 'company', 'company_code', 'subscription', 'module_code',
-            'run', 'period', 'amount', 'currency', 'status', 'issued_at',
-            'paid_at', 'failure_reason', 'created_at',
+            'id',
+            'company',
+            'company_code',
+            'subscription',
+            'module_code',
+            'run',
+            'period',
+            'amount',
+            'currency',
+            'status',
+            'issued_at',
+            'paid_at',
+            'failure_reason',
+            'created_at',
         ]
         read_only_fields = fields

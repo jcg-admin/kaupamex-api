@@ -33,9 +33,11 @@ La corrección **no** fue mover el disparo a ``m2m_changed`` —eso habría
 resuelto el síntoma cambiando la semántica: pasaría a reaccionar a *cualquier*
 cambio de grupos, no a la creación—. Se replicó el orden de la referencia:
 ``ResUsersManager._create_user`` aplica los grupos **dentro** de la creación y
-emite ``base.models.signals.res_users_created`` cuando el usuario está en el mismo
+emite ``base.models.signals.res_users_created`` cuando el usuario está en el
+mismo
 estado en que la referencia lo devuelve. Este receptor escucha ahí.
 """
+
 from django.dispatch import receiver
 
 from addons.base.models import SystemParameter

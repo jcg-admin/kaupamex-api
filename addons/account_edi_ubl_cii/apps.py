@@ -10,7 +10,8 @@ constructores son clases Python planas — ver
 campos colgados sobre modelos de otros addons, y eso lo aplica ``ready()``:
 
 * ``account.tax`` → ``ubl_cii_tax_category_code``,
-  ``ubl_cii_tax_exemption_reason_code`` (+ ``ubl_cii_requires_exemption_reason``
+  ``ubl_cii_tax_exemption_reason_code`` (+
+  ``ubl_cii_requires_exemption_reason``
   como ``property``);
 * ``account.move`` → ``ubl_cii_xml_file``, ``ubl_cii_xml_id``
   (+ ``ubl_cii_xml_filename`` como ``property``);
@@ -20,6 +21,7 @@ campos colgados sobre modelos de otros addons, y eso lo aplica ``ready()``:
 Además cuelga métodos, sin campos, sobre ``account.move.send``,
 ``account.move.send.wizard`` e ``ir.actions.report``.
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -37,18 +39,30 @@ class AccountEdiUblCiiConfig(AppConfig):
     #: ``(módulo, función)`` se declara explícito, que es lo que la regla 11 de
     #: la tanda pide).
     _EXTENSIONS = (
-        ('addons.account_edi_ubl_cii.models.account_tax',
-         'apply_account_edi_ubl_cii_account_tax_extensions'),
-        ('addons.account_edi_ubl_cii.models.res_partner',
-         'apply_account_edi_ubl_cii_res_partner_extensions'),
-        ('addons.account_edi_ubl_cii.models.account_move',
-         'apply_account_edi_ubl_cii_account_move_extensions'),
-        ('addons.account_edi_ubl_cii.models.account_move_send',
-         'apply_account_edi_ubl_cii_account_move_send_extensions'),
-        ('addons.account_edi_ubl_cii.models.ir_actions_report',
-         'apply_account_edi_ubl_cii_ir_actions_report_extensions'),
-        ('addons.account_edi_ubl_cii.wizard.account_move_send_wizard',
-         'apply_account_edi_ubl_cii_send_wizard_extensions'),
+        (
+            'addons.account_edi_ubl_cii.models.account_tax',
+            'apply_account_edi_ubl_cii_account_tax_extensions',
+        ),
+        (
+            'addons.account_edi_ubl_cii.models.res_partner',
+            'apply_account_edi_ubl_cii_res_partner_extensions',
+        ),
+        (
+            'addons.account_edi_ubl_cii.models.account_move',
+            'apply_account_edi_ubl_cii_account_move_extensions',
+        ),
+        (
+            'addons.account_edi_ubl_cii.models.account_move_send',
+            'apply_account_edi_ubl_cii_account_move_send_extensions',
+        ),
+        (
+            'addons.account_edi_ubl_cii.models.ir_actions_report',
+            'apply_account_edi_ubl_cii_ir_actions_report_extensions',
+        ),
+        (
+            'addons.account_edi_ubl_cii.wizard.account_move_send_wizard',
+            'apply_account_edi_ubl_cii_send_wizard_extensions',
+        ),
     )
 
     def ready(self):

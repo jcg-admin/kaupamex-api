@@ -154,6 +154,7 @@ mensaje: es el discriminante que el frontal lee para pedir la contraseña.
 (divergencia 5): ``_get_cached_visibility`` y la familia de plantillas
 calculan siempre. La decisión de caché bajo *prefork* es la tarea #542.
 """
+
 import logging
 
 import fields
@@ -200,35 +201,54 @@ class WebsiteViewInfo(TimeStampedModel):
     """
 
     view = models.OneToOneField(
-        'base.IrUiView', on_delete=models.CASCADE,
+        'base.IrUiView',
+        on_delete=models.CASCADE,
         related_name='website_info',
-        help_text='Vista a la que pertenece esta información (Odoo _inherit '
-                  'ir.ui.view).',
+        help_text=(
+            'Vista a la que pertenece esta información (Odoo _inherit '
+            'ir.ui.view).'
+        ),
     )
     website = fields.Many2one(
-        Website, on_delete=models.CASCADE, null=True, blank=True,
-        db_index=True, related_name='views',
-        help_text='Sitio dueño de la vista; vacío = genérica, compartida por '
-                  'todos (Odoo website_id, ondelete=cascade).',
+        Website,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='views',
+        help_text=(
+            'Sitio dueño de la vista; vacío = genérica, compartida por '
+            'todos (Odoo website_id, ondelete=cascade).'
+        ),
     )
     track = fields.Boolean(
         default=False,
         verbose_name='Con seguimiento',
-        help_text='Permite marcar una página del sitio como rastreable '
-                  '(Odoo track).',
+        help_text=(
+            'Permite marcar una página del sitio como rastreable (Odoo track).'
+        ),
     )
     visibility = fields.Selection(
-        max_length=16, choices=VISIBILITY_CHOICES, blank=True, default='',
+        max_length=16,
+        choices=VISIBILITY_CHOICES,
+        blank=True,
+        default='',
         verbose_name='Visibilidad',
-        help_text='Quién puede ver la página: pública, con sesión, con grupo '
-                  'restringido o con contraseña (Odoo visibility).',
+        help_text=(
+            'Quién puede ver la página: pública, con sesión, con grupo '
+            'restringido o con contraseña (Odoo visibility).'
+        ),
     )
     visibility_password = fields.Char(
-        max_length=128, blank=True, default='',
+        max_length=128,
+        blank=True,
+        default='',
         verbose_name='Contraseña de visibilidad',
-        help_text='Hash de la contraseña con que se desbloquea la página '
-                  '(Odoo visibility_password, groups=base.group_system, '
-                  'copy=False).',
+        help_text=(
+            'Hash de la contraseña con que se desbloquea la página '
+            '(Odoo visibility_password, groups=base.group_system, '
+            'copy=False).'
+        ),
     )
 
     class Meta:
@@ -270,7 +290,8 @@ class WebsiteViewInfo(TimeStampedModel):
         **Divergencia de sitio, declarada.** Allá la rama vive en la escritura
         de la *página* porque los dos campos le llegan por la delegación
         ``_inherits`` y viajan en el mismo ``vals``. Aquí ``visibility`` es
-        columna de esta tabla y ``group_ids`` es el ``groups`` del ``ir.ui.view``
+        columna de esta tabla y ``group_ids`` es el ``groups`` del
+        ``ir.ui.view``
         **base** (``src/addons/base/models/ir_ui_view.py:229``): la página no
         los escribe nunca, así que el disparador de la fuente —"llegó
         ``visibility`` en el ``vals``"— sólo existe aquí, donde se escribe.
@@ -296,8 +317,11 @@ class WebsiteViewInfo(TimeStampedModel):
         declared = update_fields is not None and 'visibility' in update_fields
         changed = self.visibility != (self._visibility_loaded or '')
         result = super().save(*args, **kwargs)
-        if (declared or changed) and self.visibility != 'restricted_group' \
-                and self.view_id:
+        if (
+            (declared or changed)
+            and self.visibility != 'restricted_group'
+            and self.view_id
+        ):
             self.view.groups.clear()
         self._visibility_loaded = self.visibility
         return result
@@ -339,6 +363,7 @@ def _info_for_write(view):
 #  Los 12 símbolos portados
 # ══════════════════════════════════════════════════════════════════════════
 
+
 def _get_pwd(self):
     """≙ ``_get_pwd`` (``@api.depends('visibility_password')``,
     ``odoo19c: :37-40``).
@@ -359,7 +384,8 @@ def _set_pwd(self, value):
 
     Guarda el **hash** de lo que se escribió en el campo de presentación, y
     sólo para vistas de plantilla, ≙ el ``if r.type == 'qweb'`` de la fuente
-    (aquí el valor se llama ``template``; ver ``ir_ui_view.VIEW_TYPE_TEMPLATE``).
+    (aquí el valor se llama ``template``; ver
+    ``ir_ui_view.VIEW_TYPE_TEMPLATE``).
     Un valor vacío borra el hash.
 
     Divergencias: **D-4** (el valor llega explícito, no por el caché de
@@ -401,10 +427,11 @@ def get_view_hierarchy(self):
     while top_level_view.inherit_id is not None:
         top_level_view = top_level_view.inherit_id
     sibling_views = list(
-        type(self).objects
-        .filter(key=top_level_view.key)
+        type(self)
+        .objects.filter(key=top_level_view.key)
         .exclude(pk=top_level_view.pk)
-        .values())
+        .values()
+    )
     return {
         'sibling_views': sibling_views,
         'hierarchy': top_level_view._build_hierarchy_datastructure(),
@@ -460,7 +487,8 @@ def filter_duplicate(cls, views):
         return [view for view in view_list if not website_id_of(view)]
 
     specific_views_keys = {
-        view.key for view in view_list
+        view.key
+        for view in view_list
         if website_id_of(view) == current_website_id and view.key
     }
     most_specific_views = []
@@ -558,7 +586,8 @@ def _add_website_to_missing(website_id, data):
     for key in list(data):
         if isinstance(data[key], MissingError):
             data[key] = MissingError(
-                '%s (website: %s)' % (data[key], website_id))
+                '%s (website: %s)' % (data[key], website_id)
+            )
     return data
 
 
@@ -612,7 +641,8 @@ def _handle_visibility(self, do_raise=True):
         if visibility == 'connected' and Website.is_public_user():
             error = AccessError('Forbidden')
         elif visibility == 'password' and (
-                Website.is_public_user() or self.pk not in unlocked):
+            Website.is_public_user() or self.pk not in unlocked
+        ):
             pwd = _password_from(request)
             info = _info_of(self)
             stored = info.visibility_password if info else ''
@@ -651,8 +681,11 @@ def _password_from(request):
 #  Las propiedades de lectura de los cuatro campos laterales (D-1)
 # ══════════════════════════════════════════════════════════════════════════
 
+
 def _website_property(self):
-    """``website_id`` de la fuente (``:20``), en lectura desde la fila lateral."""
+    """
+    ``website_id`` de la fuente (``:20``), en lectura desde la fila lateral.
+    """
     info = _info_of(self)
     return info.website if info else None
 
@@ -664,13 +697,17 @@ def _track_property(self):
 
 
 def _visibility_property(self):
-    """``visibility`` de la fuente (``:25``); sin fila lateral, ``''`` (pública)."""
+    """
+    ``visibility`` de la fuente (``:25``); sin fila lateral, ``''`` (pública).
+    """
     info = _info_of(self)
     return info.visibility if info else ''
 
 
 def _visibility_password_property(self):
-    """``visibility_password`` de la fuente (``:34``); sin fila lateral, ``''``."""
+    """
+    ``visibility_password`` de la fuente (``:34``); sin fila lateral, ``''``.
+    """
     info = _info_of(self)
     return info.visibility_password if info else ''
 
@@ -681,21 +718,26 @@ def _visibility_password_property(self):
 #
 # (a) La maquinaria COW / COU — 6 símbolos.
 #
-#   ``create`` (``:53-79``), ``write`` (``:92-168``), ``unlink`` (``:213-235``),
+# ``create`` (``:53-79``), ``write`` (``:92-168``), ``unlink``
+# (``:213-235``),
 #   ``_load_records_write_on_cow`` (``:170-176``),
 #   ``_create_all_specific_views`` (``:178-211``) y
 #   ``_create_website_specific_pages_for_view`` (``:237-244``):
 #   BLOQUEADOS por ``ir.ui.view.website_id`` — la copia-al-escribir opera sobre
 #   la columna del sitio **en la propia vista** (busca la específica por
-#   ``('website_id','=',ctx)``, la crea con ``copy()`` conservando la ``key``, y
-#   reengancha el árbol de hijas). D-1 desplaza esa columna a la tabla lateral y
+# ``('website_id','=',ctx)``, la crea con ``copy()`` conservando la
+# ``key``, y
+# reengancha el árbol de hijas). D-1 desplaza esa columna a la tabla
+# lateral y
 #   este ORM no trae el clon de registro, así que el mecanismo no tiene sobre
 #   qué operar. Sucesor: tarea **#565** lo deja anotado; lo cierra quien decida
-#   si la columna vuelve a ``ir_ui_view`` (migración en ``base``) o si la COW se
+# si la columna vuelve a ``ir_ui_view`` (migración en ``base``) o si la
+# COW se
 #   reescribe contra la fila lateral.
 #
 # (b) El método de ``base`` sobre el que encadenar no existe — 12 símbolos.
-#     El cuerpo de la fuente es ``super()`` más un delta; instalar sólo el delta
+# El cuerpo de la fuente es ``super()`` más un delta; instalar sólo el
+# delta
 #     devolvería una respuesta parcial sin que nada lo delate.
 #
 #   ``_compute_display_name`` (``:80-91``):
@@ -772,28 +814,38 @@ def apply_website_ir_ui_view_extensions():
     ``base``; los otros ocho portados se instalan tal cual porque son símbolos
     nuevos que el addon del sitio introduce.
     """
-    extend_model('base', 'IrUiView', campos={
-        # ``compute='_compute_first_page_id'`` sin ``store`` (``:23``). D-2.
-        'first_page_id': fields.NonStored(
-            default=_compute_first_page_id,
-            help_text='Primera página enlazada a esta vista (Odoo '
-                      'first_page_id, compute sin store).',
-        ),
-    }, metodos={
-        '_get_pwd': _get_pwd,
-        '_set_pwd': _set_pwd,
-        '_compute_first_page_id': _compute_first_page_id,
-        'get_view_hierarchy': get_view_hierarchy,
-        '_build_hierarchy_datastructure': _build_hierarchy_datastructure,
-        'filter_duplicate': classmethod(filter_duplicate),
-        '_get_cached_visibility': _get_cached_visibility,
-        '_handle_visibility': _handle_visibility,
-    }, propiedades={
-        'website': _website_property,
-        'track': _track_property,
-        'visibility': _visibility_property,
-        'visibility_password': _visibility_password_property,
-    }, luego=_chain_template_hooks)
+    extend_model(
+        'base',
+        'IrUiView',
+        campos={
+            # ``compute='_compute_first_page_id'`` sin ``store``
+            # (``:23``). D-2.
+            'first_page_id': fields.NonStored(
+                default=_compute_first_page_id,
+                help_text=(
+                    'Primera página enlazada a esta vista (Odoo '
+                    'first_page_id, compute sin store).'
+                ),
+            ),
+        },
+        metodos={
+            '_get_pwd': _get_pwd,
+            '_set_pwd': _set_pwd,
+            '_compute_first_page_id': _compute_first_page_id,
+            'get_view_hierarchy': get_view_hierarchy,
+            '_build_hierarchy_datastructure': _build_hierarchy_datastructure,
+            'filter_duplicate': classmethod(filter_duplicate),
+            '_get_cached_visibility': _get_cached_visibility,
+            '_handle_visibility': _handle_visibility,
+        },
+        propiedades={
+            'website': _website_property,
+            'track': _track_property,
+            'visibility': _visibility_property,
+            'visibility_password': _visibility_password_property,
+        },
+        luego=_chain_template_hooks,
+    )
 
 
 def _chain_template_hooks(model):
@@ -805,19 +857,32 @@ def _chain_template_hooks(model):
     ``compute``/``inverse`` como ``property``, que tampoco cabe en
     ``propiedades`` (ése instala sólo lectura).
     """
-    chain_method(model, '_get_cached_template_prefetched_keys',
-                 classmethod(_get_cached_template_prefetched_keys),
-                 combine=extend_list)
-    chain_method(model, '_get_template_domain',
-                 classmethod(_get_template_domain),
-                 combine=lambda new, previous: previous & new)
-    chain_method(model, '_get_template_order',
-                 classmethod(_get_template_order),
-                 combine=lambda new, previous: tuple(new) + tuple(previous))
-    chain_method(model, '_fetch_template_views',
-                 classmethod(_fetch_template_views),
-                 combine=_add_website_to_missing)
+    chain_method(
+        model,
+        '_get_cached_template_prefetched_keys',
+        classmethod(_get_cached_template_prefetched_keys),
+        combine=extend_list,
+    )
+    chain_method(
+        model,
+        '_get_template_domain',
+        classmethod(_get_template_domain),
+        combine=lambda new, previous: previous & new,
+    )
+    chain_method(
+        model,
+        '_get_template_order',
+        classmethod(_get_template_order),
+        combine=lambda new, previous: tuple(new) + tuple(previous),
+    )
+    chain_method(
+        model,
+        '_fetch_template_views',
+        classmethod(_fetch_template_views),
+        combine=_add_website_to_missing,
+    )
     # ``visibility_password_display`` (``:35``) — el par compute/inverse.
-    if not isinstance(getattr(model, 'visibility_password_display', None),
-                      property):
+    if not isinstance(
+        getattr(model, 'visibility_password_display', None), property
+    ):
         model.visibility_password_display = property(_get_pwd, _set_pwd)

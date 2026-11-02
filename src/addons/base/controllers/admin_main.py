@@ -27,11 +27,13 @@ retiran con él.
 
 - **Append-only:** sólo ``GET`` — ``APIView`` responde ``405`` al resto
   (FR-ADM-06.03).
-- **Acceso:** ``IsAuthenticated`` + ``HasCapability`` (``audit.view``) → ``403``
+- **Acceso:** ``IsAuthenticated`` + ``HasCapability`` (``audit.view``) →
+  ``403``
   sin la capacidad (FR-ADM-06.04).
 - **PII-safe:** ``msg`` y ``trace`` vienen scrubbed del origen (DEC-LOG-03).
 - Filtros por query params + paginado a nivel DB (LIMIT/OFFSET).
 """
+
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -57,13 +59,31 @@ class AdminLogsView(APIView):
     @extend_schema(
         summary='Listar logs tecnicos (UC-ADM-06)',
         parameters=[
-            OpenApiParameter('source', str, description='applog (unica fuente desde DEC-AF-11)'),
-            OpenApiParameter('correlation_id', str, description='Filtrar por correlation_id exacto'),
-            OpenApiParameter('level', str, description='level exacto (INFO, ERROR, ...)'),
-            OpenApiParameter('from', str, description='created_at >= (ISO 8601)'),
-            OpenApiParameter('to', str, description='created_at <= (ISO 8601)'),
+            OpenApiParameter(
+                'source',
+                str,
+                description='applog (unica fuente desde DEC-AF-11)',
+            ),
+            OpenApiParameter(
+                'correlation_id',
+                str,
+                description='Filtrar por correlation_id exacto',
+            ),
+            OpenApiParameter(
+                'level', str, description='level exacto (INFO, ERROR, ...)'
+            ),
+            OpenApiParameter(
+                'from', str, description='created_at >= (ISO 8601)'
+            ),
+            OpenApiParameter(
+                'to', str, description='created_at <= (ISO 8601)'
+            ),
             OpenApiParameter('page', int, description='Numero de pagina'),
-            OpenApiParameter('page_size', int, description=f'Tamano de pagina (max {_MAX_PAGE_SIZE})'),
+            OpenApiParameter(
+                'page_size',
+                int,
+                description=f'Tamano de pagina (max {_MAX_PAGE_SIZE})',
+            ),
         ],
         tags=['admin'],
     )
@@ -76,14 +96,18 @@ class AdminLogsView(APIView):
         total = qs.count()
         pages = max(1, (total + page_size - 1) // page_size)
         start = (page - 1) * page_size
-        results = [self._serialize(obj) for obj in qs[start:start + page_size]]
-        return Response({
-            'source': source,
-            'count': total,
-            'page': page,
-            'pages': pages,
-            'results': results,
-        })
+        results = [
+            self._serialize(obj) for obj in qs[start: start + page_size]
+        ]
+        return Response(
+            {
+                'source': source,
+                'count': total,
+                'page': page,
+                'pages': pages,
+                'results': results,
+            }
+        )
 
     # --- paginacion / filtros ---
 
@@ -93,9 +117,13 @@ class AdminLogsView(APIView):
         except (ValueError, TypeError):
             raise DRFValidationError({'page': 'Debe ser un entero valido.'})
         try:
-            page_size = int(request.query_params.get('page_size', _DEFAULT_PAGE_SIZE))
+            page_size = int(
+                request.query_params.get('page_size', _DEFAULT_PAGE_SIZE)
+            )
         except (ValueError, TypeError):
-            raise DRFValidationError({'page_size': 'Debe ser un entero valido.'})
+            raise DRFValidationError(
+                {'page_size': 'Debe ser un entero valido.'}
+            )
         page_size = max(1, min(page_size, _MAX_PAGE_SIZE))
         return page, page_size
 
@@ -123,7 +151,8 @@ class AdminLogsView(APIView):
         if dt is None:
             raise DRFValidationError({key: 'Fecha ISO 8601 invalida.'})
         # USE_TZ activo: un ISO sin offset llega naive; comparar naive contra
-        # created_at (aware) lanza RuntimeWarning y es ambiguo. Lo anclamos a la
+        # created_at (aware) lanza RuntimeWarning y es ambiguo. Lo
+        # anclamos a la
         # zona activa (H-API-LOG: filtro from/to naive bajo USE_TZ).
         if timezone.is_naive(dt):
             dt = timezone.make_aware(dt)

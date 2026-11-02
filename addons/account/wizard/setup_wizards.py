@@ -69,6 +69,7 @@ Lo que este archivo NO cierra
   ``account`` es la tarea **#299** (los addons con data-migration sin
   ``seed()``). Queda como DESCONOCIDO con esa condición de cierre.
 """
+
 from datetime import date, timedelta
 
 import fields
@@ -85,8 +86,12 @@ from orm.models_transient import TransientModel
 from tools.translate import _
 
 
-class AccountFinancialYearOp(models.DefaultGetMixin, models.RecordLoaderMixin,
-                             models.CheckCompanyMixin, TransientModel):
+class AccountFinancialYearOp(
+    models.DefaultGetMixin,
+    models.RecordLoaderMixin,
+    models.CheckCompanyMixin,
+    TransientModel,
+):
     """≙ ``account.financial.year.op`` — fecha de apertura y cierre fiscal
     de la empresa (``odoo19c: setup_wizards.py:10-91``)."""
 
@@ -94,36 +99,48 @@ class AccountFinancialYearOp(models.DefaultGetMixin, models.RecordLoaderMixin,
     _description = 'Opening Balance of Financial Year'
 
     company_id = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE,
-        db_column='company_id', related_name='financial_year_ops',
+        'base.ResCompany',
+        on_delete=models.CASCADE,
+        db_column='company_id',
+        related_name='financial_year_ops',
         help_text='Empresa cuyo ejercicio se abre (Odoo company_id).',
     )
     #: ≙ ``opening_move_posted`` (``:15``) — ``compute`` sin ``store``. Su
     #: cuerpo delega en ``ResCompany.opening_move_posted()``, igual que allá.
     opening_move_posted = fields.Boolean(
-        store=False, compute='_compute_opening_move_posted',
+        store=False,
+        compute='_compute_opening_move_posted',
         verbose_name='Opening Move Posted',
     )
     #: ≙ ``opening_date`` (``:16``): ``related`` **editable** a la empresa.
     opening_date = fields.Date(
-        related='company_id.account_opening_date', readonly=False,
+        related='company_id.account_opening_date',
+        readonly=False,
         verbose_name='Opening Date',
-        help_text='Fecha desde la que se lleva la contabilidad; es la del '
-                  'asiento de apertura (Odoo opening_date).',
+        help_text=(
+            'Fecha desde la que se lleva la contabilidad; es la del '
+            'asiento de apertura (Odoo opening_date).'
+        ),
     )
     #: ≙ ``fiscalyear_last_day`` / ``fiscalyear_last_month`` (``:17-21``).
     #: Los dos son ``related`` editables, y su ayuda es la de la fuente:
     #: «The last day of the month will be used if the chosen day doesn't
     #: exist.»
     fiscalyear_last_day = fields.Integer(
-        related='company_id.fiscalyear_last_day', readonly=False,
-        help_text='Si el día elegido no existe en el mes se usa el último '
-                  '(Odoo fiscalyear_last_day).',
+        related='company_id.fiscalyear_last_day',
+        readonly=False,
+        help_text=(
+            'Si el día elegido no existe en el mes se usa el último '
+            '(Odoo fiscalyear_last_day).'
+        ),
     )
     fiscalyear_last_month = fields.Selection(
-        related='company_id.fiscalyear_last_month', readonly=False,
-        help_text='Si el día elegido no existe en el mes se usa el último '
-                  '(Odoo fiscalyear_last_month).',
+        related='company_id.fiscalyear_last_month',
+        readonly=False,
+        help_text=(
+            'Si el día elegido no existe en el mes se usa el último '
+            '(Odoo fiscalyear_last_month).'
+        ),
     )
 
     class Meta:
@@ -150,19 +167,24 @@ class AccountFinancialYearOp(models.DefaultGetMixin, models.RecordLoaderMixin,
         try:
             date(2020, int(fiscalyear_last_month), fiscalyear_last_day)
         except ValueError:
-            raise ValidationError(_(
-                'Incorrect fiscal year date: day is out of range for '
-                'month. Month: %(month)s; Day: %(day)s') % {
+            raise ValidationError(
+                _(
+                    'Incorrect fiscal year date: day is out of range for '
+                    'month. Month: %(month)s; Day: %(day)s'
+                )
+                % {
                     'month': fiscalyear_last_month,
                     'day': fiscalyear_last_day,
-                })
+                }
+            )
 
     def clean(self):
         """El ``@api.constrains`` de la fuente, en la forma del stack."""
         super().clean()
         if self.fiscalyear_last_month and self.fiscalyear_last_day:
             self._check_fiscalyear(
-                self.fiscalyear_last_month, self.fiscalyear_last_day)
+                self.fiscalyear_last_month, self.fiscalyear_last_day
+            )
 
     @classmethod
     def _company_fields_to_update(cls):
@@ -184,7 +206,9 @@ class AccountFinancialYearOp(models.DefaultGetMixin, models.RecordLoaderMixin,
         Por eso los tres viajan en **una** escritura: escribirlos de a uno
         haría que la restricción se validara sobre un estado intermedio.
         """
-        company_fields_to_update = {k: k for k in cls._company_fields_to_update()}
+        company_fields_to_update = {
+            k: k for k in cls._company_fields_to_update()
+        }
         company_fields_to_update['opening_date'] = 'account_opening_date'
         cambiados = []
         for wizard_field, company_field in company_fields_to_update.items():
@@ -195,8 +219,11 @@ class AccountFinancialYearOp(models.DefaultGetMixin, models.RecordLoaderMixin,
             company.save(update_fields=cambiados)
         opening_date = vals.get('opening_date', company.account_opening_date)
         opening_move = company.account_opening_move
-        if opening_date and opening_move is not None \
-                and opening_move.state == 'draft':
+        if (
+            opening_date
+            and opening_move is not None
+            and opening_move.state == 'draft'
+        ):
             opening_move.date = opening_date - timedelta(days=1)
             opening_move.save(update_fields=['date'])
 
@@ -205,7 +232,8 @@ class AccountFinancialYearOp(models.DefaultGetMixin, models.RecordLoaderMixin,
     def create(cls, vals_list):
         """≙ ``create`` (``:65-75``): la empresa se actualiza ANTES de guardar
         el asistente, y los campos que ya viajaron a la empresa se sacan de
-        ``vals``. El bucle por ``vals`` es el de la referencia; ``super().create``
+        ``vals``. El bucle por ``vals`` es el de la referencia;
+        ``super().create``
         es ``DefaultGetMixin.create``, el porte por contenido de
         ``BaseModel.create`` (:ref:`h-api-1108`).
 
@@ -267,31 +295,43 @@ class AccountSetupBankManualConfig(TransientModel):
     #: ``_inherits``: por ella el asistente expone como propios ``acc_number``,
     #: ``partner``, ``bank`` y el resto de la cuenta bancaria.
     res_partner_bank_id = fields.Many2one(
-        'base.ResPartnerBank', on_delete=models.CASCADE,
-        db_column='res_partner_bank_id', related_name='setup_wizards',
+        'base.ResPartnerBank',
+        on_delete=models.CASCADE,
+        db_column='res_partner_bank_id',
+        related_name='setup_wizards',
         help_text='Cuenta bancaria delegada (Odoo res_partner_bank_id).',
     )
     new_journal_name = fields.Char(
-        max_length=128, blank=True, default='',
-        help_text='Nombre del diario ligado a esta cuenta '
-                  '(Odoo new_journal_name).',
+        max_length=128,
+        blank=True,
+        default='',
+        help_text=(
+            'Nombre del diario ligado a esta cuenta (Odoo new_journal_name).'
+        ),
     )
     linked_journal_id = fields.Many2one(
-        'account.AccountJournal', on_delete=models.SET_NULL, null=True,
-        blank=True, db_column='linked_journal_id',
-        related_name='setup_wizards', verbose_name='Journal',
+        'account.AccountJournal',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='linked_journal_id',
+        related_name='setup_wizards',
+        verbose_name='Journal',
         help_text='Diario ligado (Odoo linked_journal_id).',
     )
     #: ≙ ``num_journals_without_account_bank`` / ``_credit`` (``:108-109``).
-    #: Su ``default`` allá es ``lambda self: self._number_unlinked_journal(…)``,
+    #: Su ``default`` allá es ``lambda self:
+    #: self._number_unlinked_journal(…)``,
     #: que necesita la empresa activa; aquí el conteo se pide al método y el
     #: campo arranca en 0 — el valor lo escribe quien abre el asistente, que
     #: es el único que sabe de qué empresa habla.
     num_journals_without_account_bank = fields.Integer(default=0)
     num_journals_without_account_credit = fields.Integer(default=0)
     company_id = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE,
-        db_column='company_id', related_name='bank_setup_wizards',
+        'base.ResCompany',
+        on_delete=models.CASCADE,
+        db_column='company_id',
+        related_name='bank_setup_wizards',
         help_text='Empresa (Odoo company_id).',
     )
 
@@ -317,7 +357,8 @@ class AccountSetupBankManualConfig(TransientModel):
         la forma de este árbol para todo lo que allá sale de ``self.env``.
         """
         queryset = AccountJournal.objects.filter(
-            type=journal_type, bank_account_id__isnull=True, company=company)
+            type=journal_type, bank_account_id__isnull=True, company=company
+        )
         excluido = cls.default_linked_journal_id(journal_type, company)
         if excluido is not None:
             queryset = queryset.exclude(pk=excluido)
@@ -340,7 +381,8 @@ class AccountSetupBankManualConfig(TransientModel):
         Y la segunda mitad: sin banco elegido, un BIC busca o crea el banco.
         """
         bank_account = ResPartnerBank.objects.create(
-            acc_number=acc_number, partner=company.partner)
+            acc_number=acc_number, partner=company.partner
+        )
         if bank is None and bank_bic:
             bank = ResBank.objects.filter(bic=bank_bic).first()
             if bank is None:
@@ -349,8 +391,11 @@ class AccountSetupBankManualConfig(TransientModel):
             bank_account.bank = bank
             bank_account.save(update_fields=['bank'])
         return cls.objects.create(
-            company_id=company, res_partner_bank_id=bank_account,
-            new_journal_name=acc_number, **vals)
+            company_id=company,
+            res_partner_bank_id=bank_account,
+            new_journal_name=acc_number,
+            **vals,
+        )
 
     @classmethod
     def _onchange_new_journal_related_data(cls, journal):
@@ -364,8 +409,11 @@ class AccountSetupBankManualConfig(TransientModel):
         actually a One2many field"* — de ahí el ``[0]``. Aquí el lado inverso
         de la cuenta bancaria es ``journals``, su ``related_name``.
         """
-        propios = self.res_partner_bank_id.journals.all() \
-            if self.res_partner_bank_id is not None else []
+        propios = (
+            self.res_partner_bank_id.journals.all()
+            if self.res_partner_bank_id is not None
+            else []
+        )
         primero = next(iter(propios), None)
         if primero is not None:
             return primero
@@ -380,11 +428,18 @@ class AccountSetupBankManualConfig(TransientModel):
         Devuelve la clave primaria, como la fuente (``….id``).
         """
         journals_with_moves = AccountMove.objects.filter(
-            journal__isnull=False, journal__type=journal_type,
+            journal__isnull=False,
+            journal__type=journal_type,
         ).values_list('journal', flat=True)
-        journal = AccountJournal.objects.filter(
-            type=journal_type, bank_account_id__isnull=True, company=company,
-        ).exclude(pk__in=journals_with_moves).first()
+        journal = (
+            AccountJournal.objects.filter(
+                type=journal_type,
+                bank_account_id__isnull=True,
+                company=company,
+            )
+            .exclude(pk__in=journals_with_moves)
+            .first()
+        )
         return journal.pk if journal is not None else None
 
     def set_linked_journal_id(self, journal_type='bank'):
@@ -400,7 +455,8 @@ class AccountSetupBankManualConfig(TransientModel):
         selected_journal = self.linked_journal_id
         if selected_journal is None:
             code = AccountJournal._get_next_journal_default_code(
-                journal_type, self.company_id)
+                journal_type, self.company_id
+            )
             selected_journal = AccountJournal.objects.create(
                 name=self.new_journal_name,
                 code=code,

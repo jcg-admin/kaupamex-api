@@ -2,16 +2,22 @@
 
 Se porta la **forma** (``version_info`` comparable estilo ``sys.version_info``,
 niveles de release, mínimos de runtime), **no los valores**: copiar
-``version_info = (19, 0, 0, FINAL, 0, '')`` y ``product_name = 'Odoo'`` verbatim
+``version_info = (19, 0, 0, FINAL, 0, '')`` y ``product_name = 'Odoo'``
+verbatim
 afirmaría que este árbol *es* Odoo 19, que es falso — es una adaptación
 (DEC-KX-03). Los valores son los de Kaupamex.
 
 ``version`` se mantiene en sincronía con ``[project].version`` de
-``pyproject.toml`` (hoy 0.1.0); ``pyproject`` es la fuente para el empaquetado y
+``pyproject.toml`` (hoy 0.1.0); ``pyproject`` es la fuente para el empaquetado
+y
 éste lo es para el código que necesita la versión en runtime.
 """
+
 RELEASE_LEVELS = [ALPHA, BETA, RELEASE_CANDIDATE, FINAL] = [
-    'alpha', 'beta', 'candidate', 'final',
+    'alpha',
+    'beta',
+    'candidate',
+    'final',
 ]
 RELEASE_LEVELS_DISPLAY = {
     ALPHA: 'a',
@@ -68,8 +74,10 @@ MIN_PY_VERSION = (3, 12)
 MAX_PY_VERSION = (3, 14)
 
 # Entero, no tupla — la referencia lo multiplica por 10000 para compararlo con
-# el `server_version` de libpq (``odoo19c: odoo/sql_db.py:699``), y una tupla no
-# admite esa aritmética. El valor es el mínimo efectivo: el mayor entre el de la
+# el `server_version` de libpq (``odoo19c: odoo/sql_db.py:699``), y una
+# tupla no
+# admite esa aritmética. El valor es el mínimo efectivo: el mayor entre
+# el de la
 # referencia (13, ``odoo19c: odoo/release.py:41``) y el de Django 6
 # (``django/db/backends/postgresql/features.py:10``, que aborta la conexión).
 MIN_PG_VERSION = 14

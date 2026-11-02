@@ -1,4 +1,6 @@
-"""``mail.tracking.value`` colgado por ``account`` — protección del rastro de auditoría.
+"""
+``mail.tracking.value`` colgado por ``account`` — protección del rastro de
+auditoría.
 
 Adaptación de ``addons/account/models/mail_tracking_value.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3 — atribución y aviso de
@@ -31,6 +33,7 @@ significa que el guard corre incluso durante la desinstalación de un módulo
 — aquí no hay ese concepto (no hay instalación/desinstalación de apps en
 caliente), así que el guard corre siempre, que es el superconjunto correcto.
 """
+
 from addons.mail.models.mail_tracking_value import MailTrackingValue
 from orm.method_chain import chain_method
 
@@ -78,7 +81,9 @@ def save(self, *args, **kwargs):
 
 
 def apply_account_extensions():
-    """Cuelga la guarda de auditoría sobre ``mail.tracking.value`` — ≙ ``_inherit``.
+    """
+    Cuelga la guarda de auditoría sobre ``mail.tracking.value`` — ≙
+    ``_inherit``.
 
     **Todavía no cableado** en ``AccountConfig._EXTENSIONES`` — mismo estado
     que los cuatro ``account_analytic_*``/``account_code_mapping`` que el

@@ -4,12 +4,14 @@ Defiende al AGREGADOR, no al extractor: ``declared_symbols``, ``signature_of``
 y ``body_class`` ya tienen su suite en el run del censo de presencia
 (``orm-symbol-presence-census-20260910T175850``), y este run los importa en vez
 de reescribirlos. Lo que aqui se prueba es lo que este instrumento anade — la
-unidad CRUDA con su clase `owner`, el desglose por clase, y que una raiz ausente
+unidad CRUDA con su clase `owner`, el desglose por clase, y que una raiz
+ausente
 emita cero en vez de fabricar.
 
 Todos los sujetos son REALES del arbol de la referencia. Un sujeto fabricado
 confirmaria el encuadre de quien escribio el instrumento.
 """
+
 import importlib.util
 import os
 import pathlib
@@ -30,7 +32,8 @@ def _load(name, path):
 
 
 inventory_module = _load(
-    '_inventory_reference_orm', RUN_DIR / 'inventory_reference_orm.py')
+    '_inventory_reference_orm', RUN_DIR / 'inventory_reference_orm.py'
+)
 roots = _load('_inventory_roots', REPO / 'scripts/reference_roots.py')
 
 ORM_19C = roots.TREE_ROOTS['odoo19c'] / 'odoo' / 'orm'
@@ -59,9 +62,12 @@ def test_raw_exceeds_unique_where_a_name_repeats_across_classes(orm):
     """
     entry = _file(orm, 'fields_relational.py')
     assert entry['raw'] > entry['unique']
-    owners = [owner['name'] for owner in entry['classes']
-              for method in owner['methods']
-              if method['name'] == 'setup_nonrelated']
+    owners = [
+        owner['name']
+        for owner in entry['classes']
+        for method in owner['methods']
+        if method['name'] == 'setup_nonrelated'
+    ]
     assert len(owners) == 4, owners
     assert len(set(owners)) == 4, 'las cuatro son clases distintas'
 
@@ -69,7 +75,9 @@ def test_raw_exceeds_unique_where_a_name_repeats_across_classes(orm):
 def test_a_class_carries_its_own_methods(orm):
     """El desglose es POR CLASE: ``BaseModel`` declara 194 metodos."""
     entry = _file(orm, 'models.py')
-    base = [owner for owner in entry['classes'] if owner['name'] == 'BaseModel']
+    base = [
+        owner for owner in entry['classes'] if owner['name'] == 'BaseModel'
+    ]
     assert len(base) == 1
     assert len(base[0]['methods']) == 194
 
@@ -81,7 +89,9 @@ def test_an_absent_root_yields_zero_and_does_not_fabricate():
     indistinguible de «medi y no hay», que es el sub-patron D.
     """
     ausente = roots.TREE_ROOTS['odoo18c'] / 'odoo' / 'orm'
-    assert not ausente.is_dir(), 'la premisa del caso cambio: 18c ya trae odoo/orm'
+    assert (
+        not ausente.is_dir()
+    ), 'la premisa del caso cambio: 18c ya trae odoo/orm'
     report = inventory_module.inventory(ausente)
     assert report['files'] == []
     assert report['totals']['files'] == 0
@@ -102,11 +112,15 @@ def test_totals_are_the_sum_of_the_files(orm):
     total = orm['totals']
     assert total['files'] == len(orm['files'])
     assert total['classes'] == sum(len(e['classes']) for e in orm['files'])
-    assert total['module_functions'] == sum(len(e['functions']) for e in orm['files'])
+    assert total['module_functions'] == sum(
+        len(e['functions']) for e in orm['files']
+    )
     assert total['methods'] == sum(
-        len(c['methods']) for e in orm['files'] for c in e['classes'])
+        len(c['methods']) for e in orm['files'] for c in e['classes']
+    )
     assert total['symbols'] == (
-        total['classes'] + total['module_functions'] + total['methods'])
+        total['classes'] + total['module_functions'] + total['methods']
+    )
 
 
 # --- la sonda de cuerpos `stub` ------------------------------------------
@@ -116,7 +130,9 @@ def test_totals_are_the_sum_of_the_files(orm):
 # metodos abstractos», sin medirlo; estas dos aserciones son lo que impide que
 # esa frase vuelva.
 
-stub_probe = _load('_probe_stub_bodies', RUN_DIR / 'probes/probe_stub_bodies.py')
+stub_probe = _load(
+    '_probe_stub_bodies', RUN_DIR / 'probes/probe_stub_bodies.py'
+)
 
 
 @pytest.fixture(scope='module')
@@ -127,14 +143,19 @@ def stubs():
 
 
 def test_an_overload_is_not_an_empty_implementation(stubs):
-    """``typing.overload`` declara una firma; su cuerpo es `...` por el lenguaje.
+    """
+    ``typing.overload`` declara una firma; su cuerpo es `...` por el lenguaje.
 
     El sujeto es real y esta duplicado a proposito en la fuente: ``mapped`` se
     declara dos veces en ``models.py`` con ``@typing.overload`` y una tercera
-    con cuerpo. Contar esas dos como metodos sin implementar es medir el significante.
+    con cuerpo. Contar esas dos como metodos sin implementar es medir el
+    significante.
     """
-    mapped = [s for s in stubs['stubs']
-              if s['file'] == 'models.py' and s['name'] == 'mapped']
+    mapped = [
+        s
+        for s in stubs['stubs']
+        if s['file'] == 'models.py' and s['name'] == 'mapped'
+    ]
     assert len(mapped) == 2
     assert {s['bucket'] for s in mapped} == {'overload'}
     assert all('typing.overload' in s['decorators'] for s in mapped)
@@ -154,6 +175,8 @@ def test_the_plain_bucket_separates_abstract_base_from_empty_hook(stubs):
     assert base['bucket'] == hook['bucket'] == 'plain'
     assert base['overridden_elsewhere']
     assert hook['overridden_elsewhere'] == []
-    assert (stubs['plain_implemented_elsewhere']
-            + stubs['plain_not_implemented_in_package']
-            == stubs['by_bucket']['plain'])
+    assert (
+        stubs['plain_implemented_elsewhere']
+        + stubs['plain_not_implemented_in_package']
+        == stubs['by_bucket']['plain']
+    )

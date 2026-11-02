@@ -23,6 +23,7 @@ existe en ningún addon instalado, verificado por exclusión: si
 ``StockPickingType`` ya resuelve, el destino sintético no puede colisionar
 con él.
 """
+
 import inspect
 
 import django.core.checks.model_checks as django_model_checks
@@ -36,8 +37,9 @@ from orm.checks import (
     run_checks_or_raise,
 )
 
+# === El detector: Django ve la FK irresoluble, con la forma real del
+# incidente ==
 
-# === El detector: Django ve la FK irresoluble, con la forma real del incidente ==
 
 class TestDanglingForeignKeyIsDetected:
     """Reproduce H-API-583/584: FK a un modelo que su addon aún no declara.
@@ -55,8 +57,10 @@ class TestDanglingForeignKeyIsDetected:
         class StockMoveLineProbe(models.Model):
             """Forma real: ``stock.move.line`` -> un modelo del mismo addon
             que aún no existe (la clase de defecto de H-API-583)."""
+
             picking_type_id = models.ForeignKey(
-                self.DANGLING_TARGET, on_delete=models.CASCADE,
+                self.DANGLING_TARGET,
+                on_delete=models.CASCADE,
             )
 
             class Meta:
@@ -94,17 +98,24 @@ class TestDanglingForeignKeyIsDetected:
         assert 'return _check_lazy_references(apps)' in source
 
 
-# === La forma NEGATIVA de control: una FK real que sí resuelve no dispara nada ==
+# === La forma NEGATIVA de control: una FK real que sí resuelve no
+# dispara nada ==
+
 
 class TestResolvableForeignKeyIsNotFlagged:
     """Control negativo — ``StockMove.location_id`` resuelve de verdad hoy."""
 
     def test_real_resolvable_fk_has_no_dangling_error(self):
-        errors = [e for e in StockMove.check() if e.id and e.id.startswith('fields.E30')]
+        errors = [
+            e
+            for e in StockMove.check()
+            if e.id and e.id.startswith('fields.E30')
+        ]
         assert errors == []
 
 
-# === El wrapper del proyecto: denominador + Métrica/Ciega a =====================
+# === El wrapper del proyecto: denominador + Métrica/Ciega a ========
+
 
 class TestCollectSystemCheckSummary:
     """``collect_system_check_summary()`` sobre el registro real del árbol."""
@@ -125,10 +136,14 @@ class TestCollectSystemCheckSummary:
         assert resumen.errors == []
 
 
-# === El hallazgo real: call_command() se salta los checks por defecto ===========
+# === El hallazgo real: call_command() se salta los checks por defecto
+# ========
+
 
 class TestCallCommandWithChecksEnforcesTheFlag:
-    """El footgun detrás de H-API-584 — no es ``makemigrations``, es ``call_command``.
+    """
+    El footgun detrás de H-API-584 — no es ``makemigrations``, es
+    ``call_command``.
 
     ``django/core/management/__init__.py:192-193`` fija ``skip_checks=True``
     salvo que el llamador lo pase explícito. La vía CLI SÍ corre
@@ -156,7 +171,9 @@ class TestCallCommandWithChecksEnforcesTheFlag:
             return None
 
         call_command_with_checks(
-            'migrate', database='default', _call_command=fake_call_command,
+            'migrate',
+            database='default',
+            _call_command=fake_call_command,
         )
 
         assert captured['name'] == 'migrate'
@@ -176,7 +193,9 @@ class TestCallCommandWithChecksEnforcesTheFlag:
             return None
 
         call_command_with_checks(
-            'migrate', database='default', skip_checks=True,
+            'migrate',
+            database='default',
+            skip_checks=True,
             _call_command=fake_call_command,
         )
 

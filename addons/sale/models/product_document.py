@@ -22,6 +22,7 @@ Sus dos atributos que no son la enumeración:
     declara aquí para que el serializer que lo exponga sepa que hereda una
     restricción: :data:`ATTACHED_ON_SALE_GROUP` nombra el grupo de la fuente.
 """
+
 import fields
 
 from orm.model_classes import extend_model
@@ -60,23 +61,29 @@ def apply_sale_product_document_extensions():
     """Cuelga ``attached_on_sale`` sobre ``product.document``.
 
     La invoca ``SaleConfig.ready()``. Su DDL lo emite
-    ``product/migrations/0012``: la columna la aporta ``sale`` y el modelo es de
+    ``product/migrations/0012``: la columna la aporta ``sale`` y el modelo es
+    de
     la app ``product``.
     """
     extend_model(
-        'product', 'ProductDocument',
+        'product',
+        'ProductDocument',
         campos={
             'attached_on_sale': fields.Selection(
-                max_length=16, choices=ATTACHED_ON_SALE_CHOICES,
-                default=ATTACHED_ON_SALE_HIDDEN, blank=False,
+                max_length=16,
+                choices=ATTACHED_ON_SALE_CHOICES,
+                default=ATTACHED_ON_SALE_HIDDEN,
+                blank=False,
                 verbose_name='Venta: visible en',
-                help_text='Odoo attached_on_sale ("Sale : Visible at"). '
-                          'Permite compartir el documento con el cliente '
-                          'dentro de una venta. En el presupuesto: se envía y '
-                          'queda accesible en cualquier momento — útil para '
-                          'fichas de producto. En el pedido confirmado: se '
-                          'envía al confirmar — útil para manuales o contenido '
-                          'digital comprado.',
+                help_text=(
+                    'Odoo attached_on_sale ("Sale : Visible at"). '
+                    'Permite compartir el documento con el cliente '
+                    'dentro de una venta. En el presupuesto: se envía y '
+                    'queda accesible en cualquier momento — útil para '
+                    'fichas de producto. En el pedido confirmado: se '
+                    'envía al confirmar — útil para manuales o contenido '
+                    'digital comprado.'
+                ),
             ),
         },
     )

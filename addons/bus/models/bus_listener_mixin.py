@@ -31,6 +31,7 @@ emitir hereda el mixin y declara cuál es su canal. Aquí es un mixin de Python
 plano, no un modelo Django, porque el original tampoco aporta campos — es un
 ``AbstractModel`` con dos métodos.
 """
+
 from addons.bus.models.bus import BusMessage
 
 #: ``etiqueta de modelo`` → ``fn(registro)`` que devuelve el objeto en cuyo
@@ -55,9 +56,11 @@ def register_channel(model_label):
     su ``_bus_channel`` redefinido, que Python no permite expresar reabriendo
     una clase de Django.
     """
+
     def decorator(resolver):
         CHANNEL_RESOLVERS[model_label] = resolver
         return resolver
+
     return decorator
 
 
@@ -74,7 +77,8 @@ class BusListenerMixin:
         meta = getattr(self, '_meta', None)
         if meta is not None:
             resolver = CHANNEL_RESOLVERS.get(
-                f'{meta.app_label}.{meta.object_name}')
+                f'{meta.app_label}.{meta.object_name}'
+            )
             if resolver is not None:
                 return resolver(self) or self
         return self
@@ -90,7 +94,7 @@ class BusListenerMixin:
         """
         raise NotImplementedError(
             f'{type(self).__name__} hereda BusListenerMixin y debe declarar '
-            f'bus_channel_key()'
+            'bus_channel_key()'
         )
 
     def _bus_send(self, notification_type: str, message, *, subchannel=None):
@@ -98,7 +102,8 @@ class BusListenerMixin:
 
         Recorre ``_bus_channel()`` hasta el punto fijo antes de emitir, de modo
         que un objeto puede delegar su canal en otro sin que quien emite tenga
-        que saberlo. Es el bucle de ``odoo19c:`` (``bus_listener_mixin.py:19``);
+        que saberlo. Es el bucle de ``odoo19c:``
+        (``bus_listener_mixin.py:19``);
         ``odoo18c:`` resuelve con **una sola** llamada, sin punto fijo — cuando
         las poblaciones difieren gobierna 19.
 

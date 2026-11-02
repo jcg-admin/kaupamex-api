@@ -1,6 +1,7 @@
 """Semilla de la plantilla de correo de ``base_install_request``.
 
-Adaptación de ``odoo19c: addons/base_install_request/data/mail_template_data.xml``
+Adaptación de ``odoo19c:
+addons/base_install_request/data/mail_template_data.xml``
 (``odoo-tools@622ddc2a``, LGPL-3 — atribución y aviso de licencia preservados,
 DEC-KX-03). El dato vive aquí y la migración lo escribe, que es el idioma ya
 fijado por ``addons/authz_signup/data.py`` + su migración de semilla.
@@ -27,6 +28,7 @@ Odoo (``/odoo/<id>/action-…?menu_id=…``). Aquí no hay ese cliente, así que
 enlace se omite del cuerpo y el ``menu_id`` viaja igual en el contexto de
 render — el dato se conserva aunque su consumidor no exista todavía.
 """
+
 from django.db import DEFAULT_DB_ALIAS
 
 from addons.base.models import IrModelData
@@ -48,8 +50,9 @@ INSTALL_REQUEST_TEMPLATE = {
     'partner_to': '{{ ctx_partner_id }}',
     'use_default_to': False,
     'auto_delete': True,
-    'subject': ('Module Activation Request for '
-                '"{{ object.module_id.shortdesc }}"'),
+    'subject': (
+        'Module Activation Request for "{{ object.module_id.shortdesc }}"'
+    ),
     'email_from': '{{ object.user_id.email }}',
     'body_html': (
         '<div style="margin: 0px; padding: 0px;">\n'
@@ -86,11 +89,15 @@ def seed(using=DEFAULT_DB_ALIAS):
     aplicada sobre una tabla vacia y nunca vuelve a correr. Es H-API-22, y
     ``base_install_request`` entro a la red sin su seeder.
     """
-    plantilla = MailTemplate.objects.using(using).filter(
-        name=INSTALL_REQUEST_TEMPLATE['name']).first()
+    plantilla = (
+        MailTemplate.objects.using(using)
+        .filter(name=INSTALL_REQUEST_TEMPLATE['name'])
+        .first()
+    )
     if plantilla is None:
         plantilla = MailTemplate.objects.using(using).create(
-            **INSTALL_REQUEST_TEMPLATE)
+            **INSTALL_REQUEST_TEMPLATE
+        )
 
     IrModelData.objects.using(using).get_or_create(
         module=INSTALL_REQUEST_TEMPLATE_MODULE,

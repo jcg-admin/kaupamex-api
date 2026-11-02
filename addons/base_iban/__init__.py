@@ -1,4 +1,6 @@
-"""``base_iban`` — validación y formato de cuentas IBAN sobre ``res.partner.bank``.
+"""
+``base_iban`` — validación y formato de cuentas IBAN sobre
+``res.partner.bank``.
 
 Adaptación de Odoo ``base_iban`` (``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438
 a43eb31de``, ``odoo19c:``, licencia ``LGPL-3`` declarada en su

@@ -39,18 +39,25 @@ from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.purchase_requisition.models import PurchaseOrderGroup
 from orm.environments import env as get_environment
 from orm.fields import ComputedFieldDescriptor
-from orm.model_classes import (DISPLAY_NAME_SYMBOLS,
-                               THIRD_PARTY_MODULE_PREFIXES,
-                               adopt_display_name, ensure_display_names)
+from orm.model_classes import (
+    DISPLAY_NAME_SYMBOLS,
+    THIRD_PARTY_MODULE_PREFIXES,
+    adopt_display_name,
+    ensure_display_names,
+)
 from orm.models import DisplayNameMixin
 from scripts import check_display_name
 from scripts.check_display_name import not_a_field, offenders
 
 
 def _ours():
-    return [m for m in apps.get_models()
-            if not m._meta.abstract and not m._meta.proxy
-            and not m.__module__.startswith(THIRD_PARTY_MODULE_PREFIXES)]
+    return [
+        m
+        for m in apps.get_models()
+        if not m._meta.abstract
+        and not m._meta.proxy
+        and not m.__module__.startswith(THIRD_PARTY_MODULE_PREFIXES)
+    ]
 
 
 class TestUniversalAdoption:
@@ -63,7 +70,9 @@ class TestUniversalAdoption:
         assert not_a_field() == []
 
     def test_a_model_with_the_shared_base_got_it_by_inheritance(self):
-        """``ResPartner`` lo hereda de ``TimeStampedModel``, no del adoptador."""
+        """
+        ``ResPartner`` lo hereda de ``TimeStampedModel``, no del adoptador.
+        """
         assert issubclass(ResPartner, DisplayNameMixin)
 
     def test_the_five_forms_are_reachable(self):
@@ -95,7 +104,10 @@ class TestTheFieldAdmitsAssignment:
         field = vars(DisplayNameMixin)['display_name']
         assert isinstance(field, django_models.CharField)
         assert field.compute == '_compute_display_name'
-        assert SystemParameter._meta.get_field('display_name').search == '_search_display_name'
+        assert (
+            SystemParameter._meta.get_field('display_name').search
+            == '_search_display_name'
+        )
         assert field.store is False
 
     @pytest.mark.django_db
@@ -125,7 +137,8 @@ class TestTheFieldAdmitsAssignment:
 class TestTheComputeFallsBackToTheDottedName:
     """Sin ``_rec_name``, la etiqueta es ``<modelo>,<id>`` — como la fuente.
 
-    ``odoo19c: odoo/orm/models.py:1436-1439`` — ``f"{record._name},{record.id}"``
+    ``odoo19c: odoo/orm/models.py:1436-1439`` —
+    ``f"{record._name},{record.id}"``
     cuando no hay campo que etiquete.
     """
 
@@ -135,6 +148,7 @@ class TestTheComputeFallsBackToTheDottedName:
         etiquete una agrupación, y la fuente cae al nombre con punto."""
         grupo = PurchaseOrderGroup.objects.create()
         assert grupo.display_name == f'purchase.order.group,{grupo.pk}'
+
 
 class TestAdoptDisplayNameDiscriminates:
     """El adoptador dice que NO en los tres casos en que debe decirlo."""
@@ -171,10 +185,12 @@ class TestTheGateDiscriminates:
         guardado = vars(SystemParameter).get('display_name')
         try:
             SystemParameter.display_name = property(
-                lambda self: self._compute_display_name())
+                lambda self: self._compute_display_name()
+            )
             fuera = not_a_field()
-            assert any('base.SystemParameter.display_name' in line
-                       for line in fuera), fuera
+            assert any(
+                'base.SystemParameter.display_name' in line for line in fuera
+            ), fuera
         finally:
             if guardado is None:
                 del SystemParameter.display_name
@@ -189,8 +205,10 @@ class TestTheGateDiscriminates:
         try:
             SystemParameter.name_search = None
             fuera = offenders()
-            assert any('base.SystemParameter' in line and 'name_search' in line
-                       for line in fuera), fuera
+            assert any(
+                'base.SystemParameter' in line and 'name_search' in line
+                for line in fuera
+            ), fuera
         finally:
             if guardado is None:
                 del SystemParameter.name_search
@@ -207,32 +225,51 @@ class TestPrefixesStayInSync:
     """
 
     def test_the_gate_and_the_adopter_share_the_prefixes(self):
-        assert (check_display_name.THIRD_PARTY_MODULE_PREFIXES
-                == THIRD_PARTY_MODULE_PREFIXES)
+        assert (
+            check_display_name.THIRD_PARTY_MODULE_PREFIXES
+            == THIRD_PARTY_MODULE_PREFIXES
+        )
 
 
-@pytest.mark.parametrize('attribute,value', [
-    ('store', True), ('concrete', True), ('compute', None), ('search', None),
-])
-def test_gate_rejects_incompatible_display_field_metadata(monkeypatch, attribute, value):
+@pytest.mark.parametrize(
+    'attribute,value',
+    [
+        ('store', True),
+        ('concrete', True),
+        ('compute', None),
+        ('search', None),
+    ],
+)
+def test_gate_rejects_incompatible_display_field_metadata(
+    monkeypatch, attribute, value
+):
     field = SystemParameter._meta.get_field('display_name')
     with monkeypatch.context() as patch:
         patch.setattr(field, attribute, value)
-        assert any('base.SystemParameter.display_name' in item
-                   for item in not_a_field())
+        assert any(
+            'base.SystemParameter.display_name' in item
+            for item in not_a_field()
+        )
     assert not_a_field() == []
 
 
 def test_gate_rejects_a_descriptor_bound_to_another_field(monkeypatch):
     with monkeypatch.context() as patch:
-        patch.setattr(SystemParameter, 'display_name', ComputedFieldDescriptor(
-            ResPartner._meta.get_field('name')))
-        assert any('base.SystemParameter.display_name' in item
-                   for item in not_a_field())
+        patch.setattr(
+            SystemParameter,
+            'display_name',
+            ComputedFieldDescriptor(ResPartner._meta.get_field('name')),
+        )
+        assert any(
+            'base.SystemParameter.display_name' in item
+            for item in not_a_field()
+        )
     assert not_a_field() == []
 
 
-def test_gate_rejects_a_nonassignable_descriptor_with_matching_metadata(monkeypatch):
+def test_gate_rejects_a_nonassignable_descriptor_with_matching_metadata(
+    monkeypatch,
+):
     class ReadOnlyLabel:
         field = SystemParameter._meta.get_field('display_name')
 
@@ -241,6 +278,8 @@ def test_gate_rejects_a_nonassignable_descriptor_with_matching_metadata(monkeypa
 
     with monkeypatch.context() as patch:
         patch.setattr(SystemParameter, 'display_name', ReadOnlyLabel())
-        assert any('base.SystemParameter.display_name' in item
-                   for item in not_a_field())
+        assert any(
+            'base.SystemParameter.display_name' in item
+            for item in not_a_field()
+        )
     assert not_a_field() == []

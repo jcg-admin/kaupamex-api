@@ -8,7 +8,8 @@ funciones sobre el usuario (no hay ``_inherit``), mismo criterio que
 Métodos de la referencia → aquí:
 
 - ``_get_totp_mail_key`` / ``_get_totp_mail_code`` / ``_send_totp_mail_code``
-  → ``_get_totp_mail_key`` / ``_get_totp_mail_code`` / ``_send_totp_mail_code``.
+  → ``_get_totp_mail_key`` / ``_get_totp_mail_code`` /
+  ``_send_totp_mail_code``.
 - ``_check_credentials`` (type ``totp_mail``) → portado abajo **con su nombre**
   y encadenado sobre ``res.users``; ``verify_totp_mail_code`` queda como el
   verificador que consume, reutilizable por la vista del segundo paso. Es el
@@ -53,6 +54,7 @@ llama en los tres sitios que la referencia declara: el freno de ``code_check``
 al verificar, la purga de los dos contadores al acertar, y el freno de
 ``send_email`` al enviar.
 """
+
 import logging
 from datetime import datetime
 
@@ -64,7 +66,9 @@ from orm.model_classes import extend_model
 from tools.misc import hmac as tools_hmac
 
 from addons.authz_totp.models.auth_totp import (
-    BROWSER_SCOPE, TRUSTED_DEVICE_COOKIE, AuthTotpDevice,
+    BROWSER_SCOPE,
+    TRUSTED_DEVICE_COOKIE,
+    AuthTotpDevice,
 )
 from addons.authz_totp.models.totp import TOTP, hotp
 from addons.base.models import SystemParameter
@@ -137,11 +141,13 @@ def verify_totp_mail_code(user, code):
     match = None
     if token is not None:
         match = TOTP(_get_totp_mail_key(user)).match(
-            token, window=TOTP_MAIL_WINDOW, timestep=TOTP_MAIL_TIMESTEP)
+            token, window=TOTP_MAIL_WINDOW, timestep=TOTP_MAIL_TIMESTEP
+        )
     if match is None:
         _logger.info('2FA check (mail): FAIL for %r', user.login)
         raise AccessDenied(
-            'Verification failed, please double-check the 6-digit code')
+            'Verification failed, please double-check the 6-digit code'
+        )
     _logger.info('2FA check (mail): SUCCESS for %r', user.login)
     return True
 
@@ -158,18 +164,27 @@ def _send_totp_mail_code(user):
     user._totp_rate_limit('send_email')
     if not user.login:
         raise UserError(
-            'Cannot send email: user %s has no email address.' % user)
+            'Cannot send email: user %s has no email address.' % user
+        )
     code, expiration = _get_totp_mail_code(user)
     template = MailTemplate.objects.filter(
-        name=TEMPLATE_TOTP_MAIL_CODE).first()
+        name=TEMPLATE_TOTP_MAIL_CODE
+    ).first()
     if template is None:
         raise UserError('TOTP mail template is not seeded.')
-    rendered = template.render(user, extra_context={
-        'code': code, 'expiration_minutes': expiration // 60,
-    })
+    rendered = template.render(
+        user,
+        extra_context={
+            'code': code,
+            'expiration_minutes': expiration // 60,
+        },
+    )
     dispatch_email(
-        rendered['subject'], rendered['body_html'],
-        rendered['email_from'] or None, [user.login])
+        rendered['subject'],
+        rendered['body_html'],
+        rendered['email_from'] or None,
+        [user.login],
+    )
     _logger.info('TOTP mail code sent to %r', user.login)
 
 
@@ -195,7 +210,8 @@ def totp_mail_policy_applies(user):
 
 
 def _mfa_type(self):
-    """≙ ``_mfa_type`` (``:116-125``) — ``'totp_mail'`` si la política lo exige.
+    """
+    ≙ ``_mfa_type`` (``:116-125``) — ``'totp_mail'`` si la política lo exige.
 
     Es el eslabón **externo**: devuelve ``None`` cuando la política no aplica,
     y su valor cede ante el del eslabón interno por ``keep_previous``.
@@ -203,7 +219,8 @@ def _mfa_type(self):
     Consulta ``totp_mail_policy_applies`` —sólo la política— y ésa es la forma
     de la fuente. La diferencia no es cosmética: meter aquí dentro la guarda
     *"…y no tiene TOTP de app"* haría callar al eslabón justo en el caso que la
-    precedencia decide, y entonces la cadena daría ``'totp'`` por el predicado y
+    precedencia decide, y entonces la cadena daría ``'totp'`` por el predicado
+    y
     no por el ``combine``. Medido: escrito así, el control de precedencia
     (``tests/unit/authz_totp/test_res_users.py``) no discrimina.
 
@@ -216,7 +233,9 @@ def _mfa_type(self):
 
 
 def _mfa_url(self):
-    """≙ ``_mfa_url`` (``:127-132``) — la ruta del segundo paso para el correo."""
+    """
+    ≙ ``_mfa_url`` (``:127-132``) — la ruta del segundo paso para el correo.
+    """
     if self._mfa_type() == 'totp_mail':
         return TOTP_MAIL_SECOND_STEP_URL
 
@@ -287,10 +306,12 @@ def _notify_security_new_connection(self, request):
         return
     key = request.COOKIES.get(TRUSTED_DEVICE_COOKIE)
     if key and AuthTotpDevice._check_credentials_for_uid(
-            scope=BROWSER_SCOPE, key=key, uid=self.pk):
+        scope=BROWSER_SCOPE, key=key, uid=self.pk
+    ):
         return  # dispositivo ya recordado: la fuente tampoco avisa
     dispatch_email(
-        NEW_CONNECTION_SUBJECT, NEW_CONNECTION_CONTENT, None, [self.login])
+        NEW_CONNECTION_SUBJECT, NEW_CONNECTION_CONTENT, None, [self.login]
+    )
     _logger.info('New device alert email sent for user <%s>', self.login)
 
 
@@ -314,11 +335,15 @@ def _chain_res_users(model):
     """
     chain_method(model, '_mfa_type', _mfa_type, combine=keep_previous)
     chain_method(model, '_mfa_url', _mfa_url, combine=keep_previous)
-    chain_method(model, '_notify_security_new_connection',
-                 _notify_security_new_connection)
+    chain_method(
+        model,
+        '_notify_security_new_connection',
+        _notify_security_new_connection,
+    )
     chain_method(model, '_check_credentials', _check_credentials)
-    chain_method(model, '_rpc_api_keys_only', _rpc_api_keys_only,
-                 combine=first_truthy)
+    chain_method(
+        model, '_rpc_api_keys_only', _rpc_api_keys_only, combine=first_truthy
+    )
 
 
 def apply_authz_totp_mail_res_users_extensions():
@@ -328,32 +353,40 @@ def apply_authz_totp_mail_res_users_extensions():
 
 def get_totp_invite_url():
     """≙ ``get_totp_invite_url`` (res_users.py:93-94), como config L2."""
-    return str(SystemParameter.get_param(
-        PARAM_INVITE_URL, '/account/security'))
+    return str(
+        SystemParameter.get_param(PARAM_INVITE_URL, '/account/security')
+    )
 
 
 def invite_users(users, inviter):
     """≙ ``action_totp_invite`` (res_users.py:96-116): envía la invitación a
     los usuarios que aún no tienen 2FA activo y devuelve sus nombres."""
     TotpSecret = django_apps.get_model('authz_totp', 'TotpSecret')
-    template = MailTemplate.objects.filter(
-        name=TEMPLATE_TOTP_INVITE).first()
+    template = MailTemplate.objects.filter(name=TEMPLATE_TOTP_INVITE).first()
     if template is None:
         raise UserError('TOTP invite template is not seeded.')
     with_totp = set(
         TotpSecret.objects.filter(
-            user__in=[u.id for u in users], confirmed=True,
+            user__in=[u.id for u in users],
+            confirmed=True,
         ).values_list('user_id', flat=True)
     )
     invited = []
     for user in users:
         if user.id in with_totp:
             continue
-        rendered = template.render(user, extra_context={
-            'inviter': inviter, 'invite_url': get_totp_invite_url(),
-        })
+        rendered = template.render(
+            user,
+            extra_context={
+                'inviter': inviter,
+                'invite_url': get_totp_invite_url(),
+            },
+        )
         dispatch_email(
-            rendered['subject'], rendered['body_html'],
-            rendered['email_from'] or None, [user.login])
+            rendered['subject'],
+            rendered['body_html'],
+            rendered['email_from'] or None,
+            [user.login],
+        )
         invited.append(str(user.partner) if user.partner_id else user.login)
     return invited

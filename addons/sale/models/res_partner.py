@@ -138,7 +138,8 @@ Divergencias declaradas
 =======================
 
 - **``groups='sales_team.group_sale_salesman'`` es guarda de cuerpo**, no
-  metadata del campo — misma razón y mismo sucesor que en ``crm/res_partner.py``
+  metadata del campo — misma razón y mismo sucesor que en
+  ``crm/res_partner.py``
   y en ``utm.py``: el grupo no está sembrado, ``has_group`` devuelve ``False``
   y el conteo sale 0. Sucesor: **#157**.
 - **``lifetime_value`` no es de la fuente.** Es un agregado propio del L0 que
@@ -149,6 +150,7 @@ Divergencias declaradas
   ``values('partner').annotate(Count('pk'))`` y la subida es el mismo bucle
   ``while partner`` de la fuente, recorrido sobre la FK.
 """
+
 from decimal import Decimal
 
 from django.db.models import Count, Q, Sum
@@ -164,7 +166,8 @@ from addons.base.models.res_partner import ResPartner
 
 from .sale_order import SaleOrder
 
-#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no
+#: es clase).
 _inherit = 'res.partner'
 
 #: El identificador externo que la fuente consulta, verbatim.
@@ -176,7 +179,8 @@ STATES_WITH_ORDER = (SaleOrder.STATE_SENT, SaleOrder.STATE_SALE)
 
 
 def _user_is_salesman():
-    """¿El usuario en contexto es vendedor? ``False`` sin usuario (fail-closed).
+    """
+    ¿El usuario en contexto es vendedor? ``False`` sin usuario (fail-closed).
 
     Misma forma que ``crm/models/res_partner.py`` — se repite el cuerpo y no
     se importa de ``crm`` porque ``sale`` no depende de ``crm``.
@@ -222,11 +226,14 @@ def _compute_sale_order_count(self):
     if not _user_is_salesman():
         return 0
     descendants = _descendant_ids(self)
-    groups = (SaleOrder.objects
-              .filter(_get_sale_order_domain_count(self),
-                      partner__partner_id__in=descendants)
-              .values('partner__partner_id')
-              .annotate(total=Count('pk')))
+    groups = (
+        SaleOrder.objects.filter(
+            _get_sale_order_domain_count(self),
+            partner__partner_id__in=descendants,
+        )
+        .values('partner__partner_id')
+        .annotate(total=Count('pk'))
+    )
     return sum(row['total'] for row in groups)
 
 
@@ -244,10 +251,11 @@ def _descendant_ids(partner):
     seen = {partner.pk}
     frontier = [partner.pk]
     while frontier:
-        children = list(model.objects
-                        .filter(parent_id__in=frontier)
-                        .exclude(pk__in=seen)
-                        .values_list('pk', flat=True))
+        children = list(
+            model.objects.filter(parent_id__in=frontier)
+            .exclude(pk__in=seen)
+            .values_list('pk', flat=True)
+        )
         if not children:
             break
         seen.update(children)
@@ -271,12 +279,14 @@ def _compute_application_statistics_hook(cls, partners):
     for partner in partners:
         count = partner.sale_order_count
         if count:
-            contributed[partner.pk] = [{
-                'iconClass': 'fa-usd',
-                'value': count,
-                'label': _('Pedidos de venta'),
-                'tagClass': 'o_tag_color_2',
-            }]
+            contributed[partner.pk] = [
+                {
+                    'iconClass': 'fa-usd',
+                    'value': count,
+                    'label': _('Pedidos de venta'),
+                    'tagClass': 'o_tag_color_2',
+                }
+            ]
     return contributed
 
 
@@ -304,7 +314,8 @@ def _has_order(self, partner_filter):
     ``limit=1``.
     """
     return SaleOrder.objects.filter(
-        partner_filter, state__in=STATES_WITH_ORDER,
+        partner_filter,
+        state__in=STATES_WITH_ORDER,
     ).exists()
 
 
@@ -312,7 +323,8 @@ def _can_edit_country(self, previous):
     """≙ ``_can_edit_country`` (``:67-75``).
 
     *"Can't edit ``country_id`` if there is (non draft) issued SO."* Encadena
-    sobre la guarda de ``portal``: la previa llega en la mano como ``previous`` (``overrides=``
+    sobre la guarda de ``portal``: la previa llega en la mano como ``previous``
+    (``overrides=``
     de ``extend_model``), que es el ``super()`` de la fuente.
 
     El dominio de la fuente es ``partner_invoice_id = self OR partner_id =
@@ -321,7 +333,8 @@ def _can_edit_country(self, previous):
     if not previous():
         return False
     return not _has_order(
-        self, Q(partner_invoice_id=self.pk) | Q(partner__partner_id=self.pk))
+        self, Q(partner_invoice_id=self.pk) | Q(partner__partner_id=self.pk)
+    )
 
 
 def can_edit_vat(self, previous):
@@ -335,12 +348,14 @@ def can_edit_vat(self, previous):
         return False
     commercial = self.commercial_partner_id
     return not _has_order(
-        self, Q(partner__partner_id__in=_descendant_ids(commercial)))
+        self, Q(partner__partner_id__in=_descendant_ids(commercial))
+    )
 
 
 # ----------------------------------------------------------------------
 # Agregado propio del L0 — NO está en la fuente
 # ----------------------------------------------------------------------
+
 
 def lifetime_value(partner) -> Decimal:
     """Valor de vida del cliente: suma de sus ventas confirmadas.
@@ -354,7 +369,8 @@ def lifetime_value(partner) -> Decimal:
     ``amount_total`` es columna real (H-API-30): ``Sum`` directo.
     """
     agg = SaleOrder.objects.filter(
-        partner__partner=partner, state=SaleOrder.STATE_SALE,
+        partner__partner=partner,
+        state=SaleOrder.STATE_SALE,
     ).aggregate(total=Sum('amount_total'))
     return agg['total'] or Decimal('0.00')
 
@@ -368,19 +384,26 @@ def sale_order_count(partner) -> int:
     la ``property`` del mismo nombre sobre ``ResPartner``.
     """
     return SaleOrder.objects.filter(
-        partner__partner=partner, state=SaleOrder.STATE_SALE).count()
+        partner__partner=partner, state=SaleOrder.STATE_SALE
+    ).count()
 
 
 def apply_sale_partner_extensions():
-    """Cuelga los cuatro campos y los cinco métodos. La llama ``SaleConfig.ready()``."""
+    """
+    Cuelga los cuatro campos y los cinco métodos. La llama
+    ``SaleConfig.ready()``.
+    """
     extend_model(
         _inherit,
         campos={
             'sale_warn_msg': fields.Text(
-                null=True, blank=True,
-                help_text='Odoo sale_warn_msg ("Message for Sales Order"). '
-                          'Aviso interno que se muestra al vender a este '
-                          'cliente.',
+                null=True,
+                blank=True,
+                help_text=(
+                    'Odoo sale_warn_msg ("Message for Sales Order"). '
+                    'Aviso interno que se muestra al vender a este '
+                    'cliente.'
+                ),
             ),
         },
         propiedades={
@@ -397,6 +420,9 @@ def apply_sale_partner_extensions():
             'can_edit_vat': can_edit_vat,
         },
     )
-    chain_method(ResPartner, '_compute_application_statistics_hook',
-                 classmethod(_compute_application_statistics_hook),
-                 combine=_merge_application_statistics)
+    chain_method(
+        ResPartner,
+        '_compute_application_statistics_hook',
+        classmethod(_compute_application_statistics_hook),
+        combine=_merge_application_statistics,
+    )

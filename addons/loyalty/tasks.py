@@ -6,11 +6,13 @@ modulo se conserva como alias estable para los consumidores que ya importaban
 ``expire_vouchers`` — no duplica el comportamiento, lo delega.
 
 El motivo del traslado: ``ir.cron`` resuelve ``<model>.<method>()``
-(``ir_cron.py:440``, ``apps.get_model(self.model_name)``), no modulos sueltos ni
+(``ir_cron.py:440``, ``apps.get_model(self.model_name)``), no modulos sueltos
+ni
 management commands. Mientras la caducidad fuera una funcion de modulo, el
 registro de horario no tenia a que apuntar y el job vivia como un comando que
 alguien debia invocar desde el crontab del sistema.
 """
+
 from addons.loyalty.models import Voucher
 
 

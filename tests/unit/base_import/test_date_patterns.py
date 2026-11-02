@@ -8,6 +8,7 @@ Sin base de datos a propósito: los tres símbolos son Python puro y no tocan
 el ORM. Un test que exigiera ``django_db`` mediría el arranque, no la
 heurística.
 """
+
 import datetime
 
 from addons.base_import.models.date_patterns import (
@@ -41,7 +42,10 @@ def test_compact_format_without_separator_is_included():
 
 def test_day_above_twelve_disambiguates_the_order():
     """Un 31 en primera posición sólo lo explica el orden día-mes-año."""
-    assert check_patterns(DATE_PATTERNS, ['31/12/2026', '01/01/2026']) == '%d/%m/%Y'
+    assert (
+        check_patterns(DATE_PATTERNS, ['31/12/2026', '01/01/2026'])
+        == '%d/%m/%Y'
+    )
 
 
 def test_first_matching_pattern_wins_when_ambiguous():
@@ -56,7 +60,9 @@ def test_first_matching_pattern_wins_when_ambiguous():
 
 def test_one_contradicting_value_discards_the_pattern():
     """La regla es todos o ninguno: basta un valor que no case."""
-    assert check_patterns(DATE_PATTERNS, ['31/12/2026', 'no soy fecha']) is None
+    assert (
+        check_patterns(DATE_PATTERNS, ['31/12/2026', 'no soy fecha']) is None
+    )
 
 
 def test_date_objects_and_blanks_do_not_veto_a_pattern():
@@ -81,7 +87,9 @@ def test_impossible_component_is_rejected_by_the_range():
 
 
 def test_separator_dot_is_escaped_not_treated_as_wildcard():
-    """``.`` en el patrón es un punto literal — si no, casaría cualquier cosa."""
+    """
+    ``.`` en el patrón es un punto literal — si no, casaría cualquier cosa.
+    """
     p = to_re('%d.%m.%Y')
     assert p.match('31.12.2026')
     assert not p.match('31x12x2026')

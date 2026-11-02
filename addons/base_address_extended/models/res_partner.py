@@ -1,4 +1,6 @@
-"""Dirección estructurada — RELATED de la extensión que Odoo pone en ``res.partner``.
+"""
+Dirección estructurada — RELATED de la extensión que Odoo pone en
+``res.partner``.
 
 Odoo ``base_address_extended/models/res_partner.py`` extiende ``res.partner``
 vía ``_inherit`` con ``street_name`` / ``street_number`` / ``street_number2``
@@ -17,6 +19,7 @@ enlace al catálogo ``res.city``.
 ``odoo19c: base/models/res_partner.py:25``), no un modelo aparte. Al disolverse
 ``users`` en ``base`` el apuntador quedó colgado; se re-apunta al destino fiel.
 """
+
 import fields
 import models
 
@@ -30,28 +33,40 @@ class AddressStructured(models.Model):
     """Descomposición estructurada de la calle de un ``res.partner`` (Odoo
     ``street_name``/``street_number``/``street_number2`` + ``city_id``).
     """
+
     _inherit = 'res.partner'
 
-    partner        = models.OneToOneField(
-        'base.ResPartner', on_delete=models.CASCADE, related_name='structured',
+    partner = models.OneToOneField(
+        'base.ResPartner',
+        on_delete=models.CASCADE,
+        related_name='structured',
         help_text='Partner al que pertenece (Odoo _inherit res.partner).',
     )
-    city_id       = fields.Many2one(
-        'base_address_extended.ResCity', on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='addresses',
+    city_id = fields.Many2one(
+        'base_address_extended.ResCity',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='addresses',
         help_text='Ciudad del catálogo (Odoo city_id → res.city).',
         db_column='city_id',
     )
-    street_name    = fields.Char(
-        max_length=200, blank=True, default='',
+    street_name = fields.Char(
+        max_length=200,
+        blank=True,
+        default='',
         help_text='Nombre de la calle (Odoo street_name).',
     )
-    street_number  = fields.Char(
-        max_length=32, blank=True, default='',
+    street_number = fields.Char(
+        max_length=32,
+        blank=True,
+        default='',
         help_text='Número exterior (Odoo street_number / House).',
     )
     street_number2 = fields.Char(
-        max_length=32, blank=True, default='',
+        max_length=32,
+        blank=True,
+        default='',
         help_text='Número interior / puerta (Odoo street_number2 / Door).',
     )
 
@@ -93,7 +108,9 @@ class AddressStructured(models.Model):
         columna ``street`` es de ``base.ResPartner`` y quien la escriba decide
         cuándo.
         """
-        street = ((self.street_name or '') + ' ' + (self.street_number or '')).strip()
+        street = (
+            (self.street_name or '') + ' ' + (self.street_number or '')
+        ).strip()
         if self.street_number2:
             street = street + ' - ' + self.street_number2
         return street
@@ -118,8 +135,10 @@ class AddressStructured(models.Model):
 
     @property
     def country_enforce_cities(self):
-        """Related de ``country_id.enforce_cities`` (Odoo): la política del país
-        de la ciudad enlazada. ``False`` si no hay ciudad o país sin política."""
+        """
+        Related de ``country_id.enforce_cities`` (Odoo): la política del país
+        de la ciudad enlazada. ``False`` si no hay ciudad o país sin política.
+        """
         if self.city_id is None:
             return False
         policy = getattr(self.city_id.country_id, 'address_policy', None)
@@ -127,14 +146,17 @@ class AddressStructured(models.Model):
 
 
 # ---------------------------------------------------------------------------
-# Lo que el addon cuelga de ``base.ResPartner`` — ≙ el ``_inherit`` de la fuente
+# Lo que el addon cuelga de ``base.ResPartner`` — ≙ el ``_inherit`` de
+# la fuente
 # ---------------------------------------------------------------------------
 #
 # Los cuatro símbolos de abajo están declarados en la fuente sobre
 # ``res.partner``, no sobre un modelo propio, así que su receptor aquí es
-# ``base.ResPartner`` y no ``AddressStructured``. Lo que cambia es de dónde sale
+# ``base.ResPartner`` y no ``AddressStructured``. Lo que cambia es de
+# dónde sale
 # ``city_id``: allá es una columna más de ``res.partner``; aquí vive en el
-# RELATED (DEC-SALE-01), y estos cuerpos lo alcanzan por ``partner.structured``.
+# RELATED (DEC-SALE-01), y estos cuerpos lo alcanzan por
+# ``partner.structured``.
 
 
 def _structured_of(partner):
@@ -184,7 +206,8 @@ def _set_city_id(self, value):
 
 
 class _CityId(fields.NonStored):
-    """``city_id`` de ``res.partner`` — el campo cuya columna vive en el RELATED.
+    """
+    ``city_id`` de ``res.partner`` — el campo cuya columna vive en el RELATED.
 
     Por qué es un descriptor y no una ``property``
     ==============================================
@@ -276,7 +299,8 @@ def _onchange_country_id(self, previous):
     if structured is None or structured.city_id is None:
         return
     if self.country is not None and (
-            structured.city_id.country_id_id != self.country.pk):
+        structured.city_id.country_id_id != self.country.pk
+    ):
         structured.city_id = None
 
 
@@ -335,7 +359,8 @@ def _inverse_street_data(self):
     """Recompone ``street`` desde las tres partes — ≙ ``:24-30``.
 
     La fuente **asigna** ``partner.street``; aquí también, porque el receptor
-    es el contacto y la columna es suya. El armado del texto lo hace el RELATED,
+    es el contacto y la columna es suya. El armado del texto lo hace el
+    RELATED,
     que es donde viven las partes.
     """
     structured = _structured_of(self)
@@ -354,7 +379,8 @@ def _get_street_split(self):
     addon lo redefine en su propio ``res_partner.py:39``. Los dos existen y el
     del addon gana — no es un homónimo accidental.
 
-    La diferencia es de dónde salen las partes: el de ``base`` parte la calle al
+    La diferencia es de dónde salen las partes: el de ``base`` parte la calle
+    al
     vuelo; éste devuelve las columnas ya guardadas, que es lo que la fuente
     hace. Sin fila RELATED no hay columnas guardadas, así que delega en la
     implementación previa devolviendo ``None`` — el relevo de ``chain_method``.
@@ -377,13 +403,19 @@ def apply_base_address_extended_extensions():
       con ``combine``;
     - ``_onchange_country_id`` necesita el ``super()`` **primero** →
       ``wrap_method``;
-    - los otros dos son nuevos sobre ``res.partner`` → ``chain_method`` a secas.
+    - los otros dos son nuevos sobre ``res.partner`` → ``chain_method`` a
+      secas.
     """
-    chain_method(ResPartner, '_address_fields', classmethod(_address_fields),
-                 combine=_combine_address_fields)
+    chain_method(
+        ResPartner,
+        '_address_fields',
+        classmethod(_address_fields),
+        combine=_combine_address_fields,
+    )
     chain_method(ResPartner, '_onchange_city_id', _onchange_city_id)
-    chain_method(ResPartner, '_get_res_city_by_name',
-                 classmethod(_get_res_city_by_name))
+    chain_method(
+        ResPartner, '_get_res_city_by_name', classmethod(_get_res_city_by_name)
+    )
     wrap_method(ResPartner, '_onchange_country_id', _onchange_country_id)
 
     # Los tres de la calle: la fuente los declara sobre ``res.partner``, así
@@ -402,6 +434,6 @@ def apply_base_address_extended_extensions():
     # ``_prepare_address_values``, que lo lee con ``getattr``, ni a
     # ``_convert_fields_to_values``, que lo busca en el registro.
     if not isinstance(vars(ResPartner).get('city_id'), _CityId):
-        _CityId(related='structured.city_id',
-                verbose_name='City ID').contribute_to_class(
-                    ResPartner, 'city_id')
+        _CityId(
+            related='structured.city_id', verbose_name='City ID'
+        ).contribute_to_class(ResPartner, 'city_id')

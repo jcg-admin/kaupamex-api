@@ -4,11 +4,14 @@ Extraído de ``addons.authz`` a su propio módulo (SOL-094 frente B, DEC-01):
 registro append-only de ``AuthzEvent`` PII-safe. No bloqueante — un fallo del
 audit jamás rompe la request original (DEC-LOG-04).
 """
+
 from addons.authz_audit.models import AuthzEvent
 
 
 def _client_ip(request):
-    xff = (request.META.get('HTTP_X_FORWARDED_FOR') or '').split(',')[0].strip()
+    xff = (
+        (request.META.get('HTTP_X_FORWARDED_FOR') or '').split(',')[0].strip()
+    )
     return xff or request.META.get('REMOTE_ADDR') or None
 
 
@@ -17,7 +20,8 @@ def _session_key(request):
 
 
 def audit_authz_event(request, action, code, extra=None):
-    """Registra un ``AuthzEvent`` (DEC-07) PII-safe. No bloqueante: un fallo del
+    """
+    Registra un ``AuthzEvent`` (DEC-07) PII-safe. No bloqueante: un fallo del
     audit jamás rompe la request original (mismo criterio DEC-LOG-04)."""
     try:
         actor = getattr(request, 'user', None)

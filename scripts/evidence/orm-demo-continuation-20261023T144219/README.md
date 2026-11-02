@@ -656,3 +656,60 @@ de aceptación. Once archivos de referencia usados coinciden byte a byte
 con blobsabe4040. Sin cambios de estado oficial, inferencia gestionada,
 merge o aceptación completa deORM/Registry. Publicación se verifica después
 del checkpoint; no se presenta el gate fallido comoPASS.
+
+
+## 2026-10-27 — Current contractual and style correction batch
+
+This batch remains uncommitted. The complete objective and global style are
+**not accepted**. No merges or official TASK state changes occurred.
+
+- `outputs/analytic-schema-criterion-contract-14.json` reconciles the virtual
+  prefix field with the pinned Odoo declaration and native Django migration
+  state. Seven pure tests pass, including a persistent-field negative control;
+  nine database cases and analytic compute/default behavior remain unverified.
+- Native TaskUpdate changed only TASK-GEN-0633 description. Owner, pending
+  status and dependency edges were checked before/after; the scoped editing
+  claim was released. Original 62 AS IS rows and historical64 remain unchanged.
+- The Provider native continuation interface selected the existing incremental
+  graph unit from four existing inputs and all 493 ledger records, without
+  fabricated acceptance. Its current 16 regression tests pass. This is manual
+  engineering, not local-model execution or full loader acceptance.
+- Specific style/import/CI/escape tests: 51 pass. Flow/counterpart/write-path
+  consumers: 53 pass. These scopes overlap other evidence and must not be
+  summed into a whole-suite result. Expanded scripts stop at 65 pass/1 fail;
+  the three FK naming offenders reproduce exactly on published dc9b4c5.
+  The FK baseline was not enlarged.
+- Static UTF8/compilation: 3390 Python files pass with SyntaxWarning as error.
+  Operational portability scan: 3215 files, no `/workspace/` literals in the
+  stated scope; historical workbench/evidence was excluded from that scan.
+- Complete style gate: Make exit2, pycodestyle exit1. Snapshot counts are in
+  `outputs/current-complete-style-summary.json`; a later AST-preserving
+  layout correction changed 60 files, so those counts are not a final rescan.
+  E501 and bootstrap-related E402 remain unresolved. No debt baseline or gate
+  bypass was introduced.
+- The broad docformatter pass was rejected after concrete RST corruption;
+  12809 prior docstrings were restored in 2451 files. Executable AST remained
+  unchanged. AST equality alone was insufficient documentation verification.
+
+`outputs/current-style-contractual-artifacts.SHA256SUMS` covers this batch's
+listed artifacts. Older source checksums/results remain historical and must
+not be interpreted as qualification of the formatted working tree. Packaging
+checksum reconciliation and complete functional verification are pending.
+A local binary diff snapshot is retained outside the repository in the review
+folder; it is not remote publication or off-environment preservation.
+
+Additional qualified import correction: 13 pure checker preambles now retain
+their import order at the beginning, without redundant sibling-path insertion.
+All other AST statements were preserved. Their selected Consumer regressions
+pass 86 tests; this does not qualify untested standalone entrypoints or the
+Django bootstrap instruments. Evidence: `outputs/pure-checker-import-preambles.json`
+and `outputs/pure-checker-import-consumers.junit.xml`. No global style PASS.
+
+Functional continuation: root pruning diagnostics now preserve the pinned
+Odoo WARNING/INFO behavior. RED4FAIL18PASS;GREEN22PASS;48neighbor tests PASS;
+6 independent reference-body cases PASS with SQL connections blocked. The
+three affected files pass PEP8 and initial-import checks. See
+`outputs/graph-diagnostics-contract-14.json`. Native TASK-API-0382 description
+updated, owner/state/dependencies preserved, exact three claims released and
+full-ledger continuation recalculated. Imported provenance and full loader
+acceptance remain not_verified; no commit, merge or global acceptance.

@@ -4,6 +4,7 @@ Cubre el algoritmo (adaptado verbatim de Odoo), el flujo de alta
 (setup → confirm), el gate del **login** (segundo factor tras la contraseña)
 y la desactivación. El login sin 2FA no se ve afectado (sin regresión).
 """
+
 import base64
 import time
 
@@ -35,7 +36,9 @@ PASSWORD = 'Str0ng-Passw0rd!'
 
 
 def _current_code(secret, offset=0):
-    """Código TOTP válido ahora (mismo hotp que Odoo). ``offset`` en pasos de 30s."""
+    """
+    Código TOTP válido ahora (mismo hotp que Odoo). ``offset`` en pasos de 30s.
+    """
     key = base64.b32decode(secret)
     counter = int(time.time() // 30) + offset
     return f'{hotp(key, counter):06d}'
@@ -44,11 +47,14 @@ def _current_code(secret, offset=0):
 @pytest.fixture
 def user(db):
     # Los endpoints de 2FA están gateados por la capacidad de cuenta propia
-    # ``account.security`` (CapabilityRequiredMixin). El usuario necesita un rol
+    # ``account.security`` (CapabilityRequiredMixin). El usuario
+    # necesita un rol
     # que la tenga; el rol comprador agrupa todas las ``account.*``.
     call_command('seed_authz')
     u = User.objects.create_user(
-        login='totp-user@example.com', password=PASSWORD, active=True,
+        login='totp-user@example.com',
+        password=PASSWORD,
+        active=True,
     )
     assign_buyer_role(u)
     invalidate_capabilities(u.id)
@@ -63,6 +69,7 @@ def auth_client(user):
 
 
 # --- algoritmo (adaptación verbatim de Odoo) --------------------------------
+
 
 def test_matching_counter_returns_the_interval_and_none_when_wrong():
     secret = generate_secret()
@@ -82,6 +89,7 @@ def test_provisioning_uri_shape():
 
 # --- flujo de alta ----------------------------------------------------------
 
+
 def test_setup_then_confirm_enables_2fa(auth_client, user):
     assert auth_client.get(STATUS_URL).data['enabled'] is False
     setup = auth_client.post(SETUP_URL)
@@ -91,7 +99,9 @@ def test_setup_then_confirm_enables_2fa(auth_client, user):
     # aún no activo (pendiente de confirmar)
     assert auth_client.get(STATUS_URL).data['enabled'] is False
 
-    confirm = auth_client.post(CONFIRM_URL, {'code': _current_code(secret)}, format='json')
+    confirm = auth_client.post(
+        CONFIRM_URL, {'code': _current_code(secret)}, format='json'
+    )
     assert confirm.status_code == 200 and confirm.data['enabled'] is True
     assert auth_client.get(STATUS_URL).data['enabled'] is True
 
@@ -114,14 +124,21 @@ def test_setup_rejected_when_already_enabled(auth_client, user):
 # --- gate del login (segundo factor) ----------------------------------------
 
 
-
 def test_disable_requires_valid_code(auth_client, user):
     secret = generate_secret()
     TotpSecret.objects.create(user=user, secret=secret, confirmed=True)
-    assert auth_client.post(DISABLE_URL, {'code': '000000'}, format='json').status_code == 400
-    ok = auth_client.post(DISABLE_URL, {'code': _current_code(secret)}, format='json')
+    assert (
+        auth_client.post(
+            DISABLE_URL, {'code': '000000'}, format='json'
+        ).status_code
+        == 400
+    )
+    ok = auth_client.post(
+        DISABLE_URL, {'code': _current_code(secret)}, format='json'
+    )
     assert ok.status_code == 200 and ok.data['enabled'] is False
     assert not verify_code(user, _current_code(secret))
+
 
 # ---------------------------------------------------------------------------
 # Tests retirados: el flujo de LOGIN no tiene endpoint (H-API-218)

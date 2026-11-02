@@ -31,7 +31,8 @@ del mixin — que es exactamente lo que hacían once modelos antes de la tarea
 
 *Métrica:* modelos concretos de ``apps.get_models()`` a los que les falta
 alguno de los cinco símbolos, o cuyo ``display_name`` no tiene metadata
-Char calculada, buscable y sin columna con su descriptor asignable; excluidos los de terceros por su módulo.
+Char calculada, buscable y sin columna con su descriptor asignable; excluidos
+los de terceros por su módulo.
 *Ciega a:* un ``_compute_display_name`` propio que devuelva algo inútil —el
 gate mide que el símbolo esté y que el campo sea el descriptor, no qué calcula
 el cómputo. Y ciega a un modelo de terceros, que el adoptador no toca por
@@ -67,9 +68,13 @@ def _ours():
     """Los modelos concretos nuestros, en el orden de ``apps.get_models()``."""
     from django.apps import apps
 
-    return [m for m in apps.get_models()
-            if not m._meta.abstract and not m._meta.proxy
-            and not m.__module__.startswith(THIRD_PARTY_MODULE_PREFIXES)]
+    return [
+        m
+        for m in apps.get_models()
+        if not m._meta.abstract
+        and not m._meta.proxy
+        and not m.__module__.startswith(THIRD_PARTY_MODULE_PREFIXES)
+    ]
 
 
 def offenders():
@@ -78,8 +83,9 @@ def offenders():
 
     fuera = []
     for model in _ours():
-        faltantes = [n for n in DISPLAY_NAME_SYMBOLS
-                     if getattr(model, n, None) is None]
+        faltantes = [
+            n for n in DISPLAY_NAME_SYMBOLS if getattr(model, n, None) is None
+        ]
         if faltantes:
             fuera.append(f'{model._meta.label}: sin {", ".join(faltantes)}')
     return fuera
@@ -96,8 +102,14 @@ def not_a_field():
     """
     fuera = []
     for model in _ours():
-        descriptor = next((vars(base)['display_name'] for base in model.mro()
-                           if 'display_name' in vars(base)), None)
+        descriptor = next(
+            (
+                vars(base)['display_name']
+                for base in model.mro()
+                if 'display_name' in vars(base)
+            ),
+            None,
+        )
         try:
             field = model._meta.get_field('display_name')
         except FieldDoesNotExist:
@@ -105,8 +117,10 @@ def not_a_field():
             field = None
         valid = (
             isinstance(field, models.CharField)
-            and not field.store and not field.concrete
-            and bool(field.compute) and bool(field.search)
+            and not field.store
+            and not field.concrete
+            and bool(field.compute)
+            and bool(field.search)
             and getattr(descriptor, 'field', None) is field
             and callable(getattr(type(descriptor), '__get__', None))
             and callable(getattr(type(descriptor), '__set__', None))
@@ -114,8 +128,9 @@ def not_a_field():
         if not valid:
             fuera.append(
                 f'{model._meta.label}.display_name: expected a registered '
-                f'nonstored computed/searchable Char with its assignable '
-                f'descriptor; found {type(descriptor).__name__}')
+                'nonstored computed/searchable Char with its assignable '
+                f'descriptor; found {type(descriptor).__name__}'
+            )
 
     return fuera
 
@@ -125,33 +140,48 @@ def main():
     from orm.model_classes import THIRD_PARTY_MODULE_PREFIXES as OTROS
 
     if OTROS != THIRD_PARTY_MODULE_PREFIXES:
-        print('ERROR — la lista de prefijos de terceros diverge entre el gate '
-              'y orm/model_classes. NO se emite conteo: un 0 aquí mediría '
-              'un conjunto distinto del que el barrido adopta.', file=sys.stderr)
+        print(
+            'ERROR — la lista de prefijos de terceros diverge entre el gate '
+            'y orm/model_classes. NO se emite conteo: un 0 aquí mediría '
+            'un conjunto distinto del que el barrido adopta.',
+            file=sys.stderr,
+        )
         return 2
 
     fuera = offenders()
     no_campo = not_a_field()
-    alcance = f'alcance medido: {len(_ours())} modelo(s) concreto(s) nuestro(s)'
+    alcance = (
+        f'alcance medido: {len(_ours())} modelo(s) concreto(s) nuestro(s)'
+    )
     if fuera:
         for line in fuera:
             print(line)
-        print(f'\nFAIL: {len(fuera)} modelo(s) sin el bloque de display_name '
-              f'({alcance}).')
-        print('  Lo instala orm.model_classes.adopt_display_name sobre '
-              'class_prepared;\n  si un modelo queda fuera, es que declaró el '
-              'símbolo por su cuenta.')
+        print(
+            f'\nFAIL: {len(fuera)} modelo(s) sin el bloque de display_name '
+            f'({alcance}).'
+        )
+        print(
+            '  Lo instala orm.model_classes.adopt_display_name sobre '
+            'class_prepared;\n  si un modelo queda fuera, es que declaró el '
+            'símbolo por su cuenta.'
+        )
     if no_campo:
         for line in no_campo:
             print(line)
-        print(f'\nFAIL: {len(no_campo)} modelo(s) con display_name que no es el '
-              f'campo ({alcance}).')
-        print('  La fuente lo declara campo y el cómputo aparte '
-              '(porte-completo-no-parcial.md:\n  «el guion bajo se porta»). '
-              'Renombrar el override a _compute_display_name.')
+        print(
+            f'\nFAIL: {len(no_campo)} modelo(s) con display_name que no es el '
+            f'campo ({alcance}).'
+        )
+        print(
+            '  La fuente lo declara campo y el cómputo aparte '
+            '(porte-completo-no-parcial.md:\n  «el guion bajo se porta»). '
+            'Renombrar el override a _compute_display_name.'
+        )
     if fuera or no_campo:
         return 1
-    print(f'OK: todo modelo nuestro tiene su etiqueta y su bloque ({alcance}).')
+    print(
+        f'OK: todo modelo nuestro tiene su etiqueta y su bloque ({alcance}).'
+    )
     return 0
 
 

@@ -24,6 +24,7 @@ con ``context={'active_test': False}`` (``:641``). En Django lo da el manager
 por defecto sin hacer nada, asi que el caso existe para que un manager con
 filtro anadido despues no lo rompa en silencio.
 """
+
 from datetime import timedelta
 
 import pytest
@@ -37,39 +38,57 @@ pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 @pytest.fixture
 def action():
     return IrActionsServer.objects.create(
-        name='Accion de prueba', state='code',
-        model_name='base.SystemParameter', method_name='noop_test')
+        name='Accion de prueba',
+        state='code',
+        model_name='base.SystemParameter',
+        method_name='noop_test',
+    )
 
 
 @pytest.fixture
 def cron(action):
     return IrCron.objects.create(
-        ir_actions_server=action, interval_number=1, interval_type='days',
-        nextcall=timezone.now() - timedelta(minutes=1), active=True)
+        ir_actions_server=action,
+        interval_number=1,
+        interval_type='days',
+        nextcall=timezone.now() - timedelta(minutes=1),
+        active=True,
+    )
 
 
 # --------------------------------------------------------------------------
 # El campo parent — ≙ parent_id (:648) y su inverso child_ids (:649-650)
 # --------------------------------------------------------------------------
 
+
 def test_an_action_can_declare_its_parent(action):
     child = IrActionsServer.objects.create(
-        name='Hija', state='code', model_name='base.SystemParameter',
-        method_name='noop_test', parent=action)
+        name='Hija',
+        state='code',
+        model_name='base.SystemParameter',
+        method_name='noop_test',
+        parent=action,
+    )
     assert child.parent == action
     assert list(action.child_ids.all()) == [child]
 
 
 def test_the_parent_is_optional(action):
-    """La fuente lo declara sin ``required``: una accion suelta no tiene padre."""
+    """
+    La fuente lo declara sin ``required``: una accion suelta no tiene padre.
+    """
     assert action.parent is None
 
 
 def test_deleting_the_parent_takes_the_children(action):
     """≙ ``ondelete='cascade'`` de la fuente, conservado verbatim."""
     child = IrActionsServer.objects.create(
-        name='Hija', state='code', model_name='base.SystemParameter',
-        method_name='noop_test', parent=action)
+        name='Hija',
+        state='code',
+        model_name='base.SystemParameter',
+        method_name='noop_test',
+        parent=action,
+    )
     action.delete()
     assert not IrActionsServer.objects.filter(pk=child.pk).exists()
 
@@ -78,10 +97,15 @@ def test_deleting_the_parent_takes_the_children(action):
 # action_open_parent_action — ≙ :1328-1335
 # --------------------------------------------------------------------------
 
+
 def test_open_parent_points_at_the_parent(action):
     child = IrActionsServer.objects.create(
-        name='Hija', state='code', model_name='base.SystemParameter',
-        method_name='noop_test', parent=action)
+        name='Hija',
+        state='code',
+        model_name='base.SystemParameter',
+        method_name='noop_test',
+        parent=action,
+    )
     assert child.action_open_parent_action() == {
         'type': 'ir.actions.act_window',
         'target': 'current',
@@ -94,8 +118,11 @@ def test_open_parent_points_at_the_parent(action):
 def test_the_cron_delegates_to_its_action(cron, action):
     """≙ ``ir_cron.py:889-891``: el cron no arma el descriptor, delega."""
     parent_action = IrActionsServer.objects.create(
-        name='Padre', state='code', model_name='base.SystemParameter',
-        method_name='noop_test')
+        name='Padre',
+        state='code',
+        model_name='base.SystemParameter',
+        method_name='noop_test',
+    )
     action.parent = parent_action
     action.save(update_fields=['parent'])
     assert cron.action_open_parent_action()['res_id'] == parent_action.pk
@@ -104,6 +131,7 @@ def test_the_cron_delegates_to_its_action(cron, action):
 # --------------------------------------------------------------------------
 # action_open_scheduled_action — ≙ :1337-1344
 # --------------------------------------------------------------------------
+
 
 def test_open_scheduled_points_at_the_cron(action, cron):
     assert action.action_open_scheduled_action() == {

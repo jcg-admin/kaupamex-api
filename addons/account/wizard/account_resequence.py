@@ -65,6 +65,7 @@ Divergencias declaradas
   referencia (vaciar ``name`` + ``flush_recordset``, luego asignar) se
   conserva: evita el choque transitorio de nombres.
 """
+
 import json
 from collections import defaultdict
 
@@ -91,8 +92,9 @@ class AccountResequenceWizard(TransientModel):
         moves = list(moves)
         journals = {move.journal_id for move in moves if move.journal_id}
         if len(journals) > 1:
-            raise UserError(_(
-                'You can only resequence items from the same journal'))
+            raise UserError(
+                _('You can only resequence items from the same journal')
+            )
         return moves
 
     @classmethod
@@ -110,47 +112,71 @@ class AccountResequenceWizard(TransientModel):
         return min(move.name or "" for move in moves)
 
     @classmethod
-    def _compute_preview_moves(cls, new_values, ordering,
-                                sequence_number_reset):
-        """Reduce the computed new_values to a smaller set to display in the preview.
+    def _compute_preview_moves(
+        cls, new_values, ordering, sequence_number_reset
+    ):
+        """
+        Reduce the computed new_values to a smaller set to display in the
+        preview.
 
         (Docstring verbatim de la referencia.) Misma elipsis: se muestran
         las 3 primeras, la última, y toda línea donde nombre-por-orden y
         nombre-por-fecha difieren o cambia el periodo.
         """
-        values = sorted(json.loads(new_values).values(),
-                        key=lambda x: x['server-date'], reverse=True)
+        values = sorted(
+            json.loads(new_values).values(),
+            key=lambda x: x['server-date'],
+            reverse=True,
+        )
         change_lines = []
         in_elipsis = 0
         previous_line = None
         for i, line in enumerate(values):
-            if i < 3 or i == len(values) - 1 \
-                    or line['new_by_name'] != line['new_by_date'] \
-                    or (sequence_number_reset == 'year'
-                        and line['server-date'][0:4] != previous_line['server-date'][0:4]) \
-                    or (sequence_number_reset == 'year_range'
-                        and line['server-year-start-date'][0:4] != previous_line['server-year-start-date'][0:4]) \
-                    or (sequence_number_reset == 'month'
-                        and line['server-date'][0:7] != previous_line['server-date'][0:7]):
+            if (
+                i < 3
+                or i == len(values) - 1
+                or line['new_by_name'] != line['new_by_date']
+                or (
+                    sequence_number_reset == 'year'
+                    and line['server-date'][0:4]
+                    != previous_line['server-date'][0:4]
+                )
+                or (
+                    sequence_number_reset == 'year_range'
+                    and line['server-year-start-date'][0:4]
+                    != previous_line['server-year-start-date'][0:4]
+                )
+                or (
+                    sequence_number_reset == 'month'
+                    and line['server-date'][0:7]
+                    != previous_line['server-date'][0:7]
+                )
+            ):
                 if in_elipsis:
-                    change_lines.append({
-                        'id': 'other_' + str(line['id']),
-                        'current_name': _('... (%(nb_of_values)s other)') % {
-                            'nb_of_values': in_elipsis},
-                        'new_by_name': '...',
-                        'new_by_date': '...',
-                        'date': '...',
-                    })
+                    change_lines.append(
+                        {
+                            'id': 'other_' + str(line['id']),
+                            'current_name': (
+                                _('... (%(nb_of_values)s other)')
+                                % {'nb_of_values': in_elipsis}
+                            ),
+                            'new_by_name': '...',
+                            'new_by_date': '...',
+                            'date': '...',
+                        }
+                    )
                     in_elipsis = 0
                 change_lines.append(line)
             else:
                 in_elipsis += 1
             previous_line = line
 
-        return json.dumps({
-            'ordering': ordering,
-            'changeLines': change_lines,
-        })
+        return json.dumps(
+            {
+                'ordering': ordering,
+                'changeLines': change_lines,
+            }
+        )
 
     @classmethod
     def _compute_new_values(cls, moves, first_name):
@@ -166,7 +192,8 @@ class AccountResequenceWizard(TransientModel):
         moves = list(moves)
         sample = moves[0]
         sequence_number_reset = type(sample).deduce_sequence_number_reset(
-            first_name)
+            first_name
+        )
 
         def _get_move_key(move):
             if sequence_number_reset == 'year':
@@ -174,8 +201,11 @@ class AccountResequenceWizard(TransientModel):
             if sequence_number_reset == 'year_range':
                 return "%s-%s" % (move.date.year, move.date.year)
             if sequence_number_reset == 'year_range_month':
-                return "%s-%s/%s" % (move.date.year, move.date.year,
-                                     move.date.month)
+                return "%s-%s/%s" % (
+                    move.date.year,
+                    move.date.year,
+                    move.date.month,
+                )
             if sequence_number_reset == 'month':
                 return (move.date.year, move.date.month)
             return 'default'
@@ -184,12 +214,15 @@ class AccountResequenceWizard(TransientModel):
         for move in moves:
             moves_by_period[_get_move_key(move)].append(move)
 
-        seq_format, format_values = sample.get_sequence_format_param(first_name)
+        seq_format, format_values = sample.get_sequence_format_param(
+            first_name
+        )
 
         new_values = {}
         for j, period_recs in enumerate(moves_by_period.values()):
             date_start, date_end = period_recs[0].get_sequence_date_range(
-                sequence_number_reset)
+                sequence_number_reset
+            )
             for move in period_recs:
                 new_values[move.id] = {
                     'id': move.id,
@@ -200,21 +233,41 @@ class AccountResequenceWizard(TransientModel):
                     'server-year-start-date': str(date_start),
                 }
 
-            new_name_list = [seq_format.format(**{
-                **format_values,
-                'month': date_start.month,
-                'year_end': date_end.year % (10 ** (format_values['year_end_length'] or 4)),
-                'year': date_start.year % (10 ** (format_values['year_length'] or 4)),
-                'seq': i + (format_values['seq']
-                            if j == (len(moves_by_period) - 1) else 1),
-            }) for i in range(len(period_recs))]
+            new_name_list = [
+                seq_format.format(
+                    **{
+                        **format_values,
+                        'month': date_start.month,
+                        'year_end': (
+                            date_end.year
+                            % (10 ** (format_values['year_end_length'] or 4))
+                        ),
+                        'year': (
+                            date_start.year
+                            % (10 ** (format_values['year_length'] or 4))
+                        ),
+                        'seq': (
+                            i
+                            + (
+                                format_values['seq']
+                                if j == (len(moves_by_period) - 1)
+                                else 1
+                            )
+                        ),
+                    }
+                )
+                for i in range(len(period_recs))
+            ]
 
-            by_name = sorted(period_recs,
-                             key=lambda m: (m.sequence_prefix, m.sequence_number))
+            by_name = sorted(
+                period_recs,
+                key=lambda m: (m.sequence_prefix, m.sequence_number),
+            )
             for move, new_name in zip(by_name, new_name_list):
                 new_values[move.id]['new_by_name'] = new_name
-            by_date = sorted(period_recs,
-                             key=lambda m: (m.date, m.name or "", m.id))
+            by_date = sorted(
+                period_recs, key=lambda m: (m.date, m.name or "", m.id)
+            )
             for move, new_name in zip(by_date, new_name_list):
                 new_values[move.id]['new_by_date'] = new_name
 
@@ -229,8 +282,9 @@ class AccountResequenceWizard(TransientModel):
 
         # Primer pase: vaciar los nombres para no chocar transitoriamente —
         # ≙ ``moves_to_rename.name = False`` + ``flush_recordset``.
-        moves_to_rename = [move for move in moves
-                           if str(move.id) in new_values]
+        moves_to_rename = [
+            move for move in moves if str(move.id) in new_values
+        ]
         for move in moves_to_rename:
             move.name = '/'
             move.save()

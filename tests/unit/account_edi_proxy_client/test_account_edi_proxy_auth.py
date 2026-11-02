@@ -21,6 +21,7 @@ campos del mensaje cambia —o se pierde el ``sort_keys=True`` que lo hace
 determinista— el caso cae. Una constante grabada pasaría igual con el mensaje
 mal formado, porque mediría que el código coincide consigo mismo.
 """
+
 import base64
 import hashlib
 import hmac
@@ -32,7 +33,8 @@ import pytest
 import requests
 
 from addons.account_edi_proxy_client.models.account_edi_proxy_auth import (
-    KaupaMexEdiProxyAuth)
+    KaupaMexEdiProxyAuth,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -40,9 +42,13 @@ TOKEN = base64.b64encode(b'secreto-de-refresco').decode()
 
 
 class _StubUser:
-    """El usuario del proxy, reducido a los cuatro atributos que el firmador lee."""
+    """
+    El usuario del proxy, reducido a los cuatro atributos que el firmador lee.
+    """
 
-    def __init__(self, id_client='cliente-1', refresh_token=TOKEN, private_key=None):
+    def __init__(
+        self, id_client='cliente-1', refresh_token=TOKEN, private_key=None
+    ):
         self.id_client = id_client
         self.refresh_token = refresh_token
         self.private_key = private_key
@@ -62,9 +68,12 @@ class _StubPrivateKey:
 
 
 def _prepared(body=None, url='https://proxy.test/api/enviar?b=2&a=1'):
-    """Una petición ya preparada, que es lo que ``requests`` pasa al firmador."""
+    """
+    Una petición ya preparada, que es lo que ``requests`` pasa al firmador.
+    """
     return requests.Request(
-        'POST', url, json=body if body is not None else {'z': 1, 'a': 2}).prepare()
+        'POST', url, json=body if body is not None else {'z': 1, 'a': 2}
+    ).prepare()
 
 
 def _expected_message(request, timestamp, id_client):
@@ -78,14 +87,18 @@ def _expected_message(request, timestamp, id_client):
     if isinstance(body, bytes):
         body = body.decode()
     return '%s|%s|%s|%s|%s' % (
-        timestamp, parsed.path, id_client,
+        timestamp,
+        parsed.path,
+        id_client,
         json.dumps(parse_qs(parsed.query), sort_keys=True),
-        json.dumps(json.loads(body), sort_keys=True))
+        json.dumps(json.loads(body), sort_keys=True),
+    )
 
 
 # --------------------------------------------------------------------------
 # La salida temprana — ≙ ``:49-50``
 # --------------------------------------------------------------------------
+
 
 def test_a_request_without_client_id_is_returned_untouched():
     """Sin ``id_client`` no hay a quién firmar: la petición sale igual."""
@@ -106,6 +119,7 @@ def test_no_user_at_all_is_also_a_pass_through():
 # La rama HMAC — ≙ ``:40-42`` y ``:62-66``
 # --------------------------------------------------------------------------
 
+
 def test_the_hmac_signature_matches_the_documented_message():
     """La firma se recomputa aquí desde el formato, no se compara con una
     constante grabada."""
@@ -119,7 +133,8 @@ def test_the_hmac_signature_matches_the_documented_message():
     esperada = hmac.new(
         base64.b64decode(TOKEN),
         _expected_message(request, timestamp, 'cliente-1').encode(),
-        digestmod=hashlib.sha256).hexdigest()
+        digestmod=hashlib.sha256,
+    ).hexdigest()
     assert signed.headers['odoo-edi-signature'] == esperada
 
 
@@ -127,7 +142,9 @@ def test_the_timestamp_is_the_current_epoch_second():
     """El sello va en la cabecera y entra en el mensaje firmado."""
     antes = int(time.time())
     signed = KaupaMexEdiProxyAuth(user=_StubUser())(_prepared())
-    assert antes <= int(signed.headers['odoo-edi-timestamp']) <= int(time.time())
+    assert (
+        antes <= int(signed.headers['odoo-edi-timestamp']) <= int(time.time())
+    )
 
 
 def test_the_query_is_sorted_so_the_message_is_deterministic():
@@ -141,18 +158,22 @@ def test_the_query_is_sorted_so_the_message_is_deterministic():
     otro = firmante(_prepared(url='https://proxy.test/api/x?b=2&a=1'))
     if uno.headers['odoo-edi-timestamp'] != otro.headers['odoo-edi-timestamp']:
         pytest.skip('los dos sellos cayeron en segundos distintos')
-    assert uno.headers['odoo-edi-signature'] == otro.headers['odoo-edi-signature']
+    assert (
+        uno.headers['odoo-edi-signature'] == otro.headers['odoo-edi-signature']
+    )
 
 
 # --------------------------------------------------------------------------
 # La rama asimétrica — ≙ ``:44-46`` y ``:57-61``
 # --------------------------------------------------------------------------
 
+
 def test_the_asymmetric_branch_signs_with_the_private_key():
     """≙ ``:57-61`` — con llave privada y el tipo pedido, firma con ella."""
     key = _StubPrivateKey()
     signed = KaupaMexEdiProxyAuth(
-        user=_StubUser(private_key=key), auth_type='asymmetric')(_prepared())
+        user=_StubUser(private_key=key), auth_type='asymmetric'
+    )(_prepared())
 
     assert signed.headers['odoo-edi-signature-type'] == 'asymmetric'
     assert signed.headers['odoo-edi-signature'] == 'firma-asimetrica'
@@ -160,19 +181,22 @@ def test_the_asymmetric_branch_signs_with_the_private_key():
     mensaje, formato = key.seen[0]
     assert formato == 'base64'
     assert mensaje.decode() == _expected_message(
-        _prepared(), signed.headers['odoo-edi-timestamp'], 'cliente-1')
+        _prepared(), signed.headers['odoo-edi-timestamp'], 'cliente-1'
+    )
 
 
 def test_asking_for_asymmetric_without_a_key_falls_back_to_hmac():
     """≙ ``:57`` — la condición exige **ambos**: el tipo y la llave."""
     signed = KaupaMexEdiProxyAuth(
-        user=_StubUser(private_key=None), auth_type='asymmetric')(_prepared())
+        user=_StubUser(private_key=None), auth_type='asymmetric'
+    )(_prepared())
     assert signed.headers['odoo-edi-signature-type'] == 'hmac'
 
 
 def test_without_token_nor_key_nothing_is_signed():
     """La rama negativa: hay ``id_client``, pero no con qué firmar."""
     signed = KaupaMexEdiProxyAuth(
-        user=_StubUser(refresh_token=None, private_key=None))(_prepared())
+        user=_StubUser(refresh_token=None, private_key=None)
+    )(_prepared())
     assert signed.headers['odoo-edi-client-id'] == 'cliente-1'
     assert 'odoo-edi-signature' not in signed.headers

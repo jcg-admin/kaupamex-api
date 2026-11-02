@@ -1,4 +1,5 @@
-"""``ProductProduct.suggest_estimated_price`` — el precio de comprar lo sugerido.
+"""
+``ProductProduct.suggest_estimated_price`` — el precio de comprar lo sugerido.
 
 Fiel a ``odoo19c: purchase_stock/models/product.py:40,62-78`` (``odoo-tools``,
 LGPL-3). La fuente encadena dos ``_select_seller``: primero por la cantidad
@@ -11,13 +12,18 @@ sólo la primera llamada, o sin la guarda de cantidad cero— falle: el
 sub-patrón D de ``metrica-decide-la-conclusion.md`` (un verde que no
 distingue el fenómeno del instrumento).
 """
+
 from decimal import Decimal
 from unittest.mock import PropertyMock, patch
 
 import pytest
 
 from addons.base.models import ResPartner
-from addons.product.models import ProductProduct, ProductSupplierinfo, ProductTemplate
+from addons.product.models import (
+    ProductProduct,
+    ProductSupplierinfo,
+    ProductTemplate,
+)
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -25,12 +31,14 @@ pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 def _variant(name='Eleke', standard_price=Decimal('1.00')):
     tmpl = ProductTemplate.objects.create(name=name)
     return ProductProduct.objects.create(
-        product_tmpl=tmpl, standard_price=standard_price)
+        product_tmpl=tmpl, standard_price=standard_price
+    )
 
 
 def _tariff(tmpl, partner, **kwargs):
     return ProductSupplierinfo.objects.create(
-        partner=partner, product_tmpl=tmpl, **kwargs)
+        partner=partner, product_tmpl=tmpl, **kwargs
+    )
 
 
 def _suggesting(variant, qty):
@@ -43,8 +51,11 @@ def _suggesting(variant, qty):
     ``PropertyMock`` sobre la clase es la sustitución de alcance mínimo.
     """
     return patch.object(
-        type(variant), 'suggested_qty', new_callable=PropertyMock,
-        return_value=qty)
+        type(variant),
+        'suggested_qty',
+        new_callable=PropertyMock,
+        return_value=qty,
+    )
 
 
 class TestSuggestEstimatedPrice:
@@ -73,19 +84,27 @@ class TestSuggestEstimatedPrice:
         note de inmediato."""
         variant = _variant(standard_price=Decimal('999.00'))
         supplier = ResPartner.objects.create(name='Proveedor')
-        _tariff(variant.product_tmpl, supplier, min_qty=1, price=Decimal('7.00'))
+        _tariff(
+            variant.product_tmpl, supplier, min_qty=1, price=Decimal('7.00')
+        )
         with _suggesting(variant, 3):
             assert variant.suggest_estimated_price == Decimal('7.00') * 3
 
-    def test_falls_back_to_the_min_qty_tariff_when_none_matches_the_quantity(self):
+    def test_falls_back_to_the_min_qty_tariff_when_none_matches_the_quantity(
+        self,
+    ):
         """Segunda llamada de la cascada: ninguna tarifa cubre la cantidad
         sugerida (los dos ``min_qty`` la superan), así que se toma la de
         menor ``min_qty`` sin filtrar por cantidad. Discrimina contra una
         implementación de una sola llamada, que caería al costo estándar."""
         variant = _variant(standard_price=Decimal('999.00'))
         supplier = ResPartner.objects.create(name='Proveedor')
-        _tariff(variant.product_tmpl, supplier, min_qty=50, price=Decimal('4.00'))
-        _tariff(variant.product_tmpl, supplier, min_qty=100, price=Decimal('2.00'))
+        _tariff(
+            variant.product_tmpl, supplier, min_qty=50, price=Decimal('4.00')
+        )
+        _tariff(
+            variant.product_tmpl, supplier, min_qty=100, price=Decimal('2.00')
+        )
         with _suggesting(variant, 3):
             # Control: la primera llamada de la cascada no encuentra nada —
             # si esto fallara, el caso mediría otra cosa (una tarifa que sí

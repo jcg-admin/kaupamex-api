@@ -31,6 +31,7 @@ Divergencias declaradas
    secciones ``line_section``) NO se porta** — es texto de UI Odoo sin
    vista XML que lo consuma; ``__str__`` usa ``name`` a secas.
 """
+
 import fields
 import models
 from exceptions import UserError, ValidationError
@@ -70,35 +71,52 @@ class ResourceCalendarAttendance(TimeStampedModel):
 
     name = fields.Char(max_length=100, help_text='Odoo name.')
     dayofweek = fields.Selection(
-        max_length=1, choices=DAYS_OF_WEEK, default='0',
+        max_length=1,
+        choices=DAYS_OF_WEEK,
+        default='0',
         help_text='Odoo dayofweek (0=Lunes … 6=Domingo).',
     )
     hour_from = fields.Float(
-        default=0, help_text=(
+        default=0,
+        help_text=(
             'Hora de inicio (Odoo hour_from). Un valor de 24.0 se interpreta '
             'como 23:59:59.999999 (mismo criterio que la referencia).'
         ),
     )
     hour_to = fields.Float(default=0, help_text='Hora de fin (Odoo hour_to).')
     calendar = fields.Many2one(
-        'resource.ResourceCalendar', on_delete=models.CASCADE,
+        'resource.ResourceCalendar',
+        on_delete=models.CASCADE,
         related_name='attendances',
         help_text="Odoo calendar_id (required, ondelete='cascade').",
     )
     day_period = fields.Selection(
-        max_length=10, choices=DAY_PERIODS, default='morning',
+        max_length=10,
+        choices=DAY_PERIODS,
+        default='morning',
         help_text='Odoo day_period.',
     )
     week_type = fields.Selection(
-        max_length=1, choices=WEEK_TYPES, null=True, blank=True, default=None,
-        help_text='Odoo week_type — sólo relevante si calendar.two_weeks_calendar.',
+        max_length=1,
+        choices=WEEK_TYPES,
+        null=True,
+        blank=True,
+        default=None,
+        help_text=(
+            'Odoo week_type — sólo relevante si calendar.two_weeks_calendar.'
+        ),
     )
     display_type = fields.Selection(
-        max_length=20, choices=DISPLAY_TYPES, null=True, blank=True, default=None,
+        max_length=20,
+        choices=DISPLAY_TYPES,
+        null=True,
+        blank=True,
+        default=None,
         help_text='Odoo display_type — línea técnica de sección (UI).',
     )
     sequence = fields.Integer(
-        default=10, help_text='Odoo sequence — orden al listar el calendario.',
+        default=10,
+        help_text='Odoo sequence — orden al listar el calendario.',
     )
 
     class Meta:
@@ -171,9 +189,14 @@ class ResourceCalendarAttendance(TimeStampedModel):
                 f'{self.name} es un tramo de descanso; no debería estar en '
                 'un calendario basado en duración.'
             )
-        if self.hour_from < 0 or self.hour_to > 24 or self.hour_to < self.hour_from:
+        if (
+            self.hour_from < 0
+            or self.hour_to > 24
+            or self.hour_to < self.hour_from
+        ):
             raise ValidationError(
-                'hour_from/hour_to deben estar en [0, 24] con hour_to >= hour_from.'
+                'hour_from/hour_to deben estar en [0, 24] con hour_to >='
+                ' hour_from.'
             )
 
     # --------------------------------------------------------------
@@ -182,7 +205,8 @@ class ResourceCalendarAttendance(TimeStampedModel):
 
     @staticmethod
     def get_week_type(date):
-        """Paridad ISO del número de semana de ``date`` (Odoo ``get_week_type``,
+        """
+        Paridad ISO del número de semana de ``date`` (Odoo ``get_week_type``,
         matemática pura — sin dependencia de zona horaria)."""
         return (date.toordinal() - 1) // 7 % 2
 
@@ -202,5 +226,7 @@ class ResourceCalendarAttendance(TimeStampedModel):
 
     @property
     def is_work_period(self):
-        """Odoo ``_is_work_period`` — excluye descansos y secciones técnicas."""
+        """
+        Odoo ``_is_work_period`` — excluye descansos y secciones técnicas.
+        """
         return self.day_period != 'lunch' and not self.display_type
