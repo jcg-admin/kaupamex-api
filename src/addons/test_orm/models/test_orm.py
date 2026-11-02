@@ -642,3 +642,29 @@ class TestOrmMixed(TestOrmModel):
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_mixed'
+
+
+class TestOrmMessage(TestOrmModel):
+    """≙ ``test_orm.message`` (``odoo19c: odoo/addons/test_orm/models/
+    test_orm.py:138-240``), en la parte que usan los casos ``like`` y
+    ``bool`` de ``TestDomain``.
+
+    pendiente: ``name`` es aquí un ``Char`` llano y en la fuente es
+    ``compute='_compute_name', store=True``; ``author``, ``body``, ``size``,
+    ``double_size``, ``discussion_name``, ``author_partner``, ``label``,
+    ``has_important_sibling``, ``attributes`` y las dos restricciones entran
+    con ``TestFields``.
+    """
+
+    _name = 'test_orm.message'
+    _description = 'Test ORM Message'
+
+    discussion = fields.Many2one('test_orm.discussion', ondelete='cascade',
+                                 null=True, related_name='+')
+    name = fields.Char(string='Title', null=True)
+    important = fields.Boolean(default=False)
+    priority = fields.Integer(null=True)
+    active = fields.Boolean(default=True)
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_message'

@@ -91,3 +91,56 @@ def test_condition_optimize_any_id(model):
     assert Domain('id', 'any', NUMBER_DOMAIN).optimize(model) == NUMBER_DOMAIN
     assert Domain('id', 'not any', NUMBER_DOMAIN).optimize(model) == (
         ~NUMBER_DOMAIN).optimize(model)
+
+
+@pytest.fixture
+def message(env):
+    return env['test_orm.message']
+
+
+def test_condition_optimize_like(message):
+    domain = Domain('name', 'like', 'ok')
+    assert domain.optimize(message) is domain, 'Idempotent'
+    assert Domain('name', 'like', '').optimize(message) == Domain.TRUE
+    assert Domain('name', 'not like', '').optimize(message) == Domain.FALSE
+    assert Domain('name', '=like', '').optimize(message) == Domain(
+        'name', '=', False).optimize(message)
+    assert Domain('name', 'like', 5).optimize(message) == Domain(
+        'name', 'like', '5')
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    'Divergencia: aquí el search del campo (display_name -> _rec_name) se '
+    'despacha en cualquier nivel; la fuente sólo en FULL '
+    '(odoo19c: odoo/orm/domains.py:946-967), así que optimize() ya devuelve '
+    'name. Restringirlo a FULL cambia pruebas que fijan la conducta actual '
+    '(tests/unit/orm/test_field_search_method.py). Sucesor: TASK-API-0190.'))
+def test_condition_optimize_like_relational(message):
+    assert Domain('discussion', 'like', '').optimize(message) == Domain(
+        'discussion', 'not in', OrderedSet([False]))
+    domain = Domain('discussion', 'like', 'ok').optimize(message)
+    assert domain.operator == 'any'
+    assert isinstance(domain.value, Domain)
+    assert domain.value.field_expr == 'display_name'
+    domain = Domain('discussion', 'not like', 'ok').optimize(message)
+    assert domain.operator == 'not any', (
+        f'Always use positive operator on display_name; in {domain}')
+
+
+def test_condition_optimize_bool(message):
+    is_important = Domain('important', 'in', OrderedSet([True]))
+    assert is_important.optimize(message) is is_important
+    assert Domain('important', '=', True).optimize(message) == is_important
+    assert list(Domain('important', 'not in', [True, False]).optimize(
+        message)) == [('important', 'not in', [True, False])]
+    assert Domain('important', 'not in', [True, False]).optimize_full(
+        message) == Domain.FALSE
+    assert Domain('important', 'in', [True, 'yes']).optimize(
+        message) == is_important
+    assert Domain('important', 'in', ['yes']).optimize(message) == is_important
+    assert Domain('important', 'in', [0, 2]).optimize_full(
+        message) == Domain.TRUE
+    assert list(Domain('active', 'in', [True, False]).optimize(message)) == [
+        ('active', 'in', [True, False])]
+    assert Domain('active', 'in', [True, False]).optimize_full(
+        message) == Domain.TRUE
