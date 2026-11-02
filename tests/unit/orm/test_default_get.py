@@ -48,6 +48,7 @@ import pytest
 from addons.base.models import IrDefault, ResPartner
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.ir_cron import IrCron
+from addons.base.models.res_users import ResUsersLog
 from addons.base.models.ir_sequence import IrSequenceDateRange
 from addons.base.models.ir_ui_view import IrUiViewCustom
 from addons.base.models.res_users import ResUsers
@@ -211,10 +212,17 @@ class TestRecNameResolution:
     def test_a_model_without_name_gets_the_explicit_none(self):
         """El default de ``BaseModel``, puesto a mano porque la base es Django.
 
-        ``IrCron`` llama a su campo ``cron_name``, así que no hay ``name`` que
-        resolver. Sin este paso, ``cls._rec_name`` daba ``AttributeError``.
+        ``ResUsersLog`` no tiene ``name`` propio ni padre de ``_inherits`` que
+        lo declare. Sin este paso, ``cls._rec_name`` daba ``AttributeError``.
         """
-        assert IrCron._rec_name is None
+        assert ResUsersLog._rec_name is None
+
+    def test_an_inherited_name_is_the_rec_name(self):
+        """``IrCron`` llama a su campo ``cron_name``, pero hereda ``name`` de
+        ``ir.actions.server`` por ``_inherits`` (``odoo19c: ir_cron.py:104``)
+        y no declara ``_rec_name``: en la fuente ``'name' in _fields`` y su
+        ``_rec_name`` es ``'name'`` (``model_classes.py:438-439``)."""
+        assert IrCron._rec_name == 'name'
 
     def test_a_declared_rec_name_survives(self):
         """
