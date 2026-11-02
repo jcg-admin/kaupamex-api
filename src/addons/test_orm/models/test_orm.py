@@ -18,11 +18,33 @@ import itertools
 import fields
 import models
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from orm.models import BaseModel
 from api import depends, onchange
 from exceptions import AccessError
 
 
-class TestOrmCategory(TimeStampedModel):
+class TestOrmModel(BaseModel, TimeStampedModel):
+    """La base de los modelos de este addon — ≙ ``models.Model`` de la fuente.
+
+    Todo modelo de ``odoo19c: odoo/addons/test_orm/models/test_orm.py`` es un
+    recordset: la suite lo crea con ``env[...].create`` y lo consulta con
+    ``search``, ``browse`` y ``exists``. Aquí ese protocolo lo aporta
+    :class:`~orm.models.BaseModel` (decisión registrada en H-API-1083: los
+    modelos portados derivan de ella), y ``TimeStampedModel`` conserva las
+    columnas y el ``Meta`` que el esquema ya migrado declara.
+
+    El ``Meta`` se hereda explícitamente porque Django toma el del primer
+    padre abstracto, y el primero es ``BaseModel``: sin esta línea el modelo
+    perdía ``get_latest_by`` y la migración cambiaba sin que el esquema lo
+    pidiera. Adoptar ``BaseModel`` en ``TimeStampedModel`` para todo el árbol
+    es otra decisión y no se toma aquí.
+    """
+
+    class Meta(TimeStampedModel.Meta):
+        abstract = True
+
+
+class TestOrmCategory(TestOrmModel):
     """≙ ``:15``."""
 
     _name = 'test_orm.category'
@@ -33,7 +55,9 @@ class TestOrmCategory(TimeStampedModel):
 
     name = fields.Char(required=True)
     color = fields.Integer('Color Index')
-    parent = fields.Many2one('test_orm.category', ondelete='cascade')
+    # H-API-1122: la fuente no declara ``required``, así que el Many2one es
+    # opcional; aquí ``required = not null``, de ahí ``null=True``.
+    parent = fields.Many2one('test_orm.category', ondelete='cascade', null=True)
     parent_path = fields.Char(index=True)
     depth = fields.Integer(compute='_compute_depth')
     root_categ = fields.Many2one(
@@ -106,7 +130,7 @@ class TestOrmCategory(TimeStampedModel):
         return super()._fetch_query(query, fields)
 
 
-class TestOrmDiscussion(TimeStampedModel):
+class TestOrmDiscussion(TestOrmModel):
     """≙ ``:88``."""
 
     _name = 'test_orm.discussion'
@@ -124,7 +148,7 @@ class TestOrmDiscussion(TimeStampedModel):
     # (``fields.E304``). Es la convencion dominante del arbol: 197
     # declaraciones ya la usan, y ``One2many.__get__`` la contempla
     # (``src/orm/fields_relational.py:371-373``).
-    moderator = fields.Many2one('res.users', related_name='+')
+    moderator = fields.Many2one('res.users', related_name='+', null=True)  # H-API-1122
     categories = fields.Many2many(
         'test_orm.category',
         'test_orm_discussion_category',

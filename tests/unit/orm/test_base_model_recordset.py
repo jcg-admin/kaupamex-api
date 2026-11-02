@@ -513,3 +513,33 @@ class TestOriginAndCache:
 
     def test_cache_is_a_mapping_view(self, empty):
         assert isinstance(empty.browse([7])._cache, collections.abc.Mapping)
+
+
+class TestARecordRejectsUndeclaredAttributes:
+    """``__slots__`` de la fuente: un nombre que el modelo no declara no entra.
+
+    ≙ ``odoo19c: odoo/addons/test_orm/tests/test_attributes.py``. Aquí se mide
+    sobre las dos formas que construyen una instancia de ``BaseModel`` —el
+    recordset de ``_from_ids`` y la fila de Django— porque el recordset que
+    devuelve ``create`` todavía es un ``QuerySet`` (H-API-1123).
+    """
+
+    def test_a_recordset_rejects_an_unknown_public_name(self, empty):
+        with pytest.raises(AttributeError):
+            empty.unknown = 42
+
+    def test_a_django_row_rejects_an_unknown_public_name(self):
+        row = RecordsetProbe(label='x')
+        with pytest.raises(AttributeError):
+            row.unknown = 42
+        assert 'unknown' not in vars(row)
+
+    def test_a_declared_field_is_still_assignable(self):
+        row = RecordsetProbe(label='x')
+        row.label = 'y'
+        assert row.label == 'y'
+
+    def test_private_names_stay_admitted_for_django_state(self):
+        row = RecordsetProbe(label='x')
+        row._kaupamex_probe_marker = 1
+        assert row._kaupamex_probe_marker == 1

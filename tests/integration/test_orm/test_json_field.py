@@ -13,16 +13,11 @@ materializa la escritura. ``env.cache.get`` se traduce a la caché del ORM
 (``field._get_cache(env)``) y al almacén Django de la fila, los dos planos que
 el descriptor consulta (``src/orm/fields.py``, ``FieldDescriptor.__get__``).
 
-**Segunda adaptación, de fixture:** la fuente crea la discusión sólo con
-``name`` porque su ``moderator`` es un ``Many2one`` opcional. Aquí un
-``Many2one`` sin ``null=`` es ``NOT NULL`` (``orm/fields_relational.py``,
-``_apply_ondelete``), así que el fixture aporta un usuario. La divergencia es
-global y queda registrada en H-API-1122; no forma parte del contrato de
-``Json`` que esta prueba mide.
+El fixture crea la discusión sólo con ``name``, como la fuente: su
+``moderator`` es opcional desde que H-API-1122 se resolvió para ``test_orm``.
 """
 
 import pytest
-from django.contrib.auth import get_user_model
 
 from addons.test_orm.models.test_orm import TestOrmDiscussion
 from orm.environments import env as get_environment
@@ -35,10 +30,7 @@ RANDOM_STR_2 = 'Crypto-money base'
 
 @pytest.fixture
 def discussion():
-    moderator = get_user_model().objects.create_user(
-        login='json-field-moderator@example.com', password='JsonPass123!')
-    return TestOrmDiscussion.objects.create(
-        name='Test Discussion JSON field', moderator=moderator)
+    return TestOrmDiscussion.objects.create(name='Test Discussion JSON field')
 
 
 def _cached_values(record):

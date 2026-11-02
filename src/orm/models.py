@@ -4575,6 +4575,29 @@ class BaseModel(DefaultGetMixin, Model):
 
     __slots__ = ['env', '_ids', '_prefetch_ids']
 
+    def __setattr__(self, name, value):
+        """Un registro no admite atributos que su modelo no declare.
+
+        ≙ la conducta que ``__slots__`` da en la fuente
+        (``odoo19c: odoo/orm/models.py:362``): sin ``__dict__``, asignar un
+        nombre que la clase no declara levanta ``AttributeError``
+        (``odoo/addons/test_orm/tests/test_attributes.py``). Aquí el modelo
+        concreto de Django conserva su ``__dict__`` —ver el punto 1 del
+        docstring de la clase—, así que la ranura sola no lo impide.
+
+        **Divergencia declarada:** los nombres con guion bajo se admiten,
+        porque Django guarda en ellos el estado de la instancia (``_state``,
+        las cachés de relación y de prelectura) y este ORM sus marcas
+        internas. Un nombre público sólo se acepta si la clase lo declara:
+        campo, ``attname``, propiedad o método. Lo que Django escribe con
+        nombre público libre —``annotate()`` y ``Prefetch(to_attr=…)``— no
+        tiene receptor sobre un registro, como no lo tiene en la fuente.
+        """
+        if name[:1] != '_' and not hasattr(type(self), name):
+            raise AttributeError(
+                f'{type(self).__name__!r} object has no attribute {name!r}')
+        super().__setattr__(name, value)
+
     #: **Divergencia de mecanismo.** La fuente cuelga el registro completo
     #: de la
     #: clase (``pool: Registry``, ``:362``) porque su metaclase lo construye.
