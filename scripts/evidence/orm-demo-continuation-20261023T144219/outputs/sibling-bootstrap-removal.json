@@ -1,0 +1,37 @@
+[
+  {
+    "path": "scripts/check_fk_naming.py",
+    "removed": "redundant sibling directory sys.path insertion",
+    "imports_and_other_statements_preserved": true
+  },
+  {
+    "path": "scripts/census_orm_reference.py",
+    "removed": "redundant sibling directory sys.path insertion",
+    "imports_and_other_statements_preserved": true
+  },
+  {
+    "path": "scripts/census_field_types.py",
+    "removed": "redundant sibling directory sys.path insertion",
+    "imports_and_other_statements_preserved": true
+  },
+  {
+    "path": "scripts/census_field_contract.py",
+    "removed": "redundant sibling directory sys.path insertion",
+    "imports_and_other_statements_preserved": true
+  },
+  {
+    "path": "scripts/check_write_path.py",
+    "removed": "redundant sibling directory sys.path insertion",
+    "imports_and_other_statements_preserved": true
+  },
+  {
+    "path": "scripts/counterpart_body.py",
+    "removed": "redundant sibling directory sys.path insertion",
+    "imports_and_other_statements_preserved": true
+  },
+  {
+    "path": "scripts/reference_flow.py",
+    "removed": "redundant sibling directory sys.path insertion",
+    "imports_and_other_statements_preserved": true
+  }
+]

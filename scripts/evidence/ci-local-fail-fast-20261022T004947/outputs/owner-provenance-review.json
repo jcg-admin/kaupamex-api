@@ -1,0 +1,13 @@
+{
+  "creation_evidence": "outputs/task-created.json",
+  "owner_input": "codex-ci-local",
+  "creation_session": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "meaning_proven": "Explicit free-text owner input supplied on TaskCreate for the CI-local task; not derived from Git branch",
+  "historical_branch": "feature/codex-workspace-bootstrap",
+  "independent_agent_identity": "not_verified; creation artifact does not establish it",
+  "observed_active_claims_for_owner": 0,
+  "claims_interface": "activeClaims(readLedger(ledgerPathFor(api)))",
+  "current_chat_agents": "collaboration.list_agents returned only /root running",
+  "official_owner_changed": false,
+  "correction": "Do not infer a different active worker or block continuity solely from this unqualified label"
+}

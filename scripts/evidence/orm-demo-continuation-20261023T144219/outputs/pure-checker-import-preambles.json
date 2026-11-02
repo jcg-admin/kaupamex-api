@@ -1,0 +1,80 @@
+[
+  {
+    "file": "scripts/check_addon_cycles.py",
+    "imports": 8,
+    "redundant_sibling_bootstraps_removed": 1,
+    "nonimport_ast_and_import_order": "preserved"
+  },
+  {
+    "file": "scripts/check_addon_layout.py",
+    "imports": 5,
+    "redundant_sibling_bootstraps_removed": 1,
+    "nonimport_ast_and_import_order": "preserved"
+  },
+  {
+    "file": "scripts/check_addon_names.py",
+    "imports": 8,
+    "redundant_sibling_bootstraps_removed": 2,
+    "nonimport_ast_and_import_order": "preserved"
+  },
+  {
+    "file": "scripts/check_bloqueo_vigente.py",
+    "imports": 7,
+    "redundant_sibling_bootstraps_removed": 1,
+    "nonimport_ast_and_import_order": "preserved"
+  },
+  {
+    "file": "scripts/check_chain_combine.py",
+    "imports": 8,
+    "redundant_sibling_bootstraps_removed": 1,
+    "nonimport_ast_and_import_order": "preserved"
+  },
+  {
+    "file": "scripts/check_inherits_delegation.py",
+    "imports": 11,
+    "redundant_sibling_bootstraps_removed": 2,
+    "nonimport_ast_and_import_order": "preserved"
+  },
+  {
+    "file": "scripts/check_mirrored_roots.py",
+    "imports": 7,
+    "redundant_sibling_bootstraps_removed": 1,
+    "nonimport_ast_and_import_order": "preserved"
+  },
+  {
+    "file": "scripts/check_model_class_attributes.py",
+    "imports": 9,
+    "redundant_sibling_bootstraps_removed": 2,
+    "nonimport_ast_and_import_order": "preserved"
+  },
+  {
+    "file": "scripts/check_porte_completo.py",
+    "imports": 11,
+    "redundant_sibling_bootstraps_removed": 2,
+    "nonimport_ast_and_import_order": "preserved"
+  },
+  {
+    "file": "scripts/check_symbol_home.py",
+    "imports": 9,
+    "redundant_sibling_bootstraps_removed": 1,
+    "nonimport_ast_and_import_order": "preserved"
+  },
+  {
+    "file": "scripts/derivar_depends.py",
+    "imports": 5,
+    "redundant_sibling_bootstraps_removed": 1,
+    "nonimport_ast_and_import_order": "preserved"
+  },
+  {
+    "file": "scripts/mapa_dependencias.py",
+    "imports": 14,
+    "redundant_sibling_bootstraps_removed": 2,
+    "nonimport_ast_and_import_order": "preserved"
+  },
+  {
+    "file": "scripts/pendientes_cascara.py",
+    "imports": 11,
+    "redundant_sibling_bootstraps_removed": 2,
+    "nonimport_ast_and_import_order": "preserved"
+  }
+]

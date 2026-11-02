@@ -1,0 +1,95 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_path": "odoo19c:odoo/modules/module_graph.py",
+  "reference_sha256": "584f0e71063b36211147bc8190a5e348d0674153ba7b981d71179a85d753b8c5",
+  "consumer_sha256": "19cd47248783c8bce0e2120cb47f04bd17886a8a2c77241e4826bcbee26a2882",
+  "cases": [
+    {
+      "state": "uninstallable",
+      "mode": "load",
+      "messages": [
+        [
+          "WARNING",
+          "module root: not installable, skipped"
+        ],
+        [
+          "INFO",
+          "module child: its direct/indirect dependency is skipped, skipped"
+        ]
+      ],
+      "remaining_nodes": [],
+      "status": "PASS"
+    },
+    {
+      "state": "uninstallable",
+      "mode": "update",
+      "messages": [
+        [
+          "WARNING",
+          "module root: not installable, skipped"
+        ],
+        [
+          "INFO",
+          "module child: its direct/indirect dependency is skipped, skipped"
+        ]
+      ],
+      "remaining_nodes": [],
+      "status": "PASS"
+    },
+    {
+      "state": "uninstalled",
+      "mode": "load",
+      "messages": [
+        [
+          "INFO",
+          "module root: not installed, skipped"
+        ],
+        [
+          "INFO",
+          "module child: its direct/indirect dependency is skipped, skipped"
+        ]
+      ],
+      "remaining_nodes": [],
+      "status": "PASS"
+    },
+    {
+      "state": "uninstalled",
+      "mode": "update",
+      "messages": [],
+      "remaining_nodes": [
+        "child",
+        "root"
+      ],
+      "status": "PASS"
+    },
+    {
+      "state": "to install",
+      "mode": "load",
+      "messages": [
+        [
+          "INFO",
+          "module root: not installed, skipped"
+        ],
+        [
+          "INFO",
+          "module child: its direct/indirect dependency is skipped, skipped"
+        ]
+      ],
+      "remaining_nodes": [],
+      "status": "PASS"
+    },
+    {
+      "state": "to install",
+      "mode": "update",
+      "messages": [],
+      "remaining_nodes": [
+        "child",
+        "root"
+      ],
+      "status": "PASS"
+    }
+  ],
+  "scope": "Cuerpos de referencia con adaptadores; no runtime Odoo nativo",
+  "sql": "Bloqueado; sin aceptación física ni de persistencia",
+  "acceptance": "No acredita procedencia imported ni el cargador completo"
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "path": ".claude/hooks/inject_drf_skill_gate.py",
+    "historical_blob": "78c0a79b6c5139da97cfec1df2c4bbbd554ff2e3",
+    "published_blob": "78c0a79b6c5139da97cfec1df2c4bbbd554ff2e3",
+    "unchanged": true
+  },
+  {
+    "path": ".claude/scripts/bound_detector.py",
+    "historical_blob": "6c10741d09f8eb1f29136feb6124626e63cedc61",
+    "published_blob": "6c10741d09f8eb1f29136feb6124626e63cedc61",
+    "unchanged": true
+  }
+]

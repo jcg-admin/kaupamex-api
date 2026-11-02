@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="22" time="0.150" timestamp="2026-10-27T12:53:52.242326" hostname="c8a29a030cff"><testcase classname="" name="test_depth_rejects_cycle_with_a_domain_error[dependencies0-cycle0]" time="0.020" /><testcase classname="" name="test_depth_rejects_cycle_with_a_domain_error[dependencies1-cycle1]" time="0.001" /><testcase classname="" name="test_depth_rejects_cycle_with_a_domain_error[dependencies2-cycle2]" time="0.000" /><testcase classname="" name="test_order_rejects_cycles_before_returning_a_partial_plan" time="0.001" /><testcase classname="" name="test_diamond_is_not_a_cycle_and_ties_are_deterministic" time="0.001" /><testcase classname="" name="test_depth_does_not_reuse_a_stale_memo_after_dependencies_change" time="0.000" /><testcase classname="" name="test_missing_dependency_is_reported_without_inventing_a_cycle" time="0.000" /><testcase classname="" name="test_each_node_depth_is_computed_once_per_ordering" time="0.000" /><testcase classname="" name="test_empty_auto_install_trigger_is_not_false[trigger0]" time="0.000" /><testcase classname="" name="test_empty_auto_install_trigger_is_not_false[trigger1]" time="0.001" /><testcase classname="" name="test_uninstallable_module_is_not_an_auto_install_candidate" time="0.000" /><testcase classname="" name="test_true_trigger_requires_dependencies_and_false_never_qualifies" time="0.000" /><testcase classname="" name="test_bound_extension_snapshots_new_nodes_without_overwriting_loaded_state" time="0.000" /><testcase classname="" name="test_bound_extension_prunes_uninstallable_manifests" time="0.000" /><testcase classname="" name="test_bound_extension_prunes_new_dependency_cycles" time="0.001" /><testcase classname="" name="test_bound_extension_of_existing_nodes_does_not_reload_catalogue" time="0.000" /><testcase classname="" name="test_bound_extension_reports_the_uninstallable_root" time="0.001"><failure message="AssertionError: assert [] == [(30, 'module...le, skipped')]&#10;  Right contains one more item: (30, 'module disabled: not installable, skipped')&#10;  Use -v to get more diff">bound_graph = (ModuleGraph(1 nodos), [('base',), ()])
+caplog = &lt;_pytest.logging.LogCaptureFixture object at 0x7fc6d2726b10&gt;
+
+    def test_bound_extension_reports_the_uninstallable_root(bound_graph, caplog):
+        """El descarte debe identificar al módulo raíz, no sólo dependientes."""
+        graph, _ = bound_graph
+        with caplog.at_level(logging.WARNING, logger='modules.module_graph'):
+            graph.extend(['disabled'])
+        assert set(graph._nodes) == {'base'}
+&gt;       assert [(record.levelno, record.getMessage()) for record in caplog.records] == [
+            (logging.WARNING, 'module disabled: not installable, skipped'),
+        ]
+E       AssertionError: assert [] == [(30, 'module...le, skipped')]
+E         Right contains one more item: (30, 'module disabled: not installable, skipped')
+E         Use -v to get more diff
+
+tests/unit/modules/test_module_graph.py:215: AssertionError</failure></testcase><testcase classname="" name="test_catalogue_pruning_reports_the_reason_and_keeps_dependency_logs[uninstallable-30-not installable]" time="0.001"><failure message="AssertionError: assert [(20, 'module...ed, skipped')] == [(30, 'module...ed, skipped')]&#10;  At index 0 diff: (20, 'module child: its direct/indirect dependency is skipped, skipped') != (30, 'module root: not installable, skipped')&#10;  Right contains one more item: (20, 'module child: its direct/indirect dependency is skipped, skipped')&#10;  Use -v to get more diff">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7fc6d2727980&gt;
+caplog = &lt;_pytest.logging.LogCaptureFixture object at 0x7fc6d2727aa0&gt;
+state = 'uninstallable', level = 30, message = 'not installable'
+
+    @pytest.mark.parametrize(
+        'state,level,message',
+        [
+            ('uninstallable', logging.WARNING, 'not installable'),
+            ('uninstalled', logging.INFO, 'not installed'),
+            ('to install', logging.INFO, 'not installed'),
+        ],
+    )
+    def test_catalogue_pruning_reports_the_reason_and_keeps_dependency_logs(
+        monkeypatch, caplog, state, level, message,
+    ):
+        """El catálogo seleccionado explica la poda sin escribir estados."""
+        graph = graph_of(monkeypatch, {'root': [], 'child': ['root']})
+        model = Mock()
+        queryset = model.objects.using.return_value.filter.return_value
+        ordered = queryset.order_by.return_value
+        ordered.values_list.return_value = [
+            ('root', 1, state, False, None),
+            ('child', 2, 'installed', False, '1.0'),
+        ]
+        monkeypatch.setattr(module_graph.apps, 'get_model', lambda *args: model)
+        with caplog.at_level(logging.INFO, logger='modules.module_graph'):
+            graph._update_from_database(['root', 'child'], using='catalogue')
+        assert not graph._nodes
+        messages = [(record.levelno, record.getMessage())
+                    for record in caplog.records]
+&gt;       assert messages == [
+            (level, f'module root: {message}, skipped'),
+            (logging.INFO,
+             'module child: its direct/indirect dependency is skipped, skipped'),
+        ]
+E       AssertionError: assert [(20, 'module...ed, skipped')] == [(30, 'module...ed, skipped')]
+E         At index 0 diff: (20, 'module child: its direct/indirect dependency is skipped, skipped') != (30, 'module root: not installable, skipped')
+E         Right contains one more item: (20, 'module child: its direct/indirect dependency is skipped, skipped')
+E         Use -v to get more diff
+
+tests/unit/modules/test_module_graph.py:246: AssertionError</failure></testcase><testcase classname="" name="test_catalogue_pruning_reports_the_reason_and_keeps_dependency_logs[uninstalled-20-not installed]" time="0.001"><failure message="AssertionError: assert [(20, 'module...ed, skipped')] == [(20, 'module...ed, skipped')]&#10;  At index 0 diff: (20, 'module child: its direct/indirect dependency is skipped, skipped') != (20, 'module root: not installed, skipped')&#10;  Right contains one more item: (20, 'module child: its direct/indirect dependency is skipped, skipped')&#10;  Use -v to get more diff">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7fc6d27aa180&gt;
+caplog = &lt;_pytest.logging.LogCaptureFixture object at 0x7fc6d27aa000&gt;
+state = 'uninstalled', level = 20, message = 'not installed'
+
+    @pytest.mark.parametrize(
+        'state,level,message',
+        [
+            ('uninstallable', logging.WARNING, 'not installable'),
+            ('uninstalled', logging.INFO, 'not installed'),
+            ('to install', logging.INFO, 'not installed'),
+        ],
+    )
+    def test_catalogue_pruning_reports_the_reason_and_keeps_dependency_logs(
+        monkeypatch, caplog, state, level, message,
+    ):
+        """El catálogo seleccionado explica la poda sin escribir estados."""
+        graph = graph_of(monkeypatch, {'root': [], 'child': ['root']})
+        model = Mock()
+        queryset = model.objects.using.return_value.filter.return_value
+        ordered = queryset.order_by.return_value
+        ordered.values_list.return_value = [
+            ('root', 1, state, False, None),
+            ('child', 2, 'installed', False, '1.0'),
+        ]
+        monkeypatch.setattr(module_graph.apps, 'get_model', lambda *args: model)
+        with caplog.at_level(logging.INFO, logger='modules.module_graph'):
+            graph._update_from_database(['root', 'child'], using='catalogue')
+        assert not graph._nodes
+        messages = [(record.levelno, record.getMessage())
+                    for record in caplog.records]
+&gt;       assert messages == [
+            (level, f'module root: {message}, skipped'),
+            (logging.INFO,
+             'module child: its direct/indirect dependency is skipped, skipped'),
+        ]
+E       AssertionError: assert [(20, 'module...ed, skipped')] == [(20, 'module...ed, skipped')]
+E         At index 0 diff: (20, 'module child: its direct/indirect dependency is skipped, skipped') != (20, 'module root: not installed, skipped')
+E         Right contains one more item: (20, 'module child: its direct/indirect dependency is skipped, skipped')
+E         Use -v to get more diff
+
+tests/unit/modules/test_module_graph.py:246: AssertionError</failure></testcase><testcase classname="" name="test_catalogue_pruning_reports_the_reason_and_keeps_dependency_logs[to install-20-not installed]" time="0.001"><failure message="AssertionError: assert [(20, 'module...ed, skipped')] == [(20, 'module...ed, skipped')]&#10;  At index 0 diff: (20, 'module child: its direct/indirect dependency is skipped, skipped') != (20, 'module root: not installed, skipped')&#10;  Right contains one more item: (20, 'module child: its direct/indirect dependency is skipped, skipped')&#10;  Use -v to get more diff">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7fc6d27ab140&gt;
+caplog = &lt;_pytest.logging.LogCaptureFixture object at 0x7fc6d27aaf90&gt;
+state = 'to install', level = 20, message = 'not installed'
+
+    @pytest.mark.parametrize(
+        'state,level,message',
+        [
+            ('uninstallable', logging.WARNING, 'not installable'),
+            ('uninstalled', logging.INFO, 'not installed'),
+            ('to install', logging.INFO, 'not installed'),
+        ],
+    )
+    def test_catalogue_pruning_reports_the_reason_and_keeps_dependency_logs(
+        monkeypatch, caplog, state, level, message,
+    ):
+        """El catálogo seleccionado explica la poda sin escribir estados."""
+        graph = graph_of(monkeypatch, {'root': [], 'child': ['root']})
+        model = Mock()
+        queryset = model.objects.using.return_value.filter.return_value
+        ordered = queryset.order_by.return_value
+        ordered.values_list.return_value = [
+            ('root', 1, state, False, None),
+            ('child', 2, 'installed', False, '1.0'),
+        ]
+        monkeypatch.setattr(module_graph.apps, 'get_model', lambda *args: model)
+        with caplog.at_level(logging.INFO, logger='modules.module_graph'):
+            graph._update_from_database(['root', 'child'], using='catalogue')
+        assert not graph._nodes
+        messages = [(record.levelno, record.getMessage())
+                    for record in caplog.records]
+&gt;       assert messages == [
+            (level, f'module root: {message}, skipped'),
+            (logging.INFO,
+             'module child: its direct/indirect dependency is skipped, skipped'),
+        ]
+E       AssertionError: assert [(20, 'module...ed, skipped')] == [(20, 'module...ed, skipped')]
+E         At index 0 diff: (20, 'module child: its direct/indirect dependency is skipped, skipped') != (20, 'module root: not installed, skipped')
+E         Right contains one more item: (20, 'module child: its direct/indirect dependency is skipped, skipped')
+E         Use -v to get more diff
+
+tests/unit/modules/test_module_graph.py:246: AssertionError</failure></testcase><testcase classname="" name="test_update_snapshot_does_not_report_a_valid_install_request_as_skipped[uninstalled]" time="0.001" /><testcase classname="" name="test_update_snapshot_does_not_report_a_valid_install_request_as_skipped[to install]" time="0.001" /></testsuite></testsuites>

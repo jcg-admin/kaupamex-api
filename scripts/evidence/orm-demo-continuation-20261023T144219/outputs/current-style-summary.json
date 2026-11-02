@@ -1,0 +1,14 @@
+{
+  "files": 3390,
+  "exit_code": 1,
+  "counts": {
+    "E402": 325,
+    "E501": 690,
+    "W291": 6,
+    "E306": 2,
+    "E305": 5,
+    "E302": 17,
+    "E301": 1
+  },
+  "full_log": "/workspace/pep8-review/current-style-full.log"
+}

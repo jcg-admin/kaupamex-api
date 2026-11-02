@@ -1,0 +1,5 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+........................................................................ [ 82%]
+...............                                                          [100%]
+--------- generated xml file: /tmp/increment-admission/final.junit.xml ---------
+87 passed in 10.22s

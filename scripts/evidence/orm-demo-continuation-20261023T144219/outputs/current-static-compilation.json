@@ -1,0 +1,7 @@
+{
+  "interface": "CPython compile(source, filename, exec), SyntaxWarning=error",
+  "files": 3390,
+  "failures": [],
+  "status": "PASS",
+  "scope": "UTF8 and static syntax only; no module body executed or functional acceptance"
+}

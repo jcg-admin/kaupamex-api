@@ -1,0 +1,2 @@
+{"id":"c-31cc16f8-c1b8-4a27-9848-b04ab4cc1718","op":"claim","path":"src/modules/module_graph.py","owner":"VM-b501","branch":"feature/codex-workspace-bootstrap","task":"TASK-API-0382","at":"2026-10-29T20:32:06.235Z"}
+{"id":"c-24fdcbee-7a4b-46ed-b2c2-d2e860d3e20d","op":"claim","path":"tests/unit/modules/test_module_graph.py","owner":"VM-b501","branch":"feature/codex-workspace-bootstrap","task":"TASK-API-0382","at":"2026-10-29T20:32:06.237Z"}

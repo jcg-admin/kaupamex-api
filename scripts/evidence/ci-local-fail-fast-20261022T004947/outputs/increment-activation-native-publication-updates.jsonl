@@ -1,0 +1,9 @@
+{"task_id":"487","citation_id":"TASK-API-0283","owner":"VM-b501","status":"pending","description_updated":true,"states_and_dependencies_preserved":true}
+{"task_id":"737","citation_id":"TASK-API-0382","owner":"codex-module-lifecycle","status":"pending","description_updated":true,"states_and_dependencies_preserved":true}
+{"task_id":"1441","citation_id":"TASK-API-0478","owner":"codex-ci-local","status":"pending","description_updated":true,"states_and_dependencies_preserved":true}
+{"release":{"id":"c-71a2101b-97d1-4ef5-afe8-1fc72e40ec04","op":"release","path":"src/addons/base/models/ir_model.py","owner":"VM-b501","branch":"feature/codex-workspace-bootstrap","task":"TASK-API-0283","at":"2026-10-29T20:34:24.072Z"}}
+{"release":{"id":"c-05f3cecd-caf2-4996-8dc7-f5ba8155b47a","op":"release","path":"tests/unit/orm/test_field_description_translation.py","owner":"VM-b501","branch":"feature/codex-workspace-bootstrap","task":"TASK-API-0283","at":"2026-10-29T20:34:24.072Z"}}
+{"release":{"id":"c-1d090ff8-2ddc-4d30-aa83-24a1c91cdd52","op":"release","path":"scripts/check_python_style_increment.py","owner":"VM-b501","branch":"feature/codex-workspace-bootstrap","task":"TASK-API-0478","at":"2026-10-29T20:34:24.072Z"}}
+{"release":{"id":"c-e502a85a-7a7e-4c1b-a685-7f763b364f08","op":"release","path":"tests/unit/scripts/test_python_style_increment.py","owner":"VM-b501","branch":"feature/codex-workspace-bootstrap","task":"TASK-API-0478","at":"2026-10-29T20:34:24.072Z"}}
+{"release":{"id":"c-875ae65e-9e07-442b-bf07-df7bb602e699","op":"release","path":"src/modules/module_graph.py","owner":"VM-b501","branch":"feature/codex-workspace-bootstrap","task":"TASK-API-0382","at":"2026-10-29T20:34:24.072Z"}}
+{"release":{"id":"c-145a842a-dae8-498e-9cf0-fa38f9b317b1","op":"release","path":"tests/unit/modules/test_module_graph.py","owner":"VM-b501","branch":"feature/codex-workspace-bootstrap","task":"TASK-API-0382","at":"2026-10-29T20:34:24.072Z"}}

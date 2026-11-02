@@ -1,0 +1,15 @@
+{
+  ".githooks/pre-commit": "47d3cd81d69a9dce33107b8db4496c91535aa68c4935c1b1da1111b4dc01be61",
+  "AGENTS.md": "78e45e278976d1c1931cb3563a62449fdbea3ba9d537e479ead572e093afde42",
+  "Makefile": "127b11ea90ab1338ad67df8f487568d7e8c4fa7ad08ee3f687a5050b5b482755",
+  "pyproject.toml": "80ee67bc29800a9c61e3b7721f227b02b5316d3ec8f28c574e04da4e25c68997",
+  "uv.lock": "b904766a721c24031dad0ee3d9250083744de681850891c6042a8e7d17d3b0df",
+  "docs/python-style.md": "9696d5733a3f46c96c4cfd79a4ba9ae7ecc1fc53dedf625169eaef78bea2259f",
+  "scripts/check_python_style.sh": "a840d86a04e77891672a311ea1c6cd49245917a27d13a25433ec584194370b73",
+  "scripts/check_python_style_increment.py": "d911bed432d4d7f15f367ed6e3777bdc3a88dd969473ee52e02c1ed762485384",
+  "scripts/check_no_lazy_imports.py": "278a21b0fcd8fc17b1103c09e7437f116767173b84168fb1991c98dad9fed223",
+  "tests/unit/scripts/test_python_style_increment.py": "7c390add0f37af107df539b77d61f5ff4f954a830cfb7d91b41af7797d3e0b85",
+  "tests/unit/scripts/test_python_style_gate.py": "7e77b73d8ffea385a29d8a601df0116856b8a682ff00041143c44730d92c640f",
+  "tests/unit/scripts/test_check_no_lazy_imports.py": "069801302ae45e8e34eb0c15ef876aa194e8bca9c9b9ea3de34f522b4f250690",
+  "tests/unit/scripts/test_ci_verification.py": "a6a5aac7899135d7042b33646a9467f12557ea6b3b9413838bb5566c9e54d867"
+}

@@ -1,0 +1,17 @@
+{
+  "index": "/tmp/increment-activation/graph-formatted.index",
+  "files": [
+    {
+      "path": "src/modules/module_graph.py",
+      "format_hunks": 3,
+      "executable_ast_unchanged": true,
+      "blob": "6233d47dc257705dba275ef5bd9df7fec9ba46e6"
+    },
+    {
+      "path": "tests/unit/modules/test_module_graph.py",
+      "format_hunks": 10,
+      "executable_ast_unchanged": true,
+      "blob": "34c5d8440d1aee3762c82d4c46633b4711026dc2"
+    }
+  ]
+}

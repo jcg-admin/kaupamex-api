@@ -1,0 +1,250 @@
+{
+  "api_head": "0ce23373ad0f36d2bba9918b583126079702f7ae",
+  "commits": [
+    "0ce23373ad0f36d2bba9918b583126079702f7ae Explain module graph pruning decisions",
+    "78520aae93bb3ccee634b773d28dc4b9160d8452 Mark field descriptions as translatable",
+    "4c3a992e23482dc6e398a996251acab1abc2d660 Compare inherited suppression provenance safely",
+    "a3741a88621803ce8c68d094772d759c6f9739e7 Activate qualified incremental commit admission"
+  ],
+  "preservation": "Prior working changes retained; only explicit index blobs committed; no reset, clean, merge or bypass",
+  "qualification": "99 PASS in bound checker qualification; actual commit hooks all exit0",
+  "ci_observation": {
+    "run": 40946709078,
+    "revision": "a3741a88621803ce8c68d094772d759c6f9739e7",
+    "global_style": "FAIL",
+    "ci_verify_exit": 2,
+    "check_style_exit": 1,
+    "log": "increment-activation-mechanism-ci-failed.log.gz"
+  },
+  "visibility": {
+    "user_confirmation": "No veo el bloque nativo",
+    "route": "functions.exec -> tools.exec_command -> text(result); write_stdin for active sessions",
+    "result": "UNRESOLVED",
+    "cause": "not demonstrated",
+    "client_or_binary_modified": false
+  },
+  "artifacts": [
+    {
+      "name": "increment-activation-0283-staged.patch.gz",
+      "sha256": "394824c8da1a117aa6adaff5d03e2fd1bc39467ed8fd5b0245c837e7a5bea843",
+      "bytes": 1234
+    },
+    {
+      "name": "increment-activation-activation.junit.xml",
+      "sha256": "13c312fc75caf27aa9565044bb2e0179a058faca0c59da73fd3b9fe2d4eb0a98",
+      "bytes": 12211
+    },
+    {
+      "name": "increment-activation-activation.log.gz",
+      "sha256": "bfc18fcdb2e02af7013035312d97ac6663bdc2223e6c6139a058975495a1ea04",
+      "bytes": 201
+    },
+    {
+      "name": "increment-activation-api-pr109.json",
+      "sha256": "98faf939f69a1a4e3f7b17f5832ed38e482d162fb09d8f29e7f033dd88f1c097",
+      "bytes": 466
+    },
+    {
+      "name": "increment-activation-bound-admission-final.json",
+      "sha256": "f28f8674e7019c402d6e081060da550d59da7094a8525d4efe350c25cfe55859",
+      "bytes": 24942
+    },
+    {
+      "name": "increment-activation-bound-admission.json",
+      "sha256": "65172f35dc01c283ef761fea634539b10de55668feb500c71b4ea85bab86765c",
+      "bytes": 19683
+    },
+    {
+      "name": "increment-activation-bound-qualification-final.log.gz",
+      "sha256": "51307f1a5f5851874eedfd8843bd227c4edc900cf9c7a1e4c3ec8baec0f58633",
+      "bytes": 128
+    },
+    {
+      "name": "increment-activation-bound-qualification.log.gz",
+      "sha256": "cd27d904bf3af8c98cf583137e9d13e442de161594fb7adb779e4883ce6a6466",
+      "bytes": 129
+    },
+    {
+      "name": "increment-activation-ci-baseline-provenance.json",
+      "sha256": "3f3133697c18407253d4626b9d613177b136ab0927c472c2ac0669081798c0f4",
+      "bytes": 434
+    },
+    {
+      "name": "increment-activation-claims.jsonl",
+      "sha256": "d9d9645289039a22f8e1a53640b74354ca91ea7fec4ae844169cfadb98554b4f",
+      "bytes": 2961
+    },
+    {
+      "name": "increment-activation-docs-pr154-before.json",
+      "sha256": "3ed78b520c11f7ee41065865d2d45f612ed3edc2d01a01ed2b1ce593058fedc4",
+      "bytes": 207
+    },
+    {
+      "name": "increment-activation-graph-admission.json",
+      "sha256": "ba8fa9b41a852fd77eac1429b6e0f5ecb0a1b0fe678ee976420b62c5179c131b",
+      "bytes": 14857
+    },
+    {
+      "name": "increment-activation-graph-admission.log.gz",
+      "sha256": "66d48fbdbd689ec65c3d4c1df992c7ada9a2cdeb65ef0604d6dea038b86393ab",
+      "bytes": 182
+    },
+    {
+      "name": "increment-activation-graph-claims.jsonl",
+      "sha256": "402abf8930a82c2153978df3e51d2b737a851667efab111b599bd65bad0a3529",
+      "bytes": 444
+    },
+    {
+      "name": "increment-activation-graph-commit.log.gz",
+      "sha256": "af131bdb3668d2168b252afa9b9dbe91d45ddfec3688b65b39994d4ba59835cd",
+      "bytes": 974
+    },
+    {
+      "name": "increment-activation-graph-current-native-admission.jsonl",
+      "sha256": "1025f6d4ed27e6f78e15e456669e115ec60f70c3beb918c348d787571a95c9cc",
+      "bytes": 6400
+    },
+    {
+      "name": "increment-activation-graph-hook-admission.json",
+      "sha256": "c3bea27024d7b9a82aacee8e8a8d392cb91651240099f5fd36a3a8d3e00a49e8",
+      "bytes": 10500
+    },
+    {
+      "name": "increment-activation-graph-scoped-admission.json",
+      "sha256": "bcdb95622f5f3884190ec9a5e84195cfe13d57f4484ffd2d086604df2829c7d7",
+      "bytes": 10418
+    },
+    {
+      "name": "increment-activation-graph-scoped-format.json",
+      "sha256": "94e3759e294a41dc7253f5c3abe5fbf94c7cfa0a0e41fbc0563de8b8cb2ecc0a",
+      "bytes": 455
+    },
+    {
+      "name": "increment-activation-graph-scoped.patch.gz",
+      "sha256": "dc006b7ce9ddee54bdbb71692b3e87e66698c7a2812b88482f37a3107868b718",
+      "bytes": 2919
+    },
+    {
+      "name": "increment-activation-graph-staged-verification.json",
+      "sha256": "298eaaaa8be7106ff61d89b2aed0eff97fd023931e5ff03999cc717d5837e685",
+      "bytes": 1187
+    },
+    {
+      "name": "increment-activation-latest-ci-failed.log.gz",
+      "sha256": "c94c7c1851c096cc858f80830480bdc104cb7e36beb158af5d543d93eb05d91f",
+      "bytes": 287715
+    },
+    {
+      "name": "increment-activation-mechanism-admission.json",
+      "sha256": "0d7e6f8d97ba76e683b8326d1c9322646744d9c7048a29e3cfb8fe0acc568ba3",
+      "bytes": 24999
+    },
+    {
+      "name": "increment-activation-mechanism-ci-failed.log.gz",
+      "sha256": "ed88a4023c645c40f6177cda0c4a9c6c65f5e0c392099d51c4535e31d3b22c07",
+      "bytes": 283011
+    },
+    {
+      "name": "increment-activation-mechanism-commit.log.gz",
+      "sha256": "daca7b054a617eb6031215a8dea9b258f77f42a501f0a27b64050465f41bc920",
+      "bytes": 1043
+    },
+    {
+      "name": "increment-activation-mechanism-commit.sha",
+      "sha256": "0e365781a4ba095858058ce498a3069aede0ff1025330a8cbe01767c577ac530",
+      "bytes": 41
+    },
+    {
+      "name": "increment-activation-native-publication-updates.jsonl",
+      "sha256": "0cd2256a2cb9200fa7398c265c724c21716d8b9f83301b09b5f95c7ea0077bb1",
+      "bytes": 1940
+    },
+    {
+      "name": "increment-activation-orm-admission-and-claims.jsonl",
+      "sha256": "f2d528821d762394fc6b6478b1136f2a223aa58f48ce3509a6ddf600e15e558c",
+      "bytes": 3835
+    },
+    {
+      "name": "increment-activation-preimages.json",
+      "sha256": "6b1c9f91b8e9fa9a78ff471937645731e29ca4b985894f74796d37beeba6f065",
+      "bytes": 1326
+    },
+    {
+      "name": "increment-activation-preimages.zip",
+      "sha256": "f6e74f837343ca259831f78ac0365d815b955c6a918da3bfb0e54605ed011574",
+      "bytes": 117205
+    },
+    {
+      "name": "increment-activation-suppression-commit.log.gz",
+      "sha256": "9033c5956f8396082bb74d0d7bba76088474424db739716a2eb9b58541feb8b9",
+      "bytes": 973
+    },
+    {
+      "name": "increment-activation-suppression-fix-admission.json",
+      "sha256": "e7ff9d90fa374487054c3be3dbc7a29446e644d71262047aad27794e5a09e674",
+      "bytes": 18469
+    },
+    {
+      "name": "increment-activation-suppression-fix-qualification.log.gz",
+      "sha256": "16673df198e3a752cf4b643db863cb025574992a4e336c4ef0e605116e95084e",
+      "bytes": 107
+    },
+    {
+      "name": "increment-activation-suppression-published-qualification.json",
+      "sha256": "10d78fd84b26f32c53b802d432f36d85ba7558642cd6ce5d80113a6fe0006a1f",
+      "bytes": 18225
+    },
+    {
+      "name": "increment-activation-suppression-published-qualification.log.gz",
+      "sha256": "6cad94cf9d825b6acc9e86b5eac9445ec99661d39a413832eaf638754e7574fd",
+      "bytes": 183
+    },
+    {
+      "name": "increment-activation-translation-admission.json",
+      "sha256": "ea9904b30c37adece028c43e22550a5051bfdc07da083d369b8d40ff50cb9a34",
+      "bytes": 24728
+    },
+    {
+      "name": "increment-activation-translation-commit.log.gz",
+      "sha256": "bd1e0b5ee7bb626915311c142c8e56ec56a759c4a10a5f0eda8731330026a1d3",
+      "bytes": 845
+    },
+    {
+      "name": "increment-activation-translation-final-commit.log.gz",
+      "sha256": "494059ff7a54b4bed808ac203626b01d84c78313842f70c32071297a3b1ba4b6",
+      "bytes": 843
+    },
+    {
+      "name": "increment-activation-translation-published-commit.log.gz",
+      "sha256": "d6a6d5752885dd4f61e10f73c580ed1b7755391a6d7cf371d2da6f22b9287ece",
+      "bytes": 995
+    }
+  ],
+  "remote": {
+    "headRefOid": "0ce23373ad0f36d2bba9918b583126079702f7ae",
+    "mergeStateStatus": "UNSTABLE",
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-29T20:34:59Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/jcg-admin/kaupamex-api/actions/runs/40950074233/job/123715525533",
+        "name": "test",
+        "startedAt": "2026-10-29T20:33:25Z",
+        "status": "COMPLETED",
+        "workflowName": "api-tests"
+      }
+    ],
+    "url": "https://github.com/jcg-admin/kaupamex-api/pull/109"
+  },
+  "latest_ci": {
+    "run": 40950074233,
+    "revision": "0ce23373ad0f36d2bba9918b583126079702f7ae",
+    "result": "FAIL",
+    "check_style_exit": 1,
+    "ci_verify_exit": 2,
+    "log": "increment-activation-latest-ci-failed.log.gz"
+  },
+  "qualification_report": "increment-activation-suppression-published-qualification.json"
+}

@@ -1,0 +1,19 @@
+{
+  "base": "0f9ef86d425ebdba44c77ef9cbb1b349a58582aa",
+  "attempted_paths": 2907,
+  "command": "git commit with existing pre-commit; no bypass",
+  "commit_exit_code": 1,
+  "commit_created": false,
+  "working_tree_preserved": true,
+  "original_index_restored": true,
+  "log": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/publication-pending-local-20261102.log.gz",
+  "log_sha256": "e82938a847c46098201887e9b07c0f5c40318678cda934b191634bf745bc382f",
+  "blockers": [
+    "Increment ERROR: change outside qualified checker scope (.claude/rules/no-lazy-imports.md)",
+    "155 identifier diagnostics outside existing baseline",
+    "3 malformed blocked-port markers",
+    "Reference not resolved by an existing gate; no false measurement"
+  ],
+  "backup": "pending-api-working-tree-20261102.tar.gz",
+  "backup_is_not_admission": true
+}

@@ -1,0 +1,341 @@
+{
+  "command": [
+    "/workspace/kaupamex-api/.venv/bin/python",
+    "/workspace/kaupamex-api/scripts/check_python_style_increment.py",
+    "--base",
+    "dc9b4c53167891baccc4a04ca1db7c8563fc1fe8",
+    "--index-tree",
+    "896a9ddb30f01e57491baa4adf630c04fdf81c12",
+    "--qualify-checkers",
+    "--report",
+    "/workspace/kaupamex-api/scripts/evidence/ci-local-fail-fast-20261022T004947/outputs/pre-commit-admission.json"
+  ],
+  "files": [
+    {
+      "path": "scripts/check_no_lazy_imports.py",
+      "old_path": "scripts/check_no_lazy_imports.py",
+      "status": "M",
+      "old_mode": "100755",
+      "new_mode": "100755",
+      "old_blob": "81f1916c44221dc2186c8752afb8f9901797103d",
+      "new_blob": "e6cdf5a131fca80f02d99d068778df5c3e17468a",
+      "inherited": [],
+      "introduced": [],
+      "corrected": [
+        {
+          "line": 35,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "bfc5bb863f7243c8c2646d20a7a81f279c1adf09374a6513f1c5e686ad661406"
+        }
+      ],
+      "invalidated_context": [],
+      "candidate_checks": {
+        "compilation_exit": 0,
+        "style_exit": 0,
+        "imports_exit": 0
+      },
+      "base_checks": {
+        "compilation_exit": 0,
+        "style_exit": 1,
+        "imports_exit": 0
+      },
+      "decision": "PASS"
+    },
+    {
+      "path": "scripts/check_python_style_increment.py",
+      "old_path": "scripts/check_python_style_increment.py",
+      "status": "A",
+      "old_mode": "000000",
+      "new_mode": "100644",
+      "old_blob": "0000000000000000000000000000000000000000",
+      "new_blob": "b012a710de036ca744437b0d429870ecddceb409",
+      "inherited": [],
+      "introduced": [],
+      "corrected": [],
+      "invalidated_context": [],
+      "candidate_checks": {
+        "compilation_exit": 0,
+        "style_exit": 0,
+        "imports_exit": 0
+      },
+      "decision": "PASS",
+      "comparison": "STRICT_NEW_OR_MOVED_FILE"
+    },
+    {
+      "path": "tests/unit/scripts/test_check_no_lazy_imports.py",
+      "old_path": "tests/unit/scripts/test_check_no_lazy_imports.py",
+      "status": "M",
+      "old_mode": "100644",
+      "new_mode": "100644",
+      "old_blob": "2aef6aef7abdd95bfd3c9215fd57c078b0569024",
+      "new_blob": "3745ed0ca9fe68dc22870cae124732f48906245e",
+      "inherited": [],
+      "introduced": [],
+      "corrected": [
+        {
+          "line": 42,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "05dc82001d097476c9a736d98d21e6435a667b0e96f0fd8c52c712a57c17f6e3"
+        },
+        {
+          "line": 69,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (83 > 79 characters)",
+          "fingerprint": "55366ee8d1233eef1b408f5c9e35ec39291e141967fe37dd30e90b5f4ba9945d"
+        },
+        {
+          "line": 79,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "bb7722b830e56dfaa9430102c7dca12848f0889e202877f1a3bc247a14b30a16"
+        },
+        {
+          "line": 96,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (82 > 79 characters)",
+          "fingerprint": "7ca20b2b6202996b8fe924b82b0358bb2c74960540b48c699987110b7a730f8c"
+        }
+      ],
+      "invalidated_context": [],
+      "candidate_checks": {
+        "compilation_exit": 0,
+        "style_exit": 0,
+        "imports_exit": 0
+      },
+      "base_checks": {
+        "compilation_exit": 0,
+        "style_exit": 1,
+        "imports_exit": 0
+      },
+      "decision": "PASS"
+    },
+    {
+      "path": "tests/unit/scripts/test_ci_verification.py",
+      "old_path": "tests/unit/scripts/test_ci_verification.py",
+      "status": "M",
+      "old_mode": "100644",
+      "new_mode": "100644",
+      "old_blob": "12be8a34b7ad1af1e80f00c2059dccf04fe41858",
+      "new_blob": "ebe15f68c7e197b727620840e8ca34ab1bc9d406",
+      "inherited": [],
+      "introduced": [],
+      "corrected": [
+        {
+          "line": 11,
+          "column": 1,
+          "code": "E402",
+          "message": "module level import not at top of file",
+          "fingerprint": "f6dfe0e5e93de6c8f8c697c82589c8db79d1303d8fc7546e9ae03559c45bedad"
+        },
+        {
+          "line": 21,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (104 > 79 characters)",
+          "fingerprint": "3bcd676f47038e93541b8e23c68e228da597afde9fba5f6ad0f345d284869996"
+        },
+        {
+          "line": 27,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (87 > 79 characters)",
+          "fingerprint": "f4d76be2ac08d72f375688a488f42a844cdb002f6957eeacefd941b0d8c5f5b0"
+        },
+        {
+          "line": 30,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (102 > 79 characters)",
+          "fingerprint": "76172428e61db9dfd7e392749f844c20acec2e416a89854461b11ae9ea5df83c"
+        },
+        {
+          "line": 55,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (106 > 79 characters)",
+          "fingerprint": "27eae671ebfa8777f5dfb536f96a2e4407ae49d1a75b0bc544590765d05d9c58"
+        },
+        {
+          "line": 62,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (104 > 79 characters)",
+          "fingerprint": "bee0331ca9073fb479a314816e19fd24482c71f6d28a92f15240f85bd19d6363"
+        },
+        {
+          "line": 71,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "8c0eaa8c48f21fd0ea94adb414f044149d5bbc058a4b47b9de923d9d47a82cad"
+        },
+        {
+          "line": 79,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (85 > 79 characters)",
+          "fingerprint": "fa7952d0a03a6e9b29580acb178c3b84655a739b356b3b0c350fad503481d2c9"
+        },
+        {
+          "line": 84,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (89 > 79 characters)",
+          "fingerprint": "b71d5c968c2862acba0f70a5bab9cde765858572dc7e01f70fd4821e93cf6da6"
+        },
+        {
+          "line": 88,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (82 > 79 characters)",
+          "fingerprint": "4d269174da8c3501461bfab155eabd9b9c69fd67657bd0e196dcd770487e3d80"
+        },
+        {
+          "line": 95,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "ded191a3763fbfe8f62ab78b200ab892e914e57a224aa1f6caa64842f25b9716"
+        },
+        {
+          "line": 96,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "787549316385fbad1c049f12da1aa63ddf4e1b9d9ccb9a8db460b4481566424e"
+        },
+        {
+          "line": 11,
+          "column": 1,
+          "code": "IMPORT",
+          "message": "from check_ci_database import refusal",
+          "fingerprint": "b8c0a4b787398cfc4bfb89fb0062ef6a3bd0570bbb74e2f11116c40536dfc8ea"
+        }
+      ],
+      "invalidated_context": [],
+      "candidate_checks": {
+        "compilation_exit": 0,
+        "style_exit": 0,
+        "imports_exit": 0
+      },
+      "base_checks": {
+        "compilation_exit": 0,
+        "style_exit": 1,
+        "imports_exit": 1
+      },
+      "decision": "PASS"
+    },
+    {
+      "path": "tests/unit/scripts/test_python_style_gate.py",
+      "old_path": "tests/unit/scripts/test_python_style_gate.py",
+      "status": "A",
+      "old_mode": "000000",
+      "new_mode": "100644",
+      "old_blob": "0000000000000000000000000000000000000000",
+      "new_blob": "29c9794c7ddddb953aa6097e0b74fd284da5373c",
+      "inherited": [],
+      "introduced": [],
+      "corrected": [],
+      "invalidated_context": [],
+      "candidate_checks": {
+        "compilation_exit": 0,
+        "style_exit": 0,
+        "imports_exit": 0
+      },
+      "decision": "PASS",
+      "comparison": "STRICT_NEW_OR_MOVED_FILE"
+    },
+    {
+      "path": "tests/unit/scripts/test_python_style_increment.py",
+      "old_path": "tests/unit/scripts/test_python_style_increment.py",
+      "status": "A",
+      "old_mode": "000000",
+      "new_mode": "100644",
+      "old_blob": "0000000000000000000000000000000000000000",
+      "new_blob": "52069aff3049f1354bd8ab971ee6901461f30590",
+      "inherited": [],
+      "introduced": [],
+      "corrected": [],
+      "invalidated_context": [],
+      "candidate_checks": {
+        "compilation_exit": 0,
+        "style_exit": 0,
+        "imports_exit": 0
+      },
+      "decision": "PASS",
+      "comparison": "STRICT_NEW_OR_MOVED_FILE"
+    }
+  ],
+  "reasons": [],
+  "increment_admission": "PASS",
+  "global_style_compliance": "NOT_EVALUATED",
+  "ci_verification": "NOT_EVALUATED",
+  "contract_verification": "NOT_EVALUATED",
+  "integration": "NOT_EVALUATED",
+  "acceptance": "NOT_EVALUATED",
+  "activation": "EXPLICIT_INCREMENT_EVALUATION",
+  "base": "dc9b4c53167891baccc4a04ca1db7c8563fc1fe8",
+  "candidate": {
+    "index_tree": "896a9ddb30f01e57491baa4adf630c04fdf81c12",
+    "head": "dc9b4c53167891baccc4a04ca1db7c8563fc1fe8"
+  },
+  "verifiers": {
+    "/workspace/kaupamex-api/scripts/check_python_style_increment.py": "00d2dd79713b602acf4126deb412d8b7574df4c136eb753cfd47357d9266ce8f",
+    "/workspace/kaupamex-api/scripts/check_no_lazy_imports.py": "278a21b0fcd8fc17b1103c09e7437f116767173b84168fb1991c98dad9fed223",
+    "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/pycodestyle.py": "a14c299bb9f2251f7327fce593e7986b3bbb472e07b5d6b8ce3f2a0750325c00"
+  },
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "pycodestyle": "2.14.0",
+  "native_checks": {
+    "style": "pycodestyle.Checker.check_all; native defaults, ignore=W503",
+    "imports": "check_no_lazy_imports.find_misplaced_imports",
+    "compilation": "compile(exec), SyntaxWarning treated as error"
+  },
+  "checker_qualification": {
+    "candidate_tree": "896a9ddb30f01e57491baa4adf630c04fdf81c12",
+    "bound_sha256": {
+      ".githooks/pre-commit": "6882c5aaebcea36ec18c03d91c525185b1292fa93fea46615259089a885fe537",
+      "AGENTS.md": "5dd872dd7305cf4beb95c45322f6063e6ee681527f4e97fefe6ca513a7e69df2",
+      "Makefile": "127b11ea90ab1338ad67df8f487568d7e8c4fa7ad08ee3f687a5050b5b482755",
+      "docs/python-style.md": "d19400ccbeef820f1cee431ee154a76309bcdab348af802748a9cc8b514c10aa",
+      "pyproject.toml": "80ee67bc29800a9c61e3b7721f227b02b5316d3ec8f28c574e04da4e25c68997",
+      "scripts/check_no_lazy_imports.py": "278a21b0fcd8fc17b1103c09e7437f116767173b84168fb1991c98dad9fed223",
+      "scripts/check_python_style.sh": "a840d86a04e77891672a311ea1c6cd49245917a27d13a25433ec584194370b73",
+      "scripts/check_python_style_increment.py": "00d2dd79713b602acf4126deb412d8b7574df4c136eb753cfd47357d9266ce8f",
+      "tests/unit/scripts/test_check_no_lazy_imports.py": "069801302ae45e8e34eb0c15ef876aa194e8bca9c9b9ea3de34f522b4f250690",
+      "tests/unit/scripts/test_ci_verification.py": "a964b9d20f978cc5bcde30349b89ace52d857fe25569c32bd96ac2ec50ae27a8",
+      "tests/unit/scripts/test_python_style_gate.py": "7e77b73d8ffea385a29d8a601df0116856b8a682ff00041143c44730d92c640f",
+      "tests/unit/scripts/test_python_style_increment.py": "31a6fb00c8f14429990173216027559823079ea4ea54908ed68f5138f154c5da",
+      "uv.lock": "b904766a721c24031dad0ee3d9250083744de681850891c6042a8e7d17d3b0df"
+    },
+    "command": [
+      "/workspace/kaupamex-api/.venv/bin/python",
+      "-m",
+      "pytest",
+      "--noconftest",
+      "-c",
+      "/dev/null",
+      "-p",
+      "no:cacheprovider",
+      "-q",
+      "tests/unit/scripts/test_python_style_increment.py",
+      "tests/unit/scripts/test_python_style_gate.py",
+      "tests/unit/scripts/test_check_no_lazy_imports.py",
+      "tests/unit/scripts/test_ci_verification.py",
+      "--junitxml=/tmp/checker-qualification-74k2rw09/qualification.xml"
+    ],
+    "exit_code": 0,
+    "stdout": "........................................................................ [ 75%]\n........................                                                 [100%]\n-- generated xml file: /tmp/checker-qualification-74k2rw09/qualification.xml ---\n96 passed in 13.05s\n",
+    "stderr": "",
+    "junit": "<?xml version=\"1.0\" encoding=\"utf-8\"?><testsuites><testsuite name=\"pytest\" errors=\"0\" failures=\"0\" skipped=\"0\" tests=\"96\" time=\"13.057\" timestamp=\"2026-10-29T20:09:25.965652\" hostname=\"211a47b6160b\"><testcase classname=\"\" name=\"test_inherited_debt_is_not_global_pass\" time=\"0.153\" /><testcase classname=\"\" name=\"test_regressions_are_rejected_including_equal_counts[historical_note = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'\\nanswer=42\\n]\" time=\"0.136\" /><testcase classname=\"\" name=\"test_regressions_are_rejected_including_equal_counts[historical_note = 'fixed'\\nnew_note = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'\\n]\" time=\"0.121\" /><testcase classname=\"\" name=\"test_regressions_are_rejected_including_equal_counts[historical_note = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'\\n\\n\\ndef example():\\n    import os\\n    return os\\n]\" time=\"0.161\" /><testcase classname=\"\" name=\"test_regressions_are_rejected_including_equal_counts[historical_note = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'\\ndef broken(:\\n]\" time=\"0.142\" /><testcase classname=\"\" name=\"test_regressions_are_rejected_including_equal_counts[historical_note = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'\\nreturn 42\\n]\" time=\"0.141\" /><testcase classname=\"\" name=\"test_regressions_are_rejected_including_equal_counts[historical_note = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'\\ninvalid_escape = '\\\\q'\\n]\" time=\"0.119\" /><testcase classname=\"\" name=\"test_old_error_can_be_corrected\" time=\"0.119\" /><testcase classname=\"\" name=\"test_new_file_cannot_inherit_an_old_identical_diagnostic\" time=\"0.114\" /><testcase classname=\"\" name=\"test_clean_new_file_is_admitted\" time=\"0.119\" /><testcase classname=\"\" name=\"test_exact_rename_requires_strict_candidate_conformity[True]\" time=\"0.119\" /><testcase classname=\"\" name=\"test_exact_rename_requires_strict_candidate_conformity[False]\" time=\"0.140\" /><testcase classname=\"\" name=\"test_deleted_file_is_recorded_not_silently_ignored\" time=\"0.122\" /><testcase classname=\"\" name=\"test_context_change_cannot_grandfather_the_same_physical_line\" time=\"0.131\" /><testcase classname=\"\" name=\"test_unchanged_line_with_changed_enclosing_header_is_not_inherited\" time=\"0.136\" /><testcase classname=\"\" name=\"test_only_index_content_is_evaluated\" time=\"0.134\" /><testcase classname=\"\" name=\"test_wrong_index_tree_fails_closed\" time=\"0.123\" /><testcase classname=\"\" name=\"test_symbolic_or_missing_base_is_not_a_concrete_revision\" time=\"0.183\" /><testcase classname=\"\" name=\"test_stale_base_for_index_is_refused\" time=\"0.114\" /><testcase classname=\"\" name=\"test_commit_revision_candidate_is_supported\" time=\"0.116\" /><testcase classname=\"\" name=\"test_empty_python_scope_cannot_report_admission\" time=\"0.115\" /><testcase classname=\"\" name=\"test_new_suppression_is_not_a_fix\" time=\"0.118\" /><testcase classname=\"\" name=\"test_removing_an_old_suppression_does_not_hide_base_debt\" time=\"0.138\" /><testcase classname=\"\" name=\"test_policy_change_requires_separate_qualification\" time=\"0.129\" /><testcase classname=\"\" name=\"test_extensionless_executables_are_not_omitted[True]\" time=\"0.145\" /><testcase classname=\"\" name=\"test_extensionless_executables_are_not_omitted[False]\" time=\"0.122\" /><testcase classname=\"\" name=\"test_python_classification_cannot_be_removed_to_hide_debt\" time=\"0.131\" /><testcase classname=\"\" name=\"test_python_symlink_is_not_followed\" time=\"0.115\" /><testcase classname=\"\" name=\"test_duplicate_diagnostics_do_not_hide_an_added_occurrence\" time=\"0.127\" /><testcase classname=\"\" name=\"test_changed_logical_string_context_is_not_a_correction\" time=\"0.135\" /><testcase classname=\"\" name=\"test_new_late_module_import_is_rejected\" time=\"0.131\" /><testcase classname=\"\" name=\"test_invalid_base_is_not_treated_as_empty_debt\" time=\"0.131\" /><testcase classname=\"\" name=\"test_unrelated_candidate_revision_is_refused\" time=\"0.116\" /><testcase classname=\"\" name=\"test_changed_index_during_verification_fails_closed\" time=\"0.511\" /><testcase classname=\"\" name=\"test_global_mode_remains_strict_after_hook_activation[True]\" time=\"0.282\" /><testcase classname=\"\" name=\"test_global_mode_remains_strict_after_hook_activation[False]\" time=\"0.177\" /><testcase classname=\"\" name=\"test_real_hook_rejects_regressions_and_preserves_other_gates[clean]\" time=\"0.158\" /><testcase classname=\"\" name=\"test_real_hook_rejects_regressions_and_preserves_other_gates[style]\" time=\"0.165\" /><testcase classname=\"\" name=\"test_real_hook_rejects_regressions_and_preserves_other_gates[imports]\" time=\"0.171\" /><testcase classname=\"\" name=\"test_real_hook_rejects_regressions_and_preserves_other_gates[context]\" time=\"0.148\" /><testcase classname=\"\" name=\"test_real_hook_rejects_invalid_provenance\" time=\"0.278\" /><testcase classname=\"\" name=\"test_qualification_flag_is_not_a_policy_bypass\" time=\"0.111\" /><testcase classname=\"\" name=\"test_fixture_strings_cannot_suppress_native_diagnostics[literal = '# noqa'\\n-0]\" time=\"0.119\" /><testcase classname=\"\" name=\"test_fixture_strings_cannot_suppress_native_diagnostics[literal = 'long phrase long phrase long phrase long phrase long phrase long phrase long phrase long phrase long phrase long phrase long phrase long phrase # noqa'\\n-1]\" time=\"0.133\" /><testcase classname=\"\" name=\"test_evidence_is_not_reused_when_verifier_changes\" time=\"0.445\" /><testcase classname=\"\" name=\"test_complete_gate_rejects_bad_format_or_misplaced_imports[answer=42\\n]\" time=\"0.069\" /><testcase classname=\"\" name=\"test_complete_gate_rejects_bad_format_or_misplaced_imports[answer = 42\\n\\nimport os\\n]\" time=\"0.066\" /><testcase classname=\"\" name=\"test_complete_gate_rejects_bad_format_or_misplaced_imports[class Example:\\n    import os\\n]\" time=\"0.115\" /><testcase classname=\"\" name=\"test_staged_gate_checks_index_instead_of_unstaged_fix\" time=\"0.073\" /><testcase classname=\"\" name=\"test_staged_gate_does_not_test_unstaged_breakage\" time=\"0.171\" /><testcase classname=\"\" name=\"test_empty_repository_cannot_report_success\" time=\"0.015\" /><testcase classname=\"\" name=\"test_gate_rejects_extensionless_python[#!/usr/bin/env python3\\nanswer=42\\n]\" time=\"0.074\" /><testcase classname=\"\" name=\"test_gate_rejects_extensionless_python[#!/usr/bin/env python3\\nanswer = 42\\n\\nimport os\\n]\" time=\"0.075\" /><testcase classname=\"\" name=\"test_gate_rejects_extensionless_python[#!/usr/bin/env python3\\nclass Example:\\n    import os\\n]\" time=\"0.117\" /><testcase classname=\"\" name=\"test_gate_rejects_extensionless_python[#!/usr/bin/env python3\\nreturn 42\\n]\" time=\"0.165\" /><testcase classname=\"\" name=\"test_extensionless_python_uses_staged_content\" time=\"0.081\" /><testcase classname=\"\" name=\"test_gate_checks_untracked_python_executable\" time=\"0.070\" /><testcase classname=\"\" name=\"test_gate_does_not_parse_shell_as_python\" time=\"0.159\" /><testcase classname=\"\" name=\"test_valid_python_executable_is_verified[#!/usr/bin/python3]\" time=\"0.160\" /><testcase classname=\"\" name=\"test_valid_python_executable_is_verified[#!/usr/bin/env -S python3 -u]\" time=\"0.170\" /><testcase classname=\".TestTheRootsCoverAllOfSrc\" name=\"test_src_is_a_root_and_not_just_its_addons\" time=\"0.000\" /><testcase classname=\".TestTheRootsCoverAllOfSrc\" name=\"test_the_framework_roots_are_within_the_swept_set\" time=\"0.106\" /><testcase classname=\".TestTheRootsCoverAllOfSrc\" name=\"test_a_module_at_the_root_of_src_is_swept\" time=\"0.098\" /><testcase classname=\".TestTheGateDiscriminates\" name=\"test_it_sees_a_lazy_import_outside_src_addons\" time=\"0.001\" /><testcase classname=\".TestTheGateDiscriminates\" name=\"test_the_tree_as_it_stands_has_no_lazy_import\" time=\"3.208\" /><testcase classname=\".TestTheGateDiscriminates\" name=\"test_an_empty_audit_refuses_instead_of_reporting_clean\" time=\"0.000\" /><testcase classname=\".TestThePreCommitModeIsUnaffected\" name=\"test_explicit_paths_win_over_the_roots\" time=\"0.000\" /><testcase classname=\".TestThePreCommitModeIsUnaffected\" name=\"test_a_commit_without_python_files_is_legitimate\" time=\"0.000\" /><testcase classname=\"\" name=\"test_strict_imports_reject_nested_and_late_statements[value = 1\\nimport os\\n]\" time=\"0.001\" /><testcase classname=\"\" name=\"test_strict_imports_reject_nested_and_late_statements[def run():\\n    import os\\n]\" time=\"0.001\" /><testcase classname=\"\" name=\"test_strict_imports_reject_nested_and_late_statements[class Example:\\n    import os\\n]\" time=\"0.001\" /><testcase classname=\"\" name=\"test_strict_imports_reject_nested_and_late_statements[if True:\\n    import os\\n]\" time=\"0.001\" /><testcase classname=\"\" name=\"test_strict_imports_reject_nested_and_late_statements[value = 1\\ntry:\\n    import os\\nexcept ImportError:\\n    pass\\n]\" time=\"0.001\" /><testcase classname=\"\" name=\"test_strict_imports_accept_the_initial_import_block\" time=\"0.001\" /><testcase classname=\"\" name=\"test_strict_imports_reject_execution_before_guarded_imports[__all__ = register()\\nimport os\\n]\" time=\"0.001\" /><testcase classname=\"\" name=\"test_strict_imports_reject_execution_before_guarded_imports[from typing import TYPE_CHECKING\\nif TYPE_CHECKING:\\n    register()\\n    import os\\n]\" time=\"0.001\" /><testcase classname=\"\" name=\"test_strict_imports_reject_execution_before_guarded_imports[try:\\n    import optional\\nexcept ImportError:\\n    register()\\n    import os\\n]\" time=\"0.001\" /><testcase classname=\"\" name=\"test_shared_or_product_database_is_refused_even_with_acknowledgement[kaupamex_core_qa]\" time=\"0.000\" /><testcase classname=\"\" name=\"test_shared_or_product_database_is_refused_even_with_acknowledgement[kaupamex_core]\" time=\"0.000\" /><testcase classname=\"\" name=\"test_shared_or_product_database_is_refused_even_with_acknowledgement[postgres]\" time=\"0.000\" /><testcase classname=\"\" name=\"test_shared_or_product_database_is_refused_even_with_acknowledgement[]\" time=\"0.000\" /><testcase classname=\"\" name=\"test_shared_or_product_database_is_refused_even_with_acknowledgement[customer_prod]\" time=\"0.000\" /><testcase classname=\"\" name=\"test_exact_disposable_postgresql_destination_is_accepted\" time=\"0.000\" /><testcase classname=\"\" name=\"test_inconsistent_or_unacknowledged_destination_is_refused[no_ack]\" time=\"0.000\" /><testcase classname=\"\" name=\"test_inconsistent_or_unacknowledged_destination_is_refused[wrong_ack]\" time=\"0.000\" /><testcase classname=\"\" name=\"test_inconsistent_or_unacknowledged_destination_is_refused[wrong_test_name]\" time=\"0.000\" /><testcase classname=\"\" name=\"test_inconsistent_or_unacknowledged_destination_is_refused[sqlite]\" time=\"0.000\" /><testcase classname=\"\" name=\"test_inconsistent_or_unacknowledged_destination_is_refused[production]\" time=\"0.000\" /><testcase classname=\"\" name=\"test_make_preserves_failure_and_does_not_run_downstream_even_with_j[sync-expected0]\" time=\"0.024\" /><testcase classname=\"\" name=\"test_make_preserves_failure_and_does_not_run_downstream_even_with_j[style-expected1]\" time=\"0.043\" /><testcase classname=\"\" name=\"test_make_preserves_failure_and_does_not_run_downstream_even_with_j[python-expected2]\" time=\"0.061\" /><testcase classname=\"\" name=\"test_make_preserves_failure_and_does_not_run_downstream_even_with_j[pdf-expected3]\" time=\"0.082\" /><testcase classname=\"\" name=\"test_make_preserves_failure_and_does_not_run_downstream_even_with_j[pytest-expected4]\" time=\"0.143\" /><testcase classname=\"\" name=\"test_make_preserves_failure_and_does_not_run_downstream_even_with_j[-expected5]\" time=\"0.147\" /><testcase classname=\"\" name=\"test_pytest_stops_after_failure_or_fixture_error_and_writes_junit[assertion]\" time=\"0.242\" /><testcase classname=\"\" name=\"test_pytest_stops_after_failure_or_fixture_error_and_writes_junit[fixture]\" time=\"0.240\" /></testsuite></testsuites>"
+  },
+  "python_scope": "CHANGED",
+  "exit_code": 0
+}
