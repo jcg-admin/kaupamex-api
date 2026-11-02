@@ -221,7 +221,9 @@ def resolve_rec_name(model_cls):
     # con las dos. Aceptar solo ``name`` convertiria el porte fiel en un error.
     field_names = {f.name for f in campos} | {f.attname for f in campos}
     if declared:
-        if declared not in field_names and not _is_computed_surface(model_cls, declared):
+        if (declared not in field_names
+                and not _is_computed_surface(model_cls, declared)
+                and not _parent_declares(model_cls, declared)):
             raise ValueError(
                 f'Invalid _rec_name={declared!r} for model '
                 f'{model_cls._meta.label}'
@@ -229,7 +231,7 @@ def resolve_rec_name(model_cls):
         return declared
     if getattr(model_cls, '_rec_name', None):
         return model_cls._rec_name
-    if 'name' in field_names:
+    if 'name' in field_names or _parent_declares(model_cls, 'name'):
         model_cls._rec_name = 'name'
         return 'name'
     # El default de la fuente, explicito: ``BaseModel`` los declara
@@ -243,6 +245,23 @@ def resolve_rec_name(model_cls):
     if not hasattr(model_cls, '_rec_names_search'):
         model_cls._rec_names_search = None
     return None
+
+
+def _parent_declares(model_cls, name):
+    """Si un padre de ``_inherits`` declara el campo ``name``.
+
+    En la fuente ``_fields`` incluye los campos heredados, así que
+    ``'name' in model_cls._fields`` (``:438``) es verdadero para ``res.users``
+    por su partner. Django no copia esos campos al hijo; se miran en el padre.
+    El padre tiene que estar registrado ya: ``res.partner`` se declara antes
+    que ``res.users`` en ``base``.
+    """
+    for parent_name in (getattr(model_cls, '_inherits', None) or {}):
+        parent = MODELS_BY_NAME.get(parent_name)
+        if parent is not None and any(
+                f.name == name for f in parent._meta.fields):
+            return True
+    return False
 
 
 #: Los prefijos de módulo que NO son nuestros. El discriminador es el módulo y

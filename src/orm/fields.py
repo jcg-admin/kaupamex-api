@@ -4212,7 +4212,11 @@ def _field_resolve_depends(self, registry_module):
         current = model_zero
         check_precompute = bool(getattr(self, 'precompute', False))
 
-        for index, fname in enumerate(dotnames.split('.')):
+        names = dotnames.split('.')
+        index = -1
+        while index + 1 < len(names):
+            index += 1
+            fname = names[index]
             if current is None:
                 break
             #: Tocar un campo de un modelo normal no debe disparar el
@@ -4221,6 +4225,14 @@ def _field_resolve_depends(self, registry_module):
                 break
 
             registry = model_field_registry(current)
+            #: Un campo heredado por ``_inherits`` es en la fuente un
+            #: ``related='<fk>.<campo>'`` del hijo; aquí Django no lo copia,
+            #: así que la dependencia se expande a esa misma ruta.
+            if fname not in registry:
+                fk_name = _inherits_fk_for(current, fname, registry_module)
+                if fk_name is not None:
+                    names[index:index] = [fk_name]
+                    fname = fk_name
             try:
                 field = registry[fname]
             except KeyError:
@@ -4284,6 +4296,17 @@ def _field_resolve_depends(self, registry_module):
 
 
 models.Field.resolve_depends = _field_resolve_depends
+
+
+def _inherits_fk_for(model, fname, registry_module):
+    """La FK de ``_inherits`` por la que ``model`` hereda ``fname``, o
+    ``None``."""
+    for parent_name, fk_name in (getattr(model, '_inherits', None)
+                                 or {}).items():
+        parent = registry_module.MODELS_BY_NAME.get(parent_name)
+        if parent is not None and fname in model_field_registry(parent):
+            return fk_name
+    return None
 
 
 def get_depends(self, model):

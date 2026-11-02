@@ -48,3 +48,21 @@ def test_an_own_field_is_not_delegated(users):
     """``login`` es de ``res.users``: no se reescribe hacia el partner."""
     jack, _ = users
     assert _found([('login', '=', 'jack@kaupamex.mx')]) == {jack.pk}
+
+
+def test_the_rec_name_comes_from_the_inherited_name():
+    """≙ ``odoo19c: odoo/orm/model_classes.py:438-439``: ``_rec_name`` pasa a
+    ``'name'`` cuando ``'name' in _fields``, y en la fuente ``_fields`` incluye
+    los campos heredados. Sin él, buscar usuarios por ``display_name`` daba
+    ``TRUE`` y devolvía todos."""
+    Users = apps.get_model('base', 'ResUsers')
+    assert Users._rec_name == 'name'
+
+
+def test_searching_users_by_display_name(users):
+    jack, _ = users
+    Users = apps.get_model('base', 'ResUsers')
+    domain = Users._search_display_name('ilike', 'oneill')
+    found = set(Users._base_manager.filter(to_q(domain, Users))
+                .values_list('pk', flat=True))
+    assert found == {jack.pk}
