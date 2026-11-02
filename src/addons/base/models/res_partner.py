@@ -415,6 +415,12 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
             'calcula al leer.'
         ),
     )
+    #: ≙ ``odoo19c: res_partner.py:218``, ``fields.Char(string='Reference',
+    #: index=True)``. ``_rec_names_search`` lo nombra (``:205``): sin el campo,
+    #: toda búsqueda por ``display_name`` de un partner moría con
+    #: ``Invalid field 'ref'``. ``null=True`` porque en la fuente un ``Char``
+    #: sin ``required`` admite ``NULL`` (H-API-1125). Ver H-API-1126.
+    ref = fields.Char(string='Reference', index=True, null=True, blank=True)
     company_registry = fields.Char(
         max_length=64, blank=True, default='', db_index=True,
         help_text=(
