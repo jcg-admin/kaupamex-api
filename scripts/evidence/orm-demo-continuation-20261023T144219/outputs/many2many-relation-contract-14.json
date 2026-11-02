@@ -1,0 +1,35 @@
+{
+ "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+ "reference_symbol": "odoo19c:odoo/orm/fields_relational.py Many2many(comodel_name, relation, column1, column2, string); test_orm category.discussions / discussion.categories over test_orm_discussion_category",
+ "behavior": "relation is the table, column1/column2 its columns; two crossed declarations on one relation are the two ends of one table",
+ "execution_flow": "Many2many factory -> _source_many2many_kwargs -> Many2manyField.__init__(db_table) -> contribute_to_class: owner registers, names through columns; crossed mirror becomes owner related_name",
+ "inputs_outputs": "test_orm_discussion_category(id, category, discussion); link from category visible as discussion.categories; positional string -> verbose_name; duplicated positional+keyword -> TypeError",
+ "side_effects": "Migration test_orm 0004: RemoveField discussion.categories, AlterField category.discussions (table/columns renamed); only declarations with relation/column1/column2 use Many2manyField (6 in tree, all test_orm)",
+ "dependencies": [
+  "TASK-API-0429 T1",
+  "H-API-1124",
+  "existing _translate_comodel/_deferred_comodel sentinel resolution"
+ ],
+ "consumers": "test_orm only today; 87 single-positional Many2many keep Django naming",
+ "installed_mechanism": "orm.fields_relational.Many2manyField, _source_many2many_kwargs, _RELATION_OWNERS keyed by (apps, relation)",
+ "existing_adaptation": "Django auto-created through model with db_column patched; mirror expressed as reverse accessor",
+ "verification": {
+  "final": "many2many-relation-final.log 14 PASS",
+  "annulled_positional": "5 FAIL",
+  "annulled_mirror": "exactly 2 FAIL (related_name, single table owner)",
+  "annulled_columns": "exactly 1 FAIL (link across ends)",
+  "derived": "29 inherited failures identical to baseline outside test_orm; no test_orm failures"
+ },
+ "equivalence": "Two-end relation equivalent; three-column shared table (test_orm_crew) not paired",
+ "limitations": [
+  "Without relation, Django table naming kept (not Odoo <a>_<b>_rel)",
+  "Shared table with more than two ends not supported",
+  "Mirror requires the owner's reverse not yet contributed (source declaration order)"
+ ],
+ "integration": "Published on feature/codex-workspace-bootstrap; no merge; acceptance not_verified",
+ "source_sha256": {
+  "src/orm/fields_relational.py": "445124f96d845e6de6034f0d42db3f51eea84bc501f740b3eb50d54f21099354",
+  "src/addons/test_orm/migrations/0004_remove_testormdiscussion_categories_and_more.py": "8b7e8e350f2f324e94bf46163826dc7501a9e1d1c58bce49585aa9e59dcd50f7",
+  "tests/integration/test_orm/test_many2many_relation.py": "429ce144d31b2a0c40a9056ff2817a16f4dfa4644c8fadbf0a5ab25e5b705f50"
+ }
+}

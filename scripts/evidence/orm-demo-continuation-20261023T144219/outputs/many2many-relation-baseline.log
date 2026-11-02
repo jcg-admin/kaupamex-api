@@ -1,0 +1,252 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+........................................................................ [  9%]
+..................................................FF.................... [ 18%]
+........................................................................ [ 27%]
+........................................................................ [ 36%]
+........................................................................ [ 45%]
+.....FFFFFF..........................F.................................. [ 55%]
+...............F..................F.......FFFFFFFFF.FF......F.F......... [ 64%]
+....................F................................................... [ 73%]
+........................................................................ [ 82%]
+....................FFF..............x...........F...................... [ 91%]
+................................................................         [100%]
+=================================== FAILURES ===================================
+_ TestTheChainResolvesForEachShape.test_a_many2one_chain_gives_the_instance_at_the_end _
+tests/unit/orm/test_related_in_every_field_type.py:159: in test_a_many2one_chain_gives_the_instance_at_the_end
+    assert descriptor.resolve_related(account).code == 'MX'
+E   AttributeError: 'ForeignKey' object has no attribute 'resolve_related'
+_ TestTheChainResolvesForEachShape.test_a_one2many_chain_gives_the_manager_at_the_end _
+tests/unit/orm/test_related_in_every_field_type.py:166: in test_a_one2many_chain_gives_the_manager_at_the_end
+    assert descriptor.resolve_related(account).count() == 1
+E   AttributeError: 'One2many' object has no attribute 'resolve_related'
+_ TestTheRouterReadsTheResolvedStore.test_a_bare_store_false_has_no_column[Html] _
+tests/unit/orm/test_bare_store_false_declaration.py:42: in test_a_bare_store_false_has_no_column
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: Html
+E   assert False
+E    +  where False = isinstance(<orm.fields_textual.Html>, NonStored)
+_ TestTheRouterReadsTheResolvedStore.test_a_bare_store_false_has_no_column[Binary] _
+tests/unit/orm/test_bare_store_false_declaration.py:42: in test_a_bare_store_false_has_no_column
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: Binary
+E   assert False
+E    +  where False = isinstance(<orm.fields_binary.Binary>, NonStored)
+_ TestTheRouterReadsTheResolvedStore.test_a_bare_store_false_has_no_column[Image] _
+tests/unit/orm/test_bare_store_false_declaration.py:42: in test_a_bare_store_false_has_no_column
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: Image
+E   assert False
+E    +  where False = isinstance(<orm.fields_binary.Image>, NonStored)
+_ TestTheRouterReadsTheResolvedStore.test_a_bare_store_false_has_no_column[PropertiesDefinition] _
+tests/unit/orm/test_bare_store_false_declaration.py:42: in test_a_bare_store_false_has_no_column
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: PropertiesDefinition
+E   assert False
+E    +  where False = isinstance(<orm.fields_properties.PropertiesDefinition>, NonStored)
+_ TestTheRouterReadsTheResolvedStore.test_the_many_to_many_does_not_need_its_comodel _
+tests/unit/orm/test_bare_store_false_declaration.py:48: in test_the_many_to_many_does_not_need_its_comodel
+    field = fields.Many2many(store=False, compute='_compute_x')
+src/orm/fields_relational.py:530: in Many2many
+    field = _mark_check_company(models.ManyToManyField(*args, **kwargs),
+src/orm/fields.py:1121: in initialize
+    declared = dict(signature.bind(self, *args, **kwargs).arguments)
+/usr/local/lib/python3.13/inspect.py:3316: in bind
+    return self._bind(args, kwargs)
+/usr/local/lib/python3.13/inspect.py:3229: in _bind
+    raise TypeError(msg) from None
+E   TypeError: missing a required argument: 'to'
+_ TestTheRouterReadsTheResolvedStore.test_the_properties_field_has_no_column_either _
+tests/unit/orm/test_bare_store_false_declaration.py:55: in test_the_properties_field_has_no_column_either
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: Properties
+E   assert False
+E    +  where False = isinstance(<orm.fields_properties.Properties>, NonStored)
+_____________ TestFieldsRegistry.test_it_maps_concrete_field_names _____________
+tests/unit/orm/test_field_to_sql.py:117: in test_it_maps_concrete_field_names
+    assert set(definition._fields) == {
+E   AssertionError: assert {'created_at'...ield_id', ...} == {'created_at'... 'updated_at'}
+E     Extra items in the left set:
+E     'properties_field_id'
+E     Use -v to get more diff
+_ TestDjangoSeparatesThreeAxes.test_the_attname_carries_the_raw_pk_and_doubles_the_suffix _
+tests/unit/orm/test_fk_three_axes.py:62: in test_the_attname_carries_the_raw_pk_and_doubles_the_suffix
+    assert (
+E   AssertionError: assert 'StoredMany2oneIdDescriptor' == 'ForeignKeyDeferredAttribute'
+E     - ForeignKeyDeferredAttribute
+E     + StoredMany2oneIdDescriptor
+_ TestEveryConstructorAcceptsTheKey.test_the_constructor_takes_related[Many2many-arguments1] _
+tests/unit/orm/test_related_in_every_field_type.py:54: in test_the_constructor_takes_related
+    field = getattr(fields, type_name)(*arguments, related='partner.name')
+src/orm/fields_relational.py:530: in Many2many
+    field = _mark_check_company(models.ManyToManyField(*args, **kwargs),
+src/orm/fields.py:1121: in initialize
+    declared = dict(signature.bind(self, *args, **kwargs).arguments)
+/usr/local/lib/python3.13/inspect.py:3316: in bind
+    return self._bind(args, kwargs)
+/usr/local/lib/python3.13/inspect.py:3229: in _bind
+    raise TypeError(msg) from None
+E   TypeError: missing a required argument: 'to'
+_ TestEveryConstructorAcceptsTheKey.test_without_store_the_carrier_is_the_non_stored_one[Many2one-arguments0] _
+tests/unit/orm/test_related_in_every_field_type.py:64: in test_without_store_the_carrier_is_the_non_stored_one
+    assert isinstance(
+E   AssertionError: Many2one devolvió ForeignKey
+E   assert False
+E    +  where False = isinstance(<django.db.models.fields.related.ForeignKey>, NonStored)
+_ TestEveryConstructorAcceptsTheKey.test_without_store_the_carrier_is_the_non_stored_one[Many2many-arguments1] _
+tests/unit/orm/test_related_in_every_field_type.py:63: in test_without_store_the_carrier_is_the_non_stored_one
+    field = getattr(fields, type_name)(*arguments, related='partner.name')
+src/orm/fields_relational.py:530: in Many2many
+    field = _mark_check_company(models.ManyToManyField(*args, **kwargs),
+src/orm/fields.py:1121: in initialize
+    declared = dict(signature.bind(self, *args, **kwargs).arguments)
+/usr/local/lib/python3.13/inspect.py:3316: in bind
+    return self._bind(args, kwargs)
+/usr/local/lib/python3.13/inspect.py:3229: in _bind
+    raise TypeError(msg) from None
+E   TypeError: missing a required argument: 'to'
+_ TestEveryConstructorAcceptsTheKey.test_without_store_the_carrier_is_the_non_stored_one[One2many-arguments2] _
+tests/unit/orm/test_related_in_every_field_type.py:64: in test_without_store_the_carrier_is_the_non_stored_one
+    assert isinstance(
+E   AssertionError: One2many devolvió One2many
+E   assert False
+E    +  where False = isinstance(One2many(None, None), NonStored)
+_ TestEveryConstructorAcceptsTheKey.test_without_store_the_carrier_is_the_non_stored_one[Binary-arguments3] _
+tests/unit/orm/test_related_in_every_field_type.py:64: in test_without_store_the_carrier_is_the_non_stored_one
+    assert isinstance(
+E   AssertionError: Binary devolvió Binary
+E   assert False
+E    +  where False = isinstance(<orm.fields_binary.Binary>, NonStored)
+_ TestEveryConstructorAcceptsTheKey.test_without_store_the_carrier_is_the_non_stored_one[Image-arguments4] _
+tests/unit/orm/test_related_in_every_field_type.py:64: in test_without_store_the_carrier_is_the_non_stored_one
+    assert isinstance(
+E   AssertionError: Image devolvió Image
+E   assert False
+E    +  where False = isinstance(<orm.fields_binary.Image>, NonStored)
+_ TestEveryConstructorAcceptsTheKey.test_without_store_the_carrier_is_the_non_stored_one[Html-arguments5] _
+tests/unit/orm/test_related_in_every_field_type.py:64: in test_without_store_the_carrier_is_the_non_stored_one
+    assert isinstance(
+E   AssertionError: Html devolvió Html
+E   assert False
+E    +  where False = isinstance(<orm.fields_textual.Html>, NonStored)
+_ TestEveryConstructorAcceptsTheKey.test_without_store_the_carrier_is_the_non_stored_one[Monetary-arguments6] _
+tests/unit/orm/test_related_in_every_field_type.py:64: in test_without_store_the_carrier_is_the_non_stored_one
+    assert isinstance(
+E   AssertionError: Monetary devolvió DecimalField
+E   assert False
+E    +  where False = isinstance(<django.db.models.fields.DecimalField>, NonStored)
+_ TestEveryConstructorAcceptsTheKey.test_without_store_the_carrier_is_the_non_stored_one[Json-arguments7] _
+tests/unit/orm/test_related_in_every_field_type.py:64: in test_without_store_the_carrier_is_the_non_stored_one
+    assert isinstance(
+E   AssertionError: Json devolvió JSONField
+E   assert False
+E    +  where False = isinstance(<django.db.models.fields.json.JSONField>, NonStored)
+_ TestEveryConstructorAcceptsTheKey.test_without_store_the_carrier_is_the_non_stored_one[Properties-arguments8] _
+tests/unit/orm/test_related_in_every_field_type.py:64: in test_without_store_the_carrier_is_the_non_stored_one
+    assert isinstance(
+E   AssertionError: Properties devolvió Properties
+E   assert False
+E    +  where False = isinstance(<orm.fields_properties.Properties>, NonStored)
+_ TestEveryConstructorAcceptsTheKey.test_the_four_defaults_of_the_source_apply[Many2many-arguments1] _
+tests/unit/orm/test_related_in_every_field_type.py:71: in test_the_four_defaults_of_the_source_apply
+    field = getattr(fields, type_name)(*arguments, related='partner.name')
+src/orm/fields_relational.py:530: in Many2many
+    field = _mark_check_company(models.ManyToManyField(*args, **kwargs),
+src/orm/fields.py:1121: in initialize
+    declared = dict(signature.bind(self, *args, **kwargs).arguments)
+/usr/local/lib/python3.13/inspect.py:3316: in bind
+    return self._bind(args, kwargs)
+/usr/local/lib/python3.13/inspect.py:3229: in _bind
+    raise TypeError(msg) from None
+E   TypeError: missing a required argument: 'to'
+_ TestEveryConstructorAcceptsTheKey.test_the_four_defaults_of_the_source_apply[One2many-arguments2] _
+tests/unit/orm/test_related_in_every_field_type.py:77: in test_the_four_defaults_of_the_source_apply
+    ) == (False, True, False, True), type_name
+E   AttributeError: 'One2many' object has no attribute 'store'
+_ TestTheRelationalArgumentsBecomeOptional.test_many2one_needs_no_comodel_when_it_is_a_projection _
+tests/unit/orm/test_related_in_every_field_type.py:87: in test_many2one_needs_no_comodel_when_it_is_a_projection
+    assert isinstance(field, NonStored)
+E   assert False
+E    +  where False = isinstance(<django.db.models.fields.related.ForeignKey>, NonStored)
+_ TestTheRelationalArgumentsBecomeOptional.test_many2many_needs_no_comodel_either _
+tests/unit/orm/test_related_in_every_field_type.py:110: in test_many2many_needs_no_comodel_either
+    field = fields.Many2many(related='lead.tags', readonly=True)
+src/orm/fields_relational.py:530: in Many2many
+    field = _mark_check_company(models.ManyToManyField(*args, **kwargs),
+src/orm/fields.py:1121: in initialize
+    declared = dict(signature.bind(self, *args, **kwargs).arguments)
+/usr/local/lib/python3.13/inspect.py:3316: in bind
+    return self._bind(args, kwargs)
+/usr/local/lib/python3.13/inspect.py:3229: in _bind
+    raise TypeError(msg) from None
+E   TypeError: missing a required argument: 'to'
+_ TestTheThirdConsumerAsksTheSameQuestion.test_the_count_over_a_fixed_population _
+tests/unit/orm/test_domain_in_required.py:560: in test_the_count_over_a_fixed_population
+    assert len(discrepan) == 27, (
+E   AssertionError: 119 discrepancias en base, se esperaban 27. Es evidencia fechada al portar #247; si cambia, se re-mide y se actualiza con su razón — no se relaja la aserción
+E   assert 119 == 27
+E    +  where 119 = len(['base.IrModuleCategory.display_name', 'base.IrModule.display_name', 'base.IrModuleDependency.display_name', 'base.IrModuleExclusion.display_name', 'base.ResGroupsPrivilege.display_name', 'base.ResDeviceLog.display_name', ...])
+_ TestTheClassDefaultIsNotStamped.test_the_universe_of_the_control_is_the_measured_one[compute] _
+tests/unit/orm/test_declared_source_vocabulary.py:202: in test_the_universe_of_the_control_is_the_measured_one
+    assert attribute in attrs, (
+E   AssertionError: compute ya no viaja en attrs: el control de no-estampado dejó de medirlo
+E   assert 'compute' in {'declared_keys': frozenset(), 'store': True}
+_ TestTheClassDefaultIsNotStamped.test_the_universe_of_the_control_is_the_measured_one[inverse] _
+tests/unit/orm/test_declared_source_vocabulary.py:202: in test_the_universe_of_the_control_is_the_measured_one
+    assert attribute in attrs, (
+E   AssertionError: inverse ya no viaja en attrs: el control de no-estampado dejó de medirlo
+E   assert 'inverse' in {'declared_keys': frozenset(), 'store': True}
+_ TestTheClassDefaultIsNotStamped.test_the_universe_of_the_control_is_the_measured_one[precompute] _
+tests/unit/orm/test_declared_source_vocabulary.py:202: in test_the_universe_of_the_control_is_the_measured_one
+    assert attribute in attrs, (
+E   AssertionError: precompute ya no viaja en attrs: el control de no-estampado dejó de medirlo
+E   assert 'precompute' in {'declared_keys': frozenset(), 'store': True}
+_ TestTheBaselineAbsorbsTheInheritedDebtAndOnlyThat.test_every_offender_measured_today_is_in_the_baseline _
+tests/unit/scripts/test_check_fk_naming.py:123: in test_every_offender_measured_today_is_in_the_baseline
+    assert fresh == []
+E   AssertionError: assert ['src/addons/...on.moderator'] == []
+E     Left contains 3 more items, first extra item: 'src/addons/base/models/ir_module.py::IrModule.category'
+E     Use -v to get more diff
+=============================== warnings summary ===============================
+tests/integration/base/test_ir_model_relation_reflect.py::TestReflectRelation::test_it_records_the_table_with_its_model_and_module
+tests/unit/orm/test_compute_writes_m2m.py::TestTheCycleReachesTheJoinTable::test_touching_the_code_writes_the_relation
+  /home/user/kaupamex-api/src/orm/fields.py:4209: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/base/test_ir_model_relation_reflect.py::TestReflectRelation::test_it_records_the_table_with_its_model_and_module
+tests/unit/orm/test_compute_writes_m2m.py::TestTheCycleReachesTheJoinTable::test_touching_the_code_writes_the_relation
+  /home/user/kaupamex-api/src/orm/fields.py:4209: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestTheChainResolvesForEachShape::test_a_many2one_chain_gives_the_instance_at_the_end
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestTheChainResolvesForEachShape::test_a_one2many_chain_gives_the_manager_at_the_end
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_a_bare_store_false_has_no_column[Html]
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_a_bare_store_false_has_no_column[Binary]
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_a_bare_store_false_has_no_column[Image]
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_a_bare_store_false_has_no_column[PropertiesDefinition]
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_the_many_to_many_does_not_need_its_comodel
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_the_properties_field_has_no_column_either
+FAILED tests/unit/orm/test_field_to_sql.py::TestFieldsRegistry::test_it_maps_concrete_field_names
+FAILED tests/unit/orm/test_fk_three_axes.py::TestDjangoSeparatesThreeAxes::test_the_attname_carries_the_raw_pk_and_doubles_the_suffix
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_the_constructor_takes_related[Many2many-arguments1]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_without_store_the_carrier_is_the_non_stored_one[Many2one-arguments0]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_without_store_the_carrier_is_the_non_stored_one[Many2many-arguments1]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_without_store_the_carrier_is_the_non_stored_one[One2many-arguments2]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_without_store_the_carrier_is_the_non_stored_one[Binary-arguments3]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_without_store_the_carrier_is_the_non_stored_one[Image-arguments4]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_without_store_the_carrier_is_the_non_stored_one[Html-arguments5]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_without_store_the_carrier_is_the_non_stored_one[Monetary-arguments6]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_without_store_the_carrier_is_the_non_stored_one[Json-arguments7]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_without_store_the_carrier_is_the_non_stored_one[Properties-arguments8]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_the_four_defaults_of_the_source_apply[Many2many-arguments1]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_the_four_defaults_of_the_source_apply[One2many-arguments2]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestTheRelationalArgumentsBecomeOptional::test_many2one_needs_no_comodel_when_it_is_a_projection
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestTheRelationalArgumentsBecomeOptional::test_many2many_needs_no_comodel_either
+FAILED tests/unit/orm/test_domain_in_required.py::TestTheThirdConsumerAsksTheSameQuestion::test_the_count_over_a_fixed_population
+FAILED tests/unit/orm/test_declared_source_vocabulary.py::TestTheClassDefaultIsNotStamped::test_the_universe_of_the_control_is_the_measured_one[compute]
+FAILED tests/unit/orm/test_declared_source_vocabulary.py::TestTheClassDefaultIsNotStamped::test_the_universe_of_the_control_is_the_measured_one[inverse]
+FAILED tests/unit/orm/test_declared_source_vocabulary.py::TestTheClassDefaultIsNotStamped::test_the_universe_of_the_control_is_the_measured_one[precompute]
+FAILED tests/unit/scripts/test_check_fk_naming.py::TestTheBaselineAbsorbsTheInheritedDebtAndOnlyThat::test_every_offender_measured_today_is_in_the_baseline
+29 failed, 754 passed, 1 xfailed, 4 warnings in 25.03s

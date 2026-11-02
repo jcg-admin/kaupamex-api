@@ -1,0 +1,78 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+.........F...                                                            [100%]
+=================================== FAILURES ===================================
+_______________ test_a_link_from_one_end_is_seen_from_the_other ________________
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedColumn: column test_orm_discussion_category.test_orm_discussion_id does not exist
+E   LINE 1: SELECT "test_orm_discussion_category"."test_orm_discussion_i...
+E                  ^
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_many2many_relation.py:41: in test_a_link_from_one_end_is_seen_from_the_other
+    TestOrmCategory.objects.get(pk=category.id).discussions.add(discussion)
+.venv/lib/python3.13/site-packages/django/db/models/fields/related_descriptors.py:1229: in add
+    self._add_items(
+.venv/lib/python3.13/site-packages/django/db/models/fields/related_descriptors.py:1509: in _add_items
+    missing_target_ids = self._get_missing_target_ids(
+.venv/lib/python3.13/site-packages/django/db/models/fields/related_descriptors.py:1443: in _get_missing_target_ids
+    return target_ids.difference(vals)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:390: in __iter__
+    self._fetch_all()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:277: in __iter__
+    for row in compiler.results_iter(
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1573: in results_iter
+    results = self.execute_sql(
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: column test_orm_discussion_category.test_orm_discussion_id does not exist
+E   LINE 1: SELECT "test_orm_discussion_category"."test_orm_discussion_i...
+E                  ^
+=============================== warnings summary ===============================
+src/addons/test_orm/models/test_orm.py:47
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:47: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/integration/test_orm/test_create_recordset.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:133
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:133: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_json_field.py)
+    class TestOrmDiscussion(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:47
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:47: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/integration/test_orm/test_many2many_relation.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:133
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:133: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_many2many_relation.py)
+    class TestOrmDiscussion(TestOrmModel):
+
+tests/integration/test_orm/test_attributes.py::test_we_cannot_add_attributes
+tests/integration/test_orm/test_create_recordset.py::test_assigning_a_field_on_the_created_record_is_written
+  /home/user/kaupamex-api/src/orm/fields.py:4209: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_attributes.py::test_we_cannot_add_attributes
+tests/integration/test_orm/test_create_recordset.py::test_assigning_a_field_on_the_created_record_is_written
+  /home/user/kaupamex-api/src/orm/fields.py:4209: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_orm/test_many2many_relation.py::test_a_link_from_one_end_is_seen_from_the_other
+1 failed, 12 passed, 8 warnings in 6.26s

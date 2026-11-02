@@ -493,6 +493,157 @@ def _mark_check_company(field, check_company):
     return field
 
 
+#: Los posicionales de ``Many2many`` en la fuente, tras el comodelo —
+#: ``odoo19c: odoo/orm/fields_relational.py`` (``Many2many.__init__``):
+#: ``(comodel_name, relation, column1, column2, string)``.
+_MANY2MANY_SOURCE_POSITIONAL = ('relation', 'column1', 'column2', 'string')
+
+#: ``(apps, relation) -> Many2manyField`` — el extremo que materializa la
+#: tabla. Se indexa por el registro de aplicaciones porque el estado de una
+#: migración construye sus propias clases con los mismos campos.
+_RELATION_OWNERS = {}
+
+
+def _model_keys(model):
+    """Los nombres por los que se reconoce un modelo: ``_name`` y etiqueta."""
+    return {name_of(model), model._meta.label_lower} - {None}
+
+
+def _target_key(field):
+    """El destino declarado: el ``_name`` de la fuente si lo hay.
+
+    Mientras el destino no existe, ``remote_field.model`` es una etiqueta
+    centinela (:func:`_deferred_comodel`); ``comodel_name`` conserva el nombre
+    que el autor escribió.
+    """
+    declared = getattr(field, 'comodel_name', None)
+    if declared:
+        return declared
+    model = field.remote_field.model
+    return model.lower() if isinstance(model, str) else model._meta.label_lower
+
+
+class Many2manyField(models.ManyToManyField):
+    """``ManyToManyField`` con la tabla y las columnas que la fuente nombra.
+
+    ≙ ``Many2many(comodel_name, relation, column1, column2)``: ``relation``
+    es la tabla, ``column1`` la columna que apunta al modelo que declara el
+    campo y ``column2`` la del comodelo. Django nombra él mismo la tabla y las
+    columnas de la intermedia que genera; aquí ``relation`` se entrega como
+    ``db_table`` y las dos columnas se fijan sobre esa intermedia en cuanto
+    existe. ``deconstruct`` las conserva, así que el estado de una migración
+    reconstruye la misma tabla.
+
+    **Dos declaraciones, una relación.** En la fuente, dos ``Many2many`` con
+    la misma ``relation``, los modelos cruzados y las columnas invertidas son
+    los dos extremos de una sola tabla (``test_orm.category.discussions`` y
+    ``test_orm.discussion.categories``). Django expresa eso con UN campo y su
+    accesor inverso: el segundo extremo no crea tabla, y su nombre pasa a ser
+    el ``related_name`` del primero.
+
+    **Divergencias declaradas:** sin ``relation`` se conserva el nombrado de
+    Django (las 87 declaraciones de un posicional del árbol ya están
+    migradas así). Una tabla compartida por más de dos extremos
+    (``test_orm_crew``) no se empareja y se rehúsa en los checks de Django.
+    El segundo extremo exige que el primero no haya contribuido aún su
+    inverso, que es el orden de declaración de la fuente.
+    """
+
+    def __init__(self, *args, relation=None, column1=None, column2=None,
+                 **kwargs):
+        if relation is not None:
+            kwargs.setdefault('db_table', relation)
+        self.relation = relation
+        self.column1 = column1
+        self.column2 = column2
+        self.mirror_of = None
+        super().__init__(*args, **kwargs)
+
+    def deconstruct(self):
+        """Conserva ``column1``/``column2``: sin ellos la migración nombraría
+        las columnas a la manera de Django."""
+        name, path, args, kwargs = super().deconstruct()
+        if self.column1 is None and self.column2 is None:
+            return name, path, args, kwargs
+        kwargs['column1'] = self.column1
+        kwargs['column2'] = self.column2
+        return name, 'orm.fields_relational.Many2manyField', args, kwargs
+
+    def _owner_for_mirror(self, cls):
+        if self.relation is None:
+            return None
+        owner = _RELATION_OWNERS.get((cls._meta.apps, self.relation))
+        if owner is None or owner is self:
+            return None
+        crossed = (
+            _target_key(owner) in _model_keys(cls)
+            and _target_key(self) in _model_keys(owner.model)
+            and (owner.column1, owner.column2) == (self.column2, self.column1))
+        return owner if crossed else None
+
+    def contribute_to_class(self, cls, name, *args, **kwargs):
+        owner = self._owner_for_mirror(cls)
+        if owner is not None:
+            # El otro extremo de la misma tabla: su accesor inverso lleva este
+            # nombre. Se instala cuando ``cls`` termine de registrarse.
+            self.set_attributes_from_name(name)
+            self.model = cls
+            self.mirror_of = owner
+            # ``deconstruct`` lee ``_related_name``; el accesor, ``remote_field``.
+            owner.remote_field.related_name = name
+            owner._related_name = name
+            return
+        super().contribute_to_class(cls, name, *args, **kwargs)
+        if self.relation is not None and not cls._meta.abstract:
+            _RELATION_OWNERS[(cls._meta.apps, self.relation)] = self
+        through = self.remote_field.through
+        if (self.column1 is not None and not isinstance(through, str)
+                and through._meta.auto_created):
+            self._name_through_columns(through, cls)
+
+    def _name_through_columns(self, through, cls):
+        """Fija ``column1``/``column2`` sobre la intermedia generada."""
+        source, target = self._through_field_names(cls)
+        for field_name, column in ((source, self.column1),
+                                   (target, self.column2)):
+            if column is None:
+                continue
+            field = through._meta.get_field(field_name)
+            field.db_column = column
+            field.set_attributes_from_name(field.name)
+
+    def _through_field_names(self, cls):
+        """Los nombres que ``create_many_to_many_intermediary_model`` usa."""
+        target = self.remote_field.model
+        target_name = (target.split('.')[-1] if isinstance(target, str)
+                       else target._meta.model_name).lower()
+        source_name = cls._meta.model_name
+        if source_name == target_name:
+            return 'from_%s' % source_name, 'to_%s' % target_name
+        return source_name, target_name
+
+
+def _source_many2many_kwargs(args, kwargs):
+    """Nombra los posicionales de la fuente tras el comodelo.
+
+    Antes llegaban a ``ManyToManyField(to, related_name, related_query_name,
+    limit_choices_to)`` y la migración ``test_orm 0001`` guardó
+    ``limit_choices_to='category'`` (H-API-1124).
+    """
+    if len(args) <= 1:
+        return args, kwargs
+    extra = args[1:]
+    if len(extra) > len(_MANY2MANY_SOURCE_POSITIONAL):
+        raise TypeError('Many2many() admite a lo sumo cinco posicionales')
+    for name, value in zip(_MANY2MANY_SOURCE_POSITIONAL, extra):
+        if name in kwargs:
+            raise TypeError(f'Many2many() recibió {name!r} dos veces')
+        kwargs[name] = value
+    if 'string' in kwargs:
+        kwargs.setdefault('verbose_name', kwargs.pop('string'))
+    return args[:1], kwargs
+
+
 def Many2many(*args, check_company=False, store=_UNSET, related=None,
               **kwargs):
     """``fields.Many2many`` — el ``ManyToManyField`` de Django, marcable.
@@ -527,8 +678,11 @@ def Many2many(*args, check_company=False, store=_UNSET, related=None,
     #: columna la resuelve la costura —``contribute_to_class`` con
     #: ``private_only``— y no el enrutado de esta fachada.
     args, source_name = _translate_comodel(args)
-    field = _mark_check_company(models.ManyToManyField(*args, **kwargs),
-                                check_company)
+    args, kwargs = _source_many2many_kwargs(args, kwargs)
+    field_class = (Many2manyField if any(
+        name in kwargs for name in ('relation', 'column1', 'column2'))
+        else models.ManyToManyField)
+    field = _mark_check_company(field_class(*args, **kwargs), check_company)
     if source_name is not None:
         field.comodel_name = source_name
     return annotate_related(field, related, related_attrs)
