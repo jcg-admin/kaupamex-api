@@ -771,7 +771,15 @@ class TestOrmAnyChild(TestOrmModel):
     link_sibling_id = fields.Many2one('test_orm.any.child', null=True,
                                       related_name='+')
     quantity = fields.Integer(null=True)
-    tag_ids = fields.Many2many('test_orm.any.tag', related_name='child_ids')
+    #: La tabla y las columnas por defecto de la fuente para un Many2many
+    #: sin ``relation`` (``<tabla1>_<tabla2>_rel``, ``<tabla>_id``). Sin
+    #: declararlas, la tabla intermedia automática de este campo nombraba en
+    #: tiempo de ejecución una columna ``test_orm_any_tag_id`` que su
+    #: migración no creó (``testormanytag_id``); la causa no está aislada.
+    tag_ids = fields.Many2many(
+        'test_orm.any.tag', 'test_orm_any_child_test_orm_any_tag_rel',
+        'test_orm_any_child_id', 'test_orm_any_tag_id',
+        related_name='child_ids')
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_any_child'
