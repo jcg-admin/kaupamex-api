@@ -1,0 +1,77 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+.FFFFF.F                                                                 [100%]
+=================================== FAILURES ===================================
+________________________ test_company_and_same_company _________________________
+tests/integration/test_orm/test_company_checks.py:54: in test_company_and_same_company
+    'parent_ids': [Command.link(parents[1].id)],
+E   TypeError: Command.link() missing 1 required positional argument: 'obj'
+______________________ test_company_and_different_company ______________________
+tests/integration/test_orm/test_company_checks.py:69: in test_company_and_different_company
+    'parent_ids': [Command.link(parents[1].id),
+E   TypeError: Command.link() missing 1 required positional argument: 'obj'
+_________________________ test_company_and_no_company __________________________
+tests/integration/test_orm/test_company_checks.py:79: in test_company_and_no_company
+    'parent_ids': [Command.link(parents[0].id)],
+E   TypeError: Command.link() missing 1 required positional argument: 'obj'
+________________________ test_no_company_and_no_company ________________________
+tests/integration/test_orm/test_company_checks.py:88: in test_no_company_and_no_company
+    'parent_ids': [Command.link(parents[0].id)],
+E   TypeError: Command.link() missing 1 required positional argument: 'obj'
+_______________________ test_no_company_and_some_company _______________________
+.venv/lib/python3.13/site-packages/django/db/models/fields/related_descriptors.py:241: in __get__
+    rel_obj = self.field.get_cached_value(instance)
+.venv/lib/python3.13/site-packages/django/db/models/fields/mixins.py:21: in get_cached_value
+    return instance._state.fields_cache[self.cache_name]
+E   KeyError: 'company'
+
+During handling of the above exception, another exception occurred:
+tests/integration/test_orm/test_company_checks.py:94: in test_no_company_and_some_company
+    env['test_orm.model_child'].create({
+src/orm/decorators.py:238: in create
+    return inner(self, vals_list, *args, **kwargs)
+src/orm/models.py:852: in create
+    records = cls._create(data_list)
+src/orm/models.py:1011: in _create
+    record = cls._create_row_from_values(
+src/orm/models.py:2686: in _create_row_from_values
+    record = cls.objects.using(using).create(**columns)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:4752: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2573: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1392: in save
+    self._check_company(
+src/orm/models.py:1288: in _check_company
+    companies = [getattr(self, own_name, None)]
+.venv/lib/python3.13/site-packages/django/db/models/fields/related_descriptors.py:257: in __get__
+    rel_obj = self.get_object(instance)
+.venv/lib/python3.13/site-packages/django/db/models/fields/related_descriptors.py:222: in get_object
+    return qs.get(self.field.get_reverse_related_filter(instance))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.base.models.res_company.ResCompany.DoesNotExist: ResCompany matching query does not exist.
+______________________________ test_company_write ______________________________
+tests/integration/test_orm/test_company_checks.py:122: in test_company_write
+    'parent_ids': [Command.link(parents[1].id)],
+E   TypeError: Command.link() missing 1 required positional argument: 'obj'
+=============================== warnings summary ===============================
+tests/integration/test_orm/test_company_checks.py::test_check_company_auto
+  /home/user/kaupamex-api/src/orm/fields.py:4221: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_company_checks.py::test_check_company_auto
+  /home/user/kaupamex-api/src/orm/fields.py:4221: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_and_same_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_and_different_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_and_no_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_no_company_and_no_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_no_company_and_some_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_write
+6 failed, 2 passed, 2 warnings in 8.21s

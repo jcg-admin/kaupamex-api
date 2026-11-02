@@ -2016,6 +2016,20 @@ class StoredMany2oneIdDescriptor(FieldDescriptor):
     def __get__(self, instance, cls=None):
         return ForeignKeyDeferredAttribute.__get__(self, instance, cls)
 
+    def __set__(self, instance, value):
+        """``False`` es la ausencia de relación — ≙ ``Many2one.convert_to_cache``.
+
+        En la fuente ``type(value) is int`` deja fuera a ``False`` (es
+        ``bool``), que cae en la rama final y queda ``None``
+        (``odoo19c: odoo/orm/fields_relational.py:328-351``); ``0`` se
+        conserva. Sin esto ``create({'company_id': False})`` dejaba ``False``
+        en la fila, y el descriptor de Django buscaba la empresa con
+        ``pk=False`` (``DoesNotExist``).
+        """
+        if value is False:
+            value = None
+        super().__set__(instance, value)
+
 
 def _install_field_descriptor(field, cls):
     """Instala el descriptor y conserva el tipo público de los calculados.

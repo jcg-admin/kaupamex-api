@@ -1,0 +1,21 @@
+[
+ {
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "task_id": "345",
+  "before": {
+   "citation_id": "TASK-API-0190",
+   "owner": null,
+   "status": "pending",
+   "blocked_by": [],
+   "blocks": []
+  },
+  "after": {
+   "citation_id": "TASK-API-0190",
+   "owner": "VM-x2hokp",
+   "status": "pending",
+   "blocked_by": [],
+   "blocks": []
+  },
+  "unchanged_status_deps": true
+ }
+]

@@ -212,3 +212,54 @@ class TestOrmDiscussion(TestOrmModel):
         self.message_concat = "\n".join(
             ["%s:%s" % (m.name, m.body) for m in self.messages]
         )
+
+
+# ---------------------------------------------------------------------------
+# Multicompañía — ≙ ``odoo19c: odoo/addons/test_orm/models/test_orm.py``
+# (``TestOrmModel_Parent``, ``_Child``, ``_Child_Nocheck``). Ningún Many2one de
+# la fuente declara ``required``, así que todos llevan ``null=True``
+# (H-API-1122). El nombre sigue la convención del árbol: ``company`` con
+# ``attname`` ``company_id``, que es el nombre por el que ``create`` y
+# ``_fields`` responden también.
+# ---------------------------------------------------------------------------
+
+
+class TestOrmModelParent(TestOrmModel):
+    """≙ ``test_orm.model_parent``."""
+
+    _name = 'test_orm.model_parent'
+    _description = 'Model Multicompany parent'
+
+    name = fields.Char()
+    company = fields.Many2one('res.company', null=True, related_name='+')
+
+
+class TestOrmModelChild(TestOrmModel):
+    """≙ ``test_orm.model_child``."""
+
+    _name = 'test_orm.model_child'
+    _description = 'Model Multicompany child'
+    _check_company_auto = True
+
+    name = fields.Char()
+    company = fields.Many2one('res.company', null=True, related_name='+')
+    parent = fields.Many2one(
+        'test_orm.model_parent', string="Parent", check_company=True,
+        null=True, related_name='+')
+    parent_ids = fields.Many2many(
+        'test_orm.model_parent', string="Parents", check_company=True,
+        related_name='+')
+
+
+class TestOrmModelChildNocheck(TestOrmModel):
+    """≙ ``test_orm.model_child_nocheck``."""
+
+    _name = 'test_orm.model_child_nocheck'
+    _description = 'Model Multicompany child'
+    _check_company_auto = True
+
+    name = fields.Char()
+    company = fields.Many2one('res.company', null=True, related_name='+')
+    parent = fields.Many2one(
+        'test_orm.model_parent', check_company=False, null=True,
+        related_name='+')

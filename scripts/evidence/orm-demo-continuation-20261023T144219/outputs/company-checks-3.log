@@ -1,0 +1,46 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+.FFFFF.F                                                                 [100%]
+=================================== FAILURES ===================================
+________________________ test_company_and_same_company _________________________
+tests/integration/test_orm/test_company_checks.py:54: in test_company_and_same_company
+    'parent_ids': [Command.link(parents[1].id)],
+E   TypeError: Command.link() missing 1 required positional argument: 'obj'
+______________________ test_company_and_different_company ______________________
+tests/integration/test_orm/test_company_checks.py:69: in test_company_and_different_company
+    'parent_ids': [Command.link(parents[1].id),
+E   TypeError: Command.link() missing 1 required positional argument: 'obj'
+_________________________ test_company_and_no_company __________________________
+tests/integration/test_orm/test_company_checks.py:79: in test_company_and_no_company
+    'parent_ids': [Command.link(parents[0].id)],
+E   TypeError: Command.link() missing 1 required positional argument: 'obj'
+________________________ test_no_company_and_no_company ________________________
+tests/integration/test_orm/test_company_checks.py:88: in test_no_company_and_no_company
+    'parent_ids': [Command.link(parents[0].id)],
+E   TypeError: Command.link() missing 1 required positional argument: 'obj'
+_______________________ test_no_company_and_some_company _______________________
+tests/integration/test_orm/test_company_checks.py:103: in test_no_company_and_some_company
+    'parent_ids': [Command.link(parents[0].id),
+E   TypeError: Command.link() missing 1 required positional argument: 'obj'
+______________________________ test_company_write ______________________________
+tests/integration/test_orm/test_company_checks.py:122: in test_company_write
+    'parent_ids': [Command.link(parents[1].id)],
+E   TypeError: Command.link() missing 1 required positional argument: 'obj'
+=============================== warnings summary ===============================
+tests/integration/test_orm/test_company_checks.py::test_check_company_auto
+  /home/user/kaupamex-api/src/orm/fields.py:4223: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_company_checks.py::test_check_company_auto
+  /home/user/kaupamex-api/src/orm/fields.py:4223: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_and_same_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_and_different_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_and_no_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_no_company_and_no_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_no_company_and_some_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_write
+6 failed, 2 passed, 2 warnings in 7.29s

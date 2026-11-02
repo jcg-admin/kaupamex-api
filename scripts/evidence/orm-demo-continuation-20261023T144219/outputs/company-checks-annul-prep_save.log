@@ -1,0 +1,89 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+.FFFFF.FFE                                                               [100%]
+==================================== ERRORS ====================================
+_ ERROR at teardown of test_false_reaches_the_column_as_null_without_the_descriptor _
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.ForeignKeyViolation: insert or update on table "test_orm_testormmodelparent" violates foreign key constraint "test_orm_testormmode_company_id_6dc65b9e_fk_res_compa"
+E   DETAIL:  Key (company_id)=(0) is not present in table "res_company".
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:255: in _django_db_helper
+    test_case._post_teardown()
+.venv/lib/python3.13/site-packages/django/test/testcases.py:1240: in _post_teardown
+    self._fixture_teardown()
+.venv/lib/python3.13/site-packages/django/test/testcases.py:1495: in _fixture_teardown
+    connections[db_name].check_constraints()
+.venv/lib/python3.13/site-packages/django/db/backends/postgresql/base.py:483: in check_constraints
+    cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: insert or update on table "test_orm_testormmodelparent" violates foreign key constraint "test_orm_testormmode_company_id_6dc65b9e_fk_res_compa"
+E   DETAIL:  Key (company_id)=(0) is not present in table "res_company".
+=================================== FAILURES ===================================
+________________________ test_company_and_same_company _________________________
+tests/integration/test_orm/test_company_checks.py:54: in test_company_and_same_company
+    'parent_ids': [Command.link(parents[1].id)],
+E   TypeError: Command.link() missing 1 required positional argument: 'obj'
+______________________ test_company_and_different_company ______________________
+tests/integration/test_orm/test_company_checks.py:69: in test_company_and_different_company
+    'parent_ids': [Command.link(parents[1].id),
+E   TypeError: Command.link() missing 1 required positional argument: 'obj'
+_________________________ test_company_and_no_company __________________________
+tests/integration/test_orm/test_company_checks.py:79: in test_company_and_no_company
+    'parent_ids': [Command.link(parents[0].id)],
+E   TypeError: Command.link() missing 1 required positional argument: 'obj'
+________________________ test_no_company_and_no_company ________________________
+tests/integration/test_orm/test_company_checks.py:88: in test_no_company_and_no_company
+    'parent_ids': [Command.link(parents[0].id)],
+E   TypeError: Command.link() missing 1 required positional argument: 'obj'
+_______________________ test_no_company_and_some_company _______________________
+tests/integration/test_orm/test_company_checks.py:103: in test_no_company_and_some_company
+    'parent_ids': [Command.link(parents[0].id),
+E   TypeError: Command.link() missing 1 required positional argument: 'obj'
+______________________________ test_company_write ______________________________
+tests/integration/test_orm/test_company_checks.py:122: in test_company_write
+    'parent_ids': [Command.link(parents[1].id)],
+E   TypeError: Command.link() missing 1 required positional argument: 'obj'
+_________ test_false_reaches_the_column_as_null_without_the_descriptor _________
+tests/integration/test_orm/test_company_checks.py:149: in test_false_reaches_the_column_as_null_without_the_descriptor
+    assert Parent.objects.get(pk=parents[1].id).company_id is None
+E   AssertionError: assert 0 is None
+E    +  where 0 = test_orm.model_parent(152,).company_id
+E    +    where test_orm.model_parent(152,) = <bound method QuerySet.get of <django.db.models.manager.ManagerFromAccessQuerySet object at 0x7fb8ee52fed0>>(pk=152)
+E    +      where <bound method QuerySet.get of <django.db.models.manager.ManagerFromAccessQuerySet object at 0x7fb8ee52fed0>> = <django.db.models.manager.ManagerFromAccessQuerySet object at 0x7fb8ee52fed0>.get
+E    +        where <django.db.models.manager.ManagerFromAccessQuerySet object at 0x7fb8ee52fed0> = <class 'addons.test_orm.models.test_orm.TestOrmModelParent'>.objects
+E    +      and   152 = test_orm.model_parent(152,).id
+=============================== warnings summary ===============================
+tests/integration/test_orm/test_company_checks.py::test_check_company_auto
+  /home/user/kaupamex-api/src/orm/fields.py:4223: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_company_checks.py::test_check_company_auto
+  /home/user/kaupamex-api/src/orm/fields.py:4223: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_and_same_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_and_different_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_and_no_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_no_company_and_no_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_no_company_and_some_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_write
+FAILED tests/integration/test_orm/test_company_checks.py::test_false_reaches_the_column_as_null_without_the_descriptor
+ERROR tests/integration/test_orm/test_company_checks.py::test_false_reaches_the_column_as_null_without_the_descriptor
+7 failed, 2 passed, 2 warnings, 1 error in 7.75s

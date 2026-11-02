@@ -1469,3 +1469,23 @@ def _many2one_convert_to_column(self, value, record, values=None, validate=True)
 
 
 models.ForeignKey.convert_to_column = _many2one_convert_to_column
+
+_DJANGO_FOREIGN_KEY_GET_DB_PREP_SAVE = models.ForeignKey.get_db_prep_save
+
+
+def _many2one_get_db_prep_save(self, value, connection):
+    """El cableado de ``convert_to_column`` en la ruta de la clave foránea.
+
+    ``ForeignKey.get_db_prep_save`` de Django (``related.py:1175``) no llama
+    a la versión de ``models.Field`` que este árbol cablea: delega en el campo
+    destino. Sin este paso, ``create({'company_id': False})`` llegaba al
+    ``AutoField`` del destino como ``0`` y la columna guardaba una relación a
+    una fila que no existe (``ForeignKeyViolation`` en PostgreSQL), donde la
+    fuente escribe ``NULL`` (``odoo19c: odoo/orm/fields_relational.py:326-327``).
+    """
+    if not hasattr(value, 'as_sql'):
+        value = self.convert_to_column(value, None, validate=False)
+    return _DJANGO_FOREIGN_KEY_GET_DB_PREP_SAVE(self, value, connection)
+
+
+models.ForeignKey.get_db_prep_save = _many2one_get_db_prep_save
