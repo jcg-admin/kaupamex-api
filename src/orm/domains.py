@@ -2053,12 +2053,15 @@ def _optimize_m2o_bypass_comodel_id_lookup(condition, model):
         return condition
     suboperator, val = subdomain.operator, subdomain.value
     if suboperator == 'in':
+        # ``OrderedSet`` y no ``set``: la fuente opera sobre el
+        # ``OrderedSet`` del valor (``val - {False}``) y conserva su orden.
         domain = DomainCondition(
-            condition.field_expr, 'in', set(val) - {False}
+            condition.field_expr, 'in',
+            OrderedSet(v for v in val if v is not False)
         )
     elif suboperator == 'not in':
         domain = DomainCondition(
-            condition.field_expr, 'not in', set(val) | {False}
+            condition.field_expr, 'not in', OrderedSet([*val, False])
         )
     elif suboperator == 'any!':
         domain = DomainCondition(condition.field_expr, 'any!', val)

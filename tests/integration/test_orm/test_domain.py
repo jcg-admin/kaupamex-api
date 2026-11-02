@@ -11,9 +11,11 @@ from datetime import date, datetime
 from itertools import combinations
 
 import pytest
+from django.contrib.auth import get_user_model
 
 from orm.domains import Domain
-from orm.environments import context_scope
+from orm.environments import Environment, context_scope, sudo
+from orm.utils import SUPERUSER_ID
 from tools import date_utils
 from tools.misc import OrderedSet
 
@@ -387,3 +389,24 @@ def test_optimize_level_by_level(env, monkeypatch):
     domain = Domain('foo', '=', 4) | Domain('foo', '=', 5)
     assert domain.optimize_full(env['test_orm.bar']) == Domain(
         'name', 'in', OrderedSet(['(4, 5)']))
+
+
+def test_bypass_comodel_id_lookup(env, model):
+    """≙ ``:991-1014``: con elevación, ``currency_id.id`` se resuelve sobre la
+    columna, sin subconsulta; sin ella, queda la subconsulta con reglas. La
+    fuente lo mide con ``@users('admin')``; aquí, con un usuario declarado."""
+    user = get_user_model().objects.create_user(
+        login='bypass.lookup@kaupamex.mx', password='Bypass123!')
+    if user.pk == SUPERUSER_ID:
+        user = get_user_model().objects.create_user(
+            login='bypass.lookup.2@kaupamex.mx', password='Bypass123!')
+    with Environment(None, user.pk, {}):
+        assert list(Domain('currency_id.id', '=', 2).optimize_full(
+            model)) == [('currency_id', 'any', [('id', 'in', [2])])]
+    with sudo():
+        assert list(Domain('currency_id.id', '=', 2).optimize_full(
+            model)) == [('currency_id', 'in', [2])]
+        assert list(Domain('currency_id.id', 'in', [2, False]).optimize_full(
+            model)) == [('currency_id', 'in', [2])]
+        assert list(Domain('currency_id.id', 'not in', [2]).optimize_full(
+            model)) == [('currency_id', 'not in', [2, False])]
