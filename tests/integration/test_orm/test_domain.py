@@ -245,12 +245,13 @@ def test_condition_optimize_datetime(model, frozen_now):
 # ---------------------------------------------------------------------------
 
 
-def _check_search(model, domain):
+def _check_search(model, domain, in_memory=True):
     sql = model.search(domain, order='id')
     universe = model.search([], order='id')
-    in_memory = universe.filtered_domain(domain)
-    assert sql._ids == in_memory._ids, (
-        f'filtered_domain no coincide con la búsqueda SQL: {domain}')
+    if in_memory:
+        in_memory_result = universe.filtered_domain(domain)
+        assert sql._ids == in_memory_result._ids, (
+            f'filtered_domain no coincide con la búsqueda SQL: {domain}')
     complement = model.search(~Domain(domain), order='id')
     assert sorted(sql._ids + complement._ids) == sorted(universe._ids), (
         f'{domain} y su complemento no cubren todo')
@@ -410,3 +411,58 @@ def test_bypass_comodel_id_lookup(env, model):
             model)) == [('currency_id', 'in', [2])]
         assert list(Domain('currency_id.id', 'not in', [2]).optimize_full(
             model)) == [('currency_id', 'not in', [2, False])]
+
+
+# ---------------------------------------------------------------------------
+# ``test_anys_many2one`` y ``_implicit`` (``:202-276``). La fuente crea los
+# hijos con ``Command.create`` dentro del padre; aquí se crean aparte, porque
+# leer ``child_ids`` todavía devuelve el gestor de Django (TASK-API-0190). La
+# mitad en memoria del ayudante (``filtered_domain``) no se mide: un ``any``
+# no se evalúa en memoria todavía (tarea #225, declarada en
+# ``DomainCondition._as_predicate``).
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def any_family(env):
+    Parent, Child = env['test_orm.any.parent'], env['test_orm.any.child']
+    jean, clude = Parent.create([{'name': 'Jean'}, {'name': 'Clude'}])
+
+    def child(parent, quantity):
+        return Child.create({'parent_id': parent.id, 'quantity': quantity})
+
+    j1, j10, c2, c20 = (child(jean, 1), child(jean, 10), child(clude, 2),
+                        child(clude, 20))
+    j1.write({'link_sibling_id': j10.id})
+    c20.write({'link_sibling_id': c2.id})
+    return jean, clude, (j1, j10, c2, c20)
+
+
+def _ids(records):
+    return sorted(records._ids)
+
+
+def test_anys_many2one(env, any_family):
+    _, _, (j1, j10, c2, c20) = any_family
+    Child = env['test_orm.any.child']
+    found = _check_search(Child, [('link_sibling_id', 'any',
+                                   [('quantity', '>', 5)])], in_memory=False)
+    assert _ids(found) == [j1.id]
+    found = _check_search(Child, [('link_sibling_id', 'not any',
+                                   [('quantity', '>', 5)])], in_memory=False)
+    assert _ids(found) == sorted([j10.id, c2.id, c20.id])
+    found = _check_search(Child, [('parent_id', 'any',
+                                   [('name', '=', 'Jean')])], in_memory=False)
+    assert _ids(found) == sorted([j1.id, j10.id])
+    found = _check_search(Child, [('parent_id', 'not any',
+                                   [('name', '=', 'Jean')])], in_memory=False)
+    assert _ids(found) == sorted([c2.id, c20.id])
+
+
+def test_anys_many2one_implicit(env, any_family):
+    jean, clude, _ = any_family
+    Parent = env['test_orm.any.parent']
+    assert _ids(_check_search(Parent, [('child_ids.quantity', '=', 1)], in_memory=False)) == [
+        jean.id]
+    assert _ids(_check_search(Parent, [('child_ids.quantity', '>', 15)], in_memory=False)) == [
+        clude.id]

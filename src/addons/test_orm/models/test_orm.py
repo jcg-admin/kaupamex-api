@@ -743,3 +743,48 @@ class TestOrmBar(TestOrmModel):
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_bar'
+
+
+class TestOrmAnyParent(TestOrmModel):
+    """≙ ``test_orm.any.parent`` (``odoo19c: :2319-2324``). ``child_ids`` es
+    el reverso del ``parent_id`` de ``any.child``."""
+
+    _name = 'test_orm.any.parent'
+    _description = 'Any Parent'
+
+    name = fields.Char(null=True)
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_any_parent'
+
+
+class TestOrmAnyChild(TestOrmModel):
+    """≙ ``test_orm.any.child`` (``odoo19c: :2327-2337``): delega en
+    ``any.parent``."""
+
+    _name = 'test_orm.any.child'
+    _description = 'Any Child'
+    _inherits = {'test_orm.any.parent': 'parent_id'}
+
+    parent_id = fields.Many2one('test_orm.any.parent', required=True,
+                                ondelete='cascade', related_name='child_ids')
+    link_sibling_id = fields.Many2one('test_orm.any.child', null=True,
+                                      related_name='+')
+    quantity = fields.Integer(null=True)
+    tag_ids = fields.Many2many('test_orm.any.tag', related_name='child_ids')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_any_child'
+
+
+class TestOrmAnyTag(TestOrmModel):
+    """≙ ``test_orm.any.tag`` (``odoo19c: :2340-2345``). ``child_ids`` es el
+    reverso del ``tag_ids`` de ``any.child``."""
+
+    _name = 'test_orm.any.tag'
+    _description = 'Any tag'
+
+    name = fields.Char(null=True)
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_any_tag'
