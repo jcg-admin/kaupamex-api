@@ -771,7 +771,7 @@ class DefaultGetMixin:
         """
         assert isinstance(vals_list, (list, tuple))
         if not vals_list:
-            return browse(cls)
+            return cls._create_result(browse(cls))
 
         AccessQuerySet(model=cls).none().check_access('create')
 
@@ -883,7 +883,7 @@ class DefaultGetMixin:
 
         import_module = context.get('_import_current_module')
         if not import_module:   # not an import -> bail
-            return records
+            return cls._create_result(records)
 
         # It is to support setting xids directly in create by
         # providing an "id" key (otherwise stripped by create) during an import
@@ -903,7 +903,28 @@ class DefaultGetMixin:
             if xid and isinstance(xid, str)
         ])
 
-        return records
+        return cls._create_result(records)
+
+    @classmethod
+    def _create_result(cls, records):
+        """El recordset que entrega ``create`` — ≙ el ``records`` de ``:4770``.
+
+        En la fuente ``create`` devuelve un recordset de ``BaseModel``: sobre
+        él ``record.name = x`` escribe y un nombre no declarado levanta
+        ``AttributeError``. Un modelo que deriva de :class:`BaseModel` recibe
+        aquí esa misma forma, ``cls._from_ids(env, ids, ids)`` (la de
+        ``browse``, ``:5897``), con el orden de ``vals_list``.
+
+        El resto del árbol sigue recibiendo el ``QuerySet`` de
+        :func:`~orm.utils.browse`: sus consumidores lo usan como tal, y
+        cambiarlo es la adopción global de ``BaseModel`` (TASK-API-0397).
+        Sobre ese ``QuerySet`` una asignación de campo se pierde sin error
+        (H-API-1123).
+        """
+        if not issubclass(cls, BaseModel):
+            return records
+        ids = tuple(records.values_list('pk', flat=True))
+        return cls._from_ids(env(), ids, ids)
 
     @classmethod
     def _prepare_create_values(cls, vals_list):

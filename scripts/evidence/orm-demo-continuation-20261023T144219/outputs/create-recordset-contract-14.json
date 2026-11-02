@@ -1,0 +1,32 @@
+{
+ "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+ "reference_symbol": "odoo19c:odoo/orm/models.py:4611-4770 BaseModel.create returns recordset; :5897 browse; fields.py:1807-1841 Field.__set__",
+ "behavior": "create on a BaseModel model returns the native recordset in vals_list order; field assignment on it is written after flush; undeclared attribute raises",
+ "execution_flow": "DefaultGetMixin.create -> _create -> QuerySet -> _create_result -> cls._from_ids(env(), ids, ids)",
+ "inputs_outputs": "two vals -> recordset First,Second with 2 ids; assign name -> DB updated after env.flush_all(); create([]) -> empty recordset",
+ "side_effects": "Only models deriving from BaseModel (test_orm + unit probes); rest of tree keeps QuerySet result",
+ "dependencies": [
+  "TASK-API-0397",
+  "H-API-1123",
+  "native recordset read/assign/flush/write measured against PostgreSQL before change"
+ ],
+ "consumers": "BaseModel subclasses: tests matched by grep BaseModel|test_orm (54 files)",
+ "installed_mechanism": "DefaultGetMixin._create_result classmethod at the three create return points",
+ "existing_adaptation": "BaseModel._from_ids replaces self.__class__(env, ids, ids) (declared divergence)",
+ "verification": {
+  "final": "create-recordset-final.log 110 PASS",
+  "annulled": "_create_result disabled -> exactly 4 dependent tests FAIL",
+  "derived": "create-recordset-derived.log: 8 inherited failures identical to record-attributes-derived.log, 1152 PASS; a leaked probe table from an earlier interrupted run was dropped from the own database before the measurement"
+ },
+ "equivalence": "Equivalent for BaseModel models; QuerySet result for the rest of the tree still loses assignments silently",
+ "limitations": [
+  "Global BaseModel adoption (TimeStampedModel) not done: TASK-API-0397",
+  "env['model'] returns the class, not an empty recordset"
+ ],
+ "integration": "Published on feature/codex-workspace-bootstrap; no merge; acceptance not_verified",
+ "source_sha256": {
+  "src/orm/models.py": "9ab21fc37bcfc94814c1fc06b6521c92d3693d0740c34129a266d5f0430344d1",
+  "tests/integration/test_orm/test_create_recordset.py": "7240fa2ba7c8cf91700990f5f626d5062428aaf8b7d3d46184ac3eacb7f55d6e",
+  "tests/integration/test_orm/test_attributes.py": "fc34a5411a07e01717a80dc8fd88675624278abfdb1ed62cfaa995212aa90ab2"
+ }
+}
