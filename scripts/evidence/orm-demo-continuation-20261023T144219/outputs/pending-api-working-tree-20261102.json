@@ -1,0 +1,14 @@
+{
+  "purpose": "EVIDENCE_BACKUP",
+  "admission": "NOT_ACCEPTED",
+  "base_revision": "e95659dd0b91b418daecc4677b42ff8a2620e96e",
+  "captured_at": "2026-11-02T07:47:40.316314+00:00",
+  "global_style_compliance": "NOT_VERIFIED",
+  "archive": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/pending-api-working-tree-20261102.tar.gz",
+  "archive_sha256": "3140caab93674fdecf577e159b0a0f82127e6927fe5cbec39504be57ddfc2c1a",
+  "paths": 2907,
+  "bytes": 8735914,
+  "all_archived_file_hashes_verified": true,
+  "working_tree_preserved": true,
+  "note": "Exact source backup, not activated or admitted project changes. No ignored environment files included."
+}
