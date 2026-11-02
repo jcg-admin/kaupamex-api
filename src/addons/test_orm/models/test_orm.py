@@ -492,3 +492,58 @@ class TestOrmMultiLine(TestOrmModel):
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_multi_line'
+
+
+# ---------------------------------------------------------------------------
+# ``test_orm.related``, ``related_foo`` y ``related_bar`` — ≙ ``odoo19c:
+# odoo/addons/test_orm/models/test_orm.py:447-520``. Son el sujeto de
+# ``TestSearchAny`` (``tests/test_search.py:1360``): ``any`` aplica las reglas
+# de fila del comodelo y ``any!`` las salta.
+#
+# pendiente: los campos ``related=`` de los tres modelos, ``message`` y los
+# binarios de ``related_foo``; los usa ``TestSearchRelated``, que no está
+# portado todavía.
+# ---------------------------------------------------------------------------
+
+
+class TestOrmRelatedBar(TestOrmModel):
+    """≙ ``test_orm.related_bar``."""
+
+    _name = 'test_orm.related_bar'
+    _description = 'test_orm.related_bar'
+
+    name = fields.Char(null=True)
+    active = fields.Boolean(default=True)
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_related_bar'
+
+
+class TestOrmRelatedFoo(TestOrmModel):
+    """≙ ``test_orm.related_foo``."""
+
+    _name = 'test_orm.related_foo'
+    _description = 'test_orm.related_foo'
+
+    name = fields.Char(null=True)
+    bar_id = fields.Many2one('test_orm.related_bar', null=True,
+                             related_name='+')
+    bar_ids = fields.Many2many('test_orm.related_bar', related_name='+')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_related_foo'
+
+
+class TestOrmRelated(TestOrmModel):
+    """≙ ``test_orm.related``. ``foo_id`` es el inverso del ``foo_ids`` de
+    ``related_foo`` en la fuente: aquí ese One2many es el reverso de Django."""
+
+    _name = 'test_orm.related'
+    _description = 'Test ORM Related'
+
+    name = fields.Char(null=True)
+    foo_id = fields.Many2one('test_orm.related_foo', null=True,
+                             related_name='foo_ids')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_related'

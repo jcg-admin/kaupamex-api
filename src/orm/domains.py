@@ -1356,7 +1356,16 @@ class DomainCondition(Domain):
         multi = _is_x2many(field)
         if multi:
             subdomain &= _comodel_domain(field, model)
-        rows = comodel.objects.filter(subdomain._to_q(comodel)).values('pk')
+        rows = comodel.objects.filter(subdomain._to_q(comodel))
+        # ``any`` aplica las reglas de fila del comodelo y ``any!`` las salta
+        # — ≙ ``_get_query_for_condition_value`` (``odoo19c: odoo/orm/
+        # fields_relational.py:820-836``): ``comodel._search(domain,
+        # bypass_access=...)`` con ``bypass_access`` sólo para el operador con
+        # ``!``. ``_optimize_any_with_rights`` ya convirtió ``any`` en
+        # ``any!`` bajo elevación o con ``bypass_search_access``.
+        if not operator.endswith('!') and hasattr(rows, '_filtered_access'):
+            rows = rows._filtered_access('read')
+        rows = rows.values('pk')
         q = Q(**{f'{_django_path(self.field_expr)}__in': rows})
         if multi:
             q = _owners_q(model, q)
