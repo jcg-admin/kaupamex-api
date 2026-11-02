@@ -138,12 +138,6 @@ def test_condition_optimize_like(message):
         'name', 'like', '5')
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    'Divergencia: aquí el search del campo (display_name -> _rec_name) se '
-    'despacha en cualquier nivel; la fuente sólo en FULL '
-    '(odoo19c: odoo/orm/domains.py:946-967), así que optimize() ya devuelve '
-    'name. Restringirlo a FULL cambia pruebas que fijan la conducta actual '
-    '(tests/unit/orm/test_field_search_method.py). Sucesor: TASK-API-0190.'))
 def test_condition_optimize_like_relational(message):
     assert Domain('discussion', 'like', '').optimize(message) == Domain(
         'discussion', 'not in', OrderedSet([False]))
@@ -370,3 +364,26 @@ def test_nary_optimize_in(model):
 
 def test_nary_optimize_same(model):
     assert (NUMBER_DOMAIN & NUMBER_DOMAIN).optimize(model) == NUMBER_DOMAIN
+
+
+def test_condition_optimize_search(env):
+    """≙ ``:432-443``: el ``search`` del campo sustituye la condición."""
+    model = env['test_orm.bar']
+    foo = env['test_orm.foo'].create({'name': 'ok'})
+    assert Domain('foo', '=', foo.id).optimize_full(model) == Domain(
+        'name', 'in', ['ok']).optimize(model)
+    assert Domain('foo', 'in', env['test_orm.foo'].browse().ids).optimize(
+        model) == Domain.FALSE, 'search should be further optimized'
+
+
+def test_optimize_level_by_level(env, monkeypatch):
+    """≙ ``:979-989``: el ``search`` se llama una vez con los valores
+    agrupados."""
+    def search_foo(model, operator, value):
+        return [('name', '=', str(tuple(value)))]
+
+    monkeypatch.setattr(env['test_orm.bar'], '_search_foo',
+                        classmethod(search_foo))
+    domain = Domain('foo', '=', 4) | Domain('foo', '=', 5)
+    assert domain.optimize_full(env['test_orm.bar']) == Domain(
+        'name', 'in', OrderedSet(['(4, 5)']))

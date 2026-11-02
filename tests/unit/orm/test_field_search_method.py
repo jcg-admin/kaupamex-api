@@ -162,10 +162,13 @@ class TestTheConditionIsReplacedBySearch:
     def test_a_condition_on_display_name_becomes_the_search_domain(
         self, config_parameter
     ):
-        optimizado = Domain('display_name', 'ilike', 'abc').optimize(
+        # La sustitución ocurre en el nivel FULL, como en la fuente
+        # (``odoo19c: odoo/orm/domains.py:946-967``); ``optimize()`` (BASIC)
+        # conserva la condición sobre ``display_name``.
+        optimizado = Domain('display_name', 'ilike', 'abc').optimize_full(
             config_parameter
         )
-        assert optimizado == Domain('key', 'ilike', 'abc').optimize(
+        assert optimizado == Domain('key', 'ilike', 'abc').optimize_full(
             config_parameter
         )
 
@@ -174,10 +177,10 @@ class TestTheConditionIsReplacedBySearch:
     ):
         combined = (
             Domain('display_name', 'ilike', 'abc') & Domain('value', '=', 'v')
-        ).optimize(config_parameter)
+        ).optimize_full(config_parameter)
         expected = (
             Domain('key', 'ilike', 'abc') & Domain('value', '=', 'v')
-        ).optimize(config_parameter)
+        ).optimize_full(config_parameter)
         assert combined == expected
 
     def test_the_replaced_condition_reaches_the_database(
@@ -204,11 +207,12 @@ class TestTheFallbackLadder:
     def test_a_negative_operator_retries_with_the_positive_and_negates(
         self, config_parameter
     ):
-        negative = Domain('display_name', 'not ilike', 'abc').optimize(
+        negative = Domain('display_name', 'not ilike', 'abc').optimize_full(
             config_parameter
         )
-        positive = Domain('key', 'ilike', 'abc').optimize(config_parameter)
-        assert negative == (~positive).optimize(config_parameter)
+        positive = Domain('key', 'ilike', 'abc').optimize_full(
+            config_parameter)
+        assert negative == (~positive).optimize_full(config_parameter)
 
     def test_a_search_that_only_knows_equality_is_decomposed_for_in(
         self, config_parameter, monkeypatch

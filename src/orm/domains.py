@@ -1137,12 +1137,17 @@ class DomainCondition(Domain):
             # ``search`` devuelve un dominio sobre campos que sí la tienen,
             # que es lo que el registro sabe optimizar después.
             #
+            # Sólo en el nivel FULL, como la fuente (``:946``): antes, BASIC
+            # normaliza el operador (``=`` a ``in``) y conserva la condición
+            # sobre el campo.
+            #
             # ``field.name == self.field_expr`` descarta la travesía de
             # relación: en ``partner_id.display_name`` el ``search`` que
             # aplica es el del otro modelo, y quien lo alcanza es el
             # optimizador de ``any``, no éste.
             if (
-                getattr(field, 'search', None) is not None
+                level == OptimizationLevel.FULL
+                and getattr(field, 'search', None) is not None
                 and getattr(field, 'name', None) == self.field_expr
             ):
                 domain = self._optimize_field_search_method(model)

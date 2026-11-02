@@ -692,3 +692,54 @@ class TestOrmEmptyInt(TestOrmModel):
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_empty_int'
+
+
+class TestOrmFoo(TestOrmModel):
+    """≙ ``test_orm.foo`` (``odoo19c: :414-421``).
+
+    pendiente: ``change_default`` de ``value1`` y ``trim=False`` de ``text``.
+    """
+
+    _name = 'test_orm.foo'
+    _description = 'Test ORM Foo'
+
+    name = fields.Char(null=True)
+    value1 = fields.Integer(null=True)
+    value2 = fields.Integer(null=True)
+    text = fields.Char(null=True)
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_foo'
+
+
+class TestOrmBar(TestOrmModel):
+    """≙ ``test_orm.bar`` (``odoo19c: :424-445``): un Many2one calculado, sin
+    columna, que se busca por el nombre del ``foo``.
+
+    pendiente: los ``related`` ``value1``, ``value2``, ``text1`` y ``text2``.
+    """
+
+    _name = 'test_orm.bar'
+    _description = 'Test ORM Bar'
+
+    name = fields.Char(null=True)
+    foo = fields.Many2one('test_orm.foo', compute='_compute_foo',
+                          search='_search_foo', related_name='+')
+
+    @depends('name')
+    def _compute_foo(self):
+        for bar in self:
+            bar.foo = self.env['test_orm.foo'].search(
+                [('name', '=', bar.name)], limit=1)
+
+    @classmethod
+    def _search_foo(cls, operator, value):
+        # ``@classmethod``: el método ``search=`` se invoca sobre la clase,
+        # que es lo que ``env['x']`` devuelve aquí.
+        if operator not in ('in', 'any'):
+            return NotImplemented
+        records = TestOrmFoo.browse(value)
+        return [('name', 'in', records.mapped('name'))]
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_bar'
