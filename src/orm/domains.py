@@ -1297,6 +1297,12 @@ class DomainCondition(Domain):
                 model
             )
 
+        if model is not None:
+            # Una ruta sobre una relación se evalúa como su ``any``, igual que
+            # la compila :meth:`_optimize_step` (``:937-942``).
+            path = self._inherited_as_any(model) or self._path_as_any(model)
+            if path is not None:
+                return path._as_predicate(model)
         field_expr, operator, value, constant = self._normalized()
         if constant is not None:
             return constant._as_predicate(model)
@@ -1304,9 +1310,15 @@ class DomainCondition(Domain):
         positive_operator = NEGATIVE_CONDITION_OPERATORS.get(
             operator, operator
         )
+        if (positive_operator in ('any', 'any!')
+                and isinstance(value, (Domain, list, tuple))):
+            function = self._any_predicate(model, Domain(value))
+            if positive_operator == operator:
+                return function
+            return lambda record: not function(record)
         if positive_operator in ('any', 'any!'):
             self._raise(
-                'La travesía de relación no se evalúa en memoria (tarea #225)',
+                'Una travesía con valor de consulta no se evalúa en memoria',
                 error=NotImplementedError,
             )
         if isinstance(value, (Domain, Query, SQL)):
@@ -1328,6 +1340,37 @@ class DomainCondition(Domain):
         if positive_operator == operator:
             return function
         return lambda record: not function(record)
+
+    def _any_predicate(self, model, subdomain):
+        """``any`` en memoria — ≙ ``Many2one.filter_function``
+        (``odoo19c: odoo/orm/fields_relational.py:174-190``): los corregistros
+        de la fila se filtran con el subdominio, y la fila pasa si queda
+        alguno.
+
+        **Divergencia declarada:** la fuente aplica las reglas del comodelo
+        en memoria sólo en el camino que sale de un ``sudo`` con su clave de
+        contexto; aquí el filtro en memoria no consulta reglas, igual que la
+        rama común de la fuente.
+        """
+        field = self._field(model)
+        if field is None or not getattr(field, 'is_relation', False):
+            self._raise("No se puede usar 'any' sobre un campo no relacional")
+        comodel = field.related_model
+        accessor = (field.get_accessor_name()
+                    if getattr(field, 'auto_created', False)
+                    and not getattr(field, 'concrete', False)
+                    else field.name)
+        predicate = subdomain._as_predicate(comodel)
+
+        def corecords(record):
+            value = getattr(record, accessor, None)
+            if value is None:
+                return []
+            if hasattr(value, 'all') and not isinstance(value, models.Model):
+                return list(value.all())
+            return [value]
+
+        return lambda record: any(predicate(co) for co in corecords(record))
 
     def _any_to_q(self, field, operator, value, model):
         """La subconsulta de un ``any`` sobre una relación — ≙ ``:1096-1112``.

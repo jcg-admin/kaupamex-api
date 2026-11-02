@@ -416,10 +416,7 @@ def test_bypass_comodel_id_lookup(env, model):
 # ---------------------------------------------------------------------------
 # ``test_anys_many2one`` y ``_implicit`` (``:202-276``). La fuente crea los
 # hijos con ``Command.create`` dentro del padre; aquí se crean aparte, porque
-# leer ``child_ids`` todavía devuelve el gestor de Django (TASK-API-0190). La
-# mitad en memoria del ayudante (``filtered_domain``) no se mide: un ``any``
-# no se evalúa en memoria todavía (tarea #225, declarada en
-# ``DomainCondition._as_predicate``).
+# leer ``child_ids`` todavía devuelve el gestor de Django (TASK-API-0190).
 # ---------------------------------------------------------------------------
 
 
@@ -442,27 +439,29 @@ def _ids(records):
     return sorted(records._ids)
 
 
-def test_anys_many2one(env, any_family):
+def test_any_on_many2one(env, any_family):
+    """≙ ``test_anys_many2one`` de la fuente."""
     _, _, (j1, j10, c2, c20) = any_family
     Child = env['test_orm.any.child']
     found = _check_search(Child, [('link_sibling_id', 'any',
-                                   [('quantity', '>', 5)])], in_memory=False)
+                                   [('quantity', '>', 5)])])
     assert _ids(found) == [j1.id]
     found = _check_search(Child, [('link_sibling_id', 'not any',
-                                   [('quantity', '>', 5)])], in_memory=False)
+                                   [('quantity', '>', 5)])])
     assert _ids(found) == sorted([j10.id, c2.id, c20.id])
     found = _check_search(Child, [('parent_id', 'any',
-                                   [('name', '=', 'Jean')])], in_memory=False)
+                                   [('name', '=', 'Jean')])])
     assert _ids(found) == sorted([j1.id, j10.id])
     found = _check_search(Child, [('parent_id', 'not any',
-                                   [('name', '=', 'Jean')])], in_memory=False)
+                                   [('name', '=', 'Jean')])])
     assert _ids(found) == sorted([c2.id, c20.id])
 
 
-def test_anys_many2one_implicit(env, any_family):
+def test_any_on_many2one_implicit(env, any_family):
+    """≙ ``test_anys_many2one_implicit`` de la fuente."""
     jean, clude, _ = any_family
     Parent = env['test_orm.any.parent']
-    assert _ids(_check_search(Parent, [('child_ids.quantity', '=', 1)], in_memory=False)) == [
+    assert _ids(_check_search(Parent, [('child_ids.quantity', '=', 1)])) == [
         jean.id]
-    assert _ids(_check_search(Parent, [('child_ids.quantity', '>', 15)], in_memory=False)) == [
+    assert _ids(_check_search(Parent, [('child_ids.quantity', '>', 15)])) == [
         clude.id]

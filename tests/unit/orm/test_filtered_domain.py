@@ -31,6 +31,7 @@ from orm.fields import (
     NEGATIVE_CONDITION_OPERATORS as FIELDS_NEGATIVE_OPERATORS,
 )
 from orm.models import AccessQuerySet, filtered_domain
+from tools.sql import SQL
 
 #: Los dominios que las dos vías tienen que resolver igual. Cada uno nombra el
 #: operador que ejercita, para que un fallo diga cuál cayó.
@@ -187,10 +188,22 @@ class TestAsPredicate:
         assert predicado(hija) and predicado(padre)
         assert not predicado(ajena)
 
-    def test_a_relation_traversal_refuses_in_memory(self):
+    def test_a_relation_traversal_is_evaluated_in_memory(self):
+        """≙ ``Many2one.filter_function`` (``odoo19c: odoo/orm/
+        fields_relational.py:174-190``): la fila pasa si alguno de sus
+        corregistros cumple el subdominio. Era la tarea #225."""
+        predicate = Domain(
+            [('parent', 'any', Domain([('name', '=', 'X')]))]
+        )._as_predicate(ResPartner)
+        assert predicate(ResPartner(name='hija', parent=ResPartner(name='X')))
+        assert not predicate(
+            ResPartner(name='hija', parent=ResPartner(name='Y')))
+        assert not predicate(ResPartner(name='sin padre'))
+
+    def test_a_traversal_with_a_query_value_refuses_in_memory(self):
         with pytest.raises(NotImplementedError, match='travesía'):
             Domain(
-                [('parent', 'any', Domain([('name', '=', 'X')]))]
+                [('parent', 'any', SQL('SELECT 1'))]
             )._as_predicate(ResPartner)
 
     def test_a_custom_domain_without_predicate_says_so(self):
