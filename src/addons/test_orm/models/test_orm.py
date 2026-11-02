@@ -547,3 +547,38 @@ class TestOrmRelated(TestOrmModel):
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_related'
+
+
+# ---------------------------------------------------------------------------
+# ``test_orm.hierarchy.head`` y ``node`` — ≙ ``odoo19c: odoo/addons/test_orm/
+# models/test_orm.py:2348-2361``. Jerarquía sin ``_parent_store``: el
+# ``child_of``/``parent_of`` se resuelve nivel por nivel.
+# ---------------------------------------------------------------------------
+
+
+class TestOrmHierarchyNode(TestOrmModel):
+    """≙ ``test_orm.hierarchy.node``. ``child_ids`` es el reverso de
+    ``parent_id``."""
+
+    _name = 'test_orm.hierarchy.node'
+    _description = 'Hierarchy Node'
+
+    name = fields.Char(null=True)
+    parent_id = fields.Many2one('test_orm.hierarchy.node', null=True,
+                                related_name='child_ids')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_hierarchy_node'
+
+
+class TestOrmHierarchyHead(TestOrmModel):
+    """≙ ``test_orm.hierarchy.head``."""
+
+    _name = 'test_orm.hierarchy.head'
+    _description = 'Hierarchy Head'
+
+    node_id = fields.Many2one('test_orm.hierarchy.node', null=True,
+                              related_name='+')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_hierarchy_head'

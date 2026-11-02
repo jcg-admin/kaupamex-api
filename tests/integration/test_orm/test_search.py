@@ -47,3 +47,28 @@ def test_offset_limit_and_count(env, records):
     assert Model.search(domain, order='name', offset=1, limit=1).mapped(
         'name') == ['c']
     assert Model.search_count(domain) == 2
+
+
+def test_hierarchy(env):
+    """≙ ``TestSubqueries.test_hierarchy`` (``tests/test_search.py:385``).
+
+    La fuente afirma tres consultas: dos para resolver la jerarquía y una
+    para la búsqueda. Aquí se afirman las filas.
+    """
+    Head, Node = env['test_orm.hierarchy.head'], env['test_orm.hierarchy.node']
+    parent_node = Node.create({})
+    nodes = Node.create([{'parent_id': parent_node.id} for _ in range(3)])
+    head = Head.create({'node_id': parent_node.id})
+    other = Head.create({'node_id': Node.create({}).id})
+
+    found = Head.search([('node_id', 'child_of', parent_node.ids)])
+    assert found.ids == [head.id]
+    found = Head.search([('node_id', 'parent_of', nodes.ids)])
+    assert found.ids == [head.id]
+    assert other.id not in Head.search(
+        [('node_id', 'child_of', nodes.ids)]).ids
+    # Caso propio del Consumer: una cabeza sobre un hijo sólo la alcanza
+    # ``child_of`` si desciende; la de la fuente apunta al propio padre.
+    on_child = Head.create({'node_id': nodes[0].id})
+    found = Head.search([('node_id', 'child_of', parent_node.ids)])
+    assert set(found.ids) == {head.id, on_child.id}
