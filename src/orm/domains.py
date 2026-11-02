@@ -2649,7 +2649,10 @@ def _optimize_any_with_rights(condition, model):
     deliberado: el que decide es el **contexto de la llamada**, que es
     exactamente lo que la fuente consulta con ``env.su``.
     """
-    if is_su() or condition._field(model).bypass_search_access:
+    # ``getattr``: el reverso de Django (el One2many de la fuente) no es un
+    # ``models.Field`` y no lleva el atributo; su defecto es ``False``.
+    if is_su() or getattr(condition._field(model), 'bypass_search_access',
+                          False):
         return DomainCondition(
             condition.field_expr, condition.operator + '!', condition.value
         )

@@ -74,3 +74,40 @@ def test_any_keeps_the_rows_the_rule_allows(records, ruled_user):
     assert _found_as(ruled_user, Domain('foo_id', 'any',
                                         Domain('name', '=', 'b'))) == {
         records['via_shown'].id}
+
+
+@pytest.fixture
+def x2many_rules(db):
+    """Reglas que ocultan el ``related`` llamado ``r2`` y el ``related_bar``
+    llamado ``a``: son los comodelos de ``foo_ids`` y ``bar_ids``."""
+    IrRule.objects.create(
+        name='related sin r2', model_name='test_orm.TestOrmRelated',
+        domain_force="[('name', '!=', 'r2')]")
+    IrRule.objects.create(
+        name='related_bar sin a', model_name='test_orm.TestOrmRelatedBar',
+        domain_force="[('name', '!=', 'a')]")
+
+
+def _foos_as(user, domain):
+    with Environment(None, user.pk, {}, su=False) as environment:
+        return set(environment['test_orm.related_foo'].search(domain).ids)
+
+
+def test_one2many_any_applies_the_rule_of_the_comodel(
+        env, records, ruled_user, x2many_rules):
+    shown_foo = records['via_shown'].foo_id
+    domain = Domain('foo_ids', 'any', Domain('name', '=', 'r2'))
+    assert _foos_as(ruled_user, domain) == set()
+    assert _foos_as(ruled_user, Domain('foo_ids', 'any!', Domain(
+        'name', '=', 'r2'))) == {shown_foo.id}
+
+
+def test_many2many_any_applies_the_rule_of_the_comodel(
+        env, ruled_user, x2many_rules):
+    Bar, Foo = env['test_orm.related_bar'], env['test_orm.related_foo']
+    bar = Bar.create({'name': 'a'})
+    foo = Foo.create({'name': 'b', 'bar_ids': [bar.id]})
+    assert _foos_as(ruled_user, Domain(
+        'bar_ids', 'any', Domain('name', '=', 'a'))) == set()
+    assert _foos_as(ruled_user, Domain(
+        'bar_ids', 'any!', Domain('name', '=', 'a'))) == {foo.id}
