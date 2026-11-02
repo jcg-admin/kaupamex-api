@@ -668,3 +668,27 @@ class TestOrmMessage(TestOrmModel):
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_message'
+
+
+class TestOrmEmptyChar(TestOrmModel):
+    """≙ ``test_orm.empty_char`` (``odoo19c: :2272-2276``)."""
+
+    _name = 'test_orm.empty_char'
+    _description = 'A model to test emtpy char'
+
+    name = fields.Char('Name', null=True)
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_empty_char'
+
+
+class TestOrmEmptyInt(TestOrmModel):
+    """≙ ``test_orm.empty_int`` (``odoo19c: :2279-2283``)."""
+
+    _name = 'test_orm.empty_int'
+    _description = 'A model to test empty int'
+
+    number = fields.Integer('Number', null=True)
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_empty_int'

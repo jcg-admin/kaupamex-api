@@ -238,3 +238,61 @@ def test_condition_optimize_datetime(model, frozen_now):
             'moment', '>=', datetime(2024, 1, 5))
         assert Domain('moment', '>=', '+12H').optimize_full(
             model) == Domain('moment', '>=', datetime(2024, 1, 6, 1, 5))
+
+
+# ---------------------------------------------------------------------------
+# Desigualdades — ≙ ``TestDomain.test_inequalities_*`` (``:344-400``) con el
+# ayudante ``TransactionExpressionCase._search`` (``odoo19c: odoo/addons/base/
+# tests/test_expression.py:15-48``): la búsqueda SQL y ``filtered_domain`` en
+# memoria dan las mismas filas, y el dominio y su complemento cubren todo.
+# ---------------------------------------------------------------------------
+
+
+def _check_search(model, domain):
+    sql = model.search(domain, order='id')
+    universe = model.search([], order='id')
+    in_memory = universe.filtered_domain(domain)
+    assert sql._ids == in_memory._ids, (
+        f'filtered_domain no coincide con la búsqueda SQL: {domain}')
+    complement = model.search(~Domain(domain), order='id')
+    assert sorted(sql._ids + complement._ids) == sorted(universe._ids), (
+        f'{domain} y su complemento no cubren todo')
+    return sql
+
+
+@pytest.mark.parametrize(('operator', 'value'), [
+    ('>', 2), ('>', -2), ('<', 1), ('<=', 1)])
+def test_inequalities_int(env, operator, value):
+    Model = env['test_orm.empty_int']
+    Model.create([{}])
+    Model.create([{'number': n} for n in range(-5, 6)])
+    _check_search(Model, [('number', operator, value)])
+
+
+@pytest.mark.parametrize(('operator', 'value'), [
+    ('>', 'a'), ('>', 'z'), ('<', 'k'), ('<=', 'k'), ('<', '')])
+def test_inequalities_char(env, operator, value):
+    Model = env['test_orm.empty_char']
+    Model.create([{}])
+    Model.create([{'name': n} for n in (False, '', 'hello', 'world')])
+    _check_search(Model, [('name', operator, value)])
+
+
+_NAIVE_DATETIME = pytest.mark.xfail(strict=True, reason=(
+    'H-API-1130: un datetime naive se interpreta en TIME_ZONE al escribir y '
+    'en SQL, y filtered_domain lo compara contra el aware leído; en la fuente '
+    'un Datetime es naive en UTC. Sucesor: TASK-API-0190.'))
+
+
+@pytest.mark.parametrize(('operator', 'day'), [
+    pytest.param('>', 3, marks=_NAIVE_DATETIME),
+    pytest.param('>', 8, marks=_NAIVE_DATETIME),
+    ('>', 20),
+    pytest.param('<', 7, marks=_NAIVE_DATETIME),
+    pytest.param('<=', 7, marks=_NAIVE_DATETIME),
+])
+def test_inequalities_datetime(env, operator, day):
+    Model = env['test_orm.mixed']
+    Model.create([{}])
+    Model.create([{'moment': datetime(2000, 5, n)} for n in range(5, 10)])
+    _check_search(Model, [('moment', operator, datetime(2000, 5, day))])
