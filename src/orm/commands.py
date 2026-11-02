@@ -10,6 +10,8 @@ Reproduce la intención de cada tupla-comando de Odoo (0=create, 1=update,
 manager* de Django.
 """
 
+from django.db.models.fields import related_descriptors as _related_descriptors
+
 
 class Command:
     """Operaciones one2many/many2many — ≙ ``odoo19c: odoo/orm/commands.py``.
@@ -126,6 +128,21 @@ def _row_id(value):
     return getattr(value, 'pk', value)
 
 
+#: El ``__get__`` de Django de los x2many, tomado antes de que
+#: ``orm.models`` lo sustituya para devolver un recordset.
+_DJANGO_X2MANY_GET = _related_descriptors.ReverseManyToOneDescriptor.__get__
+
+
+def related_manager(record, name):
+    """El gestor de Django de un x2many, también cuando leer el campo
+    devuelve un recordset (``orm.models._x2many_descriptor_get``).
+
+    Lo usan los consumidores internos que escriben la relación (``set``,
+    ``add``, ``clear``): este intérprete, ``create`` y ``_check_company``.
+    """
+    return _DJANGO_X2MANY_GET(getattr(type(record), name), record)
+
+
 def apply_many2many_commands(record, field, value):
     """Aplica el valor x2many de la fuente sobre el manager de un ``Many2many``.
 
@@ -135,7 +152,7 @@ def apply_many2many_commands(record, field, value):
     es ``CLEAR``—. El manager de Django emite ``m2m_changed`` en cada
     operación, que es donde vive el control de acceso de la relación.
     """
-    manager = getattr(record, field.name)
+    manager = related_manager(record, field.name)
     if value is None or value is False:
         manager.clear()
         return

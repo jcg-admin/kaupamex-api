@@ -1366,6 +1366,8 @@ class DomainCondition(Domain):
             value = getattr(record, accessor, None)
             if value is None:
                 return []
+            if getattr(value, '_ids', None) is not None:
+                return list(value)      # un recordset: sus registros
             if hasattr(value, 'all') and not isinstance(value, models.Model):
                 return list(value.all())
             return [value]

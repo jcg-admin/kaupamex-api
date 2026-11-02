@@ -83,8 +83,9 @@ from orm.environments import (
     get_current_uid, get_current_user, get_transaction, is_su,
     sudo as elevate_privileges,
 )
-from orm.commands import (ManyToManyLink, ManyToManySet, One2manyChild,
-                          apply_many2many_commands, is_command_list)
+from orm.commands import (_DJANGO_X2MANY_GET, ManyToManyLink, ManyToManySet,
+                          One2manyChild, apply_many2many_commands,
+                          is_command_list, related_manager)
 from orm import registry
 from orm.domains import Domain, to_q
 from orm.model_classes import parent_name_of
@@ -1022,7 +1023,7 @@ class DefaultGetMixin:
                     # y sus abreviaturas (TASK-API-0190).
                     apply_many2many_commands(record, field, value)
                 else:
-                    getattr(record, name).set(value)
+                    related_manager(record, name).set(value)
             data['record'] = record
             ids.append(record.pk)
 
@@ -1389,7 +1390,7 @@ class CheckCompanyMixin:
             elif own_name is not None:
                 companies = [getattr(self, own_name, None)]
             elif many_name is not None:
-                companies = list(getattr(self, many_name).all())
+                companies = list(related_manager(self, many_name).all())
             else:
                 _logger.warning(
                     'Se omite la verificación de empresa de %s: sus campos %s '
@@ -1631,6 +1632,8 @@ def _corecords(record, name):
     value = getattr(record, name, None)
     if value is None:
         return []
+    if isinstance(value, BaseModel):
+        return list(value)
     if hasattr(value, 'all'):
         return list(value.all())
     return [value]
@@ -3863,7 +3866,8 @@ def _traverse_inverse(rows, inverse):
         value = getattr(row, name, None)
         if value is None:
             continue
-        found = list(value.all()) if hasattr(value, 'all') else [value]
+        found = (list(value) if isinstance(value, BaseModel)
+                 else list(value.all()) if hasattr(value, 'all') else [value])
         for item in found:
             key = (type(item), item.pk) if item.pk is not None else id(item)
             if key not in seen:
@@ -4707,6 +4711,38 @@ def _saved(instance):
 
 
 _related_descriptors.ManyToManyDescriptor.__set__ = _many2many_descriptor_set
+
+def _x2many_descriptor_get(self, instance, cls=None):
+    """Leer un x2many es un recordset del comodelo —
+    ≙ ``_RelationalMulti.convert_to_record`` (``odoo19c: odoo/orm/
+    fields_relational.py``).
+
+    Sólo cuando el dueño y el comodelo son ``BaseModel``: los demás modelos
+    del producto leen el gestor de Django y lo siguen leyendo. El orden es el
+    ``_order`` del comodelo, como en la fuente. Una fila sin guardar no tiene
+    relación persistida: su valor es el recordset vacío.
+    """
+    if instance is None:
+        return _DJANGO_X2MANY_GET(self, instance, cls)
+    if isinstance(self, _related_descriptors.ManyToManyDescriptor):
+        comodel = self.field.model if self.reverse else self.field.related_model
+    else:
+        comodel = self.rel.related_model
+    if not (isinstance(instance, BaseModel) and isinstance(comodel, type)
+            and issubclass(comodel, BaseModel)):
+        return _DJANGO_X2MANY_GET(self, instance, cls)
+    if instance.pk is None:
+        return comodel._from_ids(env(), (), ())
+    manager = _DJANGO_X2MANY_GET(self, instance, cls)
+    rows = manager.all()
+    order = getattr(comodel, '_order', None)
+    if order:
+        rows = rows.order_by(*order_to_django(comodel, order))
+    ids = tuple(rows.values_list('pk', flat=True))
+    return comodel._from_ids(env(), ids, ids)
+
+
+_related_descriptors.ReverseManyToOneDescriptor.__get__ = _x2many_descriptor_get
 Model._validate_fields = _validate_fields
 Model._run_ondelete_checks = _run_ondelete_checks
 

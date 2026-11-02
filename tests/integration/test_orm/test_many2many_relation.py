@@ -13,6 +13,8 @@ import pytest
 from django.apps import apps as django_apps
 from django.db import connection
 
+from orm.commands import Command
+
 from addons.test_orm.models.test_orm import TestOrmCategory, TestOrmDiscussion
 from orm.fields_relational import Many2many, Many2manyField
 
@@ -39,9 +41,9 @@ def test_the_relation_is_one_table_with_the_source_columns():
 def test_a_link_from_one_end_is_seen_from_the_other(env):
     category = env['test_orm.category'].create({'name': 'Tag'})
     discussion = TestOrmDiscussion.objects.create(name='Thread')
-    TestOrmCategory.objects.get(pk=category.id).discussions.add(discussion)
-    assert list(discussion.categories.values_list('pk', flat=True)) == [
-        category.id]
+    TestOrmCategory.objects.get(pk=category.id).write(
+        {'discussions': [Command.link(discussion.pk)]})
+    assert discussion.categories.ids == [category.id]
 
 
 def test_the_positionals_no_longer_reach_django_as_other_parameters():

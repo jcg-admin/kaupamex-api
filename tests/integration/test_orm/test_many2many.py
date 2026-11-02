@@ -44,10 +44,6 @@ def test_both_relations_share_the_crew_table(env, crew):
     """Caso propio del Consumer: cada relación lee sólo su par de columnas."""
     ship, blackbeard, _ = crew
     shipmates = env['test_orm.ship'].browse(ship.ids)
-    # La lectura de un Many2many devuelve aquí el gestor de Django, no un
-    # recordset: se leen los nombres por el gestor (TASK-API-0190).
-    assert list(shipmates.pirate_ids.values_list('name', flat=True)) == [
-        'Black Beard']
-    assert list(shipmates.prisoner_ids.values_list('name', flat=True)) == [
-        'Brian']
+    assert shipmates.pirate_ids.mapped('name') == ['Black Beard']
+    assert shipmates.prisoner_ids.mapped('name') == ['Brian']
     assert env['test_orm.crew'].search_count([]) == 2
