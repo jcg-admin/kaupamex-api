@@ -114,7 +114,7 @@ from orm.fields import (
     walk_related_chain,
 )
 from orm.fields_properties import Properties
-from orm.environments import get_current_tz, is_su
+from orm.environments import get_current_tz, get_current_uid, is_su
 from orm.model_classes import parent_name_of
 from orm.utils import COLLECTION_TYPES, parse_field_expr
 from orm import registry
@@ -1366,7 +1366,13 @@ class DomainCondition(Domain):
         # bypass_access=...)`` con ``bypass_access`` sólo para el operador con
         # ``!``. ``_optimize_any_with_rights`` ya convirtió ``any`` en
         # ``any!`` bajo elevación o con ``bypass_search_access``.
-        if not operator.endswith('!') and hasattr(rows, '_filtered_access'):
+        #
+        # Sólo con un usuario actual: en la fuente siempre lo hay (el código
+        # de sistema corre como super-usuario). Aquí el código fuera de todo
+        # entorno no tiene uid, y filtrar sin usuario denegaría todas las
+        # filas — conducta que nadie pidió y que antes no existía.
+        if (not operator.endswith('!') and get_current_uid() is not None
+                and hasattr(rows, '_filtered_access')):
             rows = rows._filtered_access('read')
         rows = rows.values('pk')
         q = Q(**{f'{_django_path(self.field_expr)}__in': rows})
