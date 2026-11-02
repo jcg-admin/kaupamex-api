@@ -4920,6 +4920,12 @@ class BaseModel(DefaultGetMixin, Model):
         entorno es el ambiente (:func:`~orm.environments.env`), la misma
         adaptación que :class:`RecordCache` declara.
         """
+        # Una terna vacía mientras Django construye la fila: sus asignaciones
+        # pasan por descriptores que leen el registro como recordset —
+        # ``Many2one.convert_to_cache`` evalúa ``bool(record)`` en un campo
+        # ``delegate``—, y sin ``_ids`` esa lectura moría con
+        # ``AttributeError`` en todo modelo con ``_inherits``.
+        object.__setattr__(self, '_ids', ())
         super().__init__(*args, **kwargs)
         self._install_singleton_triple()
 

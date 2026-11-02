@@ -600,3 +600,18 @@ class TestOrmHierarchyHead(TestOrmModel):
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_hierarchy_head'
+
+
+class TestOrmRelatedInherits(TestOrmModel):
+    """≙ ``test_orm.related_inherits`` (``odoo19c: odoo/addons/test_orm/
+    models/test_orm.py:522-527``): delega en ``test_orm.related``."""
+
+    _name = 'test_orm.related_inherits'
+    _description = 'test_orm.related_inherits'
+    _inherits = {'test_orm.related': 'base_id'}
+
+    base_id = fields.Many2one('test_orm.related', required=True,
+                              ondelete='cascade', related_name='+')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_related_inherits'

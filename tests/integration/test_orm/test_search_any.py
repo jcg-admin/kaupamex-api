@@ -146,3 +146,28 @@ def test_related_many2one_by_id_and_by_path(records, ruled_user, fname,
     expected = {records['via_hidden'].id} if reaches_hidden else set()
     assert _found_as(ruled_user, [(fname, '=', hidden_bar.id)]) == expected
     assert _found_as(ruled_user, [(f'{fname}.name', '=', 'a')]) == expected
+
+
+# ``TestSearchRelated.test_related_inherited`` (``tests/test_search.py:1263``):
+# un campo heredado por ``_inherits`` —también un ``related`` heredado— se
+# busca a través de la FK del padre, con la regla del padre.
+
+
+@pytest.mark.parametrize(('fname', 'reaches_hidden'), [
+    ('name', True),
+    ('foo_name', False),
+    ('foo_name_sudo', True),
+])
+def test_related_inherited(env, records, ruled_user, fname, reaches_hidden):
+    Inherits = env['test_orm.related_inherits']
+    child = Inherits.create({'base_id': records['via_hidden'].id})
+    row, _ = IrModel.objects.get_or_create(
+        model='test_orm.TestOrmRelatedInherits',
+        defaults={'name': 'related_inherits'})
+    IrModelAccess.objects.create(
+        name='any related_inherits', model_id=row, perm_read=True)
+    value = 'r1' if fname == 'name' else 'a'
+    with Environment(None, ruled_user.pk, {}) as environment:
+        found = set(environment['test_orm.related_inherits'].search(
+            [(fname, '=', value)]).ids)
+    assert found == ({child.id} if reaches_hidden else set())
