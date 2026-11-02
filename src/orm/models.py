@@ -3945,8 +3945,16 @@ def _recompute_field(self, field, ids=None):
     if model is None:
         return
     persisted_ids = [record_id for record_id in ids if record_id]
-    records = list(model.objects.filter(pk__in=persisted_ids))
-    missing_ids = set(persisted_ids).difference(record.pk for record in records)
+    rows_by_id = {
+        row.pk: row
+        for row in model._base_manager.filter(pk__in=persisted_ids)
+    }
+    records = [
+        rows_by_id[record_id]
+        for record_id in dict.fromkeys(persisted_ids)
+        if record_id in rows_by_id
+    ]
+    missing_ids = set(persisted_ids).difference(rows_by_id)
     field.recompute(records)
     # TASK-GEN-0559: Django excluye las filas ausentes al consultar, sin
     # MissingError. Equivale al descarte de apply_except_missing de la fuente
