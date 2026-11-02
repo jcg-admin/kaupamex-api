@@ -62,6 +62,7 @@ from django.apps import apps
 from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist
 from django.db import DEFAULT_DB_ALIAS, connections, models
 from django.db.models.fields.related import RelatedField
+from django.db.models.fields.reverse_related import ForeignObjectRel
 from django.db.models.fields.related_descriptors import (
     ForeignKeyDeferredAttribute, ForwardManyToOneDescriptor,
 )
@@ -2625,6 +2626,16 @@ models.Field.type = property(type_for)
 #: patrón vacío devuelve una condición sobre el campo, y uno escalar devuelve
 #: un booleano. Con ``False`` universal el escalar se aplicaba a los dos.
 models.Field.relational = property(lambda self: self.is_relation)
+#: El reverso de un ``Many2one`` es el ``One2many`` de la fuente, que es
+#: relacional. Django lo modela como ``ForeignObjectRel``, que no hereda de
+#: ``models.Field``; sin esta línea, una ruta ``lines.name`` descompuesta en
+#: ``any`` moría con ``AttributeError`` en ``_optimize_any_domain``.
+ForeignObjectRel.relational = property(lambda self: self.is_relation)
+#: Y su ``type``: el reverso de un ``Many2one`` es ``one2many`` y el de un
+#: ``Many2many`` es ``many2many``, que es como la fuente los nombra. Los
+#: optimizadores por tipo de campo (``_optimize_..._field_types``) lo leen.
+ForeignObjectRel.type = property(
+    lambda self: 'many2many' if self.many_to_many else 'one2many')
 
 #: ``comodel_name`` — el modelo de los valores de un campo de relacion.
 #:

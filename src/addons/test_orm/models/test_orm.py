@@ -434,3 +434,61 @@ class TestOrmPrisoner(TestOrmModel):
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_prisoner'
+
+
+# ---------------------------------------------------------------------------
+# ``test_orm.multi`` y sus líneas y etiquetas — ≙ ``odoo19c: odoo/addons/
+# test_orm/models/test_orm.py:274-330``. Son el sujeto de ``TestSubqueries``
+# (``tests/test_search.py``): búsquedas con subcampo sobre un Many2one, un
+# One2many y un Many2many.
+#
+# pendiente: ``name`` (``related='partner.name'``), ``partners``
+# (``One2many(related='partner.child_ids')``), ``_onchange_name`` de ``multi``
+# y el ``display_name`` dependiente de contexto de ``multi.tag``: ninguno lo
+# usa ``TestSubqueries``; entran con el porte de ``test_onchange.py``.
+# ---------------------------------------------------------------------------
+
+
+class TestOrmMultiTag(TestOrmModel):
+    """≙ ``test_orm.multi.tag``."""
+
+    _name = 'test_orm.multi.tag'
+    _description = 'Test ORM Multi Tag'
+
+    name = fields.Char(null=True)
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_multi_tag'
+
+
+class TestOrmMulti(TestOrmModel):
+    """≙ ``test_orm.multi``."""
+
+    _name = 'test_orm.multi'
+    _description = 'Test ORM Multi'
+
+    partner = fields.Many2one('res.partner', null=True, related_name='+')
+    tags = fields.Many2many(
+        'test_orm.multi.tag', domain=[('name', 'ilike', 'a')])
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_multi'
+
+
+class TestOrmMultiLine(TestOrmModel):
+    """≙ ``test_orm.multi.line``. ``multi`` es el inverso del One2many
+    ``lines`` de la fuente: aquí el uno-a-muchos es el reverso de Django."""
+
+    _name = 'test_orm.multi.line'
+    _description = 'Test ORM Multi Line'
+
+    multi = fields.Many2one(
+        'test_orm.multi', ondelete='cascade', null=True, related_name='lines')
+    name = fields.Char(null=True)
+    partner = fields.Many2one(
+        'res.partner', related='multi.partner', store=True, null=True,
+        related_name='+')
+    tags = fields.Many2many('test_orm.multi.tag', related_name='+')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_multi_line'

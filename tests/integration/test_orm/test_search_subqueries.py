@@ -1,0 +1,77 @@
+"""Porte semántico de ``TestSubqueries`` (``odoo19c: odoo/addons/test_orm/
+tests/test_search.py:6-384``).
+
+Revisión de referencia: ``odoo-tools@abe4040ec1``. La fuente afirma el texto
+SQL de cada consulta (``assertQueries``). Aquí el SQL lo emite Django, así que
+se afirma **qué filas** salen con datos que separan las dos formas posibles:
+una subconsulta por condición (la fuente) contra una sola unión compartida.
+"""
+
+import pytest
+
+pytestmark = [pytest.mark.integration, pytest.mark.django_db]
+
+
+@pytest.fixture
+def partners(env):
+    Partner = env['res.partner']
+    return {
+        'both': Partner.objects.create(name='jack', phone='01234'),
+        'name': Partner.objects.create(name='jack', phone='999'),
+        'none': Partner.objects.create(name='daniel', phone='777'),
+    }
+
+
+@pytest.fixture
+def multis(env, partners):
+    Multi = env['test_orm.multi']
+    return {key: Multi.create({'partner': partner.id})
+            for key, partner in partners.items()} | {
+        'orphan': Multi.create({}),
+    }
+
+
+def _found(env, domain):
+    return set(env['test_orm.multi'].search(domain).ids)
+
+
+def test_and_many2one_with_subfield(env, multis):
+    assert _found(env, [('partner.name', 'like', 'jack'),
+                        ('partner.phone', 'like', '01234')]) == {
+        multis['both'].id}
+
+
+def test_or_many2one_with_subfield(env, multis):
+    assert _found(env, ['|', ('partner.name', 'like', 'jack'),
+                        ('partner.phone', 'like', '01234')]) == {
+        multis['both'].id, multis['name'].id}
+
+
+def test_not_and_many2one_with_subfield(env, multis):
+    """``partner IS NULL OR partner NOT IN (...)``: el huérfano entra."""
+    assert _found(env, ['!', '&', ('partner.name', 'like', 'jack'),
+                        ('partner.phone', 'like', '01234')]) == {
+        multis['name'].id, multis['none'].id, multis['orphan'].id}
+
+
+def test_and_one2many_with_subfield(env):
+    """Un ``EXISTS`` por condición: dos líneas distintas satisfacen el AND."""
+    Multi, Line = env['test_orm.multi'], env['test_orm.multi.line']
+    split = Multi.create({})
+    Line.create({'multi': split.id, 'name': 'jack'})
+    Line.create({'multi': split.id, 'name': '01234'})
+    single = Multi.create({})
+    Line.create({'multi': single.id, 'name': 'jack'})
+    assert _found(env, [('lines.name', 'like', 'jack'),
+                        ('lines.name', 'like', '01234')]) == {split.id}
+
+
+def test_many2many_applies_the_field_domain(env):
+    """``tags`` declara ``domain=[('name', 'ilike', 'a')]`` y la fuente lo
+    añade a la subconsulta: una etiqueta sin ``a`` no cuenta."""
+    Multi, Tag = env['test_orm.multi'], env['test_orm.multi.tag']
+    with_a = Tag.create({'name': 'jack'})
+    without_a = Tag.create({'name': '01234'})
+    multi = Multi.create({'tags': [with_a.id, without_a.id]})
+    assert _found(env, [('tags.name', 'like', 'jack')]) == {multi.id}
+    assert _found(env, [('tags.name', 'like', '01234')]) == set()

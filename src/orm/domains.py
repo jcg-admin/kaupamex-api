@@ -1114,7 +1114,19 @@ class DomainCondition(Domain):
         El tipo de campo sólo se consulta cuando hay modelo contra el que
         resolverlo. Sin modelo, la condición se optimiza por operador y nada
         más — es la misma frontera que ``_field`` ya impone.
+
+        En el nivel BASIC, antes que nada, una **ruta** sobre una relación se
+        descompone en ``any`` — ≙ ``:937-942``: ``('lines.name', 'like', x)``
+        pasa a ``('lines', 'any', [('name', 'like', x)])``. Sobre un x2many
+        eso es lo que da un ``EXISTS`` por condición en vez de una unión
+        compartida (:func:`_owners_q`), y lo que inyecta el ``domain`` del
+        campo. Sólo para relaciones con columna o reversas: un campo no
+        almacenado no tiene ruta en la base y sigue su propio camino.
         """
+        if model is not None and level == OptimizationLevel.BASIC:
+            path = self._path_as_any(model)
+            if path is not None:
+                return path
         if model is not None:
             field = self._field(model)
             # El campo que sabe buscarse a sí mismo va ANTES que el registro
@@ -1148,6 +1160,25 @@ class DomainCondition(Domain):
                     if domain != self:
                         return domain
         return self
+
+    def _path_as_any(self, model):
+        """``a.b op v`` como ``a any [b op v]``, o ``None`` si no aplica."""
+        head, dot, rest = self.field_expr.partition('.')
+        if not dot:
+            return None
+        try:
+            field = model._meta.get_field(head)
+        except FieldDoesNotExist:
+            return None
+        if (isinstance(field, Properties)
+                or not getattr(field, 'is_relation', False)
+                or getattr(field, 'related_model', None) is None
+                or not (getattr(field, 'concrete', False)
+                        or getattr(field, 'many_to_many', False)
+                        or getattr(field, 'auto_created', False))):
+            return None
+        return DomainCondition(
+            head, 'any', DomainCondition(rest, self.operator, self.value))
 
     def _normalized(self):
         """La condición reducida a lo que un compilador de hoja admite.
@@ -1301,8 +1332,13 @@ class DomainCondition(Domain):
         if comodel is None:
             self._raise("No se puede determinar el modelo de la relación")
         subdomain = value if isinstance(value, Domain) else Domain(value)
+        multi = _is_x2many(field)
+        if multi:
+            subdomain &= _comodel_domain(field, model)
         rows = comodel.objects.filter(subdomain._to_q(comodel)).values('pk')
         q = Q(**{f'{_django_path(self.field_expr)}__in': rows})
+        if multi:
+            q = _owners_q(model, q)
         return ~q if operator.startswith('not ') else q
 
     def _queryset_to_q(self, field, operator, value):
@@ -1332,7 +1368,11 @@ class DomainCondition(Domain):
                 "La consulta es de %s y la relación espera %s"
                 % (value.model._meta.label, comodel._meta.label)
             )
-        q = Q(**{f'{path}__in': value.values('pk')})
+        if path != 'pk' and _is_x2many(field):
+            value = value.filter(_comodel_domain(field, field.model)._to_q(comodel))
+            q = _owners_q(field.model, Q(**{f'{path}__in': value.values('pk')}))
+        else:
+            q = Q(**{f'{path}__in': value.values('pk')})
         return ~q if operator.startswith('not ') else q
 
     def _to_q(self, model=None):
@@ -2890,6 +2930,45 @@ def OR(domains):
 def NOT(domain):
     """Negación de un filtro ``Q`` — ≙ ``expression.NOT``."""
     return ~domain
+
+
+def _is_x2many(field):
+    """Si la relación es de muchos valores: un Many2many o el reverso de un
+    Many2one (el One2many de la fuente)."""
+    return bool(getattr(field, 'many_to_many', False)
+                or getattr(field, 'one_to_many', False))
+
+
+def _comodel_domain(field, model):
+    """≙ ``Field.get_comodel_domain`` (``odoo19c: odoo/orm/
+    fields_relational.py:99-109``) — el ``domain`` del campo como ``Domain``.
+
+    Docstring de la fuente, verbatim: *"Return a domain from the domain
+    attribute."* Un ``domain`` invocable recibe el modelo; uno de texto es
+    sólo del cliente y no filtra.
+    """
+    domain = getattr(field, 'domain', None)
+    if callable(domain):
+        domain = domain(model)
+    if not domain or isinstance(domain, str):
+        return Domain.TRUE
+    return Domain(domain)
+
+
+def _owners_q(model, q):
+    """Una condición sobre un x2many como subconsulta de las filas del modelo.
+
+    La fuente emite un ``EXISTS`` por condición (``odoo19c: odoo/orm/
+    fields_relational.py``, ``_condition_to_sql_relational`` de ``One2many``
+    y ``Many2many``), así que dos condiciones en ``AND`` pueden cumplirse con
+    líneas distintas. Un ``Q`` sobre la relación, combinado con otro dentro
+    del mismo ``filter``, comparte la unión de Django y exige que **una
+    misma** línea cumpla las dos. Envolverlo en ``pk__in`` de su propia
+    consulta da la forma de la fuente.
+    """
+    if model is None:
+        return q
+    return Q(pk__in=model._base_manager.filter(q).values('pk'))
 
 
 def to_q(domain, model=None):
