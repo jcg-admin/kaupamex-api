@@ -79,13 +79,15 @@ import api
 
 from exceptions import AccessError, UserError
 from orm.environments import (
-    context_scope, env, get_context, get_current_company, get_current_uid,
-    get_current_user, get_transaction, is_su, sudo as elevate_privileges,
+    context_scope, env, execute_query, get_context, get_current_company,
+    get_current_uid, get_current_user, get_transaction, is_su,
+    sudo as elevate_privileges,
 )
 from orm.commands import (ManyToManyLink, ManyToManySet, One2manyChild,
                           apply_many2many_commands, is_command_list)
 from orm import registry
 from orm.domains import Domain, to_q
+from orm.model_classes import parent_name_of
 from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES, FieldDescriptor,
                         StoredMany2oneIdDescriptor,
                         _field_cache_record_id,
@@ -1025,6 +1027,8 @@ class DefaultGetMixin:
             ids.append(record.pk)
 
         records = browse(cls, ids)
+        if _maintains_parent_store(cls):
+            _parent_store_create(cls, ids)
 
         # protect fields being written against recomputation
         with contextlib.ExitStack() as stack:
@@ -1035,6 +1039,97 @@ class DefaultGetMixin:
             modified(records, list(model_field_registry(cls)), create=True)
 
         return records
+
+
+def _maintains_parent_store(cls):
+    """Si el ORM mantiene ``parent_path`` del modelo.
+
+    Sólo un ``BaseModel``: los modelos productivos con ``_parent_store``
+    (``res.company``, ``res.partner``, ``hr.department``…) calculan su
+    ``parent_path`` en su propio ``save()``, y mantenerlo aquí también sería
+    escribirlo dos veces.
+    """
+    return (getattr(cls, '_parent_store', False)
+            and isinstance(cls, type) and issubclass(cls, BaseModel))
+
+
+def _parent_column(cls):
+    return cls._meta.get_field(parent_name_of(cls)).column
+
+
+def _parent_store_create(cls, ids):
+    """≙ ``_parent_store_create`` (``odoo19c: odoo/orm/models.py:4961-4983``).
+
+    Docstring de la fuente, verbatim: *"Set the parent_path field on ``self``
+    after its creation."* Un ``UPDATE`` que concatena la ruta del padre y el id
+    propio, con el mismo SQL salvo ``IN %s`` → ``= ANY(%s)``: psycopg 3 adapta
+    una lista a un arreglo y no expande una tupla.
+    """
+    if not ids:
+        return
+    execute_query(SQL(
+        """ UPDATE %(table)s node
+            SET parent_path=concat((
+                    SELECT parent.parent_path
+                    FROM %(table)s parent
+                    WHERE parent.id=node.%(parent)s
+                ), node.id, '/')
+            WHERE node.id = ANY(%(ids)s)
+            RETURNING node.id, node.parent_path """,
+        table=SQL.identifier(cls._meta.db_table),
+        parent=SQL.identifier(_parent_column(cls)),
+        ids=list(ids),
+    ))
+
+
+def _reparented(record, values):
+    """≙ ``_parent_store_update_prepare`` (``:4985-5018``) para una fila: si
+    ``values`` cambia su padre. Se mide antes de escribir."""
+    cls = type(record)
+    if not _maintains_parent_store(cls):
+        return False
+    name = parent_name_of(cls)
+    if name not in values:
+        return False
+    new = values[name]
+    new = getattr(new, 'pk', new) or None
+    current = cls._base_manager.filter(pk=record.pk).values_list(
+        _parent_column(cls), flat=True).first()
+    return current != new
+
+
+def _parent_store_update(record):
+    """≙ ``_parent_store_update`` (``:5020-5054``) para una fila.
+
+    Reescribe el prefijo de ``parent_path`` de la fila y de todos sus
+    descendientes, con el mismo ``UPDATE`` de la fuente, tras rechazar una
+    recursión: *"Recursion Detected."*
+    """
+    cls = type(record)
+    table = cls._meta.db_table
+    parent_id = cls._base_manager.filter(pk=record.pk).values_list(
+        _parent_column(cls), flat=True).first()
+    prefix = ''
+    if parent_id:
+        prefix = cls._base_manager.filter(pk=parent_id).values_list(
+            'parent_path', flat=True).first() or ''
+    if prefix and record.pk in {int(label) for label in prefix.split('/')[:-1]}:
+        raise UserError('Recursion Detected.')
+    updated = dict(execute_query(SQL(
+        """ UPDATE %(table)s child
+            SET parent_path = concat(%(prefix)s, substr(child.parent_path,
+                    length(node.parent_path) - length(node.id || '/') + 1))
+            FROM %(table)s node
+            WHERE node.id = ANY(%(ids)s)
+            AND child.parent_path LIKE concat(node.parent_path, %(wildcard)s)
+            RETURNING child.id, child.parent_path """,
+        table=SQL.identifier(table),
+        prefix=prefix,
+        ids=[record.pk],
+        wildcard='%',
+    )))
+    if record.pk in updated:
+        record.__dict__['parent_path'] = updated[record.pk]
 
 
 def _creation_flags(field):
@@ -2467,6 +2562,7 @@ class RecordLoaderMixin(FieldSqlMixin):
             # de protección ya no se computarían.
             self._recompute_recordset(to_compute)
         many2many = self._pop_many2many_values(values)
+        reparented = _reparented(self, values)
         values, relational = self._load_records_split_relational(values)
         values = self._load_records_coerce_vals(values)
         with env().protecting(protected, self):
@@ -2503,6 +2599,8 @@ class RecordLoaderMixin(FieldSqlMixin):
                 writable = self._meta._non_pk_concrete_field_names
                 self.save(update_fields=[fname for fname in values
                                          if fname in writable])
+            if reparented:
+                _parent_store_update(self)
             if relational:
                 self._load_records_apply_relational(relational)
             # ``:4493`` — el inverso se despacha DENTRO del alcance de

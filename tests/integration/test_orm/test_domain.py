@@ -304,11 +304,6 @@ def test_condition_optimize_maybe_eq(model):
     assert Domain('number', '=?', 0).optimize(model) == Domain.TRUE
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    'El mantenimiento genérico de _parent_store (_parent_store_create/'
-    '_update, odoo19c: odoo/orm/models.py:4961-5020) no existe: cada modelo '
-    'productivo calcula parent_path en su save() y test_orm.category queda '
-    'con parent_path vacío. Sucesor: TASK-API-0190.'))
 def test_condition_optimize_child_parent_of(env):
     model = env['test_orm.category']
     categ = model.create({'name': 'parent'})
