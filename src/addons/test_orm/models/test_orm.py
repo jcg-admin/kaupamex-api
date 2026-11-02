@@ -21,7 +21,7 @@ import models
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from orm.models import BaseModel
 from api import autovacuum, depends, onchange
-from exceptions import AccessError
+from exceptions import AccessError, ValidationError
 
 
 class TestOrmModel(BaseModel, TimeStampedModel):
@@ -796,3 +796,121 @@ class TestOrmAnyTag(TestOrmModel):
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_any_tag'
+
+
+# ---------------------------------------------------------------------------
+# ``test_orm.model_parent_m2o``/``model_child_m2o``, ``order``/``order.line``
+# y ``team``/``team.member`` — ≙ ``odoo19c: odoo/addons/test_orm/models/
+# test_orm.py:1406-1449, :681-716, :2287-2302``. Son el sujeto de
+# ``One2manyCase`` (``tests/test_one2many.py``): comandos sobre un One2many
+# en ``create``/``write`` y ``child_of`` a través de un One2many.
+#
+# pendiente: los ``compute`` almacenados (``size1``, ``size2``, ``cost`` de
+# ``model_child_m2o``, ``cost`` de ``model_parent_m2o`` y
+# ``has_been_rewarded`` de ``order.line``) y los enteros indexados de
+# ``order``/``order.line``; los casos portados no los leen, y entran con
+# ``test_recompute``/``test_recomputation_ends``.
+# ---------------------------------------------------------------------------
+
+
+class TestOrmModelParentM2o(TestOrmModel):
+    """≙ ``test_orm.model_parent_m2o``. ``child_ids`` es el reverso del
+    ``parent_id`` de ``model_child_m2o``."""
+
+    _name = 'test_orm.model_parent_m2o'
+    _description = 'dummy model with multiple childs'
+
+    name = fields.Char('Name', null=True)
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_model_parent_m2o'
+
+
+class TestOrmModelChildM2o(TestOrmModel):
+    """≙ ``test_orm.model_child_m2o``: su ``write`` lanza si el hijo se llama
+    ``A``, que es lo que detecta reescribir un hijo ya enlazado."""
+
+    _name = 'test_orm.model_child_m2o'
+    _description = 'dummy model with override write and ValidationError'
+
+    name = fields.Char('Name', null=True)
+    parent_id = fields.Many2one('test_orm.model_parent_m2o', ondelete='cascade',
+                                null=True, related_name='child_ids')
+
+    def write(self, vals):
+        res = super().write(vals)
+        if self.name == 'A':
+            msg = 'the first existing child should not be changed when adding a new child to the parent'
+            raise ValidationError(msg)
+        return res
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_model_child_m2o'
+
+
+class TestOrmOrder(TestOrmModel):
+    """≙ ``test_orm.order``. ``line_ids`` es el reverso del ``order_id`` de
+    ``order.line``."""
+
+    _name = 'test_orm.order'
+    _description = 'test_orm.order'
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_order'
+
+
+class TestOrmOrderLine(TestOrmModel):
+    """≙ ``test_orm.order.line``: borrar una línea borra también su línea de
+    recompensa."""
+
+    _name = 'test_orm.order.line'
+    _description = 'test_orm.order.line'
+
+    order_id = fields.Many2one('test_orm.order', required=True,
+                               ondelete='cascade', related_name='line_ids')
+    product = fields.Char(null=True)
+    reward = fields.Boolean(default=False)
+
+    def unlink(self):
+        # also delete associated reward lines
+        reward_lines = [
+            other_line
+            for line in self
+            if not line.reward
+            for other_line in line.order_id.line_ids
+            if other_line.reward and other_line.product == line.product
+        ]
+        self = self.union(*reward_lines)  # noqa: PLW0642
+        return super().unlink()
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_order_line'
+
+
+class TestOrmTeam(TestOrmModel):
+    """≙ ``test_orm.team``. ``member_ids`` es el reverso del ``team_id`` de
+    ``team.member``."""
+
+    _name = 'test_orm.team'
+    _description = 'Odoo Team'
+
+    name = fields.Char(null=True)
+    parent_id = fields.Many2one('test_orm.team', null=True, related_name='+')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_team'
+
+
+class TestOrmTeamMember(TestOrmModel):
+    """≙ ``test_orm.team.member``: ``parent_id`` es el padre del equipo."""
+
+    _name = 'test_orm.team.member'
+    _description = 'Odoo Developer'
+
+    name = fields.Char('Name', null=True)
+    team_id = fields.Many2one('test_orm.team', null=True,
+                              related_name='member_ids')
+    parent_id = fields.Many2one('test_orm.team', related='team_id.parent_id')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_team_member'

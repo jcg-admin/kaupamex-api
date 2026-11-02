@@ -85,6 +85,7 @@ from orm.environments import (
 )
 from orm.commands import (_DJANGO_X2MANY_GET, ManyToManyLink, ManyToManySet,
                           One2manyChild, apply_many2many_commands,
+                          apply_one2many_commands,
                           is_command_list, related_manager)
 from orm import registry
 from orm.domains import Domain, to_q
@@ -1022,6 +1023,9 @@ class DefaultGetMixin:
                     # ≙ ``Many2many.write_real``: los triples de ``Command``
                     # y sus abreviaturas (TASK-API-0190).
                     apply_many2many_commands(record, field, value)
+                elif getattr(field, 'one_to_many', False) and is_command_list(value):
+                    # ≙ ``One2many.write_real(..., create=True)``.
+                    apply_one2many_commands(record, field, value, create=True)
                 else:
                     related_manager(record, name).set(value)
             data['record'] = record
@@ -2565,6 +2569,7 @@ class RecordLoaderMixin(FieldSqlMixin):
             # de protección ya no se computarían.
             self._recompute_recordset(to_compute)
         many2many = self._pop_many2many_values(values)
+        one2many = self._pop_one2many_values(values)
         reparented = _reparented(self, values)
         values, relational = self._load_records_split_relational(values)
         values = self._load_records_coerce_vals(values)
@@ -2606,6 +2611,9 @@ class RecordLoaderMixin(FieldSqlMixin):
                 _parent_store_update(self)
             if relational:
                 self._load_records_apply_relational(relational)
+            for rel, commands in one2many:
+                # ≙ ``One2many.write_real``: la fila ya existe.
+                apply_one2many_commands(self, rel, commands)
             # ``:4493`` — el inverso se despacha DENTRO del alcance de
             # protección, una vez por grupo.
             for fields in determine_inverses.values():
@@ -2634,6 +2642,24 @@ class RecordLoaderMixin(FieldSqlMixin):
                          or is_command_list(value)
                          or isinstance(value, (list, tuple)))):
                 popped[field.name] = values.pop(fname)
+        return popped
+
+    def _pop_one2many_values(self, values):
+        """Retira de ``values`` los One2many escritos como lista de comandos.
+
+        El One2many de la fuente es aquí la relación inversa de Django (un
+        ``ManyToOneRel``), que no se asigna: sus comandos los aplica
+        :func:`~orm.commands.apply_one2many_commands` sobre el ``Many2one``
+        del comodelo, tras guardar la fila.
+        """
+        registry_ = model_field_registry(type(self))
+        popped = []
+        for fname in list(values):
+            field = registry_.get(fname)
+            if (getattr(field, 'one_to_many', False)
+                    and not isinstance(field, Field)
+                    and is_command_list(values[fname])):
+                popped.append((field, values.pop(fname)))
         return popped
 
     def _warm_x2many_before_inverse(self, determine_inverses):

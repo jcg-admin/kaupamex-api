@@ -2752,10 +2752,13 @@ def _operator_child_of_domain(comodel, parent):
     while comodel.exists():
         level_ids = list(comodel.values_list('pk', flat=True))
         child_ids.update(level_ids)
+        # ``comodel._search(DomainCondition(parent, 'in', ...))`` (``:1799``):
+        # se compila el dominio y no un filtro de Django, porque ``parent``
+        # puede ser un campo ``related`` sin columna (``test_orm.team.member``)
         next_ids = set(
-            model.objects.filter(**{f'{parent}__in': level_ids}).values_list(
-                'pk', flat=True
-            )
+            model.objects.filter(
+                to_q(DomainCondition(parent, 'in', level_ids), model)
+            ).values_list('pk', flat=True)
         ) - set(child_ids)
         comodel = model.objects.filter(pk__in=next_ids)
     return child_ids

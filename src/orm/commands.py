@@ -10,7 +10,10 @@ Reproduce la intención de cada tupla-comando de Odoo (0=create, 1=update,
 manager* de Django.
 """
 
+from django.db import models as _django_models
 from django.db.models.fields import related_descriptors as _related_descriptors
+
+from exceptions import MissingError
 
 
 class Command:
@@ -184,6 +187,121 @@ def apply_many2many_commands(record, field, value):
             manager.set([_row_id(item) for item in payload if _row_id(item)])
         else:
             raise ValueError(f'Comando x2many desconocido: {code!r}')
+
+
+def _line_rows(comodel, ids):
+    """Las filas de ``ids`` en el orden dado; un recordset si el comodelo es
+    ``BaseModel``."""
+    ids = [i for i in ids if i]
+    if hasattr(comodel, 'browse'):
+        return list(comodel.browse(ids))
+    rows = comodel._base_manager.in_bulk(ids)
+    return [rows[i] for i in ids if i in rows]
+
+
+def _write_line(line, values):
+    if hasattr(line, 'write'):
+        line.write(values)
+    else:
+        for name, value in values.items():
+            setattr(line, name, value)
+        line.save(update_fields=list(values))
+
+
+def apply_one2many_commands(record, rel, value, create=False):
+    """Aplica los comandos de un One2many sobre su inverso — ≙
+    ``One2many.write_real`` (``odoo19c: odoo/orm/fields_relational.py:
+    969-1045``), rama almacenada, para un solo registro.
+
+    ``rel`` es la relación inversa de Django (el ``ManyToOneRel`` del
+    ``Many2one`` del comodelo). Se conservan las tres colas de la fuente
+    —crear, borrar, enlazar— y su ``flush``: enlazar resta lo que el
+    registro ya tenía antes de escribir, así que un ``LINK`` a una línea ya
+    enlazada no la reescribe, y uno a una línea ausente lanza
+    ``MissingError``. En ``create`` un ``SET``/``CLEAR`` no borra nada: se
+    lee como ``LINK``, como en la fuente (``allow_full_delete``).
+
+    pendiente: el ``domain`` del One2many (``get_comodel_domain``) en
+    ``SET``/``CLEAR`` y el ``context`` del campo; ningún inverso de Django
+    los declara aquí.
+    """
+    comodel = rel.related_model
+    inverse = rel.field.name
+    cascade = rel.field.remote_field.on_delete is _django_models.CASCADE
+    to_create, to_delete, to_link = [], [], []
+    allow_full_delete = not create
+
+    def current_ids():
+        return list(comodel._base_manager.filter(**{inverse: record.pk})
+                    .values_list('pk', flat=True))
+
+    def unlink(ids):
+        if cascade:
+            to_delete.extend(ids)
+        else:
+            for line in _line_rows(comodel, ids):
+                _write_line(line, {inverse: None})
+
+    def flush():
+        before = set(current_ids()) if to_link else set()
+        if to_delete:
+            rows = _line_rows(comodel, list(dict.fromkeys(to_delete)))
+            if hasattr(comodel, 'browse'):
+                comodel.browse([row.id for row in rows]).unlink()
+            else:
+                comodel._base_manager.filter(
+                    pk__in=[row.pk for row in rows]).delete()
+            to_delete.clear()
+        if to_create:
+            if hasattr(comodel, 'create'):
+                comodel.create(list(to_create))
+            else:
+                for vals in to_create:
+                    comodel.objects.create(**vals)
+            to_create.clear()
+        if to_link:
+            ids = [i for i in dict.fromkeys(to_link) if i not in before]
+            existing = set(comodel._base_manager.filter(pk__in=ids)
+                           .values_list('pk', flat=True))
+            missing = [i for i in ids if i not in existing]
+            if missing:
+                # linking missing lines should fail
+                raise MissingError(
+                    f'Record does not exist or has been deleted: '
+                    f'{comodel._meta.label}({missing})')
+            for line in _line_rows(comodel, ids):
+                _write_line(line, {inverse: record.pk})
+            to_link.clear()
+
+    for code, target, payload in value:
+        if code == Command.CREATE:
+            to_create.append(dict(payload, **{inverse: record.pk}))
+            allow_full_delete = False
+        elif code == Command.UPDATE:
+            for line in _line_rows(comodel, [target]):
+                _write_line(line, payload)
+        elif code == Command.DELETE:
+            to_delete.append(target)
+        elif code == Command.UNLINK:
+            unlink([target])
+        elif code == Command.LINK:
+            to_link.append(target)
+            allow_full_delete = False
+        elif code in (Command.CLEAR, Command.SET):
+            line_ids = [_row_id(item) for item in payload] if code == Command.SET else []
+            if not allow_full_delete:
+                # do not try to delete anything in creation mode if nothing has been created before
+                to_link.extend(i for i in line_ids if i)
+                continue
+            flush()
+            keep = set(line_ids)
+            unlink([i for i in current_ids() if i not in keep])
+            flush()
+            for line in _line_rows(comodel, line_ids):
+                _write_line(line, {inverse: record.pk})
+        else:
+            raise ValueError(f'Comando x2many desconocido: {code!r}')
+    flush()
 
 
 # === Los tres valores diferidos del cargador de datos ======================
