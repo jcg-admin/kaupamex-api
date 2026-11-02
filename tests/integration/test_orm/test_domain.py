@@ -7,14 +7,42 @@ pendiente: el resto de ``TestDomain`` (``_search`` con complemento, fechas,
 ``like``, ``any`` con ``id``, desigualdades) y ``TestDomainOptimize``.
 """
 
+from datetime import date, datetime
+
 import pytest
 
 from orm.domains import Domain
+from orm.environments import context_scope
+from tools import date_utils
 from tools.misc import OrderedSet
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]
 
 NUMBER_DOMAIN = Domain('number', '>', 5)
+
+
+class _FrozenNow(datetime):
+    """``datetime`` con ``now()`` fijo en ``2024-01-05 13:05:00`` UTC.
+
+    La fuente usa ``freeze_time`` (``freezegun``), que no es dependencia de
+    este proyecto; ``tools.date_utils`` resuelve ``'today'``/``'+12H'`` con
+    ``datetime.now(utc)``, que es el único reloj que hay que fijar.
+    """
+
+    def __new__(cls, *args, **kwargs):
+        # Lo que se construye por la clase es un ``datetime`` real: el doble
+        # sólo fija el reloj, no el tipo de los valores del dominio.
+        return datetime(*args, **kwargs)
+
+    @classmethod
+    def now(cls, tz=None):
+        moment = datetime(2024, 1, 5, 13, 5, 0, tzinfo=date_utils.utc)
+        return moment if tz is None else moment.astimezone(tz)
+
+
+@pytest.fixture
+def frozen_now(monkeypatch):
+    monkeypatch.setattr(date_utils, 'datetime', _FrozenNow)
 
 
 @pytest.fixture
@@ -144,3 +172,69 @@ def test_condition_optimize_bool(message):
         ('active', 'in', [True, False])]
     assert Domain('active', 'in', [True, False]).optimize_full(
         message) == Domain.TRUE
+
+
+def test_condition_optimize_date(model, frozen_now):
+    in_jan_5 = Domain('date', 'in', OrderedSet([date(2024, 1, 5)]))
+    assert Domain('date', '=', date(2024, 1, 5)).optimize(model) == in_jan_5
+    assert Domain('date', '=', datetime(2024, 1, 5, 12, 0, 0)).optimize(
+        model) == in_jan_5
+    assert Domain('date', '=', '2024-01-05').optimize(model) == in_jan_5
+    assert Domain('date', '=like', '2024%').optimize(model) == Domain(
+        'date', '=like', '2024%')
+    assert Domain('date', '>', '2024-01-01').optimize(model) == Domain(
+        'date', '>', date(2024, 1, 1))
+    assert Domain('date', '>', False).optimize(model) == Domain.FALSE
+    assert Domain('date', 'not in', ['2024-01-05', date(2023, 1, 1)]).optimize(
+        model) == Domain('date', 'not in', OrderedSet(
+            [date(2024, 1, 5), date(2023, 1, 1)]))
+    with pytest.raises(ValueError):
+        Domain('date', '>', 'hello').optimize(model)
+    # ≙ freeze_time('2024-01-05 13:05:00'): ver frozen_now
+    domain = Domain('date', '>', 'today')
+    assert domain.optimize(model) == domain
+    assert domain.optimize_full(model) == Domain(
+        'date', '>', date(2024, 1, 5))
+    assert Domain('date', '>', '+12H').optimize_full(model) == Domain(
+        'date', '>', date(2024, 1, 6))
+    assert list(Domain('date', '=', 'today').optimize_full(
+        model).value) == [date(2024, 1, 5)]
+
+
+def test_condition_optimize_datetime(model, frozen_now):
+    with context_scope(tz='UTC'):
+        jan_5 = (Domain('moment', '<', datetime(2024, 1, 5, second=1))
+                 & Domain('moment', '>=', datetime(2024, 1, 5)))
+        assert Domain('moment', '=', date(2024, 1, 5)).optimize(
+            model) == jan_5
+        assert Domain('moment', '=', '2024-01-05').optimize(model) == jan_5
+        assert Domain('moment', '=like', '2024%').optimize(model) == Domain(
+            'moment', '=like', '2024%')
+        assert Domain('moment', '>', '2024-01-01 10:00:00').optimize(
+            model) == Domain('moment', '>=', datetime(2024, 1, 1, 10, second=1))
+        assert Domain('moment', '>', '2024-01-01').optimize(model) == Domain(
+            'moment', '>=', datetime(2024, 1, 2))
+        assert Domain('moment', '<', '2024-01-01').optimize(model) == Domain(
+            'moment', '<', datetime(2024, 1, 1))
+        assert Domain('moment', '<=', '2024-01-01').optimize(model) == Domain(
+            'moment', '<', datetime(2024, 1, 2))
+        assert Domain('moment', '>', False).optimize(model) == Domain.FALSE
+        assert Domain('moment', 'not in', [
+            '2024-01-05', datetime(2023, 1, 1)]).optimize(model) == (
+            Domain('moment', 'in', OrderedSet([False]))
+            | Domain('moment', '<', datetime(2024, 1, 5))
+            | Domain('moment', '>=', datetime(2024, 1, 5, second=1))
+        ) & (
+            Domain('moment', 'in', OrderedSet([False]))
+            | Domain('moment', '<', datetime(2023, 1, 1))
+            | Domain('moment', '>=', datetime(2023, 1, 1, second=1))
+        )
+        with pytest.raises(ValueError):
+            Domain('moment', '>', 'hello').optimize(model)
+        # ≙ freeze_time('2024-01-05 13:05:00'): ver frozen_now
+        domain = Domain('moment', '>=', 'today')
+        assert domain.optimize(model) == domain
+        assert domain.optimize_full(model) == Domain(
+            'moment', '>=', datetime(2024, 1, 5))
+        assert Domain('moment', '>=', '+12H').optimize_full(
+            model) == Domain('moment', '>=', datetime(2024, 1, 6, 1, 5))
