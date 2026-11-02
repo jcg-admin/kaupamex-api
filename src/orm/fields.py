@@ -2029,6 +2029,28 @@ class StoredMany2oneIdDescriptor(FieldDescriptor):
         if value is False:
             value = None
         super().__set__(instance, value)
+        # ``record.company_id = x`` es ``write`` en la fuente, y ``write``
+        # comprueba la empresa cuando el modelo declara ``_check_company_auto``
+        # (``odoo19c: odoo/orm/models.py``, ``BaseModel.write``). Sólo sobre
+        # una fila ya guardada: construir no es asignar.
+        if (getattr(type(instance), '_check_company_auto', False)
+                and not instance.__dict__.get('_orm_building')
+                and not instance.__dict__.get(WRITING_VALUES)
+                and _is_saved_record(instance)):
+            instance._check_company([self.field.name])
+
+
+#: Marca de instancia: ``BaseModel.write`` está repartiendo sus valores y
+#: comprobará la empresa al guardar, no en cada asignación.
+WRITING_VALUES = '_orm_writing_values'
+
+
+def _is_saved_record(instance):
+    """Una fila o un recordset nativo con identidad en la base."""
+    ids = getattr(instance, '_ids', None)
+    if ids:
+        return all(ids)
+    return instance.__dict__.get(instance._meta.pk.attname) is not None
 
 
 def _install_field_descriptor(field, cls):

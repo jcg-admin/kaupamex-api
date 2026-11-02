@@ -9,7 +9,10 @@ y quedan fuera de este porte: ``res.users`` todavía no deriva de ``BaseModel``
 (TASK-API-0397). ``test_check_company_write_performance`` cuenta consultas de
 la fuente y tampoco se porta aquí.
 
-**Adaptación declarada:** ``res.company`` se crea con su manager de Django,
+**Adaptaciones declaradas:** ``assertRaises`` de ``TransactionCase`` deshace
+la escritura rechazada con un savepoint; aquí lo hace el fixture
+``assert_raises`` del ``conftest`` (``odoo/tests/common.py:502``).
+``res.company`` se crea con su manager de Django,
 porque su ``create`` sigue devolviendo ``QuerySet`` (H-API-1123); los modelos
 de ``test_orm`` se crean con ``env[...].create``, como en la fuente.
 """
@@ -21,14 +24,6 @@ from exceptions import UserError
 from orm.commands import Command
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]
-
-#: Mitad roja persistida: ``Command`` es imperativo en este árbol
-#: (``orm/commands.py``) y la fuente lo usa como valor diferido,
-#: ``Command.link(id)`` → ``(4, id, 0)``. Sucesor: TASK-API-0190 (H-API-589).
-#: ``strict=True`` hace fallar el caso el día que el contrato se cumpla.
-needs_declarative_command = pytest.mark.xfail(
-    strict=True, raises=TypeError,
-    reason='Command declarativo: TASK-API-0190')
 
 
 @pytest.fixture
@@ -54,7 +49,6 @@ def test_check_company_auto(env, companies):
     assert child._check_company_auto
 
 
-@needs_declarative_command
 def test_company_and_same_company(env, companies, parents):
     env['test_orm.model_child'].create({
         'name': 'M1',
@@ -64,7 +58,6 @@ def test_company_and_same_company(env, companies, parents):
     })
 
 
-@needs_declarative_command
 def test_company_and_different_company(env, companies, parents):
     with pytest.raises(UserError):
         env['test_orm.model_child'].create({
@@ -81,7 +74,6 @@ def test_company_and_different_company(env, companies, parents):
         })
 
 
-@needs_declarative_command
 def test_company_and_no_company(env, companies, parents):
     env['test_orm.model_child'].create({
         'name': 'M1',
@@ -91,7 +83,6 @@ def test_company_and_no_company(env, companies, parents):
     })
 
 
-@needs_declarative_command
 def test_no_company_and_no_company(env, parents):
     env['test_orm.model_child'].create({
         'name': 'M1',
@@ -101,7 +92,6 @@ def test_no_company_and_no_company(env, parents):
     })
 
 
-@needs_declarative_command
 def test_no_company_and_some_company(env, parents):
     with pytest.raises(UserError):
         env['test_orm.model_child'].create({
@@ -126,8 +116,7 @@ def test_no_company_check(env, companies, parents):
     })
 
 
-@needs_declarative_command
-def test_company_write(env, companies, parents):
+def test_company_write(env, companies, parents, assert_raises):
     company_a, company_b, _ = companies
     child = env['test_orm.model_child'].create({
         'name': 'M1',
@@ -136,11 +125,11 @@ def test_company_write(env, companies, parents):
         'parent_ids': [Command.link(parents[1].id)],
     })
 
-    with pytest.raises(UserError):
+    with assert_raises(UserError, child):
         child.company_id = company_b.id
-    with pytest.raises(UserError):
+    with assert_raises(UserError, child):
         child.parent_id = parents[2].id
-    with pytest.raises(UserError):
+    with assert_raises(UserError, child):
         child.parent_ids = [Command.link(parents[2].id)]
 
     child.write({

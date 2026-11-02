@@ -12,63 +12,161 @@ manager* de Django.
 
 
 class Command:
-    """Operaciones one2many/many2many (Odoo ``Command``)."""
+    """Operaciones one2many/many2many — ≙ ``odoo19c: odoo/orm/commands.py``.
+
+    **Las dos formas conviven, y la aridad las distingue.** La fuente es un
+    ``IntEnum`` cuyos métodos devuelven el triple diferido
+    ``(código, id, valores)`` que ``create``/``write`` interpretan:
+    ``Command.link(7)`` es ``(4, 7, 0)``. Este árbol nació con una forma
+    **ejecutiva** —``Command.link(manager, obj)`` escribe al llamarla— y la
+    usan ``stock`` (``clear(manager)``, ``delete(obj)``, ``update(obj,
+    **vals)``). Cada método mira lo que recibe: un id, una lista de ids, un
+    ``dict`` o nada es la forma de la fuente; un manager o una fila es la
+    ejecutiva. :func:`apply_many2many_commands` interpreta los triples.
+    """
+
+    CREATE = 0
+    UPDATE = 1
+    DELETE = 2
+    UNLINK = 3
+    LINK = 4
+    CLEAR = 5
+    SET = 6
 
     @staticmethod
-    def create(manager, **values):
-        """``Command.create`` (0): crea y enlaza un hijo."""
+    def create(*args, **values):
+        """``(CREATE, 0, values)`` — o, ejecutivo, crea y enlaza un hijo."""
+        if len(args) == 1 and isinstance(args[0], dict) and not values:
+            return (Command.CREATE, 0, args[0])
+        (manager,) = args
         return manager.create(**values)
 
     @staticmethod
-    def link(manager, obj):
-        """``Command.link`` (4): enlaza un registro existente (m2m)."""
-        manager.add(obj)
+    def update(target, values=None, **kwargs):
+        """``(UPDATE, id, values)`` — o, ejecutivo, escribe sobre un hijo.
 
-    @staticmethod
-    def update(obj, **values):
-        """``Command.update`` (1): escribe campos sobre un hijo existente.
-
-        Era el único de los siete que faltaba. Lo pidió el porte de
+        La forma ejecutiva la pidió el porte de
         ``stock_move._set_quantity_done_prepare_vals``
-        (``odoo19c: addons/stock/models/stock_move.py:2490``), que reparte la
-        cantidad entre las líneas existentes actualizando unas y borrando
-        otras.
-
-        Como el resto de esta clase, es **ejecutivo**: escribe al llamarlo, en
-        vez de devolver una tupla que el ORM aplique después. Esa divergencia
-        es de la clase entera y está registrada en :ref:`h-api-589` (tarea
-        **#345**), no de este método.
+        (``odoo19c: addons/stock/models/stock_move.py:2490``).
         """
-        for campo, valor in values.items():
-            setattr(obj, campo, valor)
-        obj.save(
+        if _is_id(target):
+            return (Command.UPDATE, target, values if values is not None else kwargs)
+        if values is not None:
+            kwargs = {**values, **kwargs}
+        for campo, valor in kwargs.items():
+            setattr(target, campo, valor)
+        target.save(
             update_fields=(
-                [*values, 'updated_at']
-                if hasattr(obj, 'updated_at')
-                else list(values)
+                [*kwargs, 'updated_at']
+                if hasattr(target, 'updated_at')
+                else list(kwargs)
             )
         )
-        return obj
+        return target
 
     @staticmethod
-    def unlink(manager, obj):
-        """``Command.unlink`` (3): desenlaza sin borrar (m2m)."""
+    def delete(target):
+        """``(DELETE, id, 0)`` — o, ejecutivo, borra el hijo."""
+        if _is_id(target):
+            return (Command.DELETE, target, 0)
+        target.delete()
+
+    @staticmethod
+    def unlink(*args):
+        """``(UNLINK, id, 0)`` — o, ejecutivo, desenlaza sin borrar (m2m)."""
+        if len(args) == 1:
+            return (Command.UNLINK, args[0], 0)
+        manager, obj = args
         manager.remove(obj)
 
     @staticmethod
-    def delete(obj):
-        """``Command.delete`` (2): borra el hijo."""
-        obj.delete()
+    def link(*args):
+        """``(LINK, id, 0)`` — o, ejecutivo, enlaza un registro (m2m)."""
+        if len(args) == 1:
+            return (Command.LINK, args[0], 0)
+        manager, obj = args
+        manager.add(obj)
 
     @staticmethod
-    def set(manager, objs):
-        """``Command.set`` (6): reemplaza el conjunto (m2m)."""
+    def clear(*args):
+        """``(CLEAR, 0, 0)`` — o, ejecutivo, desenlaza todos (m2m)."""
+        if not args:
+            return (Command.CLEAR, 0, 0)
+        (manager,) = args
+        manager.clear()
+
+    @staticmethod
+    def set(*args):
+        """``(SET, 0, ids)`` — o, ejecutivo, reemplaza el conjunto (m2m)."""
+        if len(args) == 1:
+            return (Command.SET, 0, list(args[0]))
+        manager, objs = args
         manager.set(objs)
 
-    @staticmethod
-    def clear(manager):
-        """``Command.clear`` (5): desenlaza todos (m2m)."""
+
+def _is_id(value):
+    """Un identificador de fila de la fuente: ``int`` que no sea ``bool``."""
+    return type(value) is int
+
+
+def is_command_list(value):
+    """``True`` si ``value`` es una lista de triples de comando de la fuente."""
+    return (isinstance(value, (list, tuple)) and bool(value)
+            and all(isinstance(item, (list, tuple)) and len(item) == 3
+                    and type(item[0]) is int for item in value))
+
+
+def _row_id(value):
+    """El id de un elemento de un ``SET``: un entero o una fila/recordset."""
+    if _is_id(value):
+        return value
+    ids = getattr(value, '_ids', None)
+    if ids is not None:
+        return ids[0] if ids else None
+    return getattr(value, 'pk', value)
+
+
+def apply_many2many_commands(record, field, value):
+    """Aplica el valor x2many de la fuente sobre el manager de un ``Many2many``.
+
+    ≙ ``Many2many.write_real`` (``odoo19c: odoo/orm/fields_relational.py``):
+    los siete comandos, más las dos abreviaturas que ``convert_to_cache``
+    admite —una lista de ids o de registros es ``SET`` y ``False``/``None``
+    es ``CLEAR``—. El manager de Django emite ``m2m_changed`` en cada
+    operación, que es donde vive el control de acceso de la relación.
+    """
+    manager = getattr(record, field.name)
+    if value is None or value is False:
         manager.clear()
+        return
+    if not is_command_list(value):
+        if isinstance(value, (list, tuple)):
+            manager.set([_row_id(item) for item in value if _row_id(item)])
+        else:
+            manager.set(value)
+        return
+    comodel = field.related_model
+    for code, target, payload in value:
+        if code == Command.CREATE:
+            created = (comodel.create(payload) if hasattr(comodel, 'create')
+                       else comodel.objects.create(**payload))
+            manager.add(_row_id(created))
+        elif code == Command.UPDATE:
+            row = comodel._base_manager.get(pk=target)
+            row.write(payload)
+        elif code == Command.DELETE:
+            manager.remove(target)
+            comodel._base_manager.filter(pk=target).delete()
+        elif code == Command.UNLINK:
+            manager.remove(target)
+        elif code == Command.LINK:
+            manager.add(target)
+        elif code == Command.CLEAR:
+            manager.clear()
+        elif code == Command.SET:
+            manager.set([_row_id(item) for item in payload if _row_id(item)])
+        else:
+            raise ValueError(f'Comando x2many desconocido: {code!r}')
 
 
 # === Los tres valores diferidos del cargador de datos ======================
@@ -77,11 +175,9 @@ class Command:
 # la referencia cuando el converter de importación los produce
 # (``odoo19c: addons/base/models/ir_fields.py:657-740``).
 #
-# DIVERGENCIA DE FORMA, declarada: allá ``Command`` es a la vez el verbo
-# **ejecutivo** y el **valor diferido** que ``create``/``write`` interpretan.
-# El ``Command`` de arriba es sólo lo primero —escribe al llamarlo,
-# :ref:`h-api-589`, tarea **#345**—, así que el valor diferido necesita un
-# portador propio. Estos tres son ese portador, y nada más: no escriben; los
+# Los portadores que el cargador de datos produce. Nacieron cuando ``Command``
+# sólo era ejecutivo (:ref:`h-api-589`); hoy ``Command`` también devuelve el
+# triple de la fuente, pero el cargador sigue entregando estos tres y los
 # aplica ``orm.models.RecordLoaderMixin`` cuando el registro ya existe, que es
 # el momento en que Django admite tocar una relación de muchos.
 

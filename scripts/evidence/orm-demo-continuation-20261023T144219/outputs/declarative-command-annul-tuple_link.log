@@ -1,0 +1,90 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+..FFFFF.F..............F....F                                            [100%]
+=================================== FAILURES ===================================
+________________________ test_company_and_same_company _________________________
+tests/integration/test_orm/test_company_checks.py:65: in test_company_and_same_company
+    'parent_ids': [Command.link(parents[1].id)],
+src/orm/commands.py:85: in link
+    manager, obj = args
+E   ValueError: not enough values to unpack (expected 2, got 1)
+______________________ test_company_and_different_company ______________________
+tests/integration/test_orm/test_company_checks.py:80: in test_company_and_different_company
+    'parent_ids': [Command.link(parents[1].id),
+src/orm/commands.py:85: in link
+    manager, obj = args
+E   ValueError: not enough values to unpack (expected 2, got 1)
+_________________________ test_company_and_no_company __________________________
+tests/integration/test_orm/test_company_checks.py:90: in test_company_and_no_company
+    'parent_ids': [Command.link(parents[0].id)],
+src/orm/commands.py:85: in link
+    manager, obj = args
+E   ValueError: not enough values to unpack (expected 2, got 1)
+________________________ test_no_company_and_no_company ________________________
+tests/integration/test_orm/test_company_checks.py:99: in test_no_company_and_no_company
+    'parent_ids': [Command.link(parents[0].id)],
+src/orm/commands.py:85: in link
+    manager, obj = args
+E   ValueError: not enough values to unpack (expected 2, got 1)
+_______________________ test_no_company_and_some_company _______________________
+tests/integration/test_orm/test_company_checks.py:114: in test_no_company_and_some_company
+    'parent_ids': [Command.link(parents[0].id),
+src/orm/commands.py:85: in link
+    manager, obj = args
+E   ValueError: not enough values to unpack (expected 2, got 1)
+______________________________ test_company_write ______________________________
+tests/integration/test_orm/test_company_checks.py:133: in test_company_write
+    'parent_ids': [Command.link(parents[1].id)],
+src/orm/commands.py:85: in link
+    manager, obj = args
+E   ValueError: not enough values to unpack (expected 2, got 1)
+_______________ test_the_source_form_returns_the_deferred_triple _______________
+tests/unit/orm/test_command_declarative.py:18: in test_the_source_form_returns_the_deferred_triple
+    assert Command.link(7) == (4, 7, 0)
+src/orm/commands.py:85: in link
+    manager, obj = args
+E   ValueError: not enough values to unpack (expected 2, got 1)
+______________________ test_a_command_list_is_recognised _______________________
+tests/unit/orm/test_command_declarative.py:54: in test_a_command_list_is_recognised
+    assert is_command_list([Command.link(1), Command.unlink(2)])
+src/orm/commands.py:85: in link
+    manager, obj = args
+E   ValueError: not enough values to unpack (expected 2, got 1)
+=============================== warnings summary ===============================
+src/addons/test_orm/models/test_orm.py:47
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:47: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/integration/test_orm/test_create_recordset.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:133
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:133: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_json_field.py)
+    class TestOrmDiscussion(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:47
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:47: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/integration/test_orm/test_many2many_relation.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:133
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:133: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_many2many_relation.py)
+    class TestOrmDiscussion(TestOrmModel):
+
+tests/integration/test_orm/test_attributes.py::test_we_cannot_add_attributes
+tests/integration/test_orm/test_company_checks.py::test_check_company_auto
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/orm/fields.py:4245: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_attributes.py::test_we_cannot_add_attributes
+tests/integration/test_orm/test_company_checks.py::test_check_company_auto
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/orm/fields.py:4245: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_and_same_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_and_different_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_and_no_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_no_company_and_no_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_no_company_and_some_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_write
+FAILED tests/unit/orm/test_command_declarative.py::test_the_source_form_returns_the_deferred_triple
+FAILED tests/unit/orm/test_command_declarative.py::test_a_command_list_is_recognised
+8 failed, 21 passed, 8 warnings in 9.61s

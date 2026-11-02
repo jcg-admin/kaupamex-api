@@ -189,7 +189,7 @@ class One2many:
                                             cinco comandos no pasan por el
                                             campo: ``Command`` aqui es
                                             ejecutivo (:ref:`h-api-589`, tarea
-                                            **#345**)
+                                            **TASK-API-0190**)
     ``read``                                **divergencia de mecanismo** — la
                                             fuente llena su cache por lote; aqui
                                             la lectura es el manager del
@@ -410,10 +410,11 @@ class One2many:
         mismo camino con la lista vacia.
 
         Los otros cinco comandos —``CREATE``, ``UPDATE``, ``DELETE``,
-        ``UNLINK``, ``LINK``— no pasan por aqui: en este arbol ``Command`` es
-        **ejecutivo** (escribe al llamarlo) en vez de ser un valor diferido que
-        el ORM interpreta. Esa divergencia es de la clase entera y esta
-        registrada en :ref:`h-api-589` (tarea **#345**), no de este metodo.
+        ``UNLINK``, ``LINK``— no pasan por aqui. ``Command`` ya devuelve el
+        triple diferido de la fuente, pero sólo
+        :func:`~orm.commands.apply_many2many_commands` lo interpreta, y es
+        para ``Many2many``; la forma de triple sobre un ``One2many`` sigue
+        pendiente en TASK-API-0190 (:ref:`h-api-589`).
         """
         comodel, inverse = self._inverse_field()
         nuevos = list(value or ())

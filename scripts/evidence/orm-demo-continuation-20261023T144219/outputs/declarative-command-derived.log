@@ -1,0 +1,116 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+........................................................................ [  5%]
+........................................................................ [ 10%]
+........................................................................ [ 16%]
+........................................................................ [ 21%]
+........................................................................ [ 27%]
+........................................................................ [ 32%]
+........................................................................ [ 38%]
+........................................................................ [ 43%]
+........................................................................ [ 49%]
+........................................................................ [ 54%]
+........................................................................ [ 60%]
+........................................................................ [ 65%]
+...................................FFFFFF..........................F.... [ 71%]
+.........................................................F.............. [ 76%]
+........................................................................ [ 82%]
+........................................................................ [ 87%]
+........................................................................ [ 93%]
+................................................F....................... [ 98%]
+...............                                                          [100%]
+=================================== FAILURES ===================================
+_ TestTheRouterReadsTheResolvedStore.test_a_bare_store_false_has_no_column[Html] _
+tests/unit/orm/test_bare_store_false_declaration.py:42: in test_a_bare_store_false_has_no_column
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: Html
+E   assert False
+E    +  where False = isinstance(<orm.fields_textual.Html>, NonStored)
+_ TestTheRouterReadsTheResolvedStore.test_a_bare_store_false_has_no_column[Binary] _
+tests/unit/orm/test_bare_store_false_declaration.py:42: in test_a_bare_store_false_has_no_column
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: Binary
+E   assert False
+E    +  where False = isinstance(<orm.fields_binary.Binary>, NonStored)
+_ TestTheRouterReadsTheResolvedStore.test_a_bare_store_false_has_no_column[Image] _
+tests/unit/orm/test_bare_store_false_declaration.py:42: in test_a_bare_store_false_has_no_column
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: Image
+E   assert False
+E    +  where False = isinstance(<orm.fields_binary.Image>, NonStored)
+_ TestTheRouterReadsTheResolvedStore.test_a_bare_store_false_has_no_column[PropertiesDefinition] _
+tests/unit/orm/test_bare_store_false_declaration.py:42: in test_a_bare_store_false_has_no_column
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: PropertiesDefinition
+E   assert False
+E    +  where False = isinstance(<orm.fields_properties.PropertiesDefinition>, NonStored)
+_ TestTheRouterReadsTheResolvedStore.test_the_many_to_many_does_not_need_its_comodel _
+tests/unit/orm/test_bare_store_false_declaration.py:48: in test_the_many_to_many_does_not_need_its_comodel
+    field = fields.Many2many(store=False, compute='_compute_x')
+src/orm/fields_relational.py:686: in Many2many
+    field = _mark_check_company(field_class(*args, **kwargs), check_company)
+src/orm/fields.py:1121: in initialize
+    declared = dict(signature.bind(self, *args, **kwargs).arguments)
+/usr/local/lib/python3.13/inspect.py:3316: in bind
+    return self._bind(args, kwargs)
+/usr/local/lib/python3.13/inspect.py:3229: in _bind
+    raise TypeError(msg) from None
+E   TypeError: missing a required argument: 'to'
+_ TestTheRouterReadsTheResolvedStore.test_the_properties_field_has_no_column_either _
+tests/unit/orm/test_bare_store_false_declaration.py:55: in test_the_properties_field_has_no_column_either
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: Properties
+E   assert False
+E    +  where False = isinstance(<orm.fields_properties.Properties>, NonStored)
+_____________ TestFieldsRegistry.test_it_maps_concrete_field_names _____________
+tests/unit/orm/test_field_to_sql.py:117: in test_it_maps_concrete_field_names
+    assert set(definition._fields) == {
+E   AssertionError: assert {'created_at'...ield_id', ...} == {'created_at'... 'updated_at'}
+E     Extra items in the left set:
+E     'properties_field_id'
+E     Use -v to get more diff
+_ TestTheThirdConsumerAsksTheSameQuestion.test_the_count_over_a_fixed_population _
+tests/unit/orm/test_domain_in_required.py:560: in test_the_count_over_a_fixed_population
+    assert len(discrepan) == 27, (
+E   AssertionError: 119 discrepancias en base, se esperaban 27. Es evidencia fechada al portar #247; si cambia, se re-mide y se actualiza con su razón — no se relaja la aserción
+E   assert 119 == 27
+E    +  where 119 = len(['base.IrModuleCategory.display_name', 'base.IrModule.display_name', 'base.IrModuleDependency.display_name', 'base.IrModuleExclusion.display_name', 'base.ResGroupsPrivilege.display_name', 'base.ResDeviceLog.display_name', ...])
+___________ TestMixinContract.test_the_definition_link_has_no_column ___________
+tests/unit/base/test_properties_base_definition.py:211: in test_the_definition_link_has_no_column
+    assert isinstance(
+E   assert False
+E    +  where False = isinstance(<orm.fields.NonStoredMany2oneAccessor object at 0x7f20300d06e0>, NonStored)
+=============================== warnings summary ===============================
+src/addons/test_orm/models/test_orm.py:47
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:47: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/integration/test_orm/test_many2many_relation.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:133
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:133: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_many2many_relation.py)
+    class TestOrmDiscussion(TestOrmModel):
+
+tests/integration/auto_backup/test_backups.py::TestBackupEndpoints::test_list_anon_401
+tests/integration/auto_backup/test_backups.py::TestBackupEndpoints::test_list_buyer_403
+tests/unit/orm/test_unsaved_modified.py::test_cached_new_partner_label_is_invalidated_without_database
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/orm/fields.py:4245: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/auto_backup/test_backups.py::TestBackupEndpoints::test_list_anon_401
+tests/integration/auto_backup/test_backups.py::TestBackupEndpoints::test_list_buyer_403
+tests/unit/orm/test_unsaved_modified.py::test_cached_new_partner_label_is_invalidated_without_database
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/orm/fields.py:4245: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_a_bare_store_false_has_no_column[Html]
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_a_bare_store_false_has_no_column[Binary]
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_a_bare_store_false_has_no_column[Image]
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_a_bare_store_false_has_no_column[PropertiesDefinition]
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_the_many_to_many_does_not_need_its_comodel
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_the_properties_field_has_no_column_either
+FAILED tests/unit/orm/test_field_to_sql.py::TestFieldsRegistry::test_it_maps_concrete_field_names
+FAILED tests/unit/orm/test_domain_in_required.py::TestTheThirdConsumerAsksTheSameQuestion::test_the_count_over_a_fixed_population
+FAILED tests/unit/base/test_properties_base_definition.py::TestMixinContract::test_the_definition_link_has_no_column
+9 failed, 1302 passed, 8 warnings in 68.97s (0:01:08)
+EXIT=1

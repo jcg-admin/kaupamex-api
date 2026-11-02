@@ -82,10 +82,11 @@ from orm.environments import (
     context_scope, env, get_context, get_current_company, get_current_uid,
     get_current_user, get_transaction, is_su, sudo as elevate_privileges,
 )
-from orm.commands import ManyToManyLink, ManyToManySet, One2manyChild
+from orm.commands import (ManyToManyLink, ManyToManySet, One2manyChild,
+                          apply_many2many_commands, is_command_list)
 from orm import registry
 from orm.domains import Domain, to_q
-from orm.fields import (PENDING_INVERSE_FIELDS, FieldDescriptor,
+from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES, FieldDescriptor,
                         _field_cache_record_id,
                         convert_to_display_name, determine_inverse)
 from orm.fields_textual import Char
@@ -582,11 +583,10 @@ class DefaultGetMixin:
         # que un x2many salga como ``[(SET, 0, [2, 3])]`` y no como una lista
         # de ``LINK``. Aqui el par de conversion lo declaran los campos que lo
         # necesitan —``Properties`` y ``PropertiesDefinition``
-        # (``orm/fields_properties.py``)—, y el motivo x2many no se puede dar:
-        # nuestro ``Command`` es **ejecutivo**, escribe al llamarlo en vez de
-        # devolver una tupla, asi que un default de x2many nunca es una lista
-        # de comandos. Esa divergencia es de la clase entera y ya tiene su
-        # registro (:ref:`h-api-589`, tarea **#345**), no se abre aqui.
+        # (``orm/fields_properties.py``)—. El motivo x2many de la fuente sigue
+        # sin portarse: ``Command`` ya devuelve triples, pero un default de
+        # x2many no se normaliza aquí a ``[(SET, 0, ids)]`` (TASK-API-0190,
+        # :ref:`h-api-589`).
         instance = cls()
         for name, value in list(defaults.items()):
             try:
@@ -1013,7 +1013,13 @@ class DefaultGetMixin:
             if relational:
                 record._load_records_apply_relational(relational)
             for name, value in deferred.items():
-                getattr(record, name).set(value)
+                field = registry.get(name)
+                if getattr(field, 'many_to_many', False):
+                    # ≙ ``Many2many.write_real``: los triples de ``Command``
+                    # y sus abreviaturas (TASK-API-0190).
+                    apply_many2many_commands(record, field, value)
+                else:
+                    getattr(record, name).set(value)
             data['record'] = record
             ids.append(record.pk)
 
@@ -1649,7 +1655,7 @@ class CopyMixin:
         porque su ``Command.create`` es una tupla que el ORM aplica después.
 
         Aquí no puede vivir dentro: nuestro ``Command`` es **ejecutivo**
-        —escribe al llamarlo (:ref:`h-api-589`, tarea **#345**)— y Django
+        —escribe al llamarlo (:ref:`h-api-589`, tarea **TASK-API-0190**)— y Django
         exige la fila del padre antes de poder colgarle un hijo. Así que el
         paso se separa y corre **después** del alta, con el padre ya con ``pk``.
         El efecto es el mismo que el de la fuente: los hijos se duplican *"using
@@ -2459,12 +2465,30 @@ class RecordLoaderMixin(FieldSqlMixin):
             # junto a los asignados pero que nadie asignó: dentro del alcance
             # de protección ya no se computarían.
             self._recompute_recordset(to_compute)
+        many2many = self._pop_many2many_values(values)
         values, relational = self._load_records_split_relational(values)
         values = self._load_records_coerce_vals(values)
         with env().protecting(protected, self):
+            if many2many:
+                # La fila ya existe, así que la relación se escribe ANTES de
+                # guardar: la comprobación de empresa de ``save`` ve entonces
+                # todos los valores nuevos a la vez, como en la fuente.
+                registry_ = model_field_registry(type(self))
+                for fname, value in many2many.items():
+                    apply_many2many_commands(self, registry_[fname], value)
+                if not values and getattr(type(self), '_check_company_auto', False):
+                    self._check_company(list(many2many))
             if values:
-                for fname, value in values.items():
-                    setattr(self, fname, value)
+                # La fuente escribe todos los valores y comprueba la empresa
+                # una vez (``BaseModel.write``); la comprobación de la
+                # asignación suelta (``StoredMany2oneIdDescriptor``) se
+                # suspende mientras dure este reparto.
+                self.__dict__[WRITING_VALUES] = True
+                try:
+                    for fname, value in values.items():
+                        setattr(self, fname, value)
+                finally:
+                    self.__dict__.pop(WRITING_VALUES, None)
                 # ``update_fields`` sólo admite lo que Django sabe escribir:
                 # su propio ``Model.save`` valida contra este conjunto y lanza
                 # *"The following fields do not exist in this model, are m2m
@@ -2485,6 +2509,30 @@ class RecordLoaderMixin(FieldSqlMixin):
             for fields in determine_inverses.values():
                 fields[0].determine_inverse(self)
         return self
+
+    def _pop_many2many_values(self, values):
+        """Retira de ``values`` los ``Many2many`` escritos en la forma de la fuente.
+
+        Una lista de triples de ``Command``, una lista de ids o ``False`` no se
+        pueden asignar sobre el lado directo de un muchos-a-muchos de Django;
+        se aplican tras guardar la fila con :func:`apply_many2many_commands`.
+        Los portadores diferidos del cargador (``ManyToManySet``,
+        ``ManyToManyLink``) siguen su camino propio.
+        """
+        registry_ = model_field_registry(type(self))
+        popped = {}
+        for fname in list(values):
+            field = registry_.get(fname)
+            value = values[fname]
+            # El lado directo: un ``ManyToManyField`` (nunca ``concrete`` en
+            # Django, que no tiene columna); el inverso es un ``ManyToManyRel``.
+            if (isinstance(field, ManyToManyField)
+                    and not isinstance(value, (ManyToManySet, ManyToManyLink))
+                    and (value is False or value is None
+                         or is_command_list(value)
+                         or isinstance(value, (list, tuple)))):
+                popped[field.name] = values.pop(fname)
+        return popped
 
     def _warm_x2many_before_inverse(self, determine_inverses):
         """Deja en caché el valor actual de un x2many antes de escribirlo.
@@ -2695,7 +2743,7 @@ class RecordLoaderMixin(FieldSqlMixin):
         Es la contraparte de la divergencia que ``ir_fields`` declara: la
         fuente devuelve ``Command`` diferidos y su ``write`` los interpreta; el
         ``Command`` de este árbol es ejecutivo (:ref:`h-api-589`, tarea
-        **#345**), así que el valor viaja en
+        **TASK-API-0190**), así que el valor viaja en
         :class:`~orm.commands.ManyToManySet`,
         :class:`~orm.commands.ManyToManyLink` y
         :class:`~orm.commands.One2manyChild`, y es aquí donde se aparta.
@@ -4445,6 +4493,35 @@ def _run_ondelete_on_delete(sender, instance, **_ignored):
 
 
 Model._add_precomputed_values = _add_precomputed_values
+
+
+_DJANGO_MANY2MANY_SET = _related_descriptors.ManyToManyDescriptor.__set__
+
+
+def _many2many_descriptor_set(self, instance, value):
+    """Asignar un ``Many2many`` es escribirlo — ≙ ``Field.__set__`` (``:1807``).
+
+    En la fuente ``record.tag_ids = [Command.link(7)]`` llama a
+    ``records.write({name: value})``. Django prohíbe la asignación directa
+    sobre el lado directo de un muchos-a-muchos (``TypeError``); aquí, sobre
+    una fila ya guardada que sabe escribirse, se entrega a ``write``, que
+    interpreta los comandos y comprueba la empresa. El lado inverso y la fila
+    sin guardar conservan la conducta de Django.
+    """
+    if not self.reverse and hasattr(instance, 'write') and _saved(instance):
+        instance.write({self.field.name: value})
+        return
+    _DJANGO_MANY2MANY_SET(self, instance, value)
+
+
+def _saved(instance):
+    ids = getattr(instance, '_ids', None)
+    if ids:
+        return all(ids)
+    return instance.__dict__.get(instance._meta.pk.attname) is not None
+
+
+_related_descriptors.ManyToManyDescriptor.__set__ = _many2many_descriptor_set
 Model._validate_fields = _validate_fields
 Model._run_ondelete_checks = _run_ondelete_checks
 

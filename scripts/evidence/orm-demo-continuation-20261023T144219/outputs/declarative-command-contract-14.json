@@ -1,0 +1,37 @@
+{
+ "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+ "reference_symbol": "odoo19c:odoo/orm/commands.py Command; fields_relational.py Many2many.write_real; models.py BaseModel.write _check_company; tests/common.py:502 _assertRaises",
+ "behavior": "Command methods return the deferred (code, id, values) triple; create/write/assignment interpret them for Many2many; assignment is write and checks company; write checks company once over all new values",
+ "execution_flow": "Command.link(id) -> (4,id,0) -> create deferred / write _pop_many2many_values -> apply_many2many_commands -> manager add/remove/set/clear -> save -> _check_company",
+ "inputs_outputs": "reference test_company_checks create/write cases pass (6 former xfails); executive form Command.link(manager,obj) still acts",
+ "side_effects": "ManyToManyDescriptor forward __set__ on a saved writable row becomes write (was TypeError); StoredMany2oneIdDescriptor checks company on standalone assignment of _check_company_auto models",
+ "dependencies": [
+  "TASK-API-0190 (owner VM-x2hokp)",
+  "H-API-589",
+  "api@4ceb8a7 False Many2one as NULL"
+ ],
+ "consumers": "ir_actions.py and tools/convert.py already called the source form (previously TypeError); stock keeps executive form",
+ "installed_mechanism": "orm.commands.Command dual dispatch, is_command_list, apply_many2many_commands; RecordLoaderMixin._pop_many2many_values; WRITING_VALUES marker; ManyToManyDescriptor.__set__ patch",
+ "existing_adaptation": "ManyToManySet/ManyToManyLink/One2manyChild loader carriers unchanged",
+ "verification": {
+  "test_orm": "declarative-command-7.log 23 PASS",
+  "annulments": "tuple form 8 FAIL (6 company + 2 unit); create interpreter 6 FAIL; assignment-as-write 1; assignment check 1; write suspension 1",
+  "derived": "declarative-command-derived.log vs declarative-command-baseline.log: same 9 inherited failures, 1302 vs 1290 PASS"
+ },
+ "equivalence": "Many2many commands equivalent; One2many triples not interpreted",
+ "limitations": [
+  "One2many command triples rejected/not interpreted",
+  "x2many default not normalized to [(SET,0,ids)]",
+  "Odoo assertRaises savepoint reproduced by test fixture"
+ ],
+ "integration": "no merge; acceptance not_verified",
+ "source_sha256": {
+  "src/orm/commands.py": "0ce2ea93e7969882997267f5bf908b506b7d6aed980f0a60079ade8daf2966bb",
+  "src/orm/models.py": "5600dc7af3aeac31199aca27545fa36ab6550c4a3adaa8ed9c566a623306219d",
+  "src/orm/fields.py": "2dcdf004985567811da99278b9916b0576be5721fcd2a79181acfdbc80ca7ccb",
+  "src/orm/fields_relational.py": "8a0348989ceb076b1daa7c5cea243b22d39d0ef938cbfe3ce38685b2db27ad62",
+  "tests/integration/test_orm/test_company_checks.py": "3440889490940eda7a8ffc71aefe006a8e50e16e99930bb4ca7bb60d310db3a4",
+  "tests/integration/test_orm/conftest.py": "2d94f36e49406b86cbcede479d1b53c5f6a78ea0b7ad5db51feb5eaa58b828cd",
+  "tests/unit/orm/test_command_declarative.py": "1072a10bf2b21148be29ca7034d458419769ab54e328afb65cc7aa2b749524e9"
+ }
+}
