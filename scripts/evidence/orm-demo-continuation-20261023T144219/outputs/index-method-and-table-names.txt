@@ -1,0 +1,18 @@
+Unidad: porte de odoo19c test_orm/tests/test_index_method.py (odoo-tools@abe4040ec1)
+Fecha: 2026-11-02T21:33:58
+
+RED: relation "test_orm_category" does not exist — _table (de _name) no coincidía
+con Meta.db_table de Django en 12 modelos de test_orm (check_table_matches_name).
+GREEN: Meta.db_table = _name.replace('.', '_') en los 12; migración 0009.
+  tests/integration/test_orm/ -> 57 passed, test_index_method incluido.
+Anulación: stale = False en Registry.check_indexes ->
+  FAILED test_index_method.py::test_index_rebuilt_when_method_changes
+  1 failed, 77 passed (test_orm/ + tests/unit/orm/test_registry_schema_axis.py)
+Divergencia: res.partner.ref no existe en el Consumer; el caso usa
+  test_orm.category.parent_path (Char index=True).
+
+Many2many con tabla de modelo (api@486dca4):
+  test_many2many.py 3 passed.
+  sin through explícito: 3 errors (NotNullViolation created_at en test_orm_crew)
+  sin QuerySet en ANY_TYPES: sólo test_not_in_relation_as_query
+  sin descriptor de browse: sólo test_both_relations_share_the_crew_table

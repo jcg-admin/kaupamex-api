@@ -130,6 +130,9 @@ class TestOrmCategory(TestOrmModel):
             raise AccessError(msg)
         return super()._fetch_query(query, fields)
 
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_category'
+
 
 class TestOrmDiscussion(TestOrmModel):
     """≙ ``:88``."""
@@ -224,6 +227,9 @@ class TestOrmDiscussion(TestOrmModel):
 # ``_fields`` responden también.
 # ---------------------------------------------------------------------------
 
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_discussion'
+
 
 class TestOrmModelParent(TestOrmModel):
     """≙ ``test_orm.model_parent``."""
@@ -233,6 +239,9 @@ class TestOrmModelParent(TestOrmModel):
 
     name = fields.Char()
     company = fields.Many2one('res.company', null=True, related_name='+')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_model_parent'
 
 
 class TestOrmModelChild(TestOrmModel):
@@ -250,6 +259,9 @@ class TestOrmModelChild(TestOrmModel):
     parent_ids = fields.Many2many(
         'test_orm.model_parent', string="Parents", check_company=True,
         related_name='+')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_model_child'
 
 
 class TestOrmModelChildNocheck(TestOrmModel):
@@ -272,6 +284,9 @@ class TestOrmModelChildNocheck(TestOrmModel):
 # opcionales como en la fuente (H-API-1122).
 # ---------------------------------------------------------------------------
 
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_model_child_nocheck'
+
 
 class TestOrmCountry(TestOrmModel):
     """≙ ``test_orm.country``."""
@@ -281,6 +296,9 @@ class TestOrmCountry(TestOrmModel):
     _order = 'name, id'
 
     name = fields.Char()
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_country'
 
 
 class TestOrmCity(TestOrmModel):
@@ -295,6 +313,9 @@ class TestOrmCity(TestOrmModel):
     # ``NOT NULL`` por omisión (H-API-1125).
     name = fields.Char(null=True)
     country = fields.Many2one('test_orm.country', null=True, related_name='+')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_city'
 
 
 class TestOrmModelActiveField(TestOrmModel):
@@ -318,6 +339,9 @@ class TestOrmModelActiveField(TestOrmModel):
         'test_orm.model_active_field',
         'model_active_field_relatives_rel', 'source_id', 'dest_id',
     )
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_model_active_field'
 
 
 class TestOrmAutovacuumed(TestOrmModel):
@@ -349,6 +373,9 @@ class TestOrmAutovacuumed(TestOrmModel):
 # some of the many2one fields can be NULL"*.
 # ---------------------------------------------------------------------------
 
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_autovacuumed'
+
 
 class TestOrmCrew(TestOrmModel):
     """≙ ``test_orm.crew``."""
@@ -377,6 +404,9 @@ class TestOrmShip(TestOrmModel):
     prisoner_ids = fields.Many2many(
         'test_orm.prisoner', 'test_orm_crew', 'ship_id', 'prisoner_id')
 
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_ship'
+
 
 class TestOrmPirate(TestOrmModel):
     """≙ ``test_orm.pirate``."""
@@ -388,6 +418,9 @@ class TestOrmPirate(TestOrmModel):
     ship_ids = fields.Many2many(
         'test_orm.ship', 'test_orm_crew', 'pirate_id', 'ship_id')
 
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_pirate'
+
 
 class TestOrmPrisoner(TestOrmModel):
     """≙ ``test_orm.prisoner``."""
@@ -398,3 +431,6 @@ class TestOrmPrisoner(TestOrmModel):
     name = fields.Char('Name', null=True)
     ship_ids = fields.Many2many(
         'test_orm.ship', 'test_orm_crew', 'prisoner_id', 'ship_id')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_prisoner'
