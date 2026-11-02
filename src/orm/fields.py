@@ -4895,13 +4895,12 @@ def recompute(self, records):
                 get_environment().remove_to_compute(field, [record.pk])
 
     if self.recursive:
-        # Un calculado recursivo se computa fila a fila, para que sus
-        # dependencias internas se resuelvan en orden. Aquí el no-recursivo
-        # también va fila a fila (divergencia 1 del docstring), así que las
-        # dos ramas coinciden; la condición se conserva porque es donde
-        # aterriza el lote cuando #306 lo construya.
+        # Un callback recursivo puede consumir otra fila de este lote.
+        # La pertenencia se comprueba en la misma cola viva de la fuente.
+        # Las filas Django no recursivas conservan su contrato por fila.
         for record in pending:
-            apply_except_missing(record)
+            if record.pk in to_compute_ids:
+                apply_except_missing(record)
         return
 
     for record in pending:
