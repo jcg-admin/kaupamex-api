@@ -8,6 +8,7 @@ pendiente: el resto de ``TestDomain`` (``_search`` con complemento, fechas,
 """
 
 from datetime import date, datetime
+from itertools import combinations
 
 import pytest
 
@@ -322,3 +323,50 @@ def test_not_optimize():
 def test_nary_build():
     assert ~(NUMBER_DOMAIN & NUMBER_DOMAIN) == ~NUMBER_DOMAIN | ~NUMBER_DOMAIN
     assert ~(NUMBER_DOMAIN | NUMBER_DOMAIN) == ~NUMBER_DOMAIN & ~NUMBER_DOMAIN
+
+
+# ---------------------------------------------------------------------------
+# ``TestDomainOptimize`` (``:780-990``), casos sobre campos ya portados.
+# ---------------------------------------------------------------------------
+
+
+def test_nary_optimize_in(model):
+    def domain(op, values):
+        if not values:
+            return Domain.FALSE if op == 'in' else Domain.TRUE
+        return Domain('number', op, values)
+
+    set123 = OrderedSet([1, 2, 3])
+    set345 = OrderedSet([3, 4, 5])
+    set910 = OrderedSet([9, 10])
+    sets = [set123, set345, set910, OrderedSet()]
+    for a, b in (list(combinations(sets, 2))
+                 + list(combinations(reversed(sets), 2))):
+        assert (domain('in', a) | domain('in', b)).optimize(model) == domain(
+            'in', a | b), f'in: {a} | {b}'
+        assert (domain('in', a) & domain('in', b)).optimize(model) == domain(
+            'in', a & b), f'in: {a} & {b}'
+        assert (domain('not in', a) | domain('not in', b)).optimize(
+            model) == domain('not in', a & b), f'not in {a} | not in {b}'
+        assert (domain('not in', a) & domain('not in', b)).optimize(
+            model) == domain('not in', a | b), f'not in {a} & not in {b}'
+        assert (domain('in', a) | domain('not in', b)).optimize(
+            model) == domain('not in', b - a), f'in {a} | not in {b}'
+        assert (domain('in', a) & domain('not in', b)).optimize(
+            model) == domain('in', a - b), f'in {a} & not in {b}'
+    assert (domain('in', set123) | domain('not in', set910)
+            | domain('in', set345)).optimize(model) == domain(
+        'not in', set910)
+    assert (domain('in', set123) & domain('not in', set345)
+            & domain('in', [1])).optimize(model) == domain(
+        'in', OrderedSet([1]))
+    assert (~(domain('in', set123) | domain('in', set345))).optimize(
+        model) == domain('not in', set123 | set345)
+    assert (~(domain('in', set123) & domain('in', set345))).optimize(
+        model) == domain('not in', set123 & set345)
+    assert isinstance((Domain('number', 'in', [1]) | Domain(
+        'number', 'in', [2])).optimize(model).value, OrderedSet)
+
+
+def test_nary_optimize_same(model):
+    assert (NUMBER_DOMAIN & NUMBER_DOMAIN).optimize(model) == NUMBER_DOMAIN
