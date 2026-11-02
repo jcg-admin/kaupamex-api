@@ -13,13 +13,14 @@ cualquier censo de nombres y falla aquí, que es exactamente para lo que
 existen.
 """
 
+import datetime
 import itertools
 
 import fields
 import models
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from orm.models import BaseModel
-from api import depends, onchange
+from api import autovacuum, depends, onchange
 from exceptions import AccessError
 
 
@@ -317,3 +318,24 @@ class TestOrmModelActiveField(TestOrmModel):
         'test_orm.model_active_field',
         'model_active_field_relatives_rel', 'source_id', 'dest_id',
     )
+
+
+class TestOrmAutovacuumed(TestOrmModel):
+    """≙ ``test_orm.autovacuumed`` (``odoo19c: odoo/addons/test_orm/models/
+    test_orm.py:2437``): dos métodos ``@api.autovacuum`` sobre el recordset.
+    """
+
+    _name = 'test_orm.autovacuumed'
+    _description = 'test_orm.autovacuumed'
+
+    expire_at = fields.Datetime('Expires at', null=True)
+
+    @autovacuum
+    def _gc_simple(self):
+        self.search([('expire_at', '<', datetime.datetime.now() - datetime.timedelta(days=1))]).unlink()
+
+    @autovacuum
+    def _gc_proper(self, limit=5):
+        records = self.search([('expire_at', '<', datetime.datetime.now() - datetime.timedelta(days=1))], limit=limit)
+        records.unlink()
+        return len(records), len(records) == limit

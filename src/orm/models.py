@@ -4986,6 +4986,36 @@ class BaseModel(DefaultGetMixin, Model):
             records = records[offset:(offset + limit) if limit else None]
         return records
 
+    @api.private
+    def unlink(self):
+        """Borra los registros de ``self`` — ≙ ``unlink`` (``odoo19c:
+        odoo/orm/models.py``, ``BaseModel.unlink``).
+
+        Mismos pasos que la fuente: ACL de borrado; los cómputos pendientes
+        de estas filas se descartan; se vuelca lo pendiente; se borra; y se
+        invalida **toda** la caché, porque —dice la fuente— *"the orm does
+        not handle all changes made in the database, like cascading
+        delete"*.
+
+        **Divergencia de mecanismo:** el ``DELETE`` lo emite el ``Collector``
+        de Django (``QuerySet.delete``). Su ``pre_delete`` corre las
+        comprobaciones ``@api.ondelete`` (:func:`_run_ondelete_checks`) y las
+        cascadas de ``on_delete``, que aquí sustituyen al ``ON DELETE`` de las
+        claves de la fuente. La limpieza de ``ir.model.data`` y
+        ``ir.attachment`` sigue en manos de sus propios receptores de borrado.
+        """
+        if not self:
+            return True
+        rows = AccessQuerySet(model=type(self)).filter(pk__in=self.ids)
+        rows.check_access('unlink')
+        environment = env()
+        for field in set(model_field_registry(type(self)).values()):
+            environment.remove_to_compute(field, self.ids)
+        environment.flush_all()
+        rows.delete()
+        environment.invalidate_all(flush=False)
+        return True
+
     @classmethod
     def search(cls, domain, offset=0, limit=None, order=None):
         """Los registros que cumplen ``domain`` — ≙ ``search`` (``:1363``).

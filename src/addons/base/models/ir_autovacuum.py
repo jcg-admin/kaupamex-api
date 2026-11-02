@@ -75,11 +75,42 @@ from django.db import transaction
 
 from addons.base.models.ir_cron import IrCron
 from orm.decorators import autovacuum
-from orm.environments import get_context
+from orm.environments import env, get_context
+from orm.models import BaseModel
 from orm.registry import signaling_table_names
 from tools.sql import SQL
 
 _logger = logging.getLogger(__name__)
+
+
+def _call_vacuum_method(model, func):
+    """Invoca un método ``@autovacuum`` como lo hace la fuente.
+
+    La fuente llama ``func(self.env[model])``: el método recibe el recordset
+    vacío del modelo y busca sobre él (``test_orm.autovacuumed._gc_simple``
+    hace ``self.search(...).unlink()``). Un modelo de :class:`BaseModel`
+    recibe aquí ese mismo recordset vacío; los ``classmethod`` del resto del
+    árbol llegan ya ligados a su clase y se invocan sin argumento.
+
+    Un método de instancia de un modelo que no es de ``BaseModel`` recibe la
+    **clase**, que es lo que este árbol usa como «el modelo» (sus
+    ``classmethod`` la reciben igual). Antes se llamaba sin argumento y
+    levantaba ``TypeError``: ``IrActionsServerHistory._gc_histories`` nunca
+    corría desde el cron.
+    """
+    if inspect.ismethod(func) or not _takes_self(func):
+        return func()
+    if isinstance(model, type) and issubclass(model, BaseModel):
+        return func(model._from_ids(env(), (), ()))
+    return func(model)
+
+
+def _takes_self(func):
+    """``True`` si la función declara un primer parámetro posicional."""
+    parameters = list(inspect.signature(func).parameters.values())
+    return bool(parameters) and parameters[0].kind in (
+        inspect.Parameter.POSITIONAL_ONLY,
+        inspect.Parameter.POSITIONAL_OR_KEYWORD)
 
 
 def is_autovacuum(func):
@@ -159,8 +190,7 @@ class IrAutovacuum(django_models.Model):
             _logger.debug('Llamando %s.%s()', model, attr)
             try:
                 start_time = time.monotonic()
-                # Ligado a su clase (classmethod) — sin argumento de modelo.
-                result = func()
+                result = _call_vacuum_method(model, func)
                 # ≙ ``self.env['ir.cron']._commit_progress()`` (``:50``).
                 # Va AQUI, entre la llamada y el reparto del resultado: un
                 # metodo que revienta salta al ``except`` sin pasar por aqui,
