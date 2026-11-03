@@ -905,7 +905,16 @@ class DefaultGetMixin:
                             setattr(record, fname, value)
                     inv_rec_ids.append(record.pk)
 
-                inv_records = browse(cls, inv_rec_ids)
+                # Un modelo que deriva de ``BaseModel`` recibe el recordset de
+                # la fuente (``self.browse(inv_rec_ids)``, ``:4732``); uno
+                # de Django, el ``QuerySet`` de :func:`~orm.utils.browse`. Es
+                # la misma distinción que ``_invoke_compute_method`` hace al
+                # computar.
+                if hasattr(cls, '_from_ids'):
+                    ids = tuple(inv_rec_ids)
+                    inv_records = cls._from_ids(env(), ids, ids)
+                else:
+                    inv_records = browse(cls, inv_rec_ids)
                 determine_inverse(next(iter(fields)), inv_records)
 
         # check Python constraints for non-stored inversed fields
@@ -6011,6 +6020,22 @@ class BaseModel(DefaultGetMixin, Model):
             Note that first occurrence order is preserved. — ≙ ``:6587``
         """
         return self.union(other)
+
+    def __ror__(self, other):
+        """``Modelo | recordset``, con la clase del modelo a la izquierda.
+
+        **Divergencia de mecanismo**, la misma que declara
+        :class:`_on_empty_recordset`: ``env['x']`` devuelve aquí la clase y no
+        el recordset vacío de la fuente, así que la forma
+        ``acc = env['x']; acc |= rec`` (``odoo19c: odoo/tools/xml_utils.py``)
+        llega a este método con la clase en ``other``. La clase se lee como su
+        recordset vacío y la unión es la de :meth:`__or__`. Cualquier otro
+        operando conserva la conducta de Python (``NotImplemented``).
+        """
+        if (isinstance(other, type)
+                and getattr(other, '_name', None) == self._name):
+            return other._from_ids(self.env, (), ()) | self
+        return NotImplemented
 
     @api.private
     def union(self, *args):

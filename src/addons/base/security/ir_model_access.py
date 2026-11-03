@@ -68,6 +68,18 @@ from addons.base.models.res_groups import ResGroups as _ResGroups
 #: Los permisos son ``(read, write, create, unlink)``, copiados del CSV de la
 #: referencia sin reinterpretar. ``None`` en el grupo = fila global.
 _ACCESS = (
+    (
+        'ir_attachment group_user',
+        'base.IrAttachment',
+        'group_user',
+        (1, 1, 1, 1),
+    ),
+    (
+        'ir_attachment group_portal_public',
+        'base.IrAttachment',
+        None,
+        (0, 0, 0, 0),
+    ),
     ('ir_cron group_cron', 'base.IrCron', 'group_system', (1, 1, 1, 1)),
     (
         'ir_cron_progress group_cron',

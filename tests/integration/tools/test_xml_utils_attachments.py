@@ -8,11 +8,23 @@ import zipfile
 import pytest
 import requests
 
+from orm.utils import SUPERUSER_ID
 from exceptions import UserError
-from orm.environments import env
+from orm.environments import Environment, env
 from tools import xml_utils
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def superuser_environment(db):
+    """El ``self.env`` de un ``TransactionCase`` de la fuente es el del
+    superusuario (``odoo19c: odoo/tests/common.py``); es el que usa
+    ``tests/integration/test_orm/conftest.py``. Sin él, el entorno ambiental
+    no tiene usuario con grupos y la ACL de ``ir.attachment`` deniega."""
+    with Environment(None, SUPERUSER_ID, {}):
+        yield
+
 
 TYPES = b"""<?xml version="1.0"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">

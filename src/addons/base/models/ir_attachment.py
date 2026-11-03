@@ -17,7 +17,7 @@ definición del modelo (``name``, ``description``, ``res_model``, ``res_field``,
 ``res_id``, ``company_id``, ``type``, ``url``, ``public``, ``access_token``,
 ``store_fname``, ``file_size``, ``checksum``, ``mimetype``) es **idéntico**
 línea por línea entre 18 y 19 (Odoo 18 líneas 410-435; Odoo 19 líneas
-453-478) — ningún campo se agregó/removió/renombró. La única diferencia de
+453-478) — ningún campo se agregó/retiró/renombró. La única diferencia de
 fondo entre versiones es de infraestructura interna (Odoo 19 migra de
 ``odoo.osv.expression`` a ``odoo.fields.Domain`` para las ACL de ``_search``,
 y agrega ``_check_access``/``check_access`` en vez del ``check()`` legado) —
@@ -31,15 +31,21 @@ Alcance de la portación — deliberadamente NO se porta:
   agnóstico con ``FileField`` (local o S3 vía ``django-storages``);
   reimplementar el filestore completo de Odoo duplicaría infraestructura que
   Django ya da. Por eso ``datas`` es un ``FileField`` directo — no el split
-  Odoo ``raw``(compute)/``db_datas``(Binary)/``store_fname`` con
-  ``_get_path``/sha1-sharding. ``store_fname`` se preserva como campo fiel al
+  Odoo ``db_datas``(Binary)/``store_fname`` con ``_get_path``/sha1-sharding.
+  ``raw`` sí se porta, como compute e inverso sobre ``datas`` (ver el campo).
+  ``store_fname`` se preserva como campo fiel al
   nombre Odoo, pero aquí solo refleja el nombre asignado por el storage
   backend de Django (ver ``save()``), no una ruta sha1 propia. Ver hallazgo
   H-BASE candidato (reportado por el orquestador — filestore-GC no portado).
-- **ACL de attachments** (``_check_access``, override de ``_search`` con
-  ``SECURITY_FIELDS``, tokens de acceso por campo). Pertenece a la capa de
-  permisos (DRF ``HasCapability``, DEC-11), no al modelo de control. Fuera de
-  este slice.
+- **ACL por registro de attachments** (``_check_access``, override de
+  ``_search`` con ``SECURITY_FIELDS``, tokens de acceso por campo;
+  ``odoo19c: :504-620``). Desde que el modelo deriva de ``BaseModel`` su
+  recordset ya comprueba la ACL de modelo (las dos filas del CSV, sembradas
+  por ``0095``); lo que falta es la de registro, que hereda el acceso del
+  registro adjuntado. **Pendiente**, con sucesor en la unidad
+  ``attachment-record-access`` del plan de continuación (TASK-API-0397). Hasta
+  que se porte, el recordset sólo lo usa ``tools.xml_utils``, y la superficie
+  HTTP sigue gobernada por ``HasCapability`` (DEC-11).
 - **Compute fields de solo-UI** (``res_name`` vía ``display_name`` del
   registro referenciado, ``index_content`` full-text — Enterprise en Odoo).
 - **Redimensionado de imágenes** (``_postprocess_contents``,
@@ -61,16 +67,27 @@ import mimetypes
 import uuid
 
 from django.apps import apps
+from django.core.files.base import ContentFile
 
 import fields
 import models
 from exceptions import ValidationError
+from orm.models import BaseModel
 from tools.mimetypes import guess_mimetype
 from tools.translate import _
 
 
-class IrAttachment(models.Model):
-    """``ir.attachment`` — adjunto (archivo o URL) vinculado a un registro."""
+class IrAttachment(BaseModel, models.RecordLoaderMixin):
+    """``ir.attachment`` — adjunto (archivo o URL) vinculado a un registro.
+
+    Deriva de :class:`~orm.models.BaseModel`, como manda :ref:`h-api-1083`
+    para los modelos portados: ``env['ir.attachment']`` es un recordset con
+    ``search``, ``browse``, ``|`` y ``mapped``, que es el protocolo con que
+    ``tools.xml_utils`` lo consulta (``odoo19c: odoo/tools/xml_utils.py``).
+    ``RecordLoaderMixin`` aporta ``_check_field_access`` y la carga de
+    campos, la misma adopción que ``res_bank`` y ``ir_cron``; no se hereda
+    ``TimeStampedModel`` porque añadiría dos columnas que la tabla no tiene.
+    """
 
     # Atributos de clase de la fuente (``odoo19c: odoo/addons/base/models/
     # ir_attachment.py:75-77``). ``_res_idx`` vive en ``Meta.indexes`` con su
@@ -168,6 +185,11 @@ class IrAttachment(models.Model):
             'el filestore propio de Odoo (ver docstring del módulo).'
         ),
     )
+    #: ≙ ``raw`` (``odoo19c: odoo/addons/base/models/ir_attachment.py:471``):
+    #: ``fields.Binary(compute='_compute_raw', inverse='_inverse_raw')``,
+    #: sin columna. Lee y escribe el contenido de :attr:`datas`, que aquí es
+    #: el ``FileField`` donde vive el archivo.
+    raw = fields.Binary(compute='_compute_raw', inverse='_inverse_raw')
     company = fields.Many2one(
         'base.ResCompany',
         on_delete=models.SET_NULL,
@@ -187,6 +209,34 @@ class IrAttachment(models.Model):
                 fields=['res_model', 'res_id'], name='ir_attachment_res_idx'
             ),
         ]
+
+    def _compute_raw(self):
+        """≙ ``_compute_raw`` (``:266-271``): el contenido almacenado.
+
+        La fuente lo lee del filestore o de ``db_datas``; aquí hay un solo
+        sitio, el archivo de :attr:`datas`.
+        """
+        for attach in self:
+            if attach.datas:
+                content = attach.datas.read()
+                attach.datas.seek(0)
+                attach.raw = content
+            else:
+                attach.raw = False
+
+    def _inverse_raw(self):
+        """≙ ``_inverse_raw`` (``:281-282``): guardar ``raw`` como archivo.
+
+        ``_set_attachment_data`` de la fuente calcula tamaño, checksum y
+        tipo, y valida el contenido; aquí eso lo hace :meth:`save` cuando
+        cambia ``datas``, así que el inverso sólo deposita el archivo.
+        """
+        for attach in self:
+            content = attach.raw or b''
+            attach.datas = ContentFile(content, name=attach.name or 'raw')
+            attach.mimetype = ''
+            attach.save(update_fields=['datas', 'mimetype', 'file_size',
+                                       'checksum'])
 
     def __str__(self) -> str:
         return self.name
@@ -365,14 +415,19 @@ class IrAttachment(models.Model):
         # ``mimetype`` ni ``datas`` —el token, el nombre— no degrada lo que
         # quien subió el archivo ya tenía permitido.
         if update_fields is None or {'mimetype', 'datas'} & set(update_fields):
+            content = None
             if self.datas:
                 content = self.datas.read()
                 self.datas.seek(0)
                 self.file_size = len(content)
                 self.checksum = hashlib.sha1(content).hexdigest()
+            # ``raw`` viaja como en los valores de alta de la fuente: sin él
+            # ``_compute_mimetype`` no llega a su cuarta regla, la firma del
+            # contenido, y todo archivo de nombre ambiguo salía
+            # ``application/octet-stream``.
             self.mimetype = self._check_contents(
                 {'mimetype': self.mimetype, 'name': self.name,
-                 'url': self.url},
+                 'url': self.url, 'raw': content},
                 user=user,
                 trusted=trusted,
             )['mimetype']
