@@ -54,6 +54,9 @@ class TestTheClassifierSeparatesTheTwoPaths:
                 BELOW_ORM,
             ),
             ('def f(self):\n    row.save()', VIA_ORM),
+            # El ``write`` de la mezcla de ``orm.models`` guarda con
+            # ``save(update_fields=...)``: es el enganche, no la tabla.
+            ("def f(self):\n    row.write({'revoked': True})", VIA_ORM),
             ('def f(self):\n    Model.objects.update_or_create(a=1)', VIA_ORM),
             ('def f(self):\n    return 1 + 1', NO_WRITE),
         ],
@@ -127,29 +130,37 @@ class TestTheDirectionIsNotSymmetric:
         assert check_write_path.direction(VIA_ORM, NO_WRITE) is None
 
 
-class TestTheGateSeesTheRealPositive:
-    """Control positivo REAL del arbol, no fabricado.
+class TestTheAlignedWritersStayAligned:
+    """Control de regresion de los alineados del 2026-11-03.
 
-    Era ``_reflect_constraint``, el que #345 identifico a mano. Ese metodo
-    **se alineo** —hoy escribe con ``bulk_create``/``update``, como la fuente
-    escribe en SQL crudo— asi que ya no puede servir de positivo. El control
-    se muda a otro que sigue vivo, y el alineado pasa a ser el control de
-    regresion de abajo.
+    Hasta ese dia el arbol tenia positivos reales —``_reflect_constraint``,
+    luego ``_reschedule_asap``, luego ``ResPartner._fields_sync``— y cada uno
+    se alineo con la fuente. Sin positivo vivo, el control real es este: cada
+    caso nombra un escritor que el gate SI marcaba. Anulado uno
+    (``_reschedule_asap`` devuelto a ``objects.create``), cae exactamente su
+    caso y ningun otro.
     """
 
-    def test_it_flags_reschedule_asap(self):
-        findings = check_write_path.scan(
-            [pathlib.Path('src/addons/base/models/ir_cron.py')]
-        )
-        flagged = {f.symbol for f in findings}
-        assert '_reschedule_asap' in flagged, sorted(flagged)
-
-    def test_the_flagged_direction_is_the_dangerous_one(self):
-        findings = check_write_path.scan(
-            [pathlib.Path('src/addons/base/models/ir_cron.py')]
-        )
-        one = next(f for f in findings if f.symbol == '_reschedule_asap')
-        assert one.direction == check_write_path.CROSSES_GUARD
+    @pytest.mark.parametrize(
+        'path, symbol',
+        [
+            ('src/addons/base/models/ir_cron.py', '_reschedule_asap'),
+            ('src/addons/base/models/ir_cron.py', '_trigger_list'),
+            ('src/addons/base/models/res_device.py', '_update_device'),
+            ('src/addons/base/models/res_device.py', '__update_revoked'),
+            ('src/addons/base/models/res_device.py', '_revoke'),
+            ('src/addons/base/models/res_users.py', '_generate'),
+            ('src/addons/base/models/ir_actions.py', '_get_eval_context'),
+            ('src/addons/base/models/ir_attachment.py', 'generate_access_token'),
+            ('src/addons/base/models/res_partner.py', '_fields_sync'),
+            ('src/addons/base/models/res_partner.py', '_commercial_sync_from_company'),
+            ('src/addons/base/models/res_partner.py', '_commercial_sync_to_descendants'),
+            ('src/addons/base/models/res_partner.py', '_company_dependent_commercial_sync'),
+        ],
+    )
+    def test_no_longer_flagged(self, path, symbol):
+        flagged = {f.symbol for f in check_write_path.scan([pathlib.Path(path)])}
+        assert symbol not in flagged, sorted(flagged)
 
 
 class TestTheAlignedReflectionsStayAligned:

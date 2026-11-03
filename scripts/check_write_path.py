@@ -47,11 +47,14 @@ Vocabulary = engine.Vocabulary
 CROSSES_GUARD = 'cruza una guarda que la fuente esquiva'
 SKIPS_HOOK = 'se salta un enganche que la fuente usa'
 
-#: Nuestro lado. Los cuatro primeros entran por ``Model.save()``, donde este
-#: arbol instala sus guardas; los seis segundos emiten SQL sin pasar por el.
+#: Nuestro lado. Los cinco primeros entran por ``Model.save()``, donde este
+#: arbol instala sus guardas —``write`` es el de la mezcla de ``orm.models``,
+#: que guarda con ``save(update_fields=...)``—; los seis segundos emiten SQL
+#: sin pasar por el.
 OURS = Vocabulary(
     'nuestro',
-    frozenset({'save', 'create', 'update_or_create', 'get_or_create'}),
+    frozenset({'save', 'create', 'update_or_create', 'get_or_create',
+               'write'}),
     frozenset({'bulk_create', 'bulk_update', 'update', 'raw',
                'execute', 'executemany'}),
     keyword_only=frozenset({'update'}),

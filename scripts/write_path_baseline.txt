@@ -12,14 +12,8 @@
 # 2026-11-03: 17 -> 12. Cinco entradas eran `set`/`dict.update` posicional
 # leidos como `QuerySet.update`, que solo admite **kwargs; el eje los
 # separa por la forma de la llamada (`keyword_only`).
-src/addons/base/models/ir_actions.py::IrActionsServer._get_eval_context
-src/addons/base/models/ir_cron.py::IrCron._reschedule_asap
-src/addons/base/models/ir_cron.py::IrCron._trigger_list
-src/addons/base/models/res_device.py::ResDeviceLog.__update_revoked
-src/addons/base/models/res_device.py::ResDeviceLog._update_device
-src/addons/base/models/res_device.py::ResDeviceQuerySet._revoke
-src/addons/base/models/res_partner.py::ResPartner._commercial_sync_from_company
-src/addons/base/models/res_partner.py::ResPartner._commercial_sync_to_descendants
-src/addons/base/models/res_partner.py::ResPartner._company_dependent_commercial_sync
-src/addons/base/models/res_partner.py::ResPartner._fields_sync
-src/addons/base/models/res_users.py::_ResUsersApikeysBase._generate
+# 2026-11-03: 11 -> 4. Siete escritores alineados con la fuente (cron, device,
+# api keys, log de accion, token de adjunto); quedan las sincronizaciones
+# de ResPartner.
+# 2026-11-03: 4 -> 0. Las cuatro sincronizaciones de ResPartner escriben
+# con write, como la fuente. Sin deuda congelada.
