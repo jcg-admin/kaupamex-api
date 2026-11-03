@@ -2016,6 +2016,13 @@ class StoredMany2oneIdDescriptor(FieldDescriptor):
     """
 
     def __get__(self, instance, cls=None):
+        if (instance is not None and isinstance(instance.pk, NewId)
+                and self.field.attname not in instance.__dict__):
+            # Un registro de ``new()`` no tiene fila: su valor está sólo en el
+            # caché del entorno (``_update_cache``, ≙ ``models.py:6066``). El
+            # ``refresh_from_db`` de Django consultaría por ``pk=NewId``.
+            field_cache = self.field._get_cache(get_environment())
+            return field_cache.get(instance.pk)
         return ForeignKeyDeferredAttribute.__get__(self, instance, cls)
 
     def __set__(self, instance, value):

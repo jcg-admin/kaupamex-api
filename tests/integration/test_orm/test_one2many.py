@@ -191,10 +191,11 @@ def test_computed_inverse_one2many(env):
     assert len(fresh.all_line_ids.ids) == 2
 
 
-# ``One2manyCase.operations`` y los cuatro casos que crean las líneas con
-# ``create`` o con comandos (``:45-112``). Los de ``new()`` esperan ese
-# mecanismo. Adaptación declarada: ``line.name = 'hello'`` se escribe con
-# ``write``, que es lo que esa asignación hace en la fuente.
+# ``One2manyCase.operations`` y los seis casos que crean las líneas con
+# ``create``, con comandos o con ``new()`` (``:45-112``). Los ``*_on_new``
+# esperan el One2many sobre un registro nuevo. Adaptación declarada:
+# ``line.name = 'hello'`` se escribe con ``write``, que es lo que esa
+# asignación hace en la fuente.
 
 
 @pytest.fixture
@@ -240,4 +241,22 @@ def test_rpcstyle_one_by_one(env, multi):
 def test_rpcstyle_single(env, multi):
     record = env['test_orm.multi'].browse(multi.ids)
     record.lines = [Command.create({'name': str(name)}) for name in range(10)]
+    _operations(env, multi)
+
+
+def test_new_one_by_one(env, multi):
+    """≙ :64 — líneas de ``new()`` añadidas una a una a un registro real."""
+    Line = env['test_orm.multi.line']
+    for name in range(10):
+        record = env['test_orm.multi'].browse(multi.ids)
+        record.lines |= Line.new({'name': str(name)})
+    _operations(env, multi)
+
+
+def test_new_single(env, multi):
+    """≙ :70 — líneas de ``new()`` asignadas en un paso."""
+    Line = env['test_orm.multi.line']
+    record = env['test_orm.multi'].browse(multi.ids)
+    record.lines = Line.browse(
+        [Line.new({'name': str(name)}).id for name in range(10)])
     _operations(env, multi)

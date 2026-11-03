@@ -4827,11 +4827,51 @@ def _x2many_descriptor_set(self, instance, value):
         return _DJANGO_X2MANY_SET(self, instance, value)
     if not is_command_list(value):
         ids = getattr(value, '_ids', None)
-        if ids is None:
-            ids = [getattr(item, 'pk', item) for item in (value or ())]
-        value = [Command.set(list(ids))]
+        if ids is not None and not all(ids):
+            value = _new_lines_as_commands(self.rel, value)
+        else:
+            if ids is None:
+                ids = [getattr(item, 'pk', item) for item in (value or ())]
+            value = [Command.set(list(ids))]
     apply_one2many_commands(instance, self.rel, value)
     return None
+
+
+def _new_lines_as_commands(rel, value):
+    """Un recordset con registros de ``new()``, como comandos de escritura.
+
+    ≙ ``_RelationalMulti.convert_to_write`` (``odoo19c: odoo/orm/
+    fields_relational.py:671-704``): las filas reales entran en el ``SET`` y
+    cada registro nuevo se convierte en un ``CREATE`` con los valores de su
+    caché, sin el inverso, que es el propio registro dueño. Un nuevo con
+    origen entra por su origen y, si cambió, con un ``UPDATE``.
+    """
+    inv_names = {rel.field.name}
+    result = [Command.set([])]
+    for record in value:
+        origin = record._origin
+        if not origin:
+            values = record._convert_to_write({
+                name: record[name]
+                for name in record._cache
+                if name not in inv_names
+            })
+            result.append(Command.create(values))
+        else:
+            result[0][2].append(origin.id)
+            if record != origin:
+                values = record._convert_to_write({
+                    name: record[name]
+                    for name in record._cache
+                    if name not in inv_names and _origin_of(record[name]) != origin[name]
+                })
+                if values:
+                    result.append(Command.update(origin.id, values))
+    return result
+
+
+def _origin_of(value):
+    return value._origin if isinstance(value, BaseModel) else value
 
 
 _related_descriptors.ReverseManyToOneDescriptor.__set__ = _x2many_descriptor_set
@@ -5557,6 +5597,68 @@ class BaseModel(DefaultGetMixin, Model):
     def _cache(self):
         """ Return the cache of ``self``, mapping field names to values. — ≙ ``:6703`` """
         return RecordCache(self)
+
+    def _update_cache(self, values, validate=True):
+        """ Update the cache of ``self`` with ``values``. — ≙ ``:6066``
+
+            :param values: dict of field values, in any format.
+            :param validate: whether values must be checked
+        """
+        self.ensure_one()
+        fields = self._fields
+        try:
+            field_values = [(fields[name], value) for name, value in values.items() if name != 'id']
+        except KeyError as e:
+            raise ValueError("Invalid field %r on model %r" % (e.args[0], self._name))
+
+        # convert monetary fields after other columns for correct value rounding
+        for field, value in sorted(field_values, key=lambda item: item[0].write_sequence):
+            value = field.convert_to_cache(value, self, validate)
+            field._update_cache(self, value)
+
+            # set inverse fields on new records in the comodel
+            if field.relational:
+                inv_recs = self[field.name].filtered(lambda r: not r.id)
+                if not inv_recs:
+                    continue
+                # we need to adapt the value of the inverse fields to integrate self into it:
+                # x2many fields should add self, while many2one fields should replace with self
+                for invf in registry.field_inverses[field]:
+                    invf._update_inverse(inv_recs, self)
+
+    def _convert_to_write(self, values):
+        """ Convert the ``values`` dictionary into the format of :meth:`write`. — ≙ ``:6103`` """
+        fields = self._fields
+        result = {}
+        for name, value in values.items():
+            if name in fields:
+                field = fields[name]
+                value = field.convert_to_write(value, self)
+                if not isinstance(value, NewId):
+                    result[name] = value
+        return result
+
+    @_on_empty_recordset
+    def new(self, values=None, origin=None, ref=None):
+        """ Return a new record instance attached to the current environment and
+        initialized with the provided ``value``. The record is *not* created
+        in database, it only exists in memory. — ≙ ``:6441``
+
+        One can pass an ``origin`` record, which is the actual record behind the
+        result. It is retrieved as ``record._origin``. Two new records with the
+        same origin record are considered equal.
+
+        One can also pass a ``ref`` value to identify the record among other new
+        records. The reference is encapsulated in the ``id`` of the record.
+        """
+        if values is None:
+            values = {}
+        if origin is not None:
+            origin = origin.id
+        record = self.browse((NewId(origin, ref),))
+        record._update_cache(values, validate=False)
+
+        return record
 
     @property
     def _origin(self):
