@@ -25,7 +25,9 @@ import os
 import re
 import sys
 import tempfile
+import threading
 import time
+import traceback
 import typing
 import unicodedata
 import warnings
@@ -37,12 +39,13 @@ from contextlib import ContextDecorator, contextmanager
 from difflib import HtmlDiff
 from functools import reduce, wraps
 from itertools import islice, repeat, starmap
+from operator import itemgetter
 
 import datetime
 
 import babel
 from django.apps import apps
-from django.db import connections
+from django.db import DEFAULT_DB_ALIAS, connections
 from django.utils import formats as django_formats
 from django.utils import translation as django_translation
 from django.utils.html import escape as django_html_escape
@@ -51,6 +54,8 @@ from lxml import etree
 from modules.module import ADDONS_PATHS
 from tools import config
 from tools.which import which
+
+_logger = logging.getLogger(__name__)
 
 # Formatos de fecha del servidor — verbatim de la referencia
 # (``odoo19c: odoo/tools/misc.py:535-542``). Son el formato en que la fuente
@@ -305,6 +310,74 @@ def find_pg_tool(name):
         return which(name, path=path)
     except OSError:
         raise Exception('Command `%s` not found.' % name)
+
+
+def _pg_environ_for(using):
+    """El entorno libpq de un alias concreto — el cuerpo de
+    :func:`exec_pg_environ`, parametrizado por alias.
+
+    La fuente tiene UNA configuración de servidor; este árbol enruta por
+    empresa entre varios alias (``orm.routers``), así que respaldar una base
+    concreta necesita las credenciales de SU alias. ``PGSSLMODE`` es un
+    añadido propio: el despliegue habla TCP con TLS, y el socket lo ignora.
+    """
+    sd = connections[using].settings_dict
+    env = os.environ.copy()
+    host = sd.get('HOST') or None
+    if host:
+        env['PGHOST'] = host
+    port = sd.get('PORT') or None
+    if port:
+        env['PGPORT'] = str(port)
+    if sd.get('USER'):
+        env['PGUSER'] = sd['USER']
+    password = sd.get('PASSWORD') or None
+    if password:
+        env['PGPASSWORD'] = password
+    options = sd.get('OPTIONS') or {}
+    app_name = options.get('application_name')
+    if app_name:
+        env['PGAPPNAME'] = app_name.replace('{pid}', f'env{os.getpid()}')[:63]
+    if not (host or '').startswith('/'):
+        sslmode = options.get('sslmode')
+        if sslmode:
+            env['PGSSLMODE'] = sslmode
+    return env
+
+
+def exec_pg_environ():
+    """≙ ``exec_pg_environ`` (``odoo19c: odoo/tools/misc.py:163-185``).
+
+    Fuerza las variables de entorno de PostgreSQL a la configuración de la
+    base, para un subproceso (``pg_dump``, ``pg_restore``, ``psql``).
+
+    La configuración de la fuente es ``config['db_*']``; aquí la misma
+    información vive en el alias por defecto de Django, y
+    ``config['db_app_name']`` es su ``OPTIONS['application_name']``.
+    """
+    return _pg_environ_for(DEFAULT_DB_ALIAS)
+
+
+def scan_languages() -> list[tuple[str, str]]:
+    """≙ ``scan_languages`` (``odoo19c: odoo/tools/misc.py:453-474``).
+
+    Todos los idiomas que la plataforma conoce, como pares
+    ``(code, name)`` ordenados por nombre.
+
+    Divergencia de mecanismo: la fuente lee ``base/data/res.lang.csv``; aquí
+    ese catálogo ya es un modelo sembrado con sus 93 filas
+    (``addons.base.data.res_lang_data``), activas o no, así que se consulta el
+    modelo. Si no se puede leer, el desenlace es el de la fuente: se registra
+    el error y queda ``en_US``.
+    """
+    try:
+        lang_model = apps.get_model('base', 'ResLang')
+        result = list(lang_model.objects.values_list('code', 'name'))
+    except Exception:
+        _logger.error("Could not read res.lang.csv")
+        result = []
+
+    return sorted(result or [('en_US', 'English')], key=itemgetter(1))
 
 
 def _addons_paths():
@@ -1702,3 +1775,59 @@ def verify_limited_field_access_token(record, field_name, access_token, *, scope
     return consteq(
         access_token, limited_field_access_token(record, field_name, timestamp, scope=scope)
     ) and datetime.datetime.now() < datetime.datetime.fromtimestamp(int(timestamp, 16))
+
+
+def format_frame(frame) -> str:
+    """≙ ``format_frame`` (``odoo19c: odoo/tools/misc.py:1954-1956``):
+    ``<función> <archivo>:<línea>`` de un marco, para nombrar a quien llama."""
+    code = frame.f_code
+    return f'{code.co_name} {code.co_filename}:{frame.f_lineno}'
+
+
+def dumpstacks(sig=None, frame=None, thread_idents=None, log_level=logging.INFO):
+    """≙ ``dumpstacks`` (``odoo19c: odoo/tools/misc.py:882-934``).
+
+    Manejador de señal: registra la pila de cada hilo vivo, o de los hilos de
+    ``thread_idents``, con los atributos que el servidor cuelga del hilo.
+
+    Divergencia declarada: el bloque de *greenlets* de la fuente depende de
+    ``odoo.evented`` (el servidor gevent). Este árbol no tiene modo
+    *evented*, así que no hay greenlets que volcar.
+    """
+    code = []
+
+    def extract_stack(stack):
+        for filename, lineno, name, line in traceback.extract_stack(stack):
+            yield 'File: "%s", line %d, in %s' % (filename, lineno, name)
+            if line:
+                yield "  %s" % (line.strip(),)
+
+    threads_info = {th.ident: {'repr': repr(th),
+                               'uid': getattr(th, 'uid', 'n/a'),
+                               'dbname': getattr(th, 'dbname', 'n/a'),
+                               'url': getattr(th, 'url', 'n/a'),
+                               'query_count': getattr(th, 'query_count', 'n/a'),
+                               'query_time': getattr(th, 'query_time', None),
+                               'perf_t0': getattr(th, 'perf_t0', None)}
+                    for th in threading.enumerate()}
+    for thread_id, stack in sys._current_frames().items():
+        if not thread_idents or thread_id in thread_idents:
+            thread_info = threads_info.get(thread_id, {})
+            query_time = thread_info.get('query_time')
+            perf_t0 = thread_info.get('perf_t0')
+            remaining_time = None
+            if query_time is not None and perf_t0:
+                remaining_time = '%.3f' % (time.time() - perf_t0 - query_time)
+                query_time = '%.3f' % query_time
+            code.append("\n# Thread: %s (db:%s) (uid:%s) (url:%s) (qc:%s qt:%s pt:%s)" %
+                        (thread_info.get('repr', thread_id),
+                         thread_info.get('dbname', 'n/a'),
+                         thread_info.get('uid', 'n/a'),
+                         thread_info.get('url', 'n/a'),
+                         thread_info.get('query_count', 'n/a'),
+                         query_time or 'n/a',
+                         remaining_time or 'n/a'))
+            for line in extract_stack(stack):
+                code.append(line)
+
+    _logger.log(log_level, "\n".join(code))

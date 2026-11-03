@@ -19,7 +19,7 @@ from django.db.migrations.loader import MigrationLoader
 
 from orm.environments import company_scope
 from tools import config
-from tools.misc import find_pg_tool
+from tools.misc import _pg_environ_for, find_pg_tool
 
 _logger = logging.getLogger(__name__)
 
@@ -539,24 +539,7 @@ def _pg_env(using=DEFAULT_DB_ALIAS):
     base de empresa concreta, ejercida por quien ya tiene ``platform.
     provision`` — no hay razón para introducir un segundo rol.
     """
-    sd = connections[using].settings_dict
-    env = os.environ.copy()
-    host = sd.get('HOST') or None
-    if host:
-        env['PGHOST'] = host
-    port = sd.get('PORT') or None
-    if port:
-        env['PGPORT'] = str(port)
-    env['PGUSER'] = sd['USER']
-    password = sd.get('PASSWORD') or None
-    if password:
-        env['PGPASSWORD'] = password
-    # El socket ignora TLS (mismo guard que ``_connect``); sólo viaja por TCP.
-    if not (host or '').startswith('/'):
-        sslmode = (sd.get('OPTIONS', {}) or {}).get('sslmode')
-        if sslmode:
-            env['PGSSLMODE'] = sslmode
-    return env
+    return _pg_environ_for(using)
 
 
 class _DumpStream:
