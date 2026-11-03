@@ -97,7 +97,7 @@ from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 from django.db.models.fields.related import RelatedField
 
-from orm.commands import apply_one2many_commands, is_command_list
+from orm.commands import Command, apply_one2many_commands, is_command_list
 from orm.environments import env as get_environment
 from orm.fields_company_dependent import CompanyDependent
 from orm.fields_nonstored import (
@@ -228,7 +228,7 @@ class One2many:
     def __init__(self, comodel_name=None, inverse_name=None, *, copy=False,
                  string=None, domain=None, context=None,
                  bypass_search_access=False, related=None, related_sudo=True,
-                 **_ignored):
+                 compute=None, inverse=None, **_ignored):
         #: Se acepta con nombre para que **no** caiga en ``**_ignored``, que es
         #: como se tragaba antes: la declaración se escribía igual que la de la
         #: fuente (``fields.One2many(related='employee_id.subordinate_ids')``),
@@ -243,6 +243,11 @@ class One2many:
         #: cadena es el manager del reverso, que no necesita comodelo ni
         #: inverso declarados — es lo que la referencia declara, sin ellos.
         self.related = related
+        #: ≙ ``compute``/``inverse`` del campo (``odoo19c: odoo/orm/fields.py``):
+        #: un One2many calculado no se lee por su inverso sino por su método,
+        #: y su escritura la propaga ``inverse``. Se aceptaban en ``**_ignored``.
+        self.compute = compute
+        self.inverse = inverse
         #: ≙ ``related_sudo`` (``odoo19c: odoo/orm/fields.py``, defecto
         #: ``True``): un ``related`` sin ``sudo`` busca con la regla de cada
         #: comodelo intermedio (``any``), uno con ``sudo`` la salta (``any!``).
@@ -401,9 +406,68 @@ class One2many:
                 f'{self.inverse_name!r} declared in {self!r} does not exist '
                 f'on {self.comodel_name!r}.') from None
 
+    def _computed_key(self):
+        return f'_computed_one2many_{self.name}'
+
+    def _comodel(self):
+        return model_by_key(self.comodel_name) or apps.get_model(
+            self.comodel_name)
+
+    def _get_computed(self, instance):
+        """El valor de un One2many calculado: el del almacén de la fila, o el
+        que deja su método — ≙ ``Field.__get__`` → ``compute_value`` de un
+        campo no almacenado."""
+        key = self._computed_key()
+        if key not in instance.__dict__:
+            instance.__dict__['_computing_one2many'] = True
+            try:
+                getattr(instance, self.compute)()
+            finally:
+                instance.__dict__.pop('_computing_one2many', None)
+        value = instance.__dict__.get(key)
+        if value is None:
+            value = self._comodel()._from_ids(get_environment(), (), ())
+        return value
+
+    def _set_computed(self, instance, value):
+        """Escribir un One2many calculado — ≙ ``write`` sobre un campo con
+        ``inverse``: los comandos se aplican al valor actual, que queda en el
+        almacén de la fila, y ``inverse`` lo propaga."""
+        comodel = self._comodel()
+        if instance.__dict__.get('_computing_one2many'):
+            instance.__dict__[self._computed_key()] = value
+            return
+        current = list(self._get_computed(instance).ids)
+        if is_command_list(value):
+            for code, target, payload in value:
+                if code == Command.CREATE:
+                    current.append(comodel.create(payload).id)
+                elif code == Command.UPDATE:
+                    comodel.browse([target]).write(payload)
+                elif code in (Command.DELETE, Command.UNLINK):
+                    current = [i for i in current if i != target]
+                    if code == Command.DELETE:
+                        comodel.browse([target]).unlink()
+                elif code == Command.LINK:
+                    current.append(target)
+                elif code == Command.CLEAR:
+                    current = []
+                elif code == Command.SET:
+                    current = [getattr(i, 'id', i) for i in payload]
+        else:
+            current = list(getattr(value, '_ids', None)
+                           or [getattr(i, 'pk', i) for i in (value or ())])
+        ids = tuple(dict.fromkeys(current))
+        instance.__dict__[self._computed_key()] = comodel._from_ids(
+            get_environment(), ids, ids)
+        if self.inverse:
+            getattr(instance, self.inverse)()
+
     def __get__(self, instance, owner=None):
         if instance is None:
             return self
+        if self.compute:
+            return self._get_computed(instance)
         comodel, inverse = self._inverse_field()
         if getattr(inverse, 'store', True) is False:
             # ≙ ``Field.to_sql`` (``odoo19c: odoo/orm/fields.py:1215-1216``):
@@ -450,6 +514,9 @@ class One2many:
         :func:`~orm.commands.apply_one2many_commands` sobre el ``Many2one``
         inverso (:ref:`h-api-1132`).
         """
+        if self.compute:
+            self._set_computed(instance, value)
+            return
         comodel, inverse = self._inverse_field()
         if is_command_list(value):
             # Los siete comandos de la fuente — ≙ ``One2many.write_real``

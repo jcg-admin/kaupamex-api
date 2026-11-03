@@ -83,7 +83,8 @@ from orm.environments import (
     get_current_uid, get_current_user, get_transaction, is_su,
     sudo as elevate_privileges,
 )
-from orm.commands import (_DJANGO_X2MANY_GET, ManyToManyLink, ManyToManySet,
+from orm.commands import (_DJANGO_X2MANY_GET, Command, ManyToManyLink,
+                          ManyToManySet,
                           One2manyChild, apply_many2many_commands,
                           apply_one2many_commands,
                           is_command_list, related_manager)
@@ -874,7 +875,11 @@ class DefaultGetMixin:
         for record, apart in zip(records, declared_one2many):
             for name, value in apart.items():
                 field = getattr(cls, name)
-                if is_command_list(value):
+                if field.compute:
+                    # Un One2many calculado: su escritura la propaga
+                    # ``inverse``, no un Many2one inverso.
+                    field.__set__(record, value)
+                elif is_command_list(value):
                     _, inverse = field._inverse_field()
                     apply_one2many_commands(record, inverse.remote_field,
                                             value, create=True)
@@ -4801,6 +4806,35 @@ def _x2many_descriptor_get(self, instance, cls=None):
 
 
 _related_descriptors.ReverseManyToOneDescriptor.__get__ = _x2many_descriptor_get
+_DJANGO_X2MANY_SET = _related_descriptors.ReverseManyToOneDescriptor.__set__
+
+
+def _x2many_descriptor_set(self, instance, value):
+    """Asignar un One2many es fijar su conjunto — ≙ ``One2many.write_real``,
+    rama ``SET`` (``odoo19c: odoo/orm/fields_relational.py:1027``).
+
+    Sólo un One2many entre ``BaseModel`` (el reverso de un Many2one): la
+    fuente admite ``record.line_ids = lines`` y aquí el descriptor de Django
+    lo rechazaba («Direct assignment to the reverse side»). Un recordset, una
+    lista de ids o una lista de comandos se aplican como en ``write``. El
+    Many2many y los modelos de Django conservan la conducta de Django.
+    """
+    if isinstance(self, _related_descriptors.ManyToManyDescriptor):
+        return _DJANGO_X2MANY_SET(self, instance, value)
+    comodel = self.rel.related_model
+    if not (isinstance(instance, BaseModel) and isinstance(comodel, type)
+            and issubclass(comodel, BaseModel)):
+        return _DJANGO_X2MANY_SET(self, instance, value)
+    if not is_command_list(value):
+        ids = getattr(value, '_ids', None)
+        if ids is None:
+            ids = [getattr(item, 'pk', item) for item in (value or ())]
+        value = [Command.set(list(ids))]
+    apply_one2many_commands(instance, self.rel, value)
+    return None
+
+
+_related_descriptors.ReverseManyToOneDescriptor.__set__ = _x2many_descriptor_set
 Model._validate_fields = _validate_fields
 Model._run_ondelete_checks = _run_ondelete_checks
 

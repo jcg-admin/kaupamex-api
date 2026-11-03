@@ -165,3 +165,27 @@ def test_create_one2many_with_unsearchable_field(env):
     env.invalidate_all()
     with pytest.raises(ValueError, match='it is not stored'):
         Model.browse(parent1.ids).child_ids
+
+
+def test_computed_inverse_one2many(env):
+    """≙ :497 — un One2many calculado con ``inverse`` acepta comandos al
+    crear y al asignar, y su ``inverse`` los lleva a ``all_line_ids``."""
+    record = env['test_orm.computed_inverse_one2many'].create({
+        'name': 'SuperRecord',
+        'low_priority_line_ids': [Command.create({
+            'name': 'SuperChild 01',
+            'priority': 1,
+        })],
+    })
+    assert record.low_priority_line_ids.ids
+
+    record.low_priority_line_ids = [Command.create({
+        'name': 'SuperChild 02',
+        'priority': 2,
+    })]
+    assert len(record.low_priority_line_ids.ids) == 2
+    # Desde una fila nueva, sin la caché de ésta: lo que ``inverse`` dejó en
+    # ``all_line_ids`` es lo único que cuenta.
+    fresh = env['test_orm.computed_inverse_one2many'].browse(record.ids)
+    assert len(fresh.low_priority_line_ids.ids) == 2
+    assert len(fresh.all_line_ids.ids) == 2

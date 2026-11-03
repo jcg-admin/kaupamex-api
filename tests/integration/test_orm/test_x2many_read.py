@@ -45,3 +45,23 @@ def test_an_empty_relation_is_an_empty_recordset(env, family):
     tags = env['test_orm.any.child'].browse(b.ids).tag_ids
     assert not tags
     assert tags.ids == []
+
+
+def test_assigning_a_recordset_to_a_one2many_sets_it(env):
+    """``record.line_ids = lines`` escribe la relación — ≙ el ``SET`` de
+    ``One2many.write_real`` que la fuente aplica a una asignación
+    (``odoo19c: odoo/orm/fields_relational.py:1027``): las líneas quedan
+    exactamente en ese conjunto y las que sobran se borran (``cascade``)."""
+    Order, Line = env['test_orm.order'], env['test_orm.order.line']
+    order = Order.create({})
+    keep = Line.create({'order_id': order.id, 'product': 'keep'})
+    drop = Line.create({'order_id': order.id, 'product': 'drop'})
+    other = Order.create({})
+    moved = Line.create({'order_id': other.id, 'product': 'moved'})
+
+    record = Order.browse(order.ids)
+    record.line_ids = keep | moved
+    assert sorted(Order.browse(order.ids).line_ids.ids) == sorted(
+        [keep.id, moved.id])
+    assert not Line.browse(drop.ids).exists()
+    assert not Order.browse(other.ids).line_ids

@@ -1032,3 +1032,50 @@ class TestOrmUnsearchableO2m(TestOrmModel):
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_unsearchable_o2m'
+
+
+class TestOrmComputedInverseOne2many(TestOrmModel):
+    """≙ ``test_orm.computed_inverse_one2many`` (``odoo19c: odoo/addons/
+    test_orm/models/test_orm.py:1044-1062``): dos One2many calculados, con
+    ``inverse``, que reparten las líneas de ``all_line_ids`` por prioridad."""
+
+    _name = 'test_orm.computed_inverse_one2many'
+    _description = "A computed/inverse o2m, subset of a main one"
+
+    name = fields.Char(null=True)
+    low_priority_line_ids = fields.One2many(
+        'test_orm.computed_inverse_one2many_line',
+        compute='_compute_priority_line_ids', inverse='_inverse_line_ids')
+    high_priority_line_ids = fields.One2many(
+        'test_orm.computed_inverse_one2many_line',
+        compute='_compute_priority_line_ids', inverse='_inverse_line_ids')
+
+    @depends('all_line_ids')
+    def _compute_priority_line_ids(self):
+        for record in self:
+            low_lines = record.all_line_ids.filtered(lambda line: line.priority < 4)
+            record.low_priority_line_ids = low_lines
+            record.high_priority_line_ids = record.all_line_ids - low_lines
+
+    def _inverse_line_ids(self):
+        for record in self:
+            record.all_line_ids = record.low_priority_line_ids | record.high_priority_line_ids
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_computed_inverse_one2many'
+
+
+class TestOrmComputedInverseOne2manyLine(TestOrmModel):
+    """≙ ``test_orm.computed_inverse_one2many_line``. ``parent_id`` es el
+    inverso de ``all_line_ids``."""
+
+    _name = 'test_orm.computed_inverse_one2many_line'
+    _description = "Line of a computed/inverse one2many"
+
+    name = fields.Char(null=True)
+    priority = fields.Integer(null=True)
+    parent_id = fields.Many2one('test_orm.computed_inverse_one2many',
+                                related_name='all_line_ids')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_computed_inverse_one2many_line'
