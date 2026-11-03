@@ -43,16 +43,20 @@ from itertools import islice, repeat, starmap
 from operator import itemgetter
 
 import datetime
+import zoneinfo
 
 import babel
+import babel.dates
 from django.apps import apps
 from django.db import DEFAULT_DB_ALIAS, connections
+from django.db import models as django_models
 from django.utils import formats as django_formats
 from django.utils.html import escape as django_html_escape
 from lxml import etree
 
 from modules.module import ADDONS_PATHS
 from tools import config
+from tools.float_utils import float_round
 from tools.which import which
 
 _logger = logging.getLogger(__name__)
@@ -1235,7 +1239,7 @@ def get_diff(data_from, data_to, custom_style=False, dark_color_scheme=False):
 # Los dos espacios que ``format_amount`` inserta, por su nombre Unicode.
 # Como constantes y no como escape ``\N{...}`` dentro de la f-string: ahí la
 # llave doble que Python exige colisiona con la sintaxis de la propia f-string.
-NO_BREAK_SPACE = '\u00a0'
+NON_BREAKING_SPACE = '\N{NO-BREAK SPACE}'
 ZERO_WIDTH_NO_BREAK_SPACE = '\ufeff'
 
 
@@ -1264,7 +1268,7 @@ def format_amount(env, amount, currency, lang_code=None, trailing_zeroes=True):
     formatted = lang.format(fmt, currency.round(amount), grouping=True)
     decimal_point = lang.decimal_point
 
-    formatted = (formatted.replace(' ', NO_BREAK_SPACE)
+    formatted = (formatted.replace(' ', NON_BREAKING_SPACE)
                  .replace('-', '-' + ZERO_WIDTH_NO_BREAK_SPACE))
 
     if not trailing_zeroes:
@@ -1272,8 +1276,283 @@ def format_amount(env, amount, currency, lang_code=None, trailing_zeroes=True):
 
     symbol = currency.symbol or ''
     if currency.position == 'before':
-        return symbol + NO_BREAK_SPACE + formatted
-    return formatted + NO_BREAK_SPACE + symbol
+        return symbol + NON_BREAKING_SPACE + formatted
+    return formatted + NON_BREAKING_SPACE + symbol
+
+
+#: ≙ ``odoo.fields.Datetime``. La fuente lo importa DENTRO de ``format_date``,
+#: ``format_datetime`` y ``format_time``, eximido de la regla PLC0415, porque
+#: ``odoo.fields`` importa este módulo. Aquí el ciclo es el mismo
+#: (``orm/fields_temporal.py`` importa ``tools.misc``), y la regla del árbol
+#: prohíbe el import perezoso. **Divergencia de mecanismo:** se toma la clase
+#: de Django que ``orm/fields_temporal.py`` adorna con ``from_string`` y
+#: ``context_timestamp`` (``models.DateTimeField.from_string = …``), que ya
+#: está cargada cuando cualquiera de estas funciones corre.
+_Datetime = django_models.DateTimeField
+
+
+def _res_lang(env, lang_code=None):
+    """La fila de ``res.lang`` de :func:`get_lang` — ≙
+    ``env['res.lang'].browse(get_lang(env, lang_code).id)``; aquí ``res.lang``
+    es un modelo de Django y la fila se lee por su clave."""
+    res_lang = apps.get_model('base', 'ResLang')
+    return res_lang.objects.get(pk=get_lang(env, lang_code).id)
+
+
+def _user_tz(env):
+    """``env.user.tz`` de la fuente; aquí la zona vive en el partner."""
+    partner = getattr(env.user, 'partner', None)
+    return getattr(partner, 'tz', None)
+
+
+def _as_utc(value):
+    """El instante en UTC, con zona.
+
+    **Divergencia de mecanismo**: la fuente hace ``pytz.utc.localize(value)``,
+    que exige un valor ingenuo porque su almacén guarda UTC sin zona. Este
+    stack declara ``USE_TZ = True`` y la columna devuelve el valor con zona;
+    ``localize`` lo rechazaría. Un valor ingenuo se lee como UTC, igual que
+    allá; uno con zona se convierte.
+    """
+    if value.tzinfo is None:
+        return value.replace(tzinfo=datetime.timezone.utc)
+    return value.astimezone(datetime.timezone.utc)
+
+
+def _localize(value, tz):
+    """``utc.astimezone(pytz.timezone(tz_name))`` con el mismo respaldo que la
+    fuente: una zona inválida deja el instante en UTC."""
+    utc_datetime = _as_utc(value)
+    try:
+        return utc_datetime.astimezone(zoneinfo.ZoneInfo(tz))
+    except (zoneinfo.ZoneInfoNotFoundError, ValueError):
+        # silent OK because la fuente atrapa la zona inválida y formatea en UTC
+        return utc_datetime
+
+
+def formatLang(env, value, digits=2, grouping=True, dp=None,
+               currency_obj=None, rounding_method='HALF-EVEN',
+               rounding_unit='decimals'):
+    """≙ ``formatLang`` (``odoo19c: odoo/tools/misc.py:1342-1409``).
+
+    Docstring de la fuente, verbatim en lo que gobierna: *"This function will
+    format a number `value` to the appropriate format of the language
+    used."* ``dp`` nombra una precisión decimal y gana a ``digits`` y a la
+    moneda; ``rounding_unit`` redondea a decimales, unidades, miles, lakhs o
+    millones; con moneda, su símbolo va del lado que declara.
+    """
+    # We don't want to return 0
+    if value == '':
+        return ''
+
+    if rounding_unit == 'decimals':
+        if dp:
+            digits = env['decimal.precision'].precision_get(dp)
+        elif currency_obj:
+            digits = currency_obj.decimal_places
+    else:
+        digits = 0
+
+    rounding_unit_mapping = {
+        'decimals': 1,
+        'thousands': 10**3,
+        'lakhs': 10**5,
+        'millions': 10**6,
+        'units': 1,
+    }
+
+    value /= rounding_unit_mapping[rounding_unit]
+
+    rounded_value = float_round(value, precision_digits=digits,
+                                rounding_method=rounding_method)
+    lang = _res_lang(env)
+    formatted_value = lang.format(f'%.{digits}f', rounded_value,
+                                  grouping=grouping)
+
+    if currency_obj and currency_obj.symbol:
+        arguments = (formatted_value, NON_BREAKING_SPACE, currency_obj.symbol)
+
+        return '%s%s%s' % (arguments if currency_obj.position == 'after'
+                           else arguments[::-1])
+
+    return formatted_value
+
+
+def format_date(env, value, lang_code=None, date_format=False):
+    """≙ ``format_date`` (``odoo19c: odoo/tools/misc.py:1412-1452``).
+
+    La fecha en el formato dado (LDML) o en el del idioma. Una cadena más
+    corta que una fecha da ``''``; una más larga es un instante y se lleva a la
+    zona del contexto antes de tomar su día, como un ``datetime`` ingenuo.
+    """
+    if not value:
+        return ''
+    if isinstance(value, str):
+        if len(value) < DATE_LENGTH:
+            return ''
+        if len(value) > DATE_LENGTH:
+            # a datetime, convert to correct timezone
+            value = _Datetime.from_string(value)
+            value = _Datetime.context_timestamp(env['res.lang'], value)
+        else:
+            value = _Datetime.from_string(value)
+    elif isinstance(value, datetime.datetime) and not value.tzinfo:
+        # a datetime, convert to correct timezone
+        value = _Datetime.context_timestamp(env['res.lang'], value)
+
+    lang = get_lang(env, lang_code)
+    locale = babel_locale_parse(lang.code)
+    if not date_format:
+        date_format = posix_to_ldml(lang.date_format, locale=locale)
+
+    assert isinstance(value, datetime.date)  # datetime is a subclass of date
+    return babel.dates.format_date(value, format=date_format, locale=locale)
+
+
+def format_datetime(env, value, tz=False, dt_format='medium', lang_code=None):
+    """≙ ``format_datetime`` (``odoo19c: odoo/tools/misc.py:1475-1523``).
+
+    Docstring de la fuente: *"Formats the datetime in a given format"*;
+    ``dt_format`` es ``'medium'``, ``'short'`` (sin segundos) o un patrón de
+    babel, y la zona es ``tz``, la del usuario o UTC.
+    """
+    if not value:
+        return ''
+    if isinstance(value, str):
+        timestamp = _Datetime.from_string(value)
+    else:
+        timestamp = value
+
+    tz_name = tz or _user_tz(env) or 'UTC'
+    localized_datetime = _localize(timestamp, tz_name)
+
+    lang = get_lang(env, lang_code)
+
+    # lang can be inactive, so `lang` is empty
+    locale = babel_locale_parse(lang.code or lang_code)
+    if not dt_format or dt_format == 'medium':
+        date_format = posix_to_ldml(lang.date_format, locale=locale)
+        time_format = posix_to_ldml(lang.time_format, locale=locale)
+        dt_format = '%s %s' % (date_format, time_format)
+    elif dt_format == 'short':
+        date_format = posix_to_ldml(lang.date_format, locale=locale)
+        time_format = posix_to_ldml(lang.time_format.replace(':%S', ''),
+                                    locale=locale)
+        dt_format = '%s %s' % (date_format, time_format)
+
+    # Babel allows to format datetime in a specific language without change
+    # locale. So month 1 = January in English, and janvier in French.
+    # Formatting available here:
+    # http://babel.pocoo.org/en/latest/dates.html#date-fields
+    return babel.dates.format_datetime(localized_datetime, dt_format,
+                                       locale=locale)
+
+
+def format_time(env, value, tz=False, time_format='medium', lang_code=None):
+    """≙ ``format_time`` (``odoo19c: odoo/tools/misc.py:1526-1570``).
+
+    Docstring de la fuente: *"Format the given time (hour, minute and
+    second) with the current user preference (language, format, ...)"*. Un
+    ``time`` se formatea tal cual; un instante, en la zona dada o la del
+    usuario.
+    """
+    if not value:
+        return ''
+
+    if isinstance(value, datetime.time):
+        localized_time = value
+    else:
+        if isinstance(value, str):
+            value = _Datetime.from_string(value)
+        assert isinstance(value, datetime.datetime)
+        tz_name = tz or _user_tz(env) or 'UTC'
+        localized_time = _localize(value, tz_name).timetz()
+
+    lang = get_lang(env, lang_code)
+    locale = babel_locale_parse(lang.code)
+    if not time_format or time_format == 'medium':
+        time_format = posix_to_ldml(lang.time_format, locale=locale)
+    elif time_format == 'short':
+        time_format = posix_to_ldml(lang.time_format.replace(':%S', ''),
+                                    locale=locale)
+
+    return babel.dates.format_time(localized_time, format=time_format,
+                                   locale=locale)
+
+
+def _format_time_ago(env, time_delta, lang_code=None, add_direction=True):
+    """≙ ``_format_time_ago`` (``odoo19c: odoo/tools/misc.py:1573-1587``):
+    el intervalo en palabras del idioma del contexto, de la empresa del
+    usuario o del primero instalado."""
+    if not lang_code:
+        res_lang = apps.get_model('base', 'ResLang')
+        langs = [code for code, _ in res_lang.get_installed()]
+        if (ctx_lang := env.context.get('lang')) in langs:
+            lang_code = ctx_lang
+        else:
+            company = getattr(env.user, 'company', None)
+            partner = getattr(company, 'partner', None)
+            lang_code = getattr(partner, 'lang', None) or langs[0]
+        assert isinstance(lang_code, str)
+    locale = babel_locale_parse(lang_code)
+    return babel.dates.format_timedelta(-time_delta,
+                                        add_direction=add_direction,
+                                        locale=locale)
+
+
+def format_decimalized_number(number, decimal=1):
+    """Format a number to display to nearest metrics unit next to it.
+
+    Do not display digits if all visible digits are null.
+    Do not display units higher then "Tera" because most people don't know
+    what a "Yotta" is. — ≙ ``odoo19c: odoo/tools/misc.py:1590-1612``.
+
+    ::
+
+        >>> format_decimalized_number(123_456.789)
+        123.5k
+        >>> format_decimalized_number(123_000.789)
+        123k
+        >>> format_decimalized_number(-123_456.789)
+        -123.5k
+        >>> format_decimalized_number(0.789)
+        0.8
+    """
+    for unit in ['', 'k', 'M', 'G']:
+        if abs(number) < 1000.0:
+            return "%g%s" % (round(number, decimal), unit)
+        number /= 1000.0
+    return "%g%s" % (round(number, decimal), 'T')
+
+
+def format_decimalized_amount(amount, currency=None):
+    """Format an amount to display the currency and also display the metric
+    unit of the amount. — ≙ ``odoo19c: odoo/tools/misc.py:1615-1632``.
+    """
+    formated_amount = format_decimalized_number(amount)
+
+    if not currency:
+        return formated_amount
+
+    if currency.position == 'before':
+        return "%s%s" % (currency.symbol or '', formated_amount)
+
+    return "%s %s" % (formated_amount, currency.symbol or '')
+
+
+def format_duration(value):
+    """ Format a float: used to display integral or fractional values as
+        human-readable time spans (e.g. 1.5 as "01:30"). — ≙
+        ``odoo19c: odoo/tools/misc.py:1654-1665``.
+    """
+    hours, minutes = divmod(abs(value) * 60, 60)
+    minutes = round(minutes)
+    if minutes == 60:
+        minutes = 0
+        hours += 1
+    if value < 0:
+        return '-%02d:%02d' % (hours, minutes)
+    return '%02d:%02d' % (hours, minutes)
 
 
 def remove_accents(input_str: str) -> str:
