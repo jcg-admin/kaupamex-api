@@ -61,6 +61,7 @@ from datetime import datetime
 from django.apps import apps as django_apps
 
 from exceptions import AccessDenied, UserError
+from orm.environments import env
 from orm.method_chain import chain_method, first_truthy, keep_previous
 from orm.model_classes import extend_model
 from tools.misc import hmac as tools_hmac
@@ -112,8 +113,8 @@ def _get_totp_mail_key(user):
     """≙ ``_get_totp_mail_key`` (res_users.py:160-162): clave HMAC derivada
     del secreto del despliegue + identidad y último login del usuario (el
     ``login_date`` de la referencia invalida los códigos al re-loguear)."""
-    message = str((user.id, user.login, user.last_login))
-    return tools_hmac('auth_totp_mail-code', message).encode()
+    return tools_hmac(env(), 'auth_totp_mail-code',
+                      (user.id, user.login, user.last_login)).encode()
 
 
 def _get_totp_mail_code(user):

@@ -16,6 +16,7 @@ aviso de licencia preservados (DEC-KX-03).
 """
 import collections
 import enum
+import hashlib
 import hmac as hmac_lib
 import logging
 import os
@@ -40,7 +41,6 @@ from django.apps import apps
 from django.db import connections
 from django.utils import formats as django_formats
 from django.utils import translation as django_translation
-from django.utils.crypto import salted_hmac
 from django.utils.html import escape as django_html_escape
 from lxml import etree
 
@@ -216,28 +216,32 @@ def str2bool(s, default=None):
     return bool(default)
 
 
-def hmac(scope, message, hash_function=None):
-    """HMAC con secreto del despliegue. ≙ ``odoo/tools/misc.py:1781-1793``.
+def hmac(env, scope, message, hash_function=hashlib.sha256):
+    """HMAC con el parámetro ``database.secret`` como clave — ≙ ``hmac``
+    (``odoo19c: odoo/tools/misc.py``).
 
-    La referencia firma con el config-param ``database.secret``; el mecanismo
-    nativo Django para "HMAC con el secreto del despliegue + salt por uso" es
-    ``django.utils.crypto.salted_hmac`` (``SECRET_KEY`` como clave,
-    ``key_salt`` = el ``scope`` de la referencia). Se adapta sobre él en vez
-    de duplicar la derivación de clave.
+    Docstring de la fuente: *"Compute HMAC with ``database.secret`` config
+    parameter as key"*. Se firma ``repr((scope, message))``: el ámbito entra
+    en lo firmado, así que el mismo mensaje en dos usos da dos firmas.
 
-    Divergencia declarada: la firma de la referencia recibe ``env`` (para
-    leer el parámetro con sudo); aquí el secreto es ``settings.SECRET_KEY``
-    vía ``salted_hmac``, así que ``env`` desaparece del contrato.
+    **Corregido 2026-11-03.** La versión anterior quitaba ``env`` de la firma
+    y firmaba con ``SECRET_KEY`` vía ``salted_hmac``. Con ello el llamador que
+    sigue la forma de la fuente —``addons/website/tools.py``,
+    ``hmac(env_sudo, 'website_form_signature', value)``— pasaba el correo como
+    ``hash_function`` y moría con ``InvalidAlgorithm``. Este árbol sí tiene el
+    parámetro: lo siembra ``ir_config_parameter`` con un UUID.
 
-    :param scope: ámbito de la firma (mismo mensaje, distinto uso → distinta
-        firma). Obligatorio y no vacío, igual que la referencia.
-    :param message: mensaje a autenticar (``str`` o ``bytes``).
-    :return: digest hexadecimal (``str``).
+    :param env: entorno desde el que se lee el parámetro.
+    :param scope: ámbito de la firma; obligatorio y no vacío.
+    :param message: lo que se autentica.
+    :param hash_function: función hash del HMAC (SHA-256 por defecto).
+    :return: el digest en hexadecimal.
     """
     if not scope:
         raise ValueError('Non-empty scope required')
-    kwargs = {'algorithm': hash_function} if hash_function else {}
-    return salted_hmac(scope, message, **kwargs).hexdigest()
+    secret = env['ir.config_parameter'].get_param('database.secret')
+    message = repr((scope, message))
+    return hmac_lib.new(secret.encode(), message.encode(), hash_function).hexdigest()
 
 
 # ``SKIPPED_ELEMENT_TYPES`` — nodos lxml que no son elementos "reales".

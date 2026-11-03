@@ -223,3 +223,4 @@ src/tools/misc.py	ConstantMapping.__slots__	attribute	tests/unit/tools/test_misc
 src/tools/misc.py	Reverse.__slots__	attribute	tests/unit/tools/test_misc_pure_port.py::test_reverse_inverts_the_ordering
 src/tools/misc.py	ReversedIterable.__slots__	attribute	tests/unit/tools/test_misc_pure_port.py::test_reversed_iterable
 src/tools/misc.py	Callbacks.__slots__	attribute	tests/unit/tools/test_misc_pure_port.py::test_callbacks_run_in_order_and_clear
+src/tools/misc.py	hmac	function	tests/unit/tools/test_hmac_contract.py::test_signs_the_scope_and_message_with_the_database_secret
