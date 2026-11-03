@@ -47,7 +47,6 @@ import babel
 from django.apps import apps
 from django.db import DEFAULT_DB_ALIAS, connections
 from django.utils import formats as django_formats
-from django.utils import translation as django_translation
 from django.utils.html import escape as django_html_escape
 from lxml import etree
 
@@ -148,7 +147,8 @@ consteq = hmac_lib.compare_digest
 
 
 class ReadonlyDict(Mapping[K, T], typing.Generic[K, T]):
-    """Mapa inmodificable, ni siquiera con ``dict.update`` — ≙ ``misc.py:1671-1706``.
+    """Mapa inmodificable, ni siquiera con ``dict.update`` — ≙
+    ``misc.py:1671-1706``.
 
     Se parece a un ``frozendict``, con una desventaja y una ventaja:
 
@@ -250,7 +250,8 @@ def hmac(env, scope, message, hash_function=hashlib.sha256):
         raise ValueError('Non-empty scope required')
     secret = env['ir.config_parameter'].get_param('database.secret')
     message = repr((scope, message))
-    return hmac_lib.new(secret.encode(), message.encode(), hash_function).hexdigest()
+    digest = hmac_lib.new(secret.encode(), message.encode(), hash_function)
+    return digest.hexdigest()
 
 
 # ``SKIPPED_ELEMENT_TYPES`` — nodos lxml que no son elementos "reales".
@@ -263,6 +264,7 @@ SKIPPED_ELEMENT_TYPES = (
     etree._Comment, etree._ProcessingInstruction,
     etree.CommentBase, etree.PIBase, etree._Entity,
 )
+
 
 def find_in_path(name):
     """≙ ``find_in_path`` (``odoo19c: odoo/tools/misc.py:130-134``).
@@ -289,7 +291,8 @@ def find_pg_tool(name):
     """≙ ``find_pg_tool`` (``odoo19c: odoo/tools/misc.py:137-144``).
 
     Resuelve una herramienta de PostgreSQL (``pg_dump``, ``pg_restore``) en el
-    directorio que declare la configuración, o en el ``PATH`` si no hay ninguno.
+    directorio que declare la configuración, o en el ``PATH`` si no hay
+    ninguno.
 
     A diferencia de :func:`find_in_path`, la ruta configurada **sustituye** al
     ``PATH`` en vez de sumarse: cuando conviven varias versiones de PostgreSQL,
@@ -468,7 +471,8 @@ def file_path(file_path, filter_ext=('',), env=None, *, check_exists=True):
     normalized_path = normalized_path.removeprefix('addons' + os.sep)
     file_path_split = normalized_path.split(os.path.sep)
 
-    if not is_abs and (module := sys.modules.get(f'addons.{file_path_split[0]}')):
+    addon_module = f'addons.{file_path_split[0]}'
+    if not is_abs and (module := sys.modules.get(addon_module)):
         addons_paths = list(map(os.path.dirname, module.__path__))
     else:
         temporary_paths = _file_open_tmp_paths(env) if env else []
@@ -524,7 +528,8 @@ def file_open(name, mode='r', filter_ext=(), env=None):
 
 @contextmanager
 def file_open_temporary_directory(env):
-    """≙ ``file_open_temporary_directory`` (``odoo19c: odoo/tools/misc.py:305-313``).
+    """≙ ``file_open_temporary_directory`` (``odoo19c:
+    odoo/tools/misc.py:305-313``).
 
     «Create and return a temporary directory added to the directories
     ``file_open`` is allowed to read from.»
@@ -562,7 +567,9 @@ def file_open_temporary_directory(env):
 html_escape = django_html_escape
 
 
-def partition(pred: Callable[[T], bool], elems: Iterable[T]) -> tuple[list[T], list[T]]:
+def partition(
+    pred: Callable[[T], bool], elems: Iterable[T],
+) -> tuple[list[T], list[T]]:
     """≙ ``partition`` (``odoo19c: odoo/tools/misc.py:373``).
 
     Docstring de la fuente, verbatim: *"Return a pair equivalent to:
@@ -716,7 +723,8 @@ def clean_context(context: dict) -> dict:
 
 
 class frozendict(dict[K, T], typing.Generic[K, T]):
-    """Diccionario inmutable y **hashable** — ≙ ``frozendict`` (``misc.py:959-985``).
+    """Diccionario inmutable y **hashable** — ≙ ``frozendict``
+    (``misc.py:959-985``).
 
     Hereda de ``dict`` y anula los siete mutadores con
     ``NotImplementedError``. Su contraparte estricta es
@@ -762,11 +770,13 @@ class frozendict(dict[K, T], typing.Generic[K, T]):
         raise NotImplementedError("'update' not supported on frozendict")
 
     def __hash__(self) -> int:  # type: ignore[override]
-        return hash(frozenset((key, freehash(val)) for key, val in self.items()))
+        items = ((key, freehash(val)) for key, val in self.items())
+        return hash(frozenset(items))
 
 
 class Collector(dict):
-    """Un mapa de clave a tupla — ≙ ``Collector`` (``odoo19c: odoo/tools/misc.py:988``).
+    """Un mapa de clave a tupla — ≙ ``Collector`` (``odoo19c:
+    odoo/tools/misc.py:988``).
 
     Docstring de la fuente, verbatim: *"A mapping from keys to tuples. This
     implements a relation, and can be seen as a space optimization for
@@ -1015,7 +1025,8 @@ ADDRESS_REGEX = re.compile(r'^(.*?)(\s[0-9][0-9\S]*)?(?: - (.+))?$',
 
 
 def street_split(street):
-    """≙ ``street_split`` (``odoo19c: odoo/tools/misc.py:1914-1921``), verbatim.
+    """≙ ``street_split`` (``odoo19c: odoo/tools/misc.py:1914-1921``),
+    verbatim.
 
     Parte una calle en sus tres piezas. La fuente la consume en
     ``ResPartner._get_street_split`` y la reusan siete addons más —los de
@@ -1054,13 +1065,13 @@ def babel_locale_parse(lang_code):
     if lang_code:
         try:
             return babel.Locale.parse(lang_code)
-        except Exception:  # noqa: BLE001 — ver el docstring
+        except Exception:
             # silent OK because el codigo pedido no resuelve y el contrato de
             # la fuente es pasar al siguiente respaldo, no propagar el error.
             pass
     try:
         return babel.Locale.default()
-    except Exception:  # noqa: BLE001 — ídem
+    except Exception:
         return babel.Locale.parse('en_US')
 
 
@@ -1085,8 +1096,10 @@ def parse_date(value, lang_code=None):
     dependencia: medido, no está instalado"*, y eso dejó de ser cierto:
     ``babel>=2.14.0`` está declarado en ``pyproject.toml:67`` y resuelve a
     2.18.0 bajo ``uv run``. La divergencia de mecanismo sigue en pie —se usa la
-    lista de formatos de Django, no ``babel.dates.parse_date``— pero su razón ya
-    no es la ausencia de la librería, sino que el formato de entrada del usuario
+    lista de formatos de Django, no ``babel.dates.parse_date``— pero su razón
+    ya
+    no es la ausencia de la librería, sino que el formato de entrada del
+    usuario
     lo gobierna la localización activa de Django. Re-decidir el mecanismo con
     babel presente es la tarea **#360**.
 
@@ -1155,14 +1168,19 @@ DIFF_DEFAULT_STYLE = """
                 table.diff td.diff_header { white-space: nowrap; }
                 table.diff td.diff_header + td { width: 50%%; }
                 table.diff td { word-break: break-all; vertical-align: top; }
-                table.diff .diff_chg, table.diff .diff_sub, table.diff .diff_add {
+                table.diff .diff_chg, table.diff .diff_sub,
+                table.diff .diff_add {
                     display: inline-block;
                     color: inherit;
                 }
-                table.diff .diff_sub, table.diff td:nth-child(3) > .diff_chg { background-color: %s }
-                table.diff .diff_add, table.diff td:nth-child(6) > .diff_chg { background-color: %s }
-                table.diff td:nth-child(3):has(>.diff_chg, .diff_sub) { background-color: %s }
-                table.diff td:nth-child(6):has(>.diff_chg, .diff_add) { background-color: %s }
+                table.diff .diff_sub,
+                table.diff td:nth-child(3) > .diff_chg { background-color: %s }
+                table.diff .diff_add,
+                table.diff td:nth-child(6) > .diff_chg { background-color: %s }
+                table.diff td:nth-child(3):has(>.diff_chg, .diff_sub) {
+                    background-color: %s }
+                table.diff td:nth-child(6):has(>.diff_chg, .diff_add) {
+                    background-color: %s }
             </style>
         """
 
@@ -1327,10 +1345,12 @@ class DotDict(dict):
 def flatten(list):
     """≙ ``flatten`` (``:319-349``), obsoleto desde 18.0 como en la fuente:
     aplana una estructura anidada; cadenas y bytes cuentan como hojas."""
-    warnings.warn("deprecated since 18.0", category=DeprecationWarning, stacklevel=2)
+    warnings.warn("deprecated since 18.0", category=DeprecationWarning,
+                  stacklevel=2)
     result = []
     for element in list:
-        if isinstance(element, (bytes, str)) or not isinstance(element, Iterable):
+        is_leaf = isinstance(element, (bytes, str))
+        if is_leaf or not isinstance(element, Iterable):
             result.append(element)
         else:
             result.extend(flatten(element))
@@ -1382,7 +1402,8 @@ _NO_PREVIOUS = object()
 
 
 def get_iso_codes(lang):
-    """≙ ``get_iso_codes`` (``:445-450``): ``fr_FR`` → ``fr``; ``es_MX`` queda."""
+    """≙ ``get_iso_codes`` (``:445-450``): ``fr_FR`` → ``fr``; ``es_MX``
+    queda."""
     if lang.find('_') != -1:
         lang_items = lang.split('_')
         if lang_items[0] == lang_items[1].lower():
@@ -1619,7 +1640,8 @@ class Callbacks:
 
 
 class ReversedIterable(Reversible):
-    """≙ ``ReversedIterable`` (``:1187-1198``): recorre otro iterable al revés."""
+    """≙ ``ReversedIterable`` (``:1187-1198``): recorre otro iterable al
+    revés."""
     __slots__ = ['iterable']
 
     def __init__(self, iterable):
@@ -1633,7 +1655,8 @@ class ReversedIterable(Reversible):
 
 
 def submap(mapping, keys):
-    """≙ ``submap`` (``:1229-1238``): copia de ``mapping`` con sólo ``keys``."""
+    """≙ ``submap`` (``:1229-1238``): copia de ``mapping`` con sólo
+    ``keys``."""
     keys = frozenset(keys)
     return {key: mapping[key] for key in mapping if key in keys}
 
@@ -1646,12 +1669,23 @@ class Reverse(object):
     def __init__(self, val):
         self.val = val
 
-    def __eq__(self, other): return self.val == other.val
-    def __ne__(self, other): return self.val != other.val
-    def __ge__(self, other): return self.val <= other.val
-    def __gt__(self, other): return self.val < other.val
-    def __le__(self, other): return self.val >= other.val
-    def __lt__(self, other): return self.val > other.val
+    def __eq__(self, other):
+        return self.val == other.val
+
+    def __ne__(self, other):
+        return self.val != other.val
+
+    def __ge__(self, other):
+        return self.val <= other.val
+
+    def __gt__(self, other):
+        return self.val < other.val
+
+    def __le__(self, other):
+        return self.val >= other.val
+
+    def __lt__(self, other):
+        return self.val > other.val
 
 
 class replace_exceptions(ContextDecorator):
@@ -1662,7 +1696,8 @@ class replace_exceptions(ContextDecorator):
     def __init__(self, *exceptions, by):
         if not exceptions:
             raise ValueError("Missing exceptions")
-        wrong_exc = next((exc for exc in exceptions if not issubclass(exc, Exception)), None)
+        wrong_exc = next((exc for exc in exceptions
+                          if not issubclass(exc, Exception)), None)
         if wrong_exc:
             raise TypeError(f"{wrong_exc} is not an exception class.")
         self.exceptions = exceptions
@@ -1681,10 +1716,12 @@ class replace_exceptions(ContextDecorator):
 def get_flag(country_code):
     """≙ ``get_flag`` (``:1946-1951``): el emoji de bandera del código de país,
     compuesto por sus dos indicadores regionales."""
-    return "".join(chr(int(f"1f1{ord(c)+165:02x}", base=16)) for c in country_code)
+    return "".join(chr(int(f"1f1{ord(c) + 165:02x}", base=16))
+                   for c in country_code)
 
 
-def hash_sign(env, scope, message_values, expiration=None, expiration_hours=None):
+def hash_sign(env, scope, message_values, expiration=None,
+              expiration_hours=None):
     """Un token firmado y apto para URL — ≙ ``hash_sign`` (``odoo19c:
     odoo/tools/misc.py:1802-1826``).
 
@@ -1696,13 +1733,14 @@ def hash_sign(env, scope, message_values, expiration=None, expiration_hours=None
     assert not (expiration and expiration_hours)
     assert message_values is not None
     if expiration_hours:
-        expiration = datetime.datetime.now() + datetime.timedelta(hours=expiration_hours)
+        expiration = (datetime.datetime.now()
+                      + datetime.timedelta(hours=expiration_hours))
     elif isinstance(expiration, datetime.timedelta):
         expiration = datetime.datetime.now() + expiration
     expiration_timestamp = 0 if not expiration else int(expiration.timestamp())
     message_strings = json.dumps(message_values)
-    hash_value = hmac(env, scope, f'1:{message_strings}:{expiration_timestamp}',
-                      hash_function=hashlib.sha256)
+    signed = f'1:{message_strings}:{expiration_timestamp}'
+    hash_value = hmac(env, scope, signed, hash_function=hashlib.sha256)
     token = (b"\x01" + expiration_timestamp.to_bytes(8, 'little')
              + bytes.fromhex(hash_value) + message_strings.encode())
     return base64.urlsafe_b64encode(token).decode().rstrip('=')
@@ -1719,12 +1757,15 @@ def verify_hash_signed(env, scope, payload):
     version = token[:1]
     if version != b'\x01':
         raise ValueError('Unknown token version')
-    expiration_value, hash_value, message = token[1:9], token[9:41].hex(), token[41:].decode()
+    expiration_value = token[1:9]
+    hash_value = token[9:41].hex()
+    message = token[41:].decode()
     expiration_value = int.from_bytes(expiration_value, byteorder='little')
     hash_value_expected = hmac(env, scope, f'1:{message}:{expiration_value}',
                                hash_function=hashlib.sha256)
+    now = datetime.datetime.now().timestamp()
     if consteq(hash_value, hash_value_expected) and (
-            expiration_value == 0 or datetime.datetime.now().timestamp() < expiration_value):
+            expiration_value == 0 or now < expiration_value):
         return json.loads(message)
     return None
 
@@ -1745,19 +1786,24 @@ def limited_field_access_token(record, field_name, timestamp=None, *, scope):
         adler32_max = 4294967295
         jitter = two_weeks * zlib.adler32(unique_str.encode()) // adler32_max
         timestamp = hex(start_of_period + 2 * two_weeks + jitter)
-    token = hmac(record.env(su=True), scope, (record._name, record.id, field_name, timestamp))
+    message = (record._name, record.id, field_name, timestamp)
+    token = hmac(record.env(su=True), scope, message)
     return f"{token}o{timestamp}"
 
 
-def verify_limited_field_access_token(record, field_name, access_token, *, scope):
+def verify_limited_field_access_token(record, field_name, access_token, *,
+                                      scope):
     """¿Da ``access_token`` acceso al campo del registro? — ≙
     ``verify_limited_field_access_token`` (``odoo19c:
     odoo/tools/misc.py:1890-1912``): el formato, el registro, el campo, el
     ámbito y la caducidad tienen que casar."""
     *_, timestamp = access_token.rsplit("o", 1)
-    return consteq(
-        access_token, limited_field_access_token(record, field_name, timestamp, scope=scope)
-    ) and datetime.datetime.now() < datetime.datetime.fromtimestamp(int(timestamp, 16))
+    expected = limited_field_access_token(record, field_name, timestamp,
+                                          scope=scope)
+    if not consteq(access_token, expected):
+        return False
+    expires = datetime.datetime.fromtimestamp(int(timestamp, 16))
+    return datetime.datetime.now() < expires
 
 
 def format_frame(frame) -> str:
@@ -1767,7 +1813,8 @@ def format_frame(frame) -> str:
     return f'{code.co_name} {code.co_filename}:{frame.f_lineno}'
 
 
-def dumpstacks(sig=None, frame=None, thread_idents=None, log_level=logging.INFO):
+def dumpstacks(sig=None, frame=None, thread_idents=None,
+               log_level=logging.INFO):
     """≙ ``dumpstacks`` (``odoo19c: odoo/tools/misc.py:882-934``).
 
     Manejador de señal: registra la pila de cada hilo vivo, o de los hilos de
@@ -1789,7 +1836,8 @@ def dumpstacks(sig=None, frame=None, thread_idents=None, log_level=logging.INFO)
                                'uid': getattr(th, 'uid', 'n/a'),
                                'dbname': getattr(th, 'dbname', 'n/a'),
                                'url': getattr(th, 'url', 'n/a'),
-                               'query_count': getattr(th, 'query_count', 'n/a'),
+                               'query_count': getattr(th, 'query_count',
+                                                      'n/a'),
                                'query_time': getattr(th, 'query_time', None),
                                'perf_t0': getattr(th, 'perf_t0', None)}
                     for th in threading.enumerate()}
@@ -1802,7 +1850,8 @@ def dumpstacks(sig=None, frame=None, thread_idents=None, log_level=logging.INFO)
             if query_time is not None and perf_t0:
                 remaining_time = '%.3f' % (time.time() - perf_t0 - query_time)
                 query_time = '%.3f' % query_time
-            code.append("\n# Thread: %s (db:%s) (uid:%s) (url:%s) (qc:%s qt:%s pt:%s)" %
+            code.append("\n# Thread: %s (db:%s) (uid:%s) (url:%s) "
+                        "(qc:%s qt:%s pt:%s)" %
                         (thread_info.get('repr', thread_id),
                          thread_info.get('dbname', 'n/a'),
                          thread_info.get('uid', 'n/a'),
