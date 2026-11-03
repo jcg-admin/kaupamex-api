@@ -42,14 +42,14 @@ class ProductUom(TimeStampedModel):
 
     uom = fields.Many2one(
         Uom,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='product_uom_ids',
         verbose_name='Unidad',
     )
     product = fields.Many2one(
         ProductProduct,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='product_uom_ids',
         verbose_name='Producto',

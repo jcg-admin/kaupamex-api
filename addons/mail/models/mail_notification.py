@@ -79,7 +79,7 @@ class MailNotification(TimeStampedModel):
     # Odoo mail_message_id (required, ondelete cascade).
     message = fields.Many2one(
         MailMessage,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='notification_ids',
         help_text='Mensaje entregado (Odoo mail_message_id).',
     )
@@ -87,7 +87,7 @@ class MailNotification(TimeStampedModel):
     # destinatario es el usuario/party (AUTH_USER_MODEL), no res.partner.
     partner = fields.Many2one(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='mail_notifications',
         help_text='Destinatario (Odoo res_partner_id).',
     )

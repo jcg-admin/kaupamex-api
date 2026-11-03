@@ -20,7 +20,7 @@ class ProductAttributeValue(TimeStampedModel):
 
     attribute = fields.Many2one(
         'product.ProductAttribute',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='values',
         help_text='Atributo (Odoo attribute_id).',
     )

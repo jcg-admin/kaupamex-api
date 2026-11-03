@@ -29,7 +29,7 @@ class SaleOrderTemplateLine(TimeStampedModel):
 
     template = fields.Many2one(
         'sale_management.SaleOrderTemplate',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='template_line',
         help_text='Plantilla (Odoo sale_order_template_id).',
     )

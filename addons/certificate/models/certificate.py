@@ -226,7 +226,7 @@ class CertificateCertificate(TimeStampedModel):
     )
     company = fields.Many2one(
         ResCompany,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='certificates',
         verbose_name='Empresa',
     )

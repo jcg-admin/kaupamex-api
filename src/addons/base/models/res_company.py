@@ -292,7 +292,7 @@ class ResCompany(TimeStampedModel):
 
     partner = fields.Many2one(
         ResPartner,
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         db_index=True,
         related_name='companies',
         verbose_name='Partner',
@@ -394,7 +394,7 @@ class ResCompany(TimeStampedModel):
     )
     currency = fields.Many2one(
         ResCurrency,
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         db_index=True,
         related_name='companies',
         verbose_name='Moneda',
@@ -1069,14 +1069,14 @@ class ResCompanyUsersRel(models.Model):
 
     cid = fields.Many2one(
         'base.ResCompany',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_column='cid',
         related_name='+',
         verbose_name='Compañía',
     )
     user_id = fields.Many2one(
         ResUsers,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_column='user_id',
         related_name='+',
         verbose_name='Usuario',

@@ -31,7 +31,7 @@ class ResUsersSettings(TimeStampedModel):
 
     user = fields.Many2one(
         'base.ResUsers',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='settings',
         help_text=(
             'Usuario dueño de las preferencias (Odoo user_id, requerido, '

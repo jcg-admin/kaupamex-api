@@ -78,7 +78,7 @@ class AccountMoveDebitNote(TimeStampedModel):
     )
     origin = fields.Many2one(
         'account.AccountMove',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='debit_notes',
         db_index=True,
         help_text='Factura original debitada (Odoo debit_origin_id).',

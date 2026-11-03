@@ -594,7 +594,7 @@ class ResDevice(_ResDeviceFields):
 
     user = fields.Many2one(
         'base.ResUsers',
-        on_delete=models.DO_NOTHING,
+        null=False, on_delete=models.DO_NOTHING,
         db_index=True,
         related_name='devices',
         help_text='Usuario de la sesión (Odoo user_id).',

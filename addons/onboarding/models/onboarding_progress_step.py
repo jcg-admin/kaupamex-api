@@ -37,7 +37,7 @@ class OnboardingProgressStep(TimeStampedModel):
     # cascade, index).
     step = fields.Many2one(
         'onboarding.OnboardingOnboardingStep',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='progress_step_records',
         db_index=True,
         verbose_name='Paso del onboarding',

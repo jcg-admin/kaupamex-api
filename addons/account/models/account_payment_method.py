@@ -118,7 +118,7 @@ class AccountPaymentMethodLine(models.Model):
     )
     payment_method = fields.Many2one(
         'account.AccountPaymentMethod',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='method_line_ids',
         help_text='Método de pago (Odoo payment_method_id, requerido).',
     )

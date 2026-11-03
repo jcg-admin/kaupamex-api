@@ -76,7 +76,7 @@ class FleetVehicleModel(MailThread, TimeStampedModel):
     name = fields.Char(max_length=150, help_text='Odoo name (required).')
     brand = fields.Many2one(
         'fleet.FleetVehicleModelBrand',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='models',
         help_text='Fabricante (Odoo brand_id, required).',
     )

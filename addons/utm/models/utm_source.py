@@ -153,7 +153,7 @@ class UtmSourceMixin(models.Model):
     # ≙ ``source_id`` (requerido, ``ondelete=restrict``, ``copy=False``).
     source_id = fields.Many2one(
         'utm.UtmSource',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='+',
         verbose_name='Fuente',
         help_text='Fuente UTM asociada a este registro.',

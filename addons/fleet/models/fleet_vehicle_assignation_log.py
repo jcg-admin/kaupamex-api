@@ -17,13 +17,13 @@ class FleetVehicleAssignationLog(TimeStampedModel):
 
     vehicle = fields.Many2one(
         'fleet.FleetVehicle',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='assignation_logs',
         help_text='Odoo vehicle_id (required).',
     )
     driver = fields.Many2one(
         'base.ResPartner',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='fleet_assignation_logs',
         help_text='Odoo driver_id (required).',
     )

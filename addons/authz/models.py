@@ -157,7 +157,7 @@ class Capability(TimeStampedModel):
 
     module = fields.Many2one(
         Module,
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='capabilities',
         verbose_name='Módulo',
     )
@@ -227,13 +227,13 @@ class RoleCapability(TimeStampedModel):
 
     role = fields.Many2one(
         Role,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='role_capabilities',
         verbose_name='Rol',
     )
     capability = fields.Many2one(
         Capability,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='role_capabilities',
         verbose_name='Capacidad',
     )
@@ -261,13 +261,13 @@ class RoleAssignment(TimeStampedModel):
 
     user = fields.Many2one(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='role_assignments',
         verbose_name='Usuario',
     )
     role = fields.Many2one(
         Role,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='assignments',
         verbose_name='Rol',
     )
@@ -304,13 +304,13 @@ class DirectEntitlement(TimeStampedModel):
 
     user = fields.Many2one(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='direct_entitlements',
         verbose_name='Usuario',
     )
     capability = fields.Many2one(
         Capability,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='direct_entitlements',
         verbose_name='Capacidad',
     )
@@ -346,13 +346,13 @@ class EntitlementRevocation(TimeStampedModel):
 
     user = fields.Many2one(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='entitlement_revocations',
         verbose_name='Usuario',
     )
     capability = fields.Many2one(
         Capability,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='entitlement_revocations',
         verbose_name='Capacidad',
     )

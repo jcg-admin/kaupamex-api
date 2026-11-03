@@ -35,7 +35,7 @@ class StockValuationLayer(TimeStampedModel):
 
     product_id = fields.Many2one(
         'product.ProductProduct',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='valuation_layers',
         help_text='Producto (Odoo product_id).',
         db_column='product_id',

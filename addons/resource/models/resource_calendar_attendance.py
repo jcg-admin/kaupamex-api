@@ -86,7 +86,7 @@ class ResourceCalendarAttendance(TimeStampedModel):
     hour_to = fields.Float(default=0, help_text='Hora de fin (Odoo hour_to).')
     calendar = fields.Many2one(
         'resource.ResourceCalendar',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='attendances',
         help_text="Odoo calendar_id (required, ondelete='cascade').",
     )

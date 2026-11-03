@@ -34,7 +34,7 @@ class MrpRoutingWorkcenter(TimeStampedModel):
     )
     workcenter = fields.Many2one(
         'mrp.MrpWorkcenter',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='operations',
         help_text='Centro de trabajo (Odoo workcenter_id).',
     )

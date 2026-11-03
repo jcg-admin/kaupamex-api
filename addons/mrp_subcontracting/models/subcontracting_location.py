@@ -85,7 +85,7 @@ class Subcontractor(TimeStampedModel):
     )
     location = fields.Many2one(
         'stock.StockLocation',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='subcontractors',
         help_text=(
             'Ubicación de stock del subcontratista (Odoo '

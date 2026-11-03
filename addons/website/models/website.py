@@ -683,7 +683,7 @@ class Website(TimeStampedModel):
     )
     company = fields.Many2one(
         'base.ResCompany',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='websites',
         default=default_company,
         help_text='Empresa dueña del sitio (Odoo company_id, required).',
@@ -707,7 +707,7 @@ class Website(TimeStampedModel):
     # la fuente lo aplica también (dentro de su ``create``).
     default_lang = fields.Many2one(
         'base.ResLang',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='default_websites',
         default=default_language,
         help_text='Idioma por defecto (Odoo default_lang_id, required).',
@@ -856,7 +856,7 @@ class Website(TimeStampedModel):
     )
     user = fields.Many2one(
         'base.ResUsers',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='public_websites',
         help_text=(
             'Usuario público del sitio — el que ve un visitante sin '

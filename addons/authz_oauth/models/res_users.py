@@ -62,7 +62,7 @@ class OauthAccount(TimeStampedModel):
     )
     provider = fields.Many2one(
         'authz_oauth.OauthProvider',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='accounts',
         verbose_name='Proveedor OAuth',
     )

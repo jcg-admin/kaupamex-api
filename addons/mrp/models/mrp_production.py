@@ -47,7 +47,7 @@ class MrpProduction(TimeStampedModel):
     )
     product = fields.Many2one(
         'product.ProductProduct',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='productions',
         help_text='Producto a fabricar (Odoo product_id).',
     )

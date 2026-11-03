@@ -52,7 +52,7 @@ class FleetVehicleLogContract(MailThread, TimeStampedModel):
 
     vehicle = fields.Many2one(
         'fleet.FleetVehicle',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='log_contracts',
         help_text='Odoo vehicle_id (required).',
     )

@@ -693,7 +693,7 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
     }
 
     partner       = fields.Many2one(
-        'base.ResPartner', on_delete=models.PROTECT, related_name='users',
+        'base.ResPartner', null=False, on_delete=models.PROTECT, related_name='users',
         help_text=(
             'Party al que pertenece esta credencial (Odoo partner_id). '
             'Requerido: en la referencia no hay usuario sin partner.'
@@ -2270,7 +2270,7 @@ class ResUsersLog(TimeStampedModel):
     """
 
     user = fields.Many2one(
-        'base.ResUsers', on_delete=models.CASCADE, db_index=True,
+        'base.ResUsers', null=False, on_delete=models.CASCADE, db_index=True,
         related_name='logs',
         help_text='Usuario que accedió (Odoo create_uid).',
     )
@@ -2799,7 +2799,7 @@ class ResUsersApikeys(_ResUsersApikeysBase):
     _allow_sudo_commands = False
 
     user = fields.Many2one(
-        'base.ResUsers', on_delete=models.CASCADE, db_index=True,
+        'base.ResUsers', null=False, on_delete=models.CASCADE, db_index=True,
         related_name='api_keys',
         help_text='Odoo user_id — el dueño de la clave.',
     )

@@ -59,7 +59,7 @@ class AccountPayment(models.Model):
     )
     journal = fields.Many2one(
         'account.AccountJournal',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='payments',
         help_text='Diario (Odoo journal_id).',
     )
@@ -81,7 +81,7 @@ class AccountPayment(models.Model):
     )
     company = fields.Many2one(
         'base.ResCompany',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='payments',
         help_text='Empresa (Odoo company_id).',
     )

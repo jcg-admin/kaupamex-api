@@ -72,7 +72,7 @@ class ProductAttributeCustomValue(TimeStampedModel):
 
     custom_product_template_attribute_value_id = fields.Many2one(
         'product.ProductTemplateAttributeValue',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         db_column='custom_product_template_attribute_value_id',
         related_name='custom_values',
         verbose_name='Valor del atributo',

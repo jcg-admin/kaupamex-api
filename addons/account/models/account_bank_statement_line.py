@@ -87,7 +87,7 @@ class AccountBankStatementLine(models.Model):
     # Many2one required + cascade, NO herencia multi-tabla (ver docstring).
     move = fields.Many2one(
         'account.AccountMove',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='bank_statement_line',
         help_text=(
             'Asiento contable del que esta línea es la extensión '

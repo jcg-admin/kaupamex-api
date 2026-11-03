@@ -268,7 +268,7 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
     )
     product = fields.Many2one(
         'product.ProductProduct',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='lots',
         help_text='Producto (Odoo product_id).',
     )

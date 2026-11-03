@@ -1132,6 +1132,14 @@ def Many2one(*args, store=_UNSET, company_dependent=False,
             CompanyDependent(*resto, base_type='many2one',
                              comodel=_comodel_label(to), **kwargs),
             check_company)
+    #: ``required`` vale ``False`` salvo que se declare (``odoo19c: odoo/orm/
+    #: fields_relational.py:282``): un ``Many2one`` sin ``null=`` es opcional,
+    #: como en la fuente. Antes heredaba el ``null=False`` de ``ForeignKey`` y
+    #: salía ``NOT NULL`` por omisión (:ref:`h-api-1122`); las declaraciones
+    #: que deben seguir requeridas lo dicen con ``null=False``.
+    if 'null' not in kwargs:
+        kwargs['null'] = True
+        kwargs.setdefault('blank', True)
     args, kwargs, resolved_ondelete, ondelete_from_default = \
         _apply_ondelete(args, kwargs)
     # DESPUES de ``_apply_ondelete``, y no antes: su guarda de ``:289`` compara

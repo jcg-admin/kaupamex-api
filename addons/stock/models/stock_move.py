@@ -450,13 +450,13 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
     # --- qué se mueve --------------------------------------------------------
 
     company         = fields.Many2one(
-        'base.ResCompany', on_delete=models.PROTECT, db_index=True,
+        'base.ResCompany', null=False, on_delete=models.PROTECT, db_index=True,
         related_name='stock_moves', default=get_current_company,
         help_text='Empresa (Odoo company_id, requerido, '
                   'default=lambda self: self.env.company).',
     )
     product         = fields.Many2one(
-        'product.ProductProduct', on_delete=models.PROTECT, related_name='stock_moves',
+        'product.ProductProduct', null=False, on_delete=models.PROTECT, related_name='stock_moves',
         db_index=True, help_text='Producto (Odoo product_id; el dominio excluye servicios).',
     )
     never_product_template_attribute_value_ids = fields.Many2many(
@@ -508,11 +508,11 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
     # --- de dónde a dónde ----------------------------------------------------
 
     location        = fields.Many2one(
-        'stock.StockLocation', on_delete=models.PROTECT, related_name='moves_out',
+        'stock.StockLocation', null=False, on_delete=models.PROTECT, related_name='moves_out',
         db_index=True, help_text='Ubicación origen (Odoo location_id, compute+store).',
     )
     location_dest   = fields.Many2one(
-        'stock.StockLocation', on_delete=models.PROTECT, related_name='moves_in',
+        'stock.StockLocation', null=False, on_delete=models.PROTECT, related_name='moves_in',
         db_index=True,
         help_text='Ubicación destino INTERMEDIA (Odoo location_dest_id, '
                   'compute+store con inverso).',

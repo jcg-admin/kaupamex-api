@@ -41,19 +41,19 @@ class SubscriptionInvoice(TimeStampedModel):
 
     company = fields.Many2one(
         ResCompany,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='subscription_invoices',
         verbose_name='Empresa',
     )
     subscription = fields.Many2one(
         CompanyModuleSubscription,
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='invoices',
         verbose_name='Suscripción',
     )
     run = fields.Many2one(
         SubscriptionBillingRun,
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='invoices',
         verbose_name='Corrida',
     )

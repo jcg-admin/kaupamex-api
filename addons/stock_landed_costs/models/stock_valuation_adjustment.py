@@ -21,13 +21,13 @@ class StockValuationAdjustment(TimeStampedModel):
 
     cost = fields.Many2one(
         'stock_landed_costs.StockLandedCost',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='adjustment_lines',
         help_text='Documento (Odoo cost_id).',
     )
     cost_line = fields.Many2one(
         'stock_landed_costs.StockLandedCostLine',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='adjustment_lines',
         help_text='Componente (Odoo cost_line_id).',
     )
@@ -41,7 +41,7 @@ class StockValuationAdjustment(TimeStampedModel):
     )
     product = fields.Many2one(
         'product.ProductProduct',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='landed_cost_adjustments',
         help_text='Producto (Odoo product_id).',
     )

@@ -32,7 +32,7 @@ class FleetVehicleLogServices(MailThread, TimeStampedModel):
     active = fields.Boolean(default=True, help_text='Odoo active.')
     vehicle = fields.Many2one(
         'fleet.FleetVehicle',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='log_services',
         help_text='Odoo vehicle_id (required).',
     )
@@ -94,7 +94,7 @@ class FleetVehicleLogServices(MailThread, TimeStampedModel):
     notes = fields.Text(blank=True, default='', help_text='Odoo notes.')
     service_type = fields.Many2one(
         'fleet.FleetServiceType',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='service_logs',
         help_text='Odoo service_type_id (required).',
     )

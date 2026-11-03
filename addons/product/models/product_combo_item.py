@@ -78,7 +78,7 @@ class ProductComboItem(TimeStampedModel):
 
     combo = fields.Many2one(
         ProductCombo,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='combo_item_ids',
         verbose_name='Elección',
@@ -89,7 +89,7 @@ class ProductComboItem(TimeStampedModel):
     )
     product = fields.Many2one(
         ProductProduct,
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         db_index=True,
         related_name='combo_item_ids',
         verbose_name='Opción',

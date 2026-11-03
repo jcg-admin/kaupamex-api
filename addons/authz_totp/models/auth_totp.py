@@ -134,7 +134,7 @@ class AuthTotpDevice(_ResUsersApikeysBase):
 
     user = fields.Many2one(
         'base.ResUsers',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='totp_trusted_devices',
         help_text='Odoo user_id — el dueño del dispositivo de confianza.',

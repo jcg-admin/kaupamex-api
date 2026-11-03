@@ -118,7 +118,7 @@ class MailMail(TimeStampedModel):
     # required + cascade. NO es herencia multi-tabla (ver docstring).
     mail_message = fields.Many2one(
         MailMessage,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='mails',
         help_text=(

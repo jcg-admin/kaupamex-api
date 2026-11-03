@@ -65,7 +65,7 @@ class OnboardingProgress(TimeStampedModel):
     # ``onboarding_onboarding.py``, que sí importa esta clase.
     onboarding = fields.Many2one(
         'onboarding.OnboardingOnboarding',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='progress_records',
         db_index=True,
         verbose_name='Onboarding',

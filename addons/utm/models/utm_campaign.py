@@ -79,7 +79,7 @@ class UtmCampaign(TimeStampedModel):
     # ``group_expand=_group_expand_stage_ids``).
     stage_id = fields.Many2one(
         'utm.UtmStage',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='campaign_ids',
         verbose_name='Etapa',
         help_text='Etapa en la que se encuentra la campaña.',

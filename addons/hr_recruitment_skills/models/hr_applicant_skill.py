@@ -84,7 +84,7 @@ class HrApplicantSkill(HrIndividualSkillMixin):
 
     applicant_id = fields.Many2one(
         HrApplicant,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='applicant_skill_ids',
         verbose_name='Candidato',

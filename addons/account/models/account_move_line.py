@@ -52,7 +52,7 @@ class AccountMoveLine(AnalyticMixin, models.Model):
 
     move = fields.Many2one(
         'account.AccountMove',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='line_ids',
         help_text='Asiento al que pertenece (Odoo move_id, requerido).',
     )

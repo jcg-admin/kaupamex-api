@@ -71,7 +71,7 @@ class IrDemoFailure(TimeStampedModel):
 
     module = fields.Many2one(
         IrModule,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='demo_failures',
         verbose_name='Módulo',
         help_text='Odoo module_id. El addon cuyo seed de demostración falló.',

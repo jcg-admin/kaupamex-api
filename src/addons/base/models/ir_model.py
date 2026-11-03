@@ -896,7 +896,7 @@ class IrModelFields(models.OriginMixin, TimeStampedModel):
         help_text='Nombre técnico del modelo dueño del campo.',
     )
     model_id = fields.Many2one(
-        IrModel, on_delete=models.CASCADE, db_index=True,
+        IrModel, null=False, on_delete=models.CASCADE, db_index=True,
         related_name='field_id', verbose_name='Modelo',
         help_text='Odoo lo llama field_id (One2many en singular, contra su '
                   'propia convención _ids); se conserva ese nombre en el '
@@ -1741,12 +1741,12 @@ class IrModelInherit(models.Model):
     _log_access = False
 
     model_id = fields.Many2one(
-        IrModel, on_delete=models.CASCADE, related_name='inherit_ids',
+        IrModel, null=False, on_delete=models.CASCADE, related_name='inherit_ids',
         verbose_name='Modelo',
         db_column='model_id',
     )
     parent_id = fields.Many2one(
-        IrModel, on_delete=models.CASCADE, related_name='inherit_child_ids',
+        IrModel, null=False, on_delete=models.CASCADE, related_name='inherit_child_ids',
         verbose_name='Modelo padre',
         db_column='parent_id',
     )
@@ -1825,7 +1825,7 @@ class IrModelFieldsSelection(models.OriginMixin, TimeStampedModel):
     _allow_sudo_commands = False
 
     field_id = fields.Many2one(
-        IrModelFields, on_delete=models.CASCADE, db_index=True,
+        IrModelFields, null=False, on_delete=models.CASCADE, db_index=True,
         related_name='selection_ids', verbose_name='Campo',
         db_column='field_id')
     value = fields.Char(max_length=255, verbose_name='Valor')
@@ -2228,10 +2228,10 @@ class IrModelConstraint(models.CopyMixin, TimeStampedModel):
         max_length=512, blank=True, default='', verbose_name='Mensaje',
         help_text='Error devuelto cuando se viola la restricción.')
     model = fields.Many2one(
-        IrModel, on_delete=models.CASCADE, db_index=True,
+        IrModel, null=False, on_delete=models.CASCADE, db_index=True,
         related_name='constraint_ids', verbose_name='Modelo')
     module = fields.Many2one(
-        IrModule, on_delete=models.CASCADE, db_index=True,
+        IrModule, null=False, on_delete=models.CASCADE, db_index=True,
         related_name='constraint_ids', verbose_name='Módulo')
     type = fields.Char(
         max_length=1, verbose_name='Tipo de restricción',
@@ -2455,10 +2455,10 @@ class IrModelRelation(TimeStampedModel):
         max_length=255, db_index=True, verbose_name='Nombre de la relación',
         help_text='Nombre de la tabla que implementa el Many2many.')
     model = fields.Many2one(
-        IrModel, on_delete=models.CASCADE, db_index=True,
+        IrModel, null=False, on_delete=models.CASCADE, db_index=True,
         related_name='relation_ids', verbose_name='Modelo')
     module = fields.Many2one(
-        IrModule, on_delete=models.CASCADE, db_index=True,
+        IrModule, null=False, on_delete=models.CASCADE, db_index=True,
         related_name='relation_ids', verbose_name='Módulo')
 
     class Meta:
@@ -2585,7 +2585,7 @@ class IrModelAccess(TimeStampedModel):
                   'borrada se recrea al recargar el módulo.',
     )
     model_id = fields.Many2one(
-        IrModel, on_delete=models.CASCADE, db_index=True,
+        IrModel, null=False, on_delete=models.CASCADE, db_index=True,
         related_name='access_ids', verbose_name='Modelo',
         db_column='model_id',
     )

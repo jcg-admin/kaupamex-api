@@ -92,7 +92,7 @@ class AuthTotpRateLimitLog(TimeStampedModel):
 
     user_id = fields.Many2one(
         'base.ResUsers',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='totp_rate_limit_logs',
         verbose_name='Usuario',

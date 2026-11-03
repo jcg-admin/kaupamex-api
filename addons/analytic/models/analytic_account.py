@@ -56,7 +56,7 @@ class AccountAnalyticAccount(MailThread, models.Model):
     active = fields.Boolean(default=True, verbose_name='Activo')
     plan = fields.Many2one(
         'analytic.AccountAnalyticPlan',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='accounts',
         verbose_name='Plan',
         help_text=(

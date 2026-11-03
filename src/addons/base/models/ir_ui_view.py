@@ -949,7 +949,7 @@ class IrUiViewCustom(TimeStampedModel):
 
     ref_id = fields.Many2one(
         IrUiView,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='custom_ids',
         verbose_name='Vista original',
@@ -957,7 +957,7 @@ class IrUiViewCustom(TimeStampedModel):
     )
     user = fields.Many2one(
         ResUsers,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='custom_views',
         verbose_name='Usuario',

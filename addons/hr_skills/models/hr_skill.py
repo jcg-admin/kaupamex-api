@@ -44,7 +44,7 @@ class HrSkill(TimeStampedModel):
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
     skill_type = fields.Many2one(
         'hr_skills.HrSkillType',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='skill_ids',
         verbose_name='Tipo de habilidad',

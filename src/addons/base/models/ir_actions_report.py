@@ -456,7 +456,7 @@ class IrActionsReport(IrActionsBase):
     )
     model_id = fields.Many2one(
         IrModel,
-        store=False,
+        null=False, store=False,
         default=lambda record: record._compute_model_id(),
         help_text=(
             'La fila de ir.model que corresponde a "model". Derivada, '

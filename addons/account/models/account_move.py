@@ -129,7 +129,7 @@ class AccountMove(SequenceMixin, models.Model):
     )
     journal = fields.Many2one(
         'account.AccountJournal',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='moves',
         help_text='Diario (Odoo journal_id, requerido).',
     )

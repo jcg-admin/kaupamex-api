@@ -51,7 +51,7 @@ class AccountAnalyticLineCalendarEmployee(models.Model):
 
     user_id = fields.Many2one(
         ResUsers,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='timesheet_calendar_filters',
         verbose_name='Usuario',
         help_text=(

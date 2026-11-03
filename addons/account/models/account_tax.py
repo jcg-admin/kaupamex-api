@@ -504,13 +504,13 @@ class AccountTaxAlternative(models.Model):
 
     src_tax = fields.Many2one(
         'account.AccountTax',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='+',
         help_text='Impuesto doméstico a reemplazar (Odoo src_tax_id).',
     )
     dest_tax = fields.Many2one(
         'account.AccountTax',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='+',
         help_text=(
             'Impuesto de reemplazo — "this Replacement tax" en la '
@@ -621,7 +621,7 @@ class AccountTax(models.Model):
     )
     company = fields.Many2one(
         'base.ResCompany',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='taxes',
         help_text='Empresa (Odoo company_id).',
     )

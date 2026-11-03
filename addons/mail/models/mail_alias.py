@@ -169,7 +169,7 @@ class MailAlias(TimeStampedModel):
     # -- Destino: crear / actualizar ---------------------------------------
     alias_model = fields.Many2one(
         'base.IrModel',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='aliases',
         help_text=(
             "Odoo ``alias_model_id``: modelo al que corresponde el "

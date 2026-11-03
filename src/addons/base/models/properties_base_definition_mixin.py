@@ -116,7 +116,7 @@ class PropertiesBaseDefinitionMixin(FieldSqlMixin, models.Model):
     )
     properties_base_definition_id = fields.Many2one(
         PropertiesBaseDefinition,
-        store=False,
+        null=False, store=False,
         default=_definition_default,
         help_text=(
             'Derivado de (modelo, campo), no del registro: todas las '

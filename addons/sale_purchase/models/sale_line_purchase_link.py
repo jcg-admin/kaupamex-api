@@ -29,7 +29,7 @@ class SaleLinePurchaseLink(TimeStampedModel):
 
     sale_line = fields.Many2one(
         'sale.SaleOrderLine',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='purchase_links',
         help_text=(
             'Línea de venta origen (Odoo purchase.order.line.sale_line_id).'

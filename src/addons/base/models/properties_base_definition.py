@@ -137,7 +137,7 @@ class PropertiesBaseDefinition(TimeStampedModel):
 
     properties_field = fields.Many2one(
         IrModelFields,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         unique=True,
         related_name='properties_definition_ids',
         verbose_name='Campo de propiedades',

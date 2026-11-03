@@ -39,13 +39,13 @@ class MrpWorkorder(TimeStampedModel):
     )
     production = fields.Many2one(
         'mrp.MrpProduction',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='workorders',
         help_text='Orden de fabricación (Odoo production_id).',
     )
     workcenter = fields.Many2one(
         'mrp.MrpWorkcenter',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='workorders',
         help_text='Centro de trabajo (Odoo workcenter_id).',
     )

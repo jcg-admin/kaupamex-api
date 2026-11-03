@@ -495,7 +495,7 @@ class StockRule(TimeStampedModel):
     )
     location_dest = fields.Many2one(
         'stock.StockLocation',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='rules_in',
         db_index=True,
         help_text=(
@@ -522,7 +522,7 @@ class StockRule(TimeStampedModel):
     )
     route = fields.Many2one(
         'stock.StockRoute',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='rule_ids',
         db_index=True,
         help_text='Ruta a la que pertenece (Odoo route_id, required).',

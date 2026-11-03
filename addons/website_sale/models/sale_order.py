@@ -214,7 +214,7 @@ class WebsiteSaleOrderInfo(TimeStampedModel):
     )
     website_id = fields.Many2one(
         Website,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='sale_orders',
         help_text=(
             'Sitio por el que se hizo el pedido (Odoo website_id, readonly).'

@@ -21,7 +21,7 @@ class AccountFiscalPositionAccount(models.Model):
 
     position = fields.Many2one(
         'account.AccountFiscalPosition',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='account_ids',
         help_text=(
             'Posición fiscal dueña de este mapeo (Odoo position_id,'
@@ -41,7 +41,7 @@ class AccountFiscalPositionAccount(models.Model):
     )
     account_src = fields.Many2one(
         'account.AccountAccount',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='fiscal_position_mappings_src',
         help_text=(
             'Cuenta declarada en el producto (Odoo account_src_id, requerido).'
@@ -49,7 +49,7 @@ class AccountFiscalPositionAccount(models.Model):
     )
     account_dest = fields.Many2one(
         'account.AccountAccount',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='fiscal_position_mappings_dest',
         help_text=(
             'Cuenta a usar en su lugar (Odoo account_dest_id, requerido).'

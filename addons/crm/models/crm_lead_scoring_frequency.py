@@ -113,7 +113,7 @@ class CrmLeadScoringFrequencyField(TimeStampedModel):
     # domain=[('model_id.model', '=', 'crm.lead')]).
     field_id = fields.Many2one(
         IrModelFields,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='crm_lead_scoring_uses',
         db_column='field_id',
         help_text='Campo de crm.lead usado como variable (Odoo field_id).',

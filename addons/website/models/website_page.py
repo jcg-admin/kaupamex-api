@@ -204,7 +204,7 @@ class WebsitePage(
     )
     view = fields.Many2one(
         'base.IrUiView',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='page_ids',
         db_column='view_id',

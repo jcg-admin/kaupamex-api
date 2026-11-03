@@ -25,13 +25,13 @@ class ProductTemplateAttributeValue(TimeStampedModel):
 
     line = fields.Many2one(
         'product.ProductTemplateAttributeLine',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='template_values',
         help_text='Línea (Odoo attribute_line_id).',
     )
     attribute_value = fields.Many2one(
         'product.ProductAttributeValue',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='template_values',
         help_text='Valor del atributo (Odoo product_attribute_value_id).',
     )

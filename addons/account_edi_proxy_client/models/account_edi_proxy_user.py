@@ -137,7 +137,7 @@ class AccountEdiProxyUser(models.Model):
     )
     company_id = fields.Many2one(
         'base.ResCompany',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='account_edi_proxy_client_ids',
         help_text=(
@@ -155,7 +155,7 @@ class AccountEdiProxyUser(models.Model):
     )
     private_key_id = fields.Many2one(
         'certificate.CertificateKey',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='edi_proxy_users',
         help_text=(
             'Llave para cifrar los datos del usuario (Odoo '

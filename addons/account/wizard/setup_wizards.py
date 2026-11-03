@@ -100,7 +100,7 @@ class AccountFinancialYearOp(
 
     company_id = fields.Many2one(
         'base.ResCompany',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_column='company_id',
         related_name='financial_year_ops',
         help_text='Empresa cuyo ejercicio se abre (Odoo company_id).',
@@ -296,7 +296,7 @@ class AccountSetupBankManualConfig(TransientModel):
     #: ``partner``, ``bank`` y el resto de la cuenta bancaria.
     res_partner_bank_id = fields.Many2one(
         'base.ResPartnerBank',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_column='res_partner_bank_id',
         related_name='setup_wizards',
         help_text='Cuenta bancaria delegada (Odoo res_partner_bank_id).',
@@ -329,7 +329,7 @@ class AccountSetupBankManualConfig(TransientModel):
     num_journals_without_account_credit = fields.Integer(default=0)
     company_id = fields.Many2one(
         'base.ResCompany',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_column='company_id',
         related_name='bank_setup_wizards',
         help_text='Empresa (Odoo company_id).',

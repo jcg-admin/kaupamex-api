@@ -32,7 +32,7 @@ class MailTrackingValue(TimeStampedModel):
 
     message = fields.Many2one(
         'mail.MailMessage',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='tracking_value_ids',
         help_text='Mensaje de notificacion asociado (Odoo mail_message_id).',
     )

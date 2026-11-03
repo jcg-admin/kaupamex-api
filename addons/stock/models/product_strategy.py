@@ -188,13 +188,13 @@ class StockPutawayRule(models.DefaultGetMixin, TimeStampedModel):
         help_text='Categoría de producto a la que aplica (Odoo category_id).',
     )
     location_in        = fields.Many2one(
-        'stock.StockLocation', on_delete=models.CASCADE,
+        'stock.StockLocation', null=False, on_delete=models.CASCADE,
         related_name='putaway_rule_ids', db_index=True,
         help_text='Ubicación donde llega el producto '
                   '(Odoo location_in_id, requerido).',
     )
     location_out       = fields.Many2one(
-        'stock.StockLocation', on_delete=models.CASCADE,
+        'stock.StockLocation', null=False, on_delete=models.CASCADE,
         related_name='putaway_destination_ids',
         help_text='Sububicación donde se almacena '
                   '(Odoo location_out_id, requerido).',
@@ -205,7 +205,7 @@ class StockPutawayRule(models.DefaultGetMixin, TimeStampedModel):
                   '(Odoo sequence).',
     )
     company            = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE,
+        'base.ResCompany', null=False, on_delete=models.CASCADE,
         related_name='putaway_rules', db_index=True,
         help_text='Empresa (Odoo company_id, requerido).',
     )

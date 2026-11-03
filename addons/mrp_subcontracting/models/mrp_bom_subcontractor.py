@@ -33,13 +33,13 @@ class BomSubcontractor(TimeStampedModel):
 
     bom = fields.Many2one(
         'mrp.MrpBom',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='subcontractor_links',
         help_text='BoM de subcontratación (Odoo mrp.bom).',
     )
     subcontractor = fields.Many2one(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='subcontracted_boms',
         help_text='Subcontratista (Odoo res.partner).',
     )
@@ -72,7 +72,7 @@ class SubcontractProduction(TimeStampedModel):
     )
     subcontractor = fields.Many2one(
         settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='subcontract_productions',
         help_text='Subcontratista de la orden (Odoo subcontractor_id).',
     )

@@ -836,7 +836,7 @@ class IrActionsServerHistory(TimeStampedModel):
 
     action = fields.Many2one(
         'base.IrActionsServer',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='code_history',
         verbose_name='Acción',
     )
@@ -2533,7 +2533,7 @@ class IrActionsTodo(TimeStampedModel):
 
     action = fields.Many2one(
         IrActionsActions,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='todos',
         verbose_name='Acción',

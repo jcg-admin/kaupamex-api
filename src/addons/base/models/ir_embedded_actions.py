@@ -106,7 +106,7 @@ class IrEmbeddedActions(TimeStampedModel):
     sequence = fields.Integer(null=True, blank=True, verbose_name='Secuencia')
     parent_action = fields.Many2one(
         IrActionsActWindow,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='embedded_action_ids',
         verbose_name='Acción padre',

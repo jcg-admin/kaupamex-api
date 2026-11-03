@@ -42,7 +42,7 @@ class MailFollowers(TimeStampedModel):
     )
     partner = fields.Many2one(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='followed_records',
         help_text=(
             'Party seguidor (Odoo partner_id → res.partner; party ='

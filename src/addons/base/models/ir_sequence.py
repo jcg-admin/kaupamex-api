@@ -527,7 +527,7 @@ class IrSequenceDateRange(models.DefaultGetMixin, TimeStampedModel):
     date_from = fields.Date(help_text='Odoo date_from ("From").')
     date_to = fields.Date(help_text='Odoo date_to ("To").')
     sequence = fields.Many2one(
-        'base.IrSequence', on_delete=models.CASCADE,
+        'base.IrSequence', null=False, on_delete=models.CASCADE,
         related_name='date_range_ids',
         help_text='Odoo sequence_id ("Main Sequence").')
     number_next = fields.Integer(

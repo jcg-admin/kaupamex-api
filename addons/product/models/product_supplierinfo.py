@@ -123,7 +123,7 @@ class ProductSupplierinfo(TimeStampedModel):
 
     partner = fields.Many2one(
         ResPartner,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='supplierinfo_ids',
         verbose_name='Proveedor',
@@ -245,7 +245,7 @@ class ProductSupplierinfo(TimeStampedModel):
     )
     product_tmpl = fields.Many2one(
         ProductTemplate,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='seller_ids',
         verbose_name='Plantilla de producto',

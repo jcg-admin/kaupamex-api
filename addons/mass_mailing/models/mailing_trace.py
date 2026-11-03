@@ -66,7 +66,7 @@ class MailingTrace(TimeStampedModel):
 
     mailing = fields.Many2one(
         MailingMailing,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='trace_ids',
         help_text='Envio masivo rastreado (Odoo mass_mailing_id).',
     )

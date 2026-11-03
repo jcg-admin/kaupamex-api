@@ -58,7 +58,7 @@ class ResourceMixin(models.Model):
 
     resource = fields.Many2one(
         'resource.ResourceResource',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='%(app_label)s_%(class)s_resource_mixin_set',
         help_text="Odoo resource_id (required, ondelete='restrict').",
     )

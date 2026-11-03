@@ -199,7 +199,7 @@ class FleetVehicle(MailThread, TimeStampedModel):
     )
     model = fields.Many2one(
         'fleet.FleetVehicleModel',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='vehicles',
         help_text='Odoo model_id (required).',
     )

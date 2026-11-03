@@ -30,7 +30,7 @@ class ModulePrice(TimeStampedModel):
 
     module = fields.Many2one(
         'authz.Module',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='prices',
         verbose_name='Módulo',
     )

@@ -34,7 +34,7 @@ class StockLandedCostLine(TimeStampedModel):
 
     cost = fields.Many2one(
         'stock_landed_costs.StockLandedCost',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='cost_lines',
         help_text='Documento (Odoo cost_id).',
     )

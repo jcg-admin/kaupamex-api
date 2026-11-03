@@ -37,7 +37,7 @@ class HrUserWorkEntryEmployee(TimeStampedModel):
 
     user = fields.Many2one(
         ResUsers,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         verbose_name='Me',
         related_name='work_entry_employee_filters',
         default=get_current_uid,
@@ -48,7 +48,7 @@ class HrUserWorkEntryEmployee(TimeStampedModel):
     )
     employee = fields.Many2one(
         'hr.HrEmployee',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         verbose_name='Employee',
         related_name='work_entry_user_filters',
         help_text='Odoo employee_id (required).',

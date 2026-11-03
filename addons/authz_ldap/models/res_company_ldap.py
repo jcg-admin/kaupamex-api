@@ -92,7 +92,7 @@ class CompanyLdap(TimeStampedModel):
 
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, related_name='ldaps',
+        'base.ResCompany', null=False, on_delete=models.CASCADE, related_name='ldaps',
         verbose_name='Compañía',
     )
     ldap_server = fields.Char(

@@ -62,13 +62,13 @@ class AccountPartialReconcile(models.Model):
 
     debit_move = fields.Many2one(
         'account.AccountMoveLine',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='matched_debit_ids',
         help_text='Apunte del lado debe (Odoo debit_move_id, requerido).',
     )
     credit_move = fields.Many2one(
         'account.AccountMoveLine',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='matched_credit_ids',
         help_text='Apunte del lado haber (Odoo credit_move_id, requerido).',
     )

@@ -109,7 +109,7 @@ class ProductDocument(TimeStampedModel):
 
     ir_attachment = fields.Many2one(
         IrAttachment,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='product_document_ids',
         verbose_name='Adjunto relacionado',

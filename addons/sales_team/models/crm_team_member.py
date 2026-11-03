@@ -29,7 +29,7 @@ class CrmTeamMember(TimeStampedModel):
     # Odoo crm_team_id (crm_team_member.py:14, required, ondelete cascade).
     crm_team_id = fields.Many2one(
         'sales_team.CrmTeam',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         # ≙ ``crm_team_member_ids`` (odoo19c:
         # sales_team/models/crm_team.py:107),
         # el One2many con que el equipo nombra a sus membresías. El nombre lo
@@ -41,7 +41,7 @@ class CrmTeamMember(TimeStampedModel):
     # Odoo user_id (crm_team_member.py:19, required).
     user_id = fields.Many2one(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='sales_team_memberships',
         help_text='Vendedor (Odoo crm.team.member.user_id).',
         db_column='user_id',

@@ -82,7 +82,7 @@ class HrEmployeeLocation(TimeStampedModel):
 
     work_location_id = fields.Many2one(
         'hr.HrWorkLocation',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='homeworking_exceptions',
         verbose_name='Ubicación',
         help_text=(
@@ -95,7 +95,7 @@ class HrEmployeeLocation(TimeStampedModel):
     )
     employee_id = fields.Many2one(
         'hr.HrEmployee',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='homeworking_exceptions',
         verbose_name='Empleado',
         help_text=(

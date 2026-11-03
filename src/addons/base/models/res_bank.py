@@ -346,7 +346,7 @@ class ResPartnerBank(
     )
     partner = fields.Many2one(
         'base.ResPartner',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='bank_accounts',
         help_text=(
             'Contacto titular de la cuenta (Odoo partner_id, requerido, '

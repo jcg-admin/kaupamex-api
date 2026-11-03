@@ -313,14 +313,14 @@ class StockWarehouseOrderpoint(TimeStampedModel):
     )
     warehouse = fields.Many2one(
         'stock.StockWarehouse',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='orderpoint_ids',
         help_text='Almacén (Odoo warehouse_id, compute+store, requerido).',
     )
     location = fields.Many2one(
         'stock.StockLocation',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='orderpoint_ids',
         help_text=(
@@ -330,7 +330,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
     )
     product = fields.Many2one(
         'product.ProductProduct',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='orderpoint_ids',
         help_text='Producto que se reabastece (Odoo product_id, requerido).',
@@ -362,7 +362,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
     )
     company = fields.Many2one(
         'base.ResCompany',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='orderpoint_ids',
         help_text='Empresa (Odoo company_id, requerido).',

@@ -37,7 +37,7 @@ class HrJobSkill(HrIndividualSkillMixin):
 
     job = fields.Many2one(
         HrJob,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='job_skill_ids',
         verbose_name='Puesto',

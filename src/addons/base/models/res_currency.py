@@ -916,7 +916,7 @@ class ResCurrencyRate(
     )
     currency = fields.Many2one(
         'base.ResCurrency',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='rates',
         db_index=True,
         help_text='Moneda (Odoo currency_id).',

@@ -154,7 +154,7 @@ class HrWorkEntry(TimeStampedModel):
     active = fields.Boolean(default=True)
     employee = fields.Many2one(
         'hr.HrEmployee',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='work_entries',
         verbose_name='Empleado',
@@ -165,7 +165,7 @@ class HrWorkEntry(TimeStampedModel):
     )
     version = fields.Many2one(
         'hr.HrVersion',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='work_entries',
         verbose_name='Employee Record',

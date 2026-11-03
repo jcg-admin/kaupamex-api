@@ -164,7 +164,7 @@ class AccountEdiDocument(models.Model):
     # == Campos almacenados ==
     move_id = fields.Many2one(
         'account.AccountMove',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='edi_document_ids',
         help_text=(
@@ -175,7 +175,7 @@ class AccountEdiDocument(models.Model):
     )
     edi_format_id = fields.Many2one(
         AccountEdiFormat,
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='documents',
         help_text='Formato EDI (Odoo edi_format_id, requerido).',
         db_column='edi_format_id',

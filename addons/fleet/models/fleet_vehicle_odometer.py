@@ -26,7 +26,7 @@ class FleetVehicleOdometer(TimeStampedModel):
     )
     vehicle = fields.Many2one(
         'fleet.FleetVehicle',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='odometer_logs',
         help_text='Odoo vehicle_id (required).',
     )

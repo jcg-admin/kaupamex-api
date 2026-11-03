@@ -145,7 +145,7 @@ class HrIndividualSkillMixin(TimeStampedModel):
 
     skill = fields.Many2one(
         'hr_skills.HrSkill',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='%(app_label)s_%(class)s_skill_set',
         verbose_name='Habilidad',
         help_text=(
@@ -155,7 +155,7 @@ class HrIndividualSkillMixin(TimeStampedModel):
     )
     skill_level = fields.Many2one(
         'hr_skills.HrSkillLevel',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='%(app_label)s_%(class)s_skill_level_set',
         verbose_name='Nivel',
         help_text=(
@@ -166,7 +166,7 @@ class HrIndividualSkillMixin(TimeStampedModel):
     )
     skill_type = fields.Many2one(
         'hr_skills.HrSkillType',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         default=_default_skill_type,
         related_name='%(app_label)s_%(class)s_skill_type_set',
         verbose_name='Tipo de habilidad',

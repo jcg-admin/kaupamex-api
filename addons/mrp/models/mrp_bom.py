@@ -56,7 +56,7 @@ class MrpBom(TimeStampedModel):
     # ("Odoo product_id/product_tmpl_id"). Ver H-API-208.
     product_tmpl = fields.Many2one(
         'product.ProductTemplate',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='boms',
         help_text='Plantilla fabricada (Odoo product_tmpl_id, required).',
     )
@@ -97,13 +97,13 @@ class MrpBomLine(TimeStampedModel):
 
     bom = fields.Many2one(
         'mrp.MrpBom',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='bom_line_ids',
         help_text='BoM contenedora (Odoo bom_id).',
     )
     product = fields.Many2one(
         'product.ProductProduct',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='bom_lines',
         help_text='Componente (Odoo mrp.bom.line.product_id).',
     )

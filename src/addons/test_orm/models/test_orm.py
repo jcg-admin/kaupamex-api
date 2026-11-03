@@ -629,7 +629,7 @@ class TestOrmRelatedInherits(TestOrmModel):
     _description = 'test_orm.related_inherits'
     _inherits = {'test_orm.related': 'base_id'}
 
-    base_id = fields.Many2one('test_orm.related', required=True,
+    base_id = fields.Many2one('test_orm.related', null=False, required=True,
                               ondelete='cascade', related_name='+')
 
     class Meta(TestOrmModel.Meta):
@@ -785,7 +785,7 @@ class TestOrmAnyChild(TestOrmModel):
     _description = 'Any Child'
     _inherits = {'test_orm.any.parent': 'parent_id'}
 
-    parent_id = fields.Many2one('test_orm.any.parent', required=True,
+    parent_id = fields.Many2one('test_orm.any.parent', null=False, required=True,
                                 ondelete='cascade', related_name='child_ids')
     link_sibling_id = fields.Many2one('test_orm.any.child', null=True,
                                       related_name='+')
@@ -885,7 +885,7 @@ class TestOrmOrderLine(TestOrmModel):
     _name = 'test_orm.order.line'
     _description = 'test_orm.order.line'
 
-    order_id = fields.Many2one('test_orm.order', required=True,
+    order_id = fields.Many2one('test_orm.order', null=False, required=True,
                                ondelete='cascade', related_name='line_ids')
     product = fields.Char(null=True)
     reward = fields.Boolean(default=False)

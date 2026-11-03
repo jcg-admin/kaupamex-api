@@ -65,7 +65,7 @@ class HrResumeLine(TimeStampedModel):
 
     employee = fields.Many2one(
         'hr.HrEmployee',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='resume_line_ids',
         verbose_name='Empleado',

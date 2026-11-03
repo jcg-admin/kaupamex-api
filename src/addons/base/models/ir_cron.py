@@ -425,7 +425,7 @@ class IrCron(models.DefaultGetMixin, models.RecordLoaderMixin,
     # Many2one required con ondelete='restrict' (≙ PROTECT). NO es herencia
     # multi-tabla — ver el docstring del módulo.
     ir_actions_server = fields.Many2one(
-        IrActionsServer, on_delete=models.PROTECT, db_index=True,
+        IrActionsServer, null=False, on_delete=models.PROTECT, db_index=True,
         related_name='crons',
         help_text=(
             'Acción que este cron ejecuta (Odoo ir_actions_server_id, '
@@ -1493,7 +1493,7 @@ class IrCronTrigger(models.Model):
     _allow_sudo_commands = False
 
     cron = fields.Many2one(
-        'base.IrCron', on_delete=models.CASCADE, db_index=True,
+        'base.IrCron', null=False, on_delete=models.CASCADE, db_index=True,
         related_name='trigger_ids',
         help_text='Cron a disparar (Odoo cron_id).')
     call_at = fields.Datetime(
@@ -1551,7 +1551,7 @@ class IrCronProgress(TimeStampedModel):
     # (``_gc_cron_progress`` filtra por ``create_date``). Sin ellas el
     # recolector no tenia por donde barrer.
     cron = fields.Many2one(
-        'base.IrCron', on_delete=models.CASCADE, db_index=True,
+        'base.IrCron', null=False, on_delete=models.CASCADE, db_index=True,
         related_name='progress_ids',
         help_text='Cron cuyo avance se registra (Odoo cron_id).')
     remaining = fields.Integer(default=0, help_text='Odoo remaining.')

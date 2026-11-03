@@ -85,7 +85,7 @@ class PasskeyKey(TimeStampedModel):
     )
     user = fields.Many2one(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='passkeys',
         db_index=True,
         verbose_name='Usuario',

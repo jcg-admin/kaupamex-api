@@ -119,7 +119,7 @@ class ProductProduct(TimeStampedModel):
 
     product_tmpl = fields.Many2one(
         ProductTemplate,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='product_variant_ids',
         verbose_name='Ficha de producto',

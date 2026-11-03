@@ -104,13 +104,13 @@ class AccountMoveLineTax(models.Model):
     """
 
     line = fields.Many2one(
-        'account.AccountMoveLine', on_delete=models.CASCADE,
+        'account.AccountMoveLine', null=False, on_delete=models.CASCADE,
         related_name='update_tax_tags_applied_taxes',
         help_text='Apunte base sobre el que se aplica el impuesto (≙ Odoo '
                   'account.move.line.tax_ids, lado línea).',
     )
     tax = fields.Many2one(
-        'account.AccountTax', on_delete=models.CASCADE,
+        'account.AccountTax', null=False, on_delete=models.CASCADE,
         related_name='update_tax_tags_move_lines',
         help_text='Impuesto aplicado a la línea (≙ Odoo tax_ids, lado impuesto).',
     )
@@ -147,7 +147,7 @@ class AccountMoveLineTaxRepartition(models.Model):
                   'leído desde el lado del apunte).',
     )
     repartition_line = fields.Many2one(
-        'account.AccountTaxRepartitionLine', on_delete=models.CASCADE,
+        'account.AccountTaxRepartitionLine', null=False, on_delete=models.CASCADE,
         related_name='update_tax_tags_originated_lines',
         help_text='Línea de reparto que generó este apunte de impuesto '
                   '(≙ Odoo tax_repartition_line_id, lado reparto).',
@@ -172,12 +172,12 @@ class AccountMoveLineTag(models.Model):
     """
 
     line = fields.Many2one(
-        'account.AccountMoveLine', on_delete=models.CASCADE,
+        'account.AccountMoveLine', null=False, on_delete=models.CASCADE,
         related_name='update_tax_tags_tags',
         help_text='Apunte que lleva la casilla (≙ Odoo tax_tag_ids, lado línea).',
     )
     tag = fields.Many2one(
-        'account.AccountAccountTag', on_delete=models.CASCADE,
+        'account.AccountAccountTag', null=False, on_delete=models.CASCADE,
         related_name='update_tax_tags_move_lines',
         help_text='Casilla fiscal vigente en el apunte (≙ Odoo tax_tag_ids, lado casilla).',
     )

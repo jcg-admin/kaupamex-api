@@ -43,7 +43,7 @@ class ResCity(models.Model):
     )
     country_id = fields.Many2one(
         'base.ResCountry',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='cities',
         help_text='País (Odoo country_id, requerido).',
         db_column='country_id',

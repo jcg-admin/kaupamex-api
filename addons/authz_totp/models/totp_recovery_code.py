@@ -26,7 +26,7 @@ class TotpRecoveryCode(TimeStampedModel):
 
     user = fields.Many2one(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='totp_recovery_codes',
         verbose_name='Usuario',
     )

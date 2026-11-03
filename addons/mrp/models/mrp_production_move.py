@@ -28,7 +28,7 @@ class MrpProductionMove(TimeStampedModel):
 
     production = fields.Many2one(
         'mrp.MrpProduction',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='production_moves',
         help_text='Orden de fabricación (Odoo production_id).',
     )

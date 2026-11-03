@@ -441,7 +441,7 @@ class AccountReportLine(models.Model):
     )
     report = fields.Many2one(
         'account.AccountReport',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='lines',
         help_text='Reporte al que pertenece la línea (Odoo report_id).',
     )
@@ -554,7 +554,7 @@ class AccountReportExpression(models.Model):
 
     report_line = fields.Many2one(
         'account.AccountReportLine',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='expressions',
         help_text=(
             'Línea a la que pertenece la expresión (Odoo report_line_id).'
@@ -803,7 +803,7 @@ class AccountReportExternalValue(models.Model):
     )
     target_report_expression = fields.Many2one(
         'account.AccountReportExpression',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='external_values',
         help_text=(
             'Expresión a la que se suma este valor (Odoo '
@@ -812,7 +812,7 @@ class AccountReportExternalValue(models.Model):
     )
     company = fields.Many2one(
         'base.ResCompany',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='account_report_external_values',
         help_text='Empresa dueña del valor (Odoo company_id, requerido).',
     )

@@ -250,7 +250,7 @@ class PurchaseRequisition(TimeStampedModel):
     )
     company = fields.Many2one(
         'base.ResCompany',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='purchase_requisition_ids',
         verbose_name='Empresa',
         help_text='Odoo company_id (required).',
@@ -539,7 +539,7 @@ class PurchaseRequisitionLine(AnalyticMixin, TimeStampedModel):
 
     product = fields.Many2one(
         'product.ProductProduct',
-        on_delete=models.PROTECT,
+        null=False, on_delete=models.PROTECT,
         related_name='purchase_requisition_line_ids',
         verbose_name='Producto',
         help_text="Odoo product_id, con domain [('purchase_ok', '=', True)].",
@@ -578,7 +578,7 @@ class PurchaseRequisitionLine(AnalyticMixin, TimeStampedModel):
     )
     requisition = fields.Many2one(
         'purchase_requisition.PurchaseRequisition',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='line_ids',
         verbose_name='Acuerdo de compra',

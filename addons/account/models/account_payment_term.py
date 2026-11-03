@@ -442,7 +442,7 @@ class AccountPaymentTermLine(models.Model):
     )
     payment = fields.Many2one(
         'account.AccountPaymentTerm',
-        on_delete=models.CASCADE,
+        null=False, on_delete=models.CASCADE,
         related_name='line_ids',
         help_text=(
             'Plazo de pago al que pertenece (Odoo payment_id, requerido).'
