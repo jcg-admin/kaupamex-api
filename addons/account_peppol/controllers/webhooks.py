@@ -34,9 +34,8 @@ Las tres rutas son **la misma forma**: verifican el token, resuelven el
 usuario de proxy y disparan un cron. De esas tres piezas, **dos ya están
 portadas** en ``models/account_edi_proxy_user.py``:
 
-- la verificación del token — ``_get_user_from_token``, construido sobre
-  ``django.core.signing`` (la fuente usa ``tools.verify_hash_signed``, que no
-  existe aquí: 0 hits medidos);
+- la verificación del token — ``_get_user_from_token``, sobre
+  ``tools.verify_hash_signed`` como la fuente;
 - los tres crons — ``_cron_peppol_get_new_documents``,
   ``_cron_peppol_get_message_status``, ``_cron_peppol_get_participant_status``.
 

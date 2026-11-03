@@ -86,8 +86,7 @@ Porte símbolo por símbolo — 33 símbolos: 21 portados, 12 bloqueados
    * - ``_peppol_get_services`` (``:580-584``)
      - **portado**.
    * - ``_generate_webhook_token`` (``:586-591``)
-     - **portado** — construido sobre ``django.core.signing``, porque
-       ``tools.hash_sign`` no existe aquí (divergencia 7).
+     - **portado** — sobre ``tools.hash_sign``, como la fuente.
    * - ``_get_user_from_token`` (``:593-611``)
      - **portado**, con la misma verificación de que la URL empieza por el
        endpoint firmado, y el mismo *fallback* heredado.
@@ -179,18 +178,13 @@ Divergencias declaradas
 6. **``ir.model.fields.get_field_selection`` → los ``choices`` del campo.** La
    fuente pide la etiqueta traducida del estado al registro de campos; aquí se
    lee del ``choices`` de Django, que es la misma información.
-7. **``tools.hash_sign`` / ``verify_hash_signed`` → ``django.core.signing``.**
-   Medido: ``grep -rn "def hash_sign" src/tools/*.py`` → **0 hits**. El stack
-   sí trae el mecanismo —firma con la ``SECRET_KEY`` y caducidad por
-   antigüedad—, así que se construye con él en vez de aceptar la divergencia:
-   ``dumps``/``loads`` con ``salt`` propio y ``max_age`` de 30 días, que es la
-   misma expiración que la fuente declara (``expiration_hours=30 * 24``).
+7. **Retirada.** Esta divergencia sustituía ``tools.hash_sign`` y
+   ``verify_hash_signed`` por ``django.core.signing`` porque el ayudante no
+   existía; ya está en ``src/tools/misc.py``, y el token vuelve a la forma de
+   la fuente.
 """
 
 import logging
-from datetime import timedelta
-
-from django.core import signing
 
 from addons.account_edi_proxy_client.models.account_edi_proxy_user import (
     AccountEdiProxyError,
@@ -199,8 +193,10 @@ from addons.account_edi_proxy_client.models.account_edi_proxy_user import (
 from addons.account_peppol.exceptions import get_peppol_error_message
 from addons.account_peppol.tools.peppol_iap_connector import PEPPOL_PROXY_URLS
 from exceptions import UserError
+from orm.environments import env, sudo
 from orm.method_chain import chain_method
 from orm.model_classes import extend_selection_choices
+from tools.misc import hash_sign, verify_hash_signed
 from tools.translate import _
 
 _logger = logging.getLogger(__name__)
@@ -214,9 +210,9 @@ BATCH_SIZE = 50
 #: ``_generate_webhook_token`` (``odoo19c: :587``).
 WEBHOOK_TOKEN_EXPIRATION_HOURS = 30 * 24
 
-#: ``salt`` de la firma del webhook. Es la cadena que la fuente pasa a
-#: ``hash_sign`` como ámbito (``'account_peppol_webhook'``), y cumple el mismo
-#: papel: dos firmas de ámbitos distintos no se confunden.
+#: Ámbito de la firma del webhook — la cadena que la fuente pasa a
+#: ``hash_sign`` (``'account_peppol_webhook'``): dos firmas de ámbitos
+#: distintos no se confunden.
 WEBHOOK_SIGNING_SALT = 'account_peppol_webhook'
 
 
@@ -736,12 +732,13 @@ def _peppol_get_services(self):
 def _generate_webhook_token(cls, company):
     """≙ ``_generate_webhook_token`` (``odoo19c: :586-591``).
 
-    Firma ``[company.id, endpoint]`` con la clave de la instalación. Se
-    construye con ``django.core.signing`` porque ``tools.hash_sign`` no existe
-    aquí (divergencia 7); la caducidad la verifica el lector con ``max_age``.
+    Firma ``[company.id, endpoint]`` con ``tools.hash_sign`` en el ámbito
+    ``account_peppol_webhook``, con 30 días de vida, como la fuente.
     """
-    payload = [company.pk, company._get_peppol_webhook_endpoint()]
-    return signing.dumps(payload, salt=WEBHOOK_SIGNING_SALT)
+    msg = [company.pk, company._get_peppol_webhook_endpoint()]
+    with sudo():
+        return hash_sign(env(), WEBHOOK_SIGNING_SALT, msg,
+                         expiration_hours=WEBHOOK_TOKEN_EXPIRATION_HOURS)
 
 
 def _get_user_from_token(cls, token, url):
@@ -754,12 +751,11 @@ def _get_user_from_token(cls, token, url):
     cuando caduquen los webhooks de 30 días).
     """
     try:
-        payload = signing.loads(
-            token,
-            salt=WEBHOOK_SIGNING_SALT,
-            max_age=timedelta(hours=WEBHOOK_TOKEN_EXPIRATION_HOURS),
-        )
-    except (signing.BadSignature, ValueError):
+        with sudo():
+            payload = verify_hash_signed(env(), WEBHOOK_SIGNING_SALT, token)
+    except ValueError:
+        return None
+    if not payload:
         return None
 
     identifier, endpoint = payload
