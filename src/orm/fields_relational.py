@@ -405,6 +405,12 @@ class One2many:
         if instance is None:
             return self
         comodel, inverse = self._inverse_field()
+        if getattr(inverse, 'store', True) is False:
+            # ≙ ``Field.to_sql`` (``odoo19c: odoo/orm/fields.py:1215-1216``):
+            # el One2many se lee filtrando por su inverso, y un inverso sin
+            # columna no tiene SQL que emitir.
+            raise ValueError(
+                f'Cannot convert {inverse} to SQL because it is not stored')
         accessor = inverse.remote_field.get_accessor_name()
         if accessor is not None and hasattr(instance, accessor):
             # El manager del reverso: trae ademas la escritura (``add``,

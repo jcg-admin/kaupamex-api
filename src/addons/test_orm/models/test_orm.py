@@ -1007,3 +1007,28 @@ class TestOrmComputeMember(TestOrmModel):
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_compute_member'
+
+
+class TestOrmUnsearchableO2m(TestOrmModel):
+    """≙ ``test_orm.unsearchable.o2m`` (``odoo19c: odoo/addons/test_orm/models/
+    test_orm.py``, ``TestOrmUnsearchableO2m``): un One2many cuyo inverso es un
+    Many2one calculado y sin columna. Leerlo no tiene SQL que emitir."""
+
+    _name = 'test_orm.unsearchable.o2m'
+    _description = 'Test non-stored unsearchable o2m'
+
+    name = fields.Char('Name', null=True)
+    stored_parent_id = fields.Many2one('test_orm.unsearchable.o2m', null=True,
+                                       related_name='+')
+    parent_id = fields.Many2one('test_orm.unsearchable.o2m', store=False,
+                                compute='_compute_parent_id',
+                                related_name='+')
+    child_ids = fields.One2many('test_orm.unsearchable.o2m', 'parent_id')
+
+    @depends('stored_parent_id')
+    def _compute_parent_id(self):
+        for r in self:
+            r.parent_id = r.stored_parent_id
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_unsearchable_o2m'

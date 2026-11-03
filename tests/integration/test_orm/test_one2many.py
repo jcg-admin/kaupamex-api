@@ -147,3 +147,21 @@ def test_compute_stored_many2one_one2many(env):
     assert Container.browse(container.ids).member_count == 0
     member.write({'name': 'Foo'})
     assert Container.browse(container.ids).member_count == 1
+
+
+def test_create_one2many_with_unsearchable_field(env):
+    """≙ :457 — un One2many cuyo inverso no se guarda no se puede leer: no
+    hay columna por la que filtrar, y la fuente lo rehúsa con
+    ``it is not stored``."""
+    Model = env['test_orm.unsearchable.o2m']
+    parent1 = Model.create({'name': 'Parent 1'})
+    parent2 = Model.create({'name': 'Parent 2'})
+    for i, parent in ((0, parent1), (5, parent2)):
+        for j in range(i, i + 5):
+            child = Model.create({'name': f'Child {j}',
+                                  'stored_parent_id': parent.id,
+                                  'parent_id': parent.id})
+            assert child.parent_id == parent
+    env.invalidate_all()
+    with pytest.raises(ValueError, match='it is not stored'):
+        Model.browse(parent1.ids).child_ids
