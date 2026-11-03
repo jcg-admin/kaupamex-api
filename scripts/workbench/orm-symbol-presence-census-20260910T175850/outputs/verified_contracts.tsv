@@ -247,3 +247,13 @@ src/tools/xml_utils.py	create_xml_node	function	tests/unit/tools/test_xml_utils.
 src/tools/xml_utils.py	cleanup_xml_node	function	tests/unit/tools/test_xml_utils.py::test_cleanup_xml_node_drops_blank_leaves_and_indents
 src/tools/xml_utils.py	find_xml_value	function	tests/unit/tools/test_xml_utils.py::test_find_xml_value_returns_the_first_text_or_none
 src/tools/xml_utils.py	_check_with_xsd	function	tests/unit/tools/test_xml_utils.py::test_check_with_xsd_raises_user_error_with_the_schema_log
+src/tools/mail.py	generate_tracking_message_id	function	tests/unit/tools/test_mail_email_helpers.py::test_generate_tracking_message_id_is_a_unique_header_value
+src/tools/mail.py	email_split_and_format	function	tests/unit/tools/test_mail_email_helpers.py::test_email_split_and_format_formats_each_address
+src/tools/mail.py	email_split_and_normalize	function	tests/unit/tools/test_mail_email_helpers.py::test_the_normalizing_variants_lower_the_address
+src/tools/mail.py	email_split_and_format_normalize	function	tests/unit/tools/test_mail_email_helpers.py::test_the_normalizing_variants_lower_the_address
+src/tools/mail.py	email_anonymize	function	tests/unit/tools/test_mail_email_helpers.py::test_email_anonymize_matches_the_source_doctests
+src/tools/mail.py	url_domain_extract	function	tests/unit/tools/test_mail_email_helpers.py::test_url_domain_extract_drops_subdomains
+src/tools/mail.py	email_escape_char	function	tests/unit/tools/test_mail_email_helpers.py::test_email_escape_char_escapes_like_patterns
+src/tools/mail.py	decode_message_header	function	tests/unit/tools/test_mail_email_helpers.py::test_decode_message_header_joins_every_value
+src/tools/mail.py	encapsulate_email	function	tests/unit/tools/test_mail_email_helpers.py::test_encapsulate_email_keeps_the_old_name_on_the_new_address
+src/tools/mail.py	unfold_references	function	tests/unit/tools/test_mail_email_helpers.py::test_unfold_references_removes_folding_whitespace

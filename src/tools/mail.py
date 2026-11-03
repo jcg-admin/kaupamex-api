@@ -14,8 +14,12 @@ import base64
 import email.utils
 import html as htmllib
 import itertools
+import random
 import re
+import socket
+import time
 from email.utils import getaddresses as orig_getaddresses
+from urllib.parse import urlparse
 
 import idna
 from lxml import etree
@@ -431,3 +435,139 @@ def formataddr(pair, charset='utf-8'):
             name = email_addr_escapes_re.sub(r'\\\g<0>', name)
             return f'"{name}" <{local}@{domain}>'
     return f"{local}@{domain}"
+
+# ---------------------------------------------------------------------------
+# Ayudantes de direcciones y cabeceras — copia con atribución de
+# ``odoo19c: odoo/tools/mail.py:724-1068`` (``odoo-tools@abe4040ec1``, LGPL-3).
+# ---------------------------------------------------------------------------
+
+mail_header_msgid_re = re.compile('<[^<>]+>')
+
+
+def generate_tracking_message_id(res_id):
+    """Returns a string that can be used in the Message-ID RFC822 header field
+
+       Used to track the replies related to a given object thanks to the "In-Reply-To"
+       or "References" fields that Mail User Agents will set.
+    """
+    try:
+        rnd = random.SystemRandom().random()
+    except NotImplementedError:
+        rnd = random.random()
+    rndstr = ("%.15f" % rnd)[2:]
+    return "<%s.%.15f-openerp-%s@%s>" % (rndstr, time.time(), res_id, socket.gethostname())
+
+
+def email_split_and_format(text):
+    """ Return a list of email addresses found in ``text``, formatted using
+    formataddr. """
+    return [formataddr((name, email)) for (name, email) in email_split_tuples(text)]
+
+
+def email_split_and_normalize(text):
+    """ Same as 'email_split' but normalized email """
+    return [(name, _normalize_email(email)) for (name, email) in email_split_tuples(text)]
+
+
+def email_split_and_format_normalize(text):
+    """ Same as 'email_split_and_format' but normalizing email. """
+    return [
+        formataddr(
+            (name, _normalize_email(email))
+        ) for (name, email) in email_split_tuples(text)
+    ]
+
+
+def email_anonymize(normalized_email, *, redact_domain=False):
+    """
+    Replace most charaters in the local part of the email address with
+    '*' to hide the recipient, but keep enough characters for debugging
+    purpose.
+
+    The email address must be normalized already.
+
+    >>> email_anonymize('admin@example.com')
+    'a****@example.com'
+    >>> email_anonymize('portal@example.com')
+    'p***al@example.com'
+    >>> email_anonymize('portal@example.com', redact_domain=True)
+    'p***al@e******.com'
+    """
+    if not normalized_email:
+        return normalized_email
+
+    local, at, domain = normalized_email.partition('@')
+    if len(local) <= 5:
+        anon_local = local[:1] + '*' * (len(local) - 1)
+    else:
+        anon_local = local[:1] + '*' * (len(local) - 3) + local[-2:]
+
+    host, dot, tld = domain.rpartition('.')
+    if redact_domain and not domain.startswith('[') and all((host, dot, tld)):
+        anon_host = host[0] + '*' * (len(host) - 1)
+    else:
+        anon_host = host
+
+    return f'{anon_local}{at}{anon_host}{dot}{tld}'
+
+
+def url_domain_extract(url):
+    """ Extract the company domain to be used by IAP services notably. Domain
+    is extracted from an URL e.g:
+
+    - www.info.proximus.be -> proximus.be
+    """
+    parser_results = urlparse(url)
+    company_hostname = parser_results.hostname
+    if company_hostname and '.' in company_hostname:
+        return '.'.join(company_hostname.split('.')[-2:])  # remove subdomains
+    return False
+
+
+def email_escape_char(email_address):
+    """ Escape problematic characters in the given email address string"""
+    return email_address.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+
+
+def decode_message_header(message, header, separator=' '):
+    return separator.join(h for h in message.get_all(header, []) if h)
+
+
+def encapsulate_email(old_email, new_email):
+    """Change the FROM of the message and use the old one as name.
+
+    e.g.
+    * Old From: "Admin" <admin@gmail.com>
+    * New From: notifications@odoo.com
+    * Output: "Admin" <notifications@odoo.com>
+    """
+    old_email_split = getaddresses([old_email])
+    if not old_email_split or not old_email_split[0]:
+        return old_email
+
+    new_email_split = getaddresses([new_email])
+    if not new_email_split or not new_email_split[0]:
+        return
+
+    old_name, old_email = old_email_split[0]
+    if old_name:
+        name_part = old_name
+    else:
+        name_part = old_email.split("@")[0]
+
+    return formataddr((
+        name_part,
+        new_email_split[0][1],
+    ))
+
+
+def unfold_references(msg_references):
+    """ As it declared in [RFC2822] long header bodies can be "folded" using
+    CRLF+WSP. Some mail clients split References header body which contains
+    Message Ids by "\n ".
+
+    RFC2882: https://tools.ietf.org/html/rfc2822#section-2.2.3 """
+    return [
+        re.sub(r'[\r\n\t ]+', r'', ref)  # "Unfold" buggy references
+        for ref in mail_header_msgid_re.findall(msg_references)
+    ]
