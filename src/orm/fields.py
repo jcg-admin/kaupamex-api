@@ -1637,9 +1637,10 @@ class FieldDescriptor(DeferredAttribute):
             # ``_fetch_field``, que este árbol no declara.
             #
             # **Divergencia de mecanismo declarada:** la fuente prelecta la
-            # ventana de ``_to_prefetch`` en una consulta; aquí la unidad es la
-            # fila, así que la ventana no ahorraría ninguna. Es la misma
-            # divergencia 1 de :func:`recompute`, con el mismo sucesor: **#306**.
+            # ventana de ``_to_prefetch`` en una consulta; aquí la unidad es
+            # la fila, así que la ventana no ahorraría ninguna. Es la misma
+            # divergencia 1 de :func:`recompute`, con el mismo sucesor:
+            # **#306**.
             # La recarga de Django asigna con ``setattr``, que es nuestro
             # ``__set__``: sin la marca de construcción, una LECTURA se tomaba
             # por escritura del usuario y dejaba el campo sucio, y el volcado
@@ -1654,8 +1655,8 @@ class FieldDescriptor(DeferredAttribute):
                     instance.__dict__.pop('_orm_building', None)
                 else:
                     instance.__dict__['_orm_building'] = building
-            field._update_cache(
-                instance, field.convert_to_cache(value, instance, validate=False))
+            cached = field.convert_to_cache(value, instance, validate=False)
+            field._update_cache(instance, cached)
 
         elif getattr(field, 'store', False) and getattr(instance, '_origin', None) \
                 and not (field.compute and getattr(field, 'readonly', False)):
@@ -4957,10 +4958,11 @@ def _update_cache(self, records, cache_value, dirty=False):
 def _invoke_compute_method(field, records):
     """Despacha ``field.compute`` sobre cada fila — por :func:`determine`.
 
-    ≙ ``BaseModel._compute_field_value`` (``odoo19c: odoo/orm/models.py:4953``),
-    cuyo cuerpo es ``determine(field.compute, self)``. El despacho va por
-    :func:`determine` y no por ``getattr`` porque ``compute`` tiene DOS formas
-    en la fuente y las dos llegan aquí: el **nombre** de un método del modelo
+    ≙ ``BaseModel._compute_field_value``
+    (``odoo19c: odoo/orm/models.py:4953``), cuyo cuerpo es
+    ``determine(field.compute, self)``. El despacho va por :func:`determine`
+    y no por ``getattr`` porque ``compute`` tiene DOS formas en la fuente y
+    las dos llegan aquí: el **nombre** de un método del modelo
     (``compute='_compute_total'``) y un **invocable** — ``setup_related``
     instala ``self.compute = self._compute_related`` (``:632``), un método
     ligado al campo. Medido antes de este cambio
