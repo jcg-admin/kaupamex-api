@@ -106,6 +106,7 @@ from orm.domains import to_q
 from orm.environments import context_scope, get_context, sudo, user_scope
 from orm.fields_reference import Reference
 from orm.fields_textual import Html
+from orm.models import BaseModel
 from tools import config
 from tools.misc import SKIPPED_ELEMENT_TYPES, file_open, file_path
 from tools.safe_eval import safe_eval, pytz, time
@@ -524,8 +525,18 @@ class XmlImport:
                 _logger.warning('Skipping deletion for missing XML ID `%r`',
                                 d_id, exc_info=True)
 
-        if pks:
-            model.objects.using(self.using).filter(pk__in=pks).delete()
+        if not pks:
+            return
+        if issubclass(model, BaseModel) and self.using == DEFAULT_DB_ALIAS:
+            # ``records.unlink()`` (``:265``): el borrado pasa por el ``unlink``
+            # del modelo y sus sobrescrituras, no sólo por la tabla.
+            model.browse(sorted(pks)).unlink()
+            return
+        # pendiente: ``BaseModel.unlink`` no recibe alias de base, así que un
+        # modelo de otro alias, o uno que no es ``BaseModel``, borra por la
+        # tabla y se salta las sobrescrituras de ``unlink``. Se cierra cuando
+        # ``unlink`` sepa operar sobre un alias distinto del predeterminado.
+        model.objects.using(self.using).filter(pk__in=pks).delete()
 
     def _tag_function(self, rec):
         """≙ ``_tag_function`` (``:268-272``).

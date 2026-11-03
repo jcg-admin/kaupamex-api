@@ -21,6 +21,8 @@ from lxml import etree
 from addons.base.models import ResPartner
 from addons.base.models.ir_model import IrModelData
 from orm import registry
+from orm.environments import Environment
+from orm.utils import SUPERUSER_ID
 from tools import config, convert
 from tools.convert import (
     ParseError,
@@ -311,6 +313,23 @@ class TestLoadFromXml:
             ),
         )
         assert not ResPartner.objects.filter(pk=pk).exists()
+
+    def test_delete_goes_through_the_orm_unlink(self):
+        """≙ ``records.unlink()`` (``odoo19c: odoo/tools/convert.py:265``):
+        el borrado de un ``<delete>`` pasa por el ``unlink`` del modelo, con
+        sus sobrescrituras. ``test_orm.order.line`` borra además la línea de
+        recompensa del mismo producto; un ``QuerySet.delete()`` la dejaría."""
+        with Environment(None, SUPERUSER_ID, {}) as env:
+            Line = env['test_orm.order.line']
+            order = env['test_orm.order'].create({})
+            Line.create([{'order_id': order.id, 'product': 'p', 'reward': False},
+                         {'order_id': order.id, 'product': 'p', 'reward': True}])
+            convert_xml_import('test_orm', _xml(f'''
+                <odoo>
+                  <delete model="test_orm.order.line"
+                          search="[('order_id', '=', {order.id}), ('reward', '=', False)]"/>
+                </odoo>'''))
+            assert not Line.search_count([('order_id', '=', order.id)])
 
     def test_a_broken_record_names_the_line(self):
         # El envoltorio ParseError de _tag_root: un fallo dentro de un nodo se
