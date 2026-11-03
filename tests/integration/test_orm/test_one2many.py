@@ -106,3 +106,25 @@ def test_commands_on_a_declared_one2many(env):
     messages = Discussion.browse(discussion.ids).messages
     assert [message.name for message in messages] == ['x']
     assert not env['test_orm.message'].browse(m2.ids).exists()
+
+
+def test_recomputation_ends(env):
+    """≙ :307 — un ``compute`` almacenado que depende de ``parent_id.name``
+    termina de recomputarse al borrar el padre."""
+    parent = env['test_orm.model_parent_m2o'].create({'name': 'parent'})
+    # El padre se vuelca con ``cost = 0`` antes de que exista el hijo: sólo la
+    # dependencia ``child_ids.cost`` puede llevarlo después a 1.
+    env.flush_all()
+    child = env['test_orm.model_child_m2o'].create(
+        {'name': 'A', 'parent_id': parent.id})
+    assert child.size1 == 6
+    env.flush_all()
+    # La columna, no la lectura: la recomputación tiene que dejarla escrita.
+    Parent, Child = type(parent), type(child)
+    assert Parent._base_manager.filter(pk=parent.pk).values_list(
+        'cost', flat=True).get() == 1
+    assert Child._base_manager.filter(pk=child.pk).values_list(
+        'size1', 'size2', 'cost').get() == (6, 6, 1)
+    parent.unlink()
+    env.flush_all()
+    assert not env['test_orm.model_child_m2o'].browse(child.ids).exists()

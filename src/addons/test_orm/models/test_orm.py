@@ -824,11 +824,8 @@ class TestOrmAnyTag(TestOrmModel):
 # ``One2manyCase`` (``tests/test_one2many.py``): comandos sobre un One2many
 # en ``create``/``write`` y ``child_of`` a través de un One2many.
 #
-# pendiente: los ``compute`` almacenados (``size1``, ``size2``, ``cost`` de
-# ``model_child_m2o``, ``cost`` de ``model_parent_m2o`` y
-# ``has_been_rewarded`` de ``order.line``) y los enteros indexados de
-# ``order``/``order.line``; los casos portados no los leen, y entran con
-# ``test_recompute``/``test_recomputation_ends``.
+# pendiente: ``has_been_rewarded`` de ``order.line`` y los enteros indexados
+# de ``order``/``order.line``; ningún caso portado los lee.
 # ---------------------------------------------------------------------------
 
 
@@ -840,6 +837,12 @@ class TestOrmModelParentM2o(TestOrmModel):
     _description = 'dummy model with multiple childs'
 
     name = fields.Char('Name', null=True)
+    cost = fields.Integer(compute='_compute_cost', store=True, null=True)
+
+    @depends('child_ids.cost')
+    def _compute_cost(self):
+        for record in self:
+            record.cost = sum(child.cost for child in record.child_ids)
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_model_parent_m2o'
@@ -855,6 +858,21 @@ class TestOrmModelChildM2o(TestOrmModel):
     name = fields.Char('Name', null=True)
     parent_id = fields.Many2one('test_orm.model_parent_m2o', ondelete='cascade',
                                 null=True, related_name='child_ids')
+    size1 = fields.Integer(compute='_compute_sizes', store=True, null=True)
+    size2 = fields.Integer(compute='_compute_sizes', store=True, null=True)
+    cost = fields.Integer(compute='_compute_cost', store=True, readonly=False,
+                          null=True)
+
+    @depends('parent_id.name')
+    def _compute_sizes(self):
+        for record in self:
+            record.size1 = len(record.parent_id.name)
+            record.size2 = len(record.parent_id.name)
+
+    @depends('name')
+    def _compute_cost(self):
+        for record in self:
+            record.cost = len(record.name)
 
     def write(self, vals):
         res = super().write(vals)
