@@ -194,7 +194,7 @@ def _odoo_guess_mimetype(bin_data: bytes, default='application/octet-stream'):
         if bin_data and all(c >= ' ' or c in '\t\n\r' for c in bin_data[:1024].decode()):
             return 'text/plain'
     except ValueError:
-        pass
+        pass  # silent OK because no decodificar como texto significa que no es text/plain
     return default
 
 
@@ -229,7 +229,7 @@ if magic is not None:
                 if msoffice_mimetype := _check_ooxml(bin_data):
                     return msoffice_mimetype
             except zipfile.BadZipFile:
-                pass
+                pass  # silent OK because con sólo la cabecera del zip vale el tipo de libmagic
             except Exception:  # noqa: BLE001
                 _logger_guess_mimetype.warning(
                     "Sub-checker '_check_ooxml' of type '%s' failed",
