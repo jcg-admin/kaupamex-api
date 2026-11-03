@@ -201,18 +201,6 @@ class TestTheBooleanBranchIsNotNormalised:
 
 class TestTheRelationalBranches:
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            'TASK-API-0402 — ``parent_id`` sirve un'
-            ' ``ForeignKeyDeferredAttribute``, y la guarda de instalacion de'
-            ' ``FieldDescriptor`` es exacta por tipo: no lo sustituye. El'
-            ' acceso cae al camino de Django y pide base. La recursion al'
-            ' comodelo esta portada y verificada por lectura; lo que falta es'
-            ' que la fila que Django construye lleve la terna del recordset,'
-            ' que es el alcance de esa tarea.'
-        ),
-    )
     def test_a_many2one_recurses_into_the_comodel_order(self, ambient):
         parents = seed(
             SortParentProbe, ambient, {1: 'zeta', 2: 'alfa'}, 'name'

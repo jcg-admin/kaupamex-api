@@ -4889,14 +4889,18 @@ _DJANGO_FORWARD_GET_OBJECT = _related_descriptors.ForwardManyToOneDescriptor.get
 
 
 def _forward_get_object(self, instance):
-    """Un Many2one que apunta a un registro de ``new()`` lo devuelve sin
-    consultar la base: ese registro no tiene fila, sólo caché. ≙ la lectura
-    de la fuente, que convierte el id del caché con ``browse``
-    (``Many2one.convert_to_record``, ``odoo19c: odoo/orm/
-    fields_relational.py:356``)."""
+    """El valor de un Many2one hacia un ``BaseModel`` es ``browse(id)``.
+
+    ≙ ``Many2one.convert_to_record`` (``odoo19c: odoo/orm/
+    fields_relational.py:356``): leer el campo no consulta la fila del
+    comodelo; el recordset se resuelve campo a campo cuando se lee. Django, en
+    cambio, carga la fila entera en ``get_object``. Para un registro de
+    ``new()`` esa carga ni siquiera es posible: su id es un ``NewId`` sin fila.
+    Un comodelo de Django sigue su lectura nativa.
+    """
     comodel = self.field.remote_field.model
     value = self.field.get_local_related_value(instance)
-    if (len(value) == 1 and isinstance(value[0], NewId)
+    if (len(value) == 1 and value[0] is not None
             and isinstance(comodel, type) and issubclass(comodel, BaseModel)):
         return comodel._from_ids(env(), value, value)
     return _DJANGO_FORWARD_GET_OBJECT(self, instance)

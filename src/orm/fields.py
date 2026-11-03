@@ -2016,13 +2016,18 @@ class StoredMany2oneIdDescriptor(FieldDescriptor):
     """
 
     def __get__(self, instance, cls=None):
-        if (instance is not None and isinstance(instance.pk, NewId)
+        if (instance is not None and getattr(instance, '_ids', None) is not None
                 and self.field.attname not in instance.__dict__):
-            # Un registro de ``new()`` no tiene fila: su valor está sólo en el
-            # caché del entorno (``_update_cache``, ≙ ``models.py:6066``). El
+            # ≙ ``Field.__get__`` (``odoo19c: odoo/orm/fields.py:1668``): el
+            # caché del entorno se consulta ANTES que la base. Un recordset
+            # poblado por ``_insert_cache`` o por ``_update_cache`` tiene ahí
+            # su valor, y un registro de ``new()`` no tiene otra fuente: el
             # ``refresh_from_db`` de Django consultaría por ``pk=NewId``.
             field_cache = self.field._get_cache(get_environment())
-            return field_cache.get(instance.pk)
+            if instance.pk in field_cache:
+                return field_cache[instance.pk]
+            if isinstance(instance.pk, NewId):
+                return None
         return ForeignKeyDeferredAttribute.__get__(self, instance, cls)
 
     def __set__(self, instance, value):
