@@ -232,3 +232,12 @@ src/tools/misc.py	exec_pg_environ	function	tests/unit/tools/test_misc_process_he
 src/tools/misc.py	scan_languages	function	tests/unit/tools/test_misc_process_helpers.py::test_scan_languages_lists_the_reference_catalogue_sorted_by_name
 src/tools/misc.py	format_frame	function	tests/unit/tools/test_misc_process_helpers.py::test_format_frame_names_function_file_and_line
 src/tools/misc.py	dumpstacks	function	tests/unit/tools/test_misc_process_helpers.py::test_dumpstacks_logs_the_current_thread
+src/tools/mimetypes.py	_check_ooxml	function	tests/unit/tools/test_mimetypes_discriminants.py::test_ooxml_is_told_by_its_content_types_and_directory
+src/tools/mimetypes.py	_check_open_container_format	function	tests/unit/tools/test_mimetypes_discriminants.py::test_open_document_declares_its_type_in_the_mimetype_entry
+src/tools/mimetypes.py	_check_olecf	function	tests/unit/tools/test_mimetypes_discriminants.py::test_olecf_subheader_at_0x200_tells_a_word_document
+src/tools/mimetypes.py	_check_svg	function	tests/unit/tools/test_mimetypes.py::TestGuessMimetype::test_mimetype_svg
+src/tools/mimetypes.py	_check_webp	function	tests/unit/tools/test_mimetypes.py::TestGuessMimetype::test_mimetype_webp
+src/tools/mimetypes.py	_odoo_guess_mimetype	function	tests/unit/tools/test_mimetypes.py::TestGuessMimetype::test_mimetype_png
+src/tools/mimetypes.py	neuter_mimetype	function	tests/unit/tools/test_mimetypes_discriminants.py::test_neuter_mimetype_degrades_markup_unless_system
+src/tools/mimetypes.py	get_extension	function	tests/unit/tools/test_mimetypes.py::TestGuessMimetype::test_mimetype_get_extension
+src/tools/mimetypes.py	fix_filename_extension	function	tests/unit/tools/test_mimetypes.py::TestGuessMimetype::test_mimetype_fix_extension

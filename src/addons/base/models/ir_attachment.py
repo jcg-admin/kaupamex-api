@@ -65,6 +65,7 @@ from django.apps import apps
 import fields
 import models
 from exceptions import ValidationError
+from tools.mimetypes import guess_mimetype
 from tools.translate import _
 
 
@@ -224,12 +225,11 @@ class IrAttachment(models.Model):
             if raw is None and values.get('datas'):
                 raw = base64.b64decode(values['datas'])
             if raw:
-                # DIVERGENCIA DE MECANISMO: la fuente adivina por los magic
-                # bytes con su `guess_mimetype`. Aqui no hay equivalente en la
-                # biblioteca estandar, asi que se conserva lo adivinado por
-                # nombre o url y no se inventa un detector propio. Lo que NO
-                # cambia es el desenlace por defecto.
-                mimetype = mimetype or None
+                # El contenido decide por su firma (``guess_mimetype``), como
+                # en la fuente. Aqui decia que no habia equivalente en la
+                # biblioteca estandar, y la fuente trae el suyo:
+                # ``_odoo_guess_mimetype``, portado en ``tools.mimetypes``.
+                mimetype = guess_mimetype(raw)
         return (mimetype or 'application/octet-stream').lower()
 
     @staticmethod

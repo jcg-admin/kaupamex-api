@@ -86,7 +86,6 @@ archivo; hoy son no-op silencioso **documentado**, no ausente.
 import difflib
 import itertools
 import logging
-import mimetypes
 import sys
 from contextlib import contextmanager
 from copy import deepcopy
@@ -108,6 +107,7 @@ from lxml import etree
 
 from addons.base.models.ir_attachment import IrAttachment
 from exceptions import RedirectWarning
+from tools.mimetypes import guess_mimetype
 from tools.translate import _
 
 _logger = logging.getLogger(__name__)
@@ -496,14 +496,12 @@ class AccountDocumentImportMixin:
     @staticmethod
     def _get_xml_tree(file_data):
         """≙ ``_get_xml_tree`` (``odoo19c: :481-493``). Portado — ``lxml``
-        está disponible (ver el docstring del módulo). ``guess_mimetype`` de
-        la referencia (sniff de contenido) se sustituye por
-        ``mimetypes.guess_type`` sobre el nombre (mismo patrón ya usado en
-        ``ir_binary.py:156`` de este árbol) — divergencia declarada: no hay
-        sniff de contenido, sólo de extensión.
+        está disponible (ver el docstring del módulo). El adjunto de correo
+        que llega como ``text/plain`` se reconoce como XML por su contenido,
+        con ``guess_mimetype`` (``tools.mimetypes``), como en la fuente.
         """
         mimetype = file_data['mimetype'] or ''
-        guessed, _enc = mimetypes.guess_type(file_data['name'] or '')
+        guessed = guess_mimetype(file_data['raw'] or b'')
         is_xml = (
             ('text/plain' in mimetype and (
                 (guessed or '').endswith('/xml') or file_data['name'].endswith('.xml')))
@@ -540,7 +538,7 @@ class AccountDocumentImportMixin:
                 embedded_file_data = {
                     'name': filename,
                     'raw': content,
-                    'mimetype': mimetypes.guess_type(filename)[0] or 'application/octet-stream',
+                    'mimetype': guess_mimetype(content),
                     'attachment': None,
                     'origin_attachment': file_data['origin_attachment'],
                     'origin_import_file_type': file_data['origin_import_file_type'],

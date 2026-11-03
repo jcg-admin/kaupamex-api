@@ -89,6 +89,24 @@ class TestMimetype:
     def test_with_nothing_to_go_on_it_is_a_binary_stream(self):
         assert IrAttachment._compute_mimetype({}) == 'application/octet-stream'
 
+    def test_without_name_or_url_the_content_decides(self):
+        """≙ ``guess_mimetype(raw)``: la firma ``%PDF`` basta, sin nombre."""
+        assert (
+            IrAttachment._compute_mimetype({'raw': b'%PDF-1.7 contenido'})
+            == 'application/pdf'
+        )
+
+    def test_a_generic_stream_is_refined_by_the_content(self):
+        """Un ``application/octet-stream`` declarado no es respuesta: la
+        fuente lo vuelve a adivinar por el contenido, aquí desde ``datas``."""
+        datas = base64.b64encode(b'\x89PNG\r\n\x1a\n resto')
+        assert (
+            IrAttachment._compute_mimetype(
+                {'mimetype': 'application/octet-stream', 'datas': datas}
+            )
+            == 'image/png'
+        )
+
     def test_it_comes_back_in_lower_case(self):
         assert (
             IrAttachment._compute_mimetype({'mimetype': 'IMAGE/PNG'})
