@@ -271,6 +271,9 @@
                 <rng:name>odoo</rng:name>
                 <rng:name>openerp</rng:name>
                 <rng:name>data</rng:name>
+                <!-- La raíz propia del producto: XmlImport.DATA_ROOTS
+                     (src/tools/convert.py) ya la declara. -->
+                <rng:name>kaupamex</rng:name>
             </rng:choice>
             <rng:optional><rng:attribute name="noupdate" /></rng:optional>
             <rng:optional><rng:attribute name="auto_sequence" /></rng:optional>

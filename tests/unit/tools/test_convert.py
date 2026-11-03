@@ -197,6 +197,26 @@ class TestLoadFromXml:
         row = IrModelData.objects.get(module='base', name='cv_one')
         assert ResPartner.objects.get(pk=row.res_id).name == 'Cargado'
 
+    def test_the_product_root_passes_the_schema(self):
+        """``XmlImport.DATA_ROOTS`` declara ``<kaupamex>`` como raíz propia, y
+        la gramática se aplica antes que ``parse``: si la gramática no la
+        admite, la raíz declarada no se puede usar."""
+        registry.clear_cache('default')
+        convert_xml_import(
+            'base',
+            _xml(
+                '''
+            <kaupamex>
+              <record id="cv_product_root" model="base.ResPartner">
+                <field name="name">Raiz propia</field>
+              </record>
+            </kaupamex>
+        '''
+            ),
+        )
+        row = IrModelData.objects.get(module='base', name='cv_product_root')
+        assert ResPartner.objects.get(pk=row.res_id).name == 'Raiz propia'
+
     def test_a_second_load_updates_the_same_record(self):
         registry.clear_cache('default')
         source = '''
@@ -322,13 +342,16 @@ class TestLoadFromXml:
         with Environment(None, SUPERUSER_ID, {}) as env:
             Line = env['test_orm.order.line']
             order = env['test_orm.order'].create({})
-            Line.create([{'order_id': order.id, 'product': 'p', 'reward': False},
-                         {'order_id': order.id, 'product': 'p', 'reward': True}])
+            Line.create([
+                {'order_id': order.id, 'product': 'p', 'reward': False},
+                {'order_id': order.id, 'product': 'p', 'reward': True},
+            ])
             convert_xml_import('test_orm', _xml(f'''
-                <odoo>
+                <kaupamex>
                   <delete model="test_orm.order.line"
-                          search="[('order_id', '=', {order.id}), ('reward', '=', False)]"/>
-                </odoo>'''))
+                          search="[('order_id', '=', {order.id}),
+                                   ('reward', '=', False)]"/>
+                </kaupamex>'''))
             assert not Line.search_count([('order_id', '=', order.id)])
 
     def test_a_broken_record_names_the_line(self):
