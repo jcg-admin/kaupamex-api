@@ -534,8 +534,9 @@ class XmlImport:
             return
         # pendiente: ``BaseModel.unlink`` no recibe alias de base, así que un
         # modelo de otro alias, o uno que no es ``BaseModel``, borra por la
-        # tabla y se salta las sobrescrituras de ``unlink``. Se cierra cuando
-        # ``unlink`` sepa operar sobre un alias distinto del predeterminado.
+        # tabla y se salta las sobrescrituras de ``unlink``. El recordset elige
+        # base por contexto de empresa (``orm.routers``), no por alias; se
+        # cierra con TASK-API-0382 (la instalacion se decide por base).
         model.objects.using(self.using).filter(pk__in=pks).delete()
 
     def _tag_function(self, rec):
