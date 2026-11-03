@@ -5,6 +5,7 @@ import pytest
 
 import fields
 from orm import registry
+from orm.commands import related_manager
 from orm.environments import env, transaction_scope
 from orm.models import BaseModel
 
@@ -50,7 +51,7 @@ class NativeStoredRelationProbe(BaseModel):
 
     def _compute_members(self):
         for record in self:
-            record.members.set([record._ids[0] + 100])
+            related_manager(record, 'members').set([record._ids[0] + 100])
 
 
 @pytest.fixture(autouse=True)
@@ -109,7 +110,7 @@ def test_legacy_stored_readback_retains_distinct_row_values():
 def test_native_m2m_readback_keeps_manager_values(ids, monkeypatch):
     records = NativeStoredRelationProbe._from_ids(env(), ids, ids)
     field = NativeStoredRelationProbe._meta.get_field('members')
-    manager_class = type(next(iter(records)).members)
+    manager_class = type(related_manager(next(iter(records)), 'members'))
     persisted = {}
 
     def simulated_set(manager, values):

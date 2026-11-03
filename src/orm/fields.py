@@ -71,6 +71,7 @@ from django.utils.timezone import localtime
 from psycopg.types.json import Jsonb
 
 from exceptions import AccessError, MissingError
+from orm.commands import related_manager
 from orm.environments import (
     Environment,
     env as get_environment,
@@ -5077,7 +5078,9 @@ def _cache_computed_values(fields, records):
             if many_to_many:
                 if row.pk is None:
                     continue
-                value = list(getattr(row, field.name).all())
+                # ``related_manager``: leer el atributo de un ``BaseModel``
+                # devuelve un recordset, no el gestor (``api@5cc0cca``).
+                value = list(related_manager(row, field.name).all())
             else:
                 value = _value_left_by_compute(row, field)
             field._update_cache([row], value, dirty=True)
