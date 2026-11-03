@@ -26,7 +26,8 @@ def seed(apps, schema_editor):
     alias = schema_editor.connection.alias
     for key, func in _DEFAULT_PARAMETERS.items():
         if not SystemParameter.objects.using(alias).filter(key=key).exists():
-            SystemParameter.objects.using(alias).create(key=key, value=str(func()))
+            SystemParameter.objects.using(alias).create(
+                key=key, value=str(func()))
 
 
 class Migration(migrations.Migration):

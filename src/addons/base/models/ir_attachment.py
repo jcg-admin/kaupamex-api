@@ -371,7 +371,8 @@ class IrAttachment(models.Model):
                 self.file_size = len(content)
                 self.checksum = hashlib.sha1(content).hexdigest()
             self.mimetype = self._check_contents(
-                {'mimetype': self.mimetype, 'name': self.name, 'url': self.url},
+                {'mimetype': self.mimetype, 'name': self.name,
+                 'url': self.url},
                 user=user,
                 trusted=trusted,
             )['mimetype']

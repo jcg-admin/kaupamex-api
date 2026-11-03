@@ -76,7 +76,8 @@ _DEFAULT_PARAMETERS = {
     'database.secret': lambda: str(uuid.uuid4()),
     'database.uuid': lambda: str(uuid.uuid1()),
     # ≙ ``fields.Datetime.now``: la hora local sin microsegundos.
-    'database.create_date': lambda: datetime.datetime.now().replace(microsecond=0),
+    'database.create_date': (
+        lambda: datetime.datetime.now().replace(microsecond=0)),
     'web.base.url': lambda: 'http://localhost:%s' % config.http_port(),
     'base.login_cooldown_after': lambda: 10,
     'base.login_cooldown_duration': lambda: 60,

@@ -219,10 +219,11 @@ class ResLang(models.Model):
 
     @classmethod
     def get_installed(cls):
-        """≙ ``get_installed`` (``:311-313``): los pares ``(code, name)`` de los
-        idiomas **activos**, ordenados por nombre, leídos de la caché
-        :meth:`_get_active_by`."""
-        return [(code, data.name) for code, data in cls._get_active_by('code').items()]
+        """≙ ``get_installed`` (``:311-313``): los pares ``(code, name)``
+        de los idiomas **activos**, ordenados por nombre, leídos de la
+        caché :meth:`_get_active_by`."""
+        active = cls._get_active_by('code')
+        return [(code, data.name) for code, data in active.items()]
 
     @classmethod
     @ormcache('field', cache='stable')
@@ -233,9 +234,11 @@ class ResLang(models.Model):
         if field not in cls.CACHED_FIELDS:
             raise UserError('Field "%s" is not cached' % field)
         if field == 'code':
-            rows = cls.objects.filter(active=True).order_by('name').values(*cls.CACHED_FIELDS)
+            active = cls.objects.filter(active=True).order_by('name')
+            rows = active.values(*cls.CACHED_FIELDS)
             return LangDataDict({row['code']: LangData(row) for row in rows})
-        return LangDataDict({data[field]: data for data in cls._get_active_by('code').values()})
+        by_code = cls._get_active_by('code')
+        return LangDataDict({data[field]: data for data in by_code.values()})
 
     def format(self, percent, value, grouping=False):
         """≙ ``format`` (``odoo19c: res_lang.py:418-446``).
