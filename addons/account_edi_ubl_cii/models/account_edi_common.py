@@ -33,9 +33,9 @@ rama, la de impuesto con importe cero. Es decir: el símbolo está portado y su
 rama belga levanta con la causa nombrada. No se silencia devolviendo ``''``,
 que convertiría un bloqueo en un dato falso.
 
-Cuatro funciones de módulo, todas del porte y ninguna de la referencia:
-:func:`_blocked`, :func:`_float_repr`, :func:`_find_xml_value` y
-:func:`_format_lang_amount` — las tres últimas sustituyen imports ausentes
+Tres funciones de módulo, todas del porte y ninguna de la referencia:
+:func:`_blocked`, :func:`_float_repr` y
+:func:`_format_lang_amount` — las dos últimas sustituyen imports ausentes
 (ver la tabla de sustituciones abajo).
 
 Clase Python, no ``AbstractModel`` — la convención del árbol
@@ -154,8 +154,8 @@ Sustituciones del árbol (medidas con ``grep -ic … uv.lock``)
      - f-string con el símbolo de la divisa — misma divergencia que
        ``account/models/account_payment_term.py`` ya declaró
    * - ``odoo.tools.xml_utils.find_xml_value``
-     - ausente
-     - vendorizado como :func:`_find_xml_value` (tres líneas, verbatim)
+     - presente
+     - se importa de ``tools.xml_utils``
    * - ``odoo.tools.translate._lt``
      - ausente
      - ``tools.translate._`` **ya es perezoso** en este árbol (devuelve
@@ -198,6 +198,7 @@ from orm.registry import model_by_name
 from tools.float_utils import float_round
 from tools.misc import html_escape
 from tools.translate import _
+from tools.xml_utils import find_xml_value
 
 
 def _blocked(symbol, missing):
@@ -223,17 +224,6 @@ def _float_repr(value, precision_digits):
     ``src/tools/float_utils.py``, fuera del write-set de este pase.
     """
     return '%.*f' % (precision_digits, value)
-
-
-def _find_xml_value(xpath, xml_element, namespaces=None):
-    """≙ ``odoo.tools.xml_utils.find_xml_value`` (``odoo19c: :339-341``).
-
-    Vendorizado verbatim: ``src/tools/`` no tiene ``xml_utils`` y crearlo cae
-    fuera del write-set de este pase (mismo criterio, y mismo precedente, que
-    ``account/tools/dict_to_xml.py`` con ``remove_control_characters``).
-    """
-    element = xml_element.xpath(xpath, namespaces=namespaces)
-    return element[0].text if element else None
 
 
 def _format_lang_amount(amount, currency):
@@ -670,7 +660,7 @@ class AccountEdiCommon(object):
         for xpath in xpaths:
             # functions from ElementTree like "findtext" do not fully implement xpath, use "xpath" (from lxml) instead
             # (e.g. "//node[string-length(text()) > 5]" raises an invalidPredicate exception with "findtext")
-            val = _find_xml_value(xpath, tree, nsmap)
+            val = find_xml_value(xpath, tree, nsmap)
             if val:
                 return val
 

@@ -72,6 +72,13 @@ from tools.translate import _
 class IrAttachment(models.Model):
     """``ir.attachment`` — adjunto (archivo o URL) vinculado a un registro."""
 
+    # Atributos de clase de la fuente (``odoo19c: odoo/addons/base/models/
+    # ir_attachment.py:75-77``). ``_res_idx`` vive en ``Meta.indexes`` con su
+    # nombre. Sin ``_name``, ``env['ir.attachment']`` no resolvía.
+    _name = 'ir.attachment'
+    _description = 'Attachment'
+    _order = 'id desc'
+
     TYPE_BINARY = 'binary'
     TYPE_URL = 'url'
     TYPE_CHOICES = [

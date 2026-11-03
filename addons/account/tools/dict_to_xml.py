@@ -16,67 +16,16 @@ Cobertura del porte -- 1 de 1 simbolo publico
    * - ``dict_to_xml``
      - portado verbatim (misma firma, mismo contrato)
 
-**Divergencia declarada -- ``remove_control_characters``.** La fuente la
-importa de ``odoo.tools.xml_utils`` (``odoo19c: odoo/tools/xml_utils.py:24``).
-Ese modulo no existe en el espejo ``src/tools/`` de este arbol y crearlo esta
-fuera de mi alcance de escritura en este pase (no esta en la lista de
-archivos escribibles de la tarea #398). Es una funcion pura de ~10 lineas sin
-ningun otro consumidor medido en el arbol
-(``grep -rn "remove_control_characters" src/ addons/`` -> 0 hits antes de
-este archivo), asi que se vendoriza aqui como
-``_remove_control_characters``, equivalente a la fuente (mismo rango de
-caracteres validos segun la especificacion XML 1.0 citada en su docstring,
-construido con ``chr(codepoint)`` en vez de escapes de barra para no
-depender de como el editor normalice backslashes). Si en el futuro un
-segundo consumidor la necesita, el sitio correcto es
-``src/tools/xml_utils.py`` (tarea **#401**, DESCONOCIDA hasta que aparezca
-ese segundo consumidor).
+``remove_control_characters`` se importa de ``tools.xml_utils``, como la
+fuente la importa de ``odoo.tools.xml_utils``
+(``odoo19c: odoo/tools/xml_utils.py:24``). Hasta que ese módulo existió se
+vendorizaba aquí; su segundo consumidor (``account_edi_ubl_cii``) era la
+condición que la nota anterior fijaba para crearlo.
 """
-
-import re
 
 from lxml import etree
 
-#: Puntos de codigo validos segun XML 1.0 (``odoo19c:
-#: odoo/tools/xml_utils.py:31-39``), armados con ``chr(N)`` sobre el entero
-#: exacto -- evita que un escape de barra invertida (``\t``, ``퟿``...)
-#: se corrompa al pasar por una herramienta que normalice el texto del
-#: archivo.
-_TAB = chr(9)
-_LINE_FEED = chr(10)
-_CARRIAGE_RETURN = chr(13)
-_XML_VALID_CHAR_RANGES = (
-    _TAB
-    + _LINE_FEED
-    + _CARRIAGE_RETURN
-    + chr(0x20)
-    + '-'
-    + chr(0xD7FF)
-    + chr(0xE000)
-    + '-'
-    + chr(0xFFFD)
-    + chr(0x10000)
-    + '-'
-    + chr(0x10FFFF)
-)
-_CONTROL_CHARACTERS_RE = re.compile(
-    ('[^' + _XML_VALID_CHAR_RANGES + ']').encode()
-)
-
-
-def _remove_control_characters(byte_node):
-    """Quita los caracteres de control no permitidos por XML 1.0.
-
-    Vendorizado de ``odoo19c: odoo/tools/xml_utils.py:24-42`` -- ver la nota
-    de procedencia en el docstring del modulo. Los caracteres a escapar son
-    los de control ``#x0`` a ``#x1F`` y ``#x7F`` (la mayoria no puede
-    aparecer en XML); el estandar acepta un ``Char`` de tab, salto de linea,
-    retorno de carro, o uno de los tres rangos altos declarados arriba.
-
-    Fuente: https://www.w3.org/TR/xml/
-    """
-    return _CONTROL_CHARACTERS_RE.sub(b'', byte_node)
-
+from tools.xml_utils import remove_control_characters
 
 def dict_to_xml(
     node,
@@ -167,7 +116,7 @@ def dict_to_xml(
     # Anade el texto, si lo hay
     text = node.get('_text')
     if text is not None and text is not False:
-        element.text = _remove_control_characters(str(text).encode()).decode()
+        element.text = remove_control_characters(str(text).encode()).decode()
 
     # Anade nodos hijos
     for child_tag, child in node.items():
