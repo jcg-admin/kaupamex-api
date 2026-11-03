@@ -82,7 +82,9 @@ La referencia tiene dos ramas:
 Otras divergencias declaradas: ``analytic_distribution`` y
 ``amount_currency``/multi-moneda no existen en el puerto de
 ``account.move.line`` (mismas exclusiones que ``account_partial_reconcile``);
-``formatLang``/``format_date`` (formato por locale) → f-string/isoformat.
+la fecha de la referencia sale de ``format_date`` con el entorno activo, como
+en la fuente; los tres ``formatLang`` de ``unit_price`` viven en la rama de
+devengo por línea, que sigue pendiente (ver arriba).
 """
 
 from datetime import date, timedelta
@@ -96,7 +98,9 @@ from addons.account.models.account_move_line import AccountMoveLine
 from addons.account.models.product import get_product_accounts
 from addons.account.wizard.account_move_reversal import AccountMoveReversal
 from exceptions import UserError
+from orm.environments import env
 from orm.models_transient import TransientModel
+from tools.misc import format_date
 from tools.translate import _
 
 
@@ -162,8 +166,10 @@ class AccountAccruedOrdersWizard(TransientModel):
         """≙ ``_get_computed_account`` — la cuenta de gasto o ingreso del
         producto. La posición fiscal de la orden no está portada
         (divergencia declarada): resolución cruda de
-        ``get_product_accounts``."""
-        accounts = get_product_accounts(product)
+        ``get_product_accounts``. La resolución es la de la **plantilla**
+        (``product.product_tmpl_id.get_product_accounts``): las cuentas viven
+        en ``product.template`` y una variante no las expone."""
+        accounts = get_product_accounts(product.product_tmpl)
         if is_purchase:
             return accounts['expense']
         return accounts['income']
@@ -255,7 +261,7 @@ class AccountAccruedOrdersWizard(TransientModel):
                 _('Accrued %(entry_type)s entry as of %(date)s')
                 % {
                     'entry_type': move_type,
-                    'date': accrual_date.isoformat(),
+                    'date': format_date(env(), accrual_date),
                 }
             ),
             'name': '/',
