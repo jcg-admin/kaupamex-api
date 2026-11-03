@@ -106,7 +106,7 @@ from orm.utils import (FieldRegistryDescriptor, OriginIds, as_record_list,
 from service.db import Savepoint
 from tools.cache import ormcache
 from tools.constants import PREFETCH_MAX
-from tools.misc import OrderedSet, ReadonlyDict, partition, split_every
+from tools.misc import OrderedSet, ReadonlyDict, partition, split_every, unique
 from tools.sql import SQL
 
 _logger = logging.getLogger(__name__)
@@ -4837,7 +4837,7 @@ def _x2many_descriptor_set(self, instance, value):
     if not is_command_list(value):
         ids = getattr(value, '_ids', None)
         if ids is not None and not all(ids):
-            value = _new_lines_as_commands(self.rel, value)
+            value = self.rel.convert_to_write(value, instance)
         else:
             if ids is None:
                 ids = [getattr(item, 'pk', item) for item in (value or ())]
@@ -4884,43 +4884,6 @@ def _write_new_one2many(rel, owner, value):
     cache[owner.pk] = tuple(ids)
 
 
-def _new_lines_as_commands(rel, value):
-    """Un recordset con registros de ``new()``, como comandos de escritura.
-
-    ≙ ``_RelationalMulti.convert_to_write`` (``odoo19c: odoo/orm/
-    fields_relational.py:671-704``): las filas reales entran en el ``SET`` y
-    cada registro nuevo se convierte en un ``CREATE`` con los valores de su
-    caché, sin el inverso, que es el propio registro dueño. Un nuevo con
-    origen entra por su origen y, si cambió, con un ``UPDATE``.
-    """
-    inv_names = {rel.field.name}
-    result = [Command.set([])]
-    for record in value:
-        origin = record._origin
-        if not origin:
-            values = record._convert_to_write({
-                name: record[name]
-                for name in record._cache
-                if name not in inv_names
-            })
-            result.append(Command.create(values))
-        else:
-            result[0][2].append(origin.id)
-            if record != origin:
-                values = record._convert_to_write({
-                    name: record[name]
-                    for name in record._cache
-                    if name not in inv_names and _origin_of(record[name]) != origin[name]
-                })
-                if values:
-                    result.append(Command.update(origin.id, values))
-    return result
-
-
-def _origin_of(value):
-    return value._origin if isinstance(value, BaseModel) else value
-
-
 _related_descriptors.ReverseManyToOneDescriptor.__set__ = _x2many_descriptor_set
 _DJANGO_FORWARD_GET_OBJECT = _related_descriptors.ForwardManyToOneDescriptor.get_object
 
@@ -4940,6 +4903,34 @@ def _forward_get_object(self, instance):
 
 
 _related_descriptors.ForwardManyToOneDescriptor.get_object = _forward_get_object
+_DJANGO_FORWARD_GET = _related_descriptors.ForwardManyToOneDescriptor.__get__
+
+
+def _forward_get(self, instance, cls=None):
+    """Un Many2one leído sobre varios registros es la unión de sus valores.
+
+    ≙ ``_Relational.__get__``, rama *multi-record* (``odoo19c: odoo/orm/
+    fields_relational.py:42-79``), más ``Many2one.convert_to_record_multi``
+    (``:360-364``): el recordset del comodelo con los ids sin repetir y sin
+    los vacíos. Aquí cada valor se lee por el registro singular, que ya sabe
+    resolver una fila, un registro de ``new()`` y el caché; un recordset de
+    un solo id o una fila de Django siguen la lectura de Django.
+    """
+    ids = getattr(instance, '_ids', None) if instance is not None else None
+    comodel = self.field.remote_field.model
+    if (ids is None or len(ids) <= 1 or not isinstance(comodel, type)
+            or not issubclass(comodel, BaseModel)):
+        return _DJANGO_FORWARD_GET(self, instance, cls)
+    environment = env()
+    if not environment.su and hasattr(instance, '_has_field_access'):
+        if not instance._has_field_access(self.field, 'read'):
+            instance._check_field_access(self.field, 'read')
+    values = [getattr(record, self.field.attname) for record in instance]
+    value_ids = tuple(unique(id_ for id_ in values if id_ is not None))
+    return comodel._from_ids(environment, value_ids, value_ids)
+
+
+_related_descriptors.ForwardManyToOneDescriptor.__get__ = _forward_get
 Model._validate_fields = _validate_fields
 Model._run_ondelete_checks = _run_ondelete_checks
 

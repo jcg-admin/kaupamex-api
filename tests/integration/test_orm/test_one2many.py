@@ -287,3 +287,55 @@ def _new_operations(multi):
     multi.lines = multi.lines[:-1]
     assert len(multi.lines) == 9
     assert 'hello' in multi.lines.mapped('name')
+
+
+def test_new_real_interactions(env):
+    """≙ :364 — registros reales y nuevos en los dos lados de m2o y o2m.
+
+    Adaptación declarada: la fuente lee el campo con ``type(record).name``,
+    que allá es el ``Field``; aquí la clase expone el descriptor de Django y
+    el campo es ``record._fields['name']``.
+    """
+    Parent = env['test_orm.model_parent_m2o']
+    Child = env['test_orm.model_child_m2o']
+
+    # REAL - NEW
+    parent = Parent.create({'name': 'parentB'})
+    new_child = Child.new({'name': 'B', 'parent_id': parent.id})
+    assert not parent.child_ids
+    assert new_child.parent_id == parent
+    parent.child_ids += new_child
+    assert parent.child_ids
+    assert parent.child_ids != new_child
+
+    # NEW - NEW
+    new_parent = Parent.new({
+        'name': 'parentC3PO',
+        'child_ids': [(0, 0, {'name': 'C3'})],
+    })
+    assert new_parent == new_parent.child_ids.parent_id
+    assert not new_parent.id
+    assert new_parent.child_ids
+    assert not new_parent.child_ids.ids
+
+    new_child = Child.new({'name': 'PO'})
+    new_parent.child_ids += new_child
+    assert new_child in new_parent.child_ids
+    assert len(new_parent.child_ids) == 2
+    assert new_parent.child_ids.mapped('name') == ['C3', 'PO']
+
+    new_child2 = Child.new({'name': 'R2D2', 'parent_id': new_parent.id})
+    assert new_child2 in new_parent.child_ids
+    assert len(new_parent.child_ids) == 3
+    assert new_parent.child_ids.mapped('name') == ['C3', 'PO', 'R2D2']
+
+    # NEW TO REAL CONVERSION
+    name = new_parent._fields['name']
+    child_ids = new_parent._fields['child_ids']
+    parent = Parent.create({
+        'name': name.convert_to_write(new_parent.name, new_parent),
+        'child_ids': child_ids.convert_to_write(new_parent.child_ids, new_parent),
+    })
+    assert len(parent.child_ids) == 3
+    assert parent == parent.child_ids.parent_id
+    assert parent.child_ids.mapped('name') == ['C3', 'PO', 'R2D2']

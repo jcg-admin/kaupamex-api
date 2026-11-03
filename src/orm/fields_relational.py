@@ -109,11 +109,11 @@ from orm.fields_nonstored import (
 from django.db.models.fields.related import lazy_related_operation
 from orm.identifiers import NewId
 from orm.model_classes import is_transient
-from orm.registry import (IR_MODELS, model_by_key, model_by_name, name_of,
-                          sentinel_label)
+from orm.registry import (IR_MODELS, field_inverses, model_by_key, model_by_name,
+                          name_of, sentinel_label)
 from orm.utils import (display_name_of, model_field_registry, model_of,
                        record_ids)
-from tools.misc import SENTINEL, unique
+from tools.misc import SENTINEL, OrderedSet, unique
 from tools.sql import SQL
 
 __all__ = ['Many2one', 'One2many', 'Many2many', 'bypass_search_access',
@@ -1550,6 +1550,125 @@ def _reverse_one2many_update_inverse_accessor(self):
 
 models.ManyToOneRel._get_cache = property(_reverse_one2many_cache_accessor)
 models.ManyToOneRel._update_inverse = property(_reverse_one2many_update_inverse_accessor)
+
+
+def _reverse_one2many_convert_to_cache(self, value, record, validate=True):
+    """``_RelationalMulti.convert_to_cache`` — ≙ ``odoo19c: odoo/orm/
+    fields_relational.py:589-641``. Formato: tupla de ids.
+
+    Divergencia de forma: el comodelo es ``self.related_model`` (la clase) y
+    el nombre del campo en el dueño es el accesor del inverso de Django.
+    """
+    # cache format: tuple(ids)
+    if getattr(value, '_ids', None) is not None:
+        if validate and model_of(value) is not self.related_model:
+            raise ValueError("Wrong value for %s: %s" % (self, value))
+        ids = value._ids
+        if record and not record.id:
+            # x2many field value of new record is new records
+            ids = tuple(it and NewId(it) for it in ids)
+        return ids
+
+    elif isinstance(value, (list, tuple)):
+        # value is a list/tuple of commands, dicts or record ids
+        comodel = self.related_model
+        # if record is new, the field's value is new records
+        if record and not record.id:
+            browse = lambda it: comodel.browse((it and NewId(it),))
+        else:
+            browse = comodel.browse
+        # determine the value ids: in case of a real record or a new record
+        # with origin, take its current value
+        ids = OrderedSet(record[self.get_accessor_name()]._ids if record._origin else ())
+        # modify ids with the commands
+        for command in value:
+            if isinstance(command, (tuple, list)):
+                if command[0] == Command.CREATE:
+                    ids.add(comodel.new(command[2], ref=command[1] or None).id)
+                elif command[0] == Command.UPDATE:
+                    line = browse(command[1])
+                    if validate:
+                        line.update(command[2])
+                    else:
+                        line._update_cache(command[2], validate=False)
+                    ids.add(line.id)
+                elif command[0] in (Command.DELETE, Command.UNLINK):
+                    ids.discard(browse(command[1]).id)
+                elif command[0] == Command.LINK:
+                    ids.add(browse(command[1]).id)
+                elif command[0] == Command.CLEAR:
+                    ids.clear()
+                elif command[0] == Command.SET:
+                    ids = OrderedSet(browse(it).id for it in command[2])
+            elif isinstance(command, dict):
+                ids.add(comodel.new(command).id)
+            else:
+                ids.add(browse(command).id)
+        # return result as a tuple
+        return tuple(ids)
+
+    elif not value:
+        return ()
+
+    raise ValueError("Wrong value for %s: %s" % (self, value))
+
+
+def _reverse_one2many_convert_to_write(self, value, record):
+    """``_RelationalMulti.convert_to_write`` — ≙ ``:671-711``."""
+    if isinstance(value, tuple):
+        # a tuple of ids, this is the cache format
+        value = self.related_model.browse(value)
+
+    if getattr(value, '_ids', None) is not None and model_of(value) is self.related_model:
+        def get_origin(val):
+            return val._origin if getattr(val, '_ids', None) is not None else val
+
+        # make result with new and existing records
+        inv_names = {field.name for field in field_inverses[self]}
+        result = [Command.set([])]
+        for record in value:
+            origin = record._origin
+            if not origin:
+                values = record._convert_to_write({
+                    name: record[name]
+                    for name in record._cache
+                    if name not in inv_names
+                })
+                result.append(Command.create(values))
+            else:
+                result[0][2].append(origin.id)
+                if record != origin:
+                    values = record._convert_to_write({
+                        name: record[name]
+                        for name in record._cache
+                        if name not in inv_names and get_origin(record[name]) != origin[name]
+                    })
+                    if values:
+                        result.append(Command.update(origin.id, values))
+        return result
+
+    if value is False or value is None:
+        return [Command.clear()]
+
+    if isinstance(value, list):
+        return value
+
+    raise ValueError("Wrong value for %s: %s" % (self, value))
+
+
+def _reverse_one2many_only(function):
+    """El método sólo para el uno-a-muchos (ver ``_get_cache``)."""
+    def accessor(self):
+        if isinstance(self, models.OneToOneRel):
+            raise AttributeError(function.__name__)
+        return functools.partial(function, self)
+    return property(accessor)
+
+
+models.ManyToOneRel.write_sequence = 0
+models.ManyToOneRel.convert_to_cache = _reverse_one2many_only(_reverse_one2many_convert_to_cache)
+models.ManyToOneRel.convert_to_write = _reverse_one2many_only(_reverse_one2many_convert_to_write)
+models.ManyToOneRel._update_cache = _reverse_one2many_only(_relational_multi_update_cache)
 models.ManyToManyField._update_cache = _relational_multi_update_cache
 models.ManyToManyField.convert_to_display_name = (
     _relational_multi_convert_to_display_name)
