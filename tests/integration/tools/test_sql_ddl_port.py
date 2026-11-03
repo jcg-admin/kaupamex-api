@@ -11,9 +11,12 @@ from tools import sql
 
 pytestmark = pytest.mark.django_db
 
+Kind = sql.TableKind
+
 
 def _table(cursor, name, extra=''):
-    cursor.execute(f'CREATE TABLE {name} (id serial PRIMARY KEY, code varchar{extra})')
+    cursor.execute(f'CREATE TABLE {name} '
+                   f'(id serial PRIMARY KEY, code varchar{extra})')
 
 
 class TestTableKind:
@@ -29,12 +32,13 @@ class TestTableKind:
             _table(cr, 'probe_kind_regular')
             cr.execute('CREATE TEMP TABLE probe_kind_temp (id int)')
             cr.execute('CREATE VIEW probe_kind_view AS SELECT 1 AS x')
-            cr.execute('CREATE MATERIALIZED VIEW probe_kind_mat AS SELECT 1 AS x')
+            cr.execute('CREATE MATERIALIZED VIEW probe_kind_mat '
+                       'AS SELECT 1 AS x')
             cr.execute('CREATE SEQUENCE probe_kind_seq')
-            assert sql.table_kind(cr, 'probe_kind_regular') is sql.TableKind.Regular
-            assert sql.table_kind(cr, 'probe_kind_view') is sql.TableKind.View
-            assert sql.table_kind(cr, 'probe_kind_mat') is sql.TableKind.Materialized
-            assert sql.table_kind(cr, 'probe_kind_seq') is sql.TableKind.Other
+            assert sql.table_kind(cr, 'probe_kind_regular') is Kind.Regular
+            assert sql.table_kind(cr, 'probe_kind_view') is Kind.View
+            assert sql.table_kind(cr, 'probe_kind_mat') is Kind.Materialized
+            assert sql.table_kind(cr, 'probe_kind_seq') is Kind.Other
             assert sql.table_kind(cr, 'probe_kind_missing') is None
             # La consulta de la fuente filtra por ``current_schema``: una tabla
             # temporal vive en ``pg_temp_N`` y no aparece.
@@ -45,10 +49,13 @@ class TestTableKind:
         with connection.cursor() as cr:
             _table(cr, 'probe_dv_table')
             cr.execute('CREATE VIEW probe_dv_view AS SELECT 1 AS x')
-            cr.execute('CREATE MATERIALIZED VIEW probe_dv_mat AS SELECT 1 AS x')
-            for name in ('probe_dv_table', 'probe_dv_view', 'probe_dv_mat', 'probe_dv_none'):
+            cr.execute('CREATE MATERIALIZED VIEW probe_dv_mat '
+                       'AS SELECT 1 AS x')
+            names = ('probe_dv_table', 'probe_dv_view', 'probe_dv_mat',
+                     'probe_dv_none')
+            for name in names:
                 sql.drop_view_if_exists(cr, name)
-            assert sql.table_kind(cr, 'probe_dv_table') is sql.TableKind.Regular
+            assert sql.table_kind(cr, 'probe_dv_table') is Kind.Regular
             assert sql.table_kind(cr, 'probe_dv_view') is None
             assert sql.table_kind(cr, 'probe_dv_mat') is None
 
@@ -60,10 +67,13 @@ class TestCreateModelTable:
         with connection.cursor() as cr:
             sql.create_model_table(cr, 'probe_model_table', 'Una tabla',
                                    [('name', 'varchar', 'Nombre')])
-            cr.execute("""SELECT obj_description('probe_model_table'::regclass, 'pg_class'),
-                                 col_description('probe_model_table'::regclass, 2)""")
+            cr.execute(
+                "SELECT obj_description('probe_model_table'::regclass, "
+                "'pg_class'), "
+                "col_description('probe_model_table'::regclass, 2)")
             assert cr.fetchone() == ('Una tabla', 'Nombre')
-            assert sql.table_columns(cr, 'probe_model_table').keys() >= {'id', 'name'}
+            columns = sql.table_columns(cr, 'probe_model_table')
+            assert columns.keys() >= {'id', 'name'}
 
 
 class TestConstraints:
@@ -72,18 +82,21 @@ class TestConstraints:
     def test_the_definition_is_the_comment(self):
         with connection.cursor() as cr:
             _table(cr, 'probe_constraint')
-            sql.add_constraint(cr, 'probe_constraint', 'probe_code_uniq', 'unique(code)')
+            sql.add_constraint(cr, 'probe_constraint', 'probe_code_uniq',
+                               'unique(code)')
             assert sql.constraint_definition(
                 cr, 'probe_constraint', 'probe_code_uniq') == 'unique(code)'
-            assert sql.constraint_definition(cr, 'probe_constraint', 'missing') is None
+            assert sql.constraint_definition(
+                cr, 'probe_constraint', 'missing') is None
 
     def test_a_percent_in_the_definition_survives(self):
         with connection.cursor() as cr:
             _table(cr, 'probe_constraint_pct')
             sql.add_constraint(cr, 'probe_constraint_pct', 'probe_pct_check',
                                "CHECK (code NOT LIKE '%x')")
-            assert sql.constraint_definition(
-                cr, 'probe_constraint_pct', 'probe_pct_check') == "CHECK (code NOT LIKE '%x')"
+            definition = sql.constraint_definition(
+                cr, 'probe_constraint_pct', 'probe_pct_check')
+            assert definition == "CHECK (code NOT LIKE '%x')"
 
 
 class TestFixForeignKey:
@@ -92,17 +105,14 @@ class TestFixForeignKey:
     def test_recreates_only_when_the_policy_differs(self):
         with connection.cursor() as cr:
             _table(cr, 'probe_fk_parent')
-            cr.execute('CREATE TABLE probe_fk_child (id serial PRIMARY KEY, parent_id int)')
-            assert sql.fix_foreign_key(cr, 'probe_fk_child', 'parent_id',
-                                       'probe_fk_parent', 'id', 'cascade') is True
-            assert sql.fix_foreign_key(cr, 'probe_fk_child', 'parent_id',
-                                       'probe_fk_parent', 'id', 'cascade') is False
-            assert sql.fix_foreign_key(cr, 'probe_fk_child', 'parent_id',
-                                       'probe_fk_parent', 'id', 'set null') is True
-            assert sql.get_foreign_keys(cr, 'probe_fk_child', 'parent_id',
-                                        'probe_fk_parent', 'id', 'cascade') == []
-            assert len(sql.get_foreign_keys(cr, 'probe_fk_child', 'parent_id',
-                                            'probe_fk_parent', 'id', 'set null')) == 1
+            cr.execute('CREATE TABLE probe_fk_child '
+                       '(id serial PRIMARY KEY, parent_id int)')
+            key = ('probe_fk_child', 'parent_id', 'probe_fk_parent', 'id')
+            assert sql.fix_foreign_key(cr, *key, 'cascade') is True
+            assert sql.fix_foreign_key(cr, *key, 'cascade') is False
+            assert sql.fix_foreign_key(cr, *key, 'set null') is True
+            assert sql.get_foreign_keys(cr, *key, 'cascade') == []
+            assert len(sql.get_foreign_keys(cr, *key, 'set null')) == 1
 
 
 class TestIndexes:
@@ -113,26 +123,34 @@ class TestIndexes:
             assert sql.index_exists(cr, 'django_migrations_pkey')
             assert not sql.index_exists(cr, 'idx_inexistente')
             sql.check_index_exist(cr, 'django_migrations_pkey')
-            with pytest.raises(AssertionError, match='idx_inexistente does not exist'):
+            refused = pytest.raises(AssertionError,
+                                    match='idx_inexistente does not exist')
+            with refused:
                 sql.check_index_exist(cr, 'idx_inexistente')
 
     def test_add_index_with_comment_and_its_definition(self):
         with connection.cursor() as cr:
             _table(cr, 'probe_index')
-            sql.add_index(cr, 'probe_index_code', 'probe_index', 'USING btree (code)',
-                          unique=True, comment='por codigo')
+            sql.add_index(cr, 'probe_index_code', 'probe_index',
+                          'USING btree (code)', unique=True,
+                          comment='por codigo')
             definition, comment = sql.index_definition(cr, 'probe_index_code')
-            assert definition.startswith('CREATE UNIQUE INDEX probe_index_code')
+            assert definition.startswith(
+                'CREATE UNIQUE INDEX probe_index_code')
             assert comment == 'por codigo'
-            assert sql.index_definition(cr, 'probe_index_missing') == (None, None)
+            missing = sql.index_definition(cr, 'probe_index_missing')
+            assert missing == (None, None)
 
     def test_create_index_is_unique_on_demand_and_idempotent(self):
         with connection.cursor() as cr:
             _table(cr, 'probe_create_index')
-            sql.create_index(cr, 'probe_create_index_code', 'probe_create_index',
-                             ['code'], unique=True, comment='c')
-            sql.create_index(cr, 'probe_create_index_code', 'probe_create_index', ['code'])
-            definition, comment = sql.index_definition(cr, 'probe_create_index_code')
+            sql.create_index(cr, 'probe_create_index_code',
+                             'probe_create_index', ['code'], unique=True,
+                             comment='c')
+            sql.create_index(cr, 'probe_create_index_code',
+                             'probe_create_index', ['code'])
+            definition, comment = sql.index_definition(
+                cr, 'probe_create_index_code')
             assert definition.startswith('CREATE UNIQUE INDEX')
             assert comment == 'c'
             with pytest.raises(AssertionError, match='Missing expressions'):
@@ -144,8 +162,9 @@ class TestIndexes:
             with pytest.warns(DeprecationWarning, match='create_index'):
                 sql.create_unique_index(cr, 'probe_unique_index_code',
                                         'probe_unique_index', ['code'])
-            assert sql.index_definition(
-                cr, 'probe_unique_index_code')[0].startswith('CREATE UNIQUE INDEX')
+            definition = sql.index_definition(
+                cr, 'probe_unique_index_code')[0]
+            assert definition.startswith('CREATE UNIQUE INDEX')
 
 
 class TestTranslatableColumn:
@@ -154,11 +173,15 @@ class TestTranslatableColumn:
     def test_round_trip_through_jsonb(self):
         with connection.cursor() as cr:
             _table(cr, 'probe_translatable')
-            cr.execute("INSERT INTO probe_translatable (code) VALUES ('hola'), (NULL)")
-            sql.convert_column_translatable(cr, 'probe_translatable', 'code', 'jsonb')
+            cr.execute("INSERT INTO probe_translatable (code) "
+                       "VALUES ('hola'), (NULL)")
+            sql.convert_column_translatable(cr, 'probe_translatable', 'code',
+                                            'jsonb')
             cr.execute('SELECT code FROM probe_translatable ORDER BY id')
-            assert [row[0] for row in cr.fetchall()] == ['{"en_US": "hola"}', None]
-            sql.convert_column_translatable(cr, 'probe_translatable', 'code', 'varchar')
+            values = [row[0] for row in cr.fetchall()]
+            assert values == ['{"en_US": "hola"}', None]
+            sql.convert_column_translatable(cr, 'probe_translatable', 'code',
+                                            'varchar')
             cr.execute('SELECT code FROM probe_translatable ORDER BY id')
             assert [row[0] for row in cr.fetchall()] == ['hola', None]
 
@@ -172,11 +195,13 @@ class TestPureHelpers:
 
     def test_value_pattern(self):
         assert sql.value_to_translated_trigram_pattern('ab') == '%'
-        assert sql.value_to_translated_trigram_pattern('a_b"c%') == r'%a\_b\\"c\%%'
+        pattern = sql.value_to_translated_trigram_pattern('a_b"c%')
+        assert pattern == r'%a\_b\\"c\%%'
 
     def test_pattern_pattern(self):
         assert sql.pattern_to_translated_trigram_pattern('ab%') == '%'
-        assert sql.pattern_to_translated_trigram_pattern(r'abc%de"f\%g') == r'%abc%de\\"f\%g%'
+        pattern = sql.pattern_to_translated_trigram_pattern(r'abc%de"f\%g')
+        assert pattern == r'%abc%de\\"f\%g%'
 
     def test_pg_varchar(self):
         """≙ ``pg_varchar`` (``:644-659``): sin tamaño, o con uno no positivo,

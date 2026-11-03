@@ -48,4 +48,5 @@ def test_the_endpoint_keeps_the_path_of_the_base_url():
     instalación servida bajo una ruta la conserva. ``urljoin`` la perdía."""
     SystemParameter.set_param('web.base.url', 'https://kaupamex.test/erp')
     company = ResCompany.objects.create(name='Kaupamex QA Peppol ruta')
-    assert company._get_peppol_webhook_endpoint() == 'https://kaupamex.test/erp/peppol/webhook'
+    expected = 'https://kaupamex.test/erp/peppol/webhook'
+    assert company._get_peppol_webhook_endpoint() == expected

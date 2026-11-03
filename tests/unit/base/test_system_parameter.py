@@ -52,7 +52,8 @@ class TestGetSetParam:
         assert SystemParameter.get_param('no.existe', 'fallback') == 'fallback'
 
     def test_set_creates_and_get_returns(self):
-        # Una clave que no siembra ``_DEFAULT_PARAMETERS``: ``web.base.url`` sí.
+        # Una clave que no siembra ``_DEFAULT_PARAMETERS``: ``web.base.url``
+        # sí.
         prev = SystemParameter.set_param('probe.new_key', 'http://x')
         assert prev is None  # no existía (Odoo devuelve False)
         assert SystemParameter.get_param('probe.new_key') == 'http://x'

@@ -32,7 +32,8 @@ def test_invalidate_model_drops_every_row(env):
     _write_behind_the_cache(one, 10)
     _write_behind_the_cache(two, 20)
     Foo.invalidate_model(['value1'])
-    assert [r.value1 for r in env['test_orm.foo'].browse((one | two).ids)] == [10, 20]
+    records = env['test_orm.foo'].browse((one | two).ids)
+    assert [r.value1 for r in records] == [10, 20]
 
 
 def test_invalidate_flushes_pending_writes_first(env):
@@ -44,10 +45,11 @@ def test_invalidate_flushes_pending_writes_first(env):
 
 
 def test_reading_from_the_database_does_not_mark_the_field_dirty(env):
-    """≙ ``Field.__get__`` → ``_fetch_field`` (``odoo19c: odoo/orm/fields.py``):
-    leer una columna llena la caché **sin** ensuciarla. Antes, la recarga de
-    Django pasaba por la escritura del ORM y el campo quedaba sucio, así que
-    el siguiente volcado reescribía la base con lo leído."""
+    """≙ ``Field.__get__`` → ``_fetch_field`` (``odoo19c:
+    odoo/orm/fields.py``): leer una columna llena la caché **sin** ensuciarla.
+    Antes, la recarga de Django pasaba por la escritura del ORM y el campo
+    quedaba sucio, así que el siguiente volcado reescribía la base con lo
+    leído."""
     record = env['test_orm.foo'].create({'value1': 1})
     field = record._fields['value1']
     reread = env['test_orm.foo'].browse(record.ids)

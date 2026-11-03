@@ -1,4 +1,5 @@
-"""Contrato puro de ``tools.xml_utils`` (``odoo19c: odoo/tools/xml_utils.py``)."""
+"""Contrato puro de ``tools.xml_utils``
+(``odoo19c: odoo/tools/xml_utils.py``)."""
 
 from io import BytesIO
 
@@ -19,7 +20,8 @@ XSD = b"""<?xml version="1.0"?>
 
 
 def test_remove_control_characters_keeps_tab_newline_and_text():
-    assert xml_utils.remove_control_characters(b'a\x00b\x07\tc\nd\x1f') == b'ab\tc\nd'
+    raw = b'a\x00b\x07\tc\nd\x1f'
+    assert xml_utils.remove_control_characters(raw) == b'ab\tc\nd'
 
 
 def test_create_xml_node_chain_nests_and_sets_the_last_text():
@@ -69,4 +71,5 @@ def test_remove_control_characters_works_on_bytes_not_code_points():
     sobrevive entero y un control ASCII cae. ``U+FFFE`` tampoco cae, igual
     que en la fuente; la copia no corrige su conducta."""
     data = 'a\x01\U00010000\ufffec'.encode()
-    assert xml_utils.remove_control_characters(data) == 'a\U00010000\ufffec'.encode()
+    expected = 'a\U00010000\ufffec'.encode()
+    assert xml_utils.remove_control_characters(data) == expected

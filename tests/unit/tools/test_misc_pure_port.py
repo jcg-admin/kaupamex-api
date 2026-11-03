@@ -14,26 +14,31 @@ from tools import misc
 
 def test_flatten_is_deprecated_and_flattens():
     with pytest.warns(DeprecationWarning, match='deprecated since 18.0'):
-        assert misc.flatten([[['a', 'b'], 'c'], 'd', ['e', [], 'f']]) == list('abcdef')
+        nested = [[['a', 'b'], 'c'], 'd', ['e', [], 'f']]
+        assert misc.flatten(nested) == list('abcdef')
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', DeprecationWarning)
-        t = (1, 2, (3,), [4, 5, [6, [7], (8, 9), ([10, 11, (12, 13)]), [14, [], (15,)], []]])
+        t = (1, 2, (3,), [4, 5, [6, [7], (8, 9), ([10, 11, (12, 13)]),
+                                 [14, [], (15,)], []]])
         assert misc.flatten(t) == list(range(1, 16))
         assert misc.flatten('b') == ['b']
 
 
 def test_reverse_enumerate():
-    assert list(misc.reverse_enumerate(['a', 'b', 'c'])) == [(2, 'c'), (1, 'b'), (0, 'a')]
+    pairs = list(misc.reverse_enumerate(['a', 'b', 'c']))
+    assert pairs == [(2, 'c'), (1, 'b'), (0, 'a')]
 
 
 def test_topological_sort_lists_dependencies_first():
-    assert misc.topological_sort({'c': ['b'], 'b': ['a'], 'a': [], 'd': ['z']}) == ['a', 'b', 'c', 'd']
+    graph = {'c': ['b'], 'b': ['a'], 'a': [], 'd': ['z']}
+    assert misc.topological_sort(graph) == ['a', 'b', 'c', 'd']
 
 
 def test_merge_sequences_follows_the_partial_order():
     assert misc.merge_sequences(['A', 'B', 'C']) == ['A', 'B', 'C']
-    assert misc.merge_sequences(['A', 'B', 'C'], ['Z'], ['Y', 'C'], ['A', 'X', 'Y']) == \
-        ['A', 'B', 'X', 'Y', 'C', 'Z']
+    merged = misc.merge_sequences(['A', 'B', 'C'], ['Z'], ['Y', 'C'],
+                                  ['A', 'X', 'Y'])
+    assert merged == ['A', 'B', 'X', 'Y', 'C', 'Z']
 
 
 def test_get_iso_codes():
@@ -58,22 +63,26 @@ def test_get_flag():
 
 
 def test_submap_keeps_only_the_given_keys():
-    assert misc.submap({'a': 1, 'b': 2, 'c': 3}, ['a', 'c', 'z']) == {'a': 1, 'c': 3}
+    picked = misc.submap({'a': 1, 'b': 2, 'c': 3}, ['a', 'c', 'z'])
+    assert picked == {'a': 1, 'c': 3}
 
 
 def test_constant_mapping():
     mapping = misc.ConstantMapping(7)
-    assert mapping['anything'] == 7 and len(mapping) == 0 and list(mapping) == []
+    assert mapping['anything'] == 7
+    assert len(mapping) == 0 and list(mapping) == []
 
 
 def test_reverse_inverts_the_ordering():
     assert sorted([1, 3, 2], key=misc.Reverse) == [3, 2, 1]
-    assert misc.Reverse(1) == misc.Reverse(1) and misc.Reverse(1) != misc.Reverse(2)
+    assert misc.Reverse(1) == misc.Reverse(1)
+    assert misc.Reverse(1) != misc.Reverse(2)
 
 
 def test_reversed_iterable():
     iterable = misc.ReversedIterable([1, 2, 3])
-    assert list(iterable) == [3, 2, 1] and list(reversed(iterable)) == [1, 2, 3]
+    assert list(iterable) == [3, 2, 1]
+    assert list(reversed(iterable)) == [1, 2, 3]
 
 
 def test_callbacks_run_in_order_and_clear():
@@ -135,5 +144,7 @@ def test_replace_exceptions_copies_the_message():
 def test_posix_to_ldml():
     locale = babel.Locale.parse('en_US')
     assert misc.posix_to_ldml('%d/%m/%Y', locale) == 'dd/MM/yyyy'
-    assert misc.posix_to_ldml('%-d %B, at %H:%M', locale) == "d MMMM, 'at' HH:mm"
-    assert misc.posix_to_ldml('%x', locale) == locale.date_formats['short'].pattern
+    ldml = misc.posix_to_ldml('%-d %B, at %H:%M', locale)
+    assert ldml == "d MMMM, 'at' HH:mm"
+    short = locale.date_formats['short'].pattern
+    assert misc.posix_to_ldml('%x', locale) == short

@@ -1,5 +1,6 @@
 """Ayudantes de direcciones de ``tools.mail`` (``odoo19c: odoo/tools/mail.py:
-728-1068``). Los ejemplos de ``email_anonymize`` son los doctests de la fuente."""
+728-1068``). Los ejemplos de ``email_anonymize`` son los doctests de la
+fuente."""
 
 import email.message
 import re
@@ -15,7 +16,8 @@ def test_generate_tracking_message_id_is_a_unique_header_value():
 
 def test_email_split_and_format_formats_each_address():
     text = '"Ana" <ana@x.mx>, beto@x.mx'
-    assert mail.email_split_and_format(text) == ['"Ana" <ana@x.mx>', 'beto@x.mx']
+    formatted = mail.email_split_and_format(text)
+    assert formatted == ['"Ana" <ana@x.mx>', 'beto@x.mx']
 
 
 def test_the_normalizing_variants_lower_the_address():
@@ -27,12 +29,14 @@ def test_the_normalizing_variants_lower_the_address():
 def test_email_anonymize_matches_the_source_doctests():
     assert mail.email_anonymize('admin@example.com') == 'a****@example.com'
     assert mail.email_anonymize('portal@example.com') == 'p***al@example.com'
-    assert mail.email_anonymize('portal@example.com', redact_domain=True) == 'p***al@e******.com'
+    redacted = mail.email_anonymize('portal@example.com', redact_domain=True)
+    assert redacted == 'p***al@e******.com'
     assert mail.email_anonymize('') == ''
 
 
 def test_url_domain_extract_drops_subdomains():
-    assert mail.url_domain_extract('https://www.info.proximus.be/a') == 'proximus.be'
+    domain = mail.url_domain_extract('https://www.info.proximus.be/a')
+    assert domain == 'proximus.be'
     assert mail.url_domain_extract('https://localhost') is False
 
 
@@ -49,9 +53,11 @@ def test_decode_message_header_joins_every_value():
 
 
 def test_encapsulate_email_keeps_the_old_name_on_the_new_address():
-    assert mail.encapsulate_email('"Admin" <admin@gmail.com>', 'notifications@odoo.com') \
-        == '"Admin" <notifications@odoo.com>'
-    assert mail.encapsulate_email('admin@gmail.com', 'n@odoo.com') == '"admin" <n@odoo.com>'
+    wrapped = mail.encapsulate_email('"Admin" <admin@gmail.com>',
+                                     'notifications@odoo.com')
+    assert wrapped == '"Admin" <notifications@odoo.com>'
+    wrapped = mail.encapsulate_email('admin@gmail.com', 'n@odoo.com')
+    assert wrapped == '"admin" <n@odoo.com>'
 
 
 def test_unfold_references_removes_folding_whitespace():

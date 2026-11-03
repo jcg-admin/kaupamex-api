@@ -12,11 +12,15 @@ import importlib
 import pytest
 from django.apps import apps as django_apps
 
-from addons.base.models.ir_config_parameter import _DEFAULT_PARAMETERS, SystemParameter
+from addons.base.models.ir_config_parameter import (
+    _DEFAULT_PARAMETERS,
+    SystemParameter,
+)
 
 SOURCE_KEYS = {
     'database.secret', 'database.uuid', 'database.create_date',
-    'web.base.url', 'base.login_cooldown_after', 'base.login_cooldown_duration',
+    'web.base.url', 'base.login_cooldown_after',
+    'base.login_cooldown_duration',
 }
 
 seed_migration = importlib.import_module(
@@ -30,7 +34,8 @@ def test_the_spec_carries_every_key_of_the_source():
 def test_the_source_values_are_kept():
     assert _DEFAULT_PARAMETERS['base.login_cooldown_after']() == 10
     assert _DEFAULT_PARAMETERS['base.login_cooldown_duration']() == 60
-    assert _DEFAULT_PARAMETERS['web.base.url']().startswith('http://localhost:')
+    base_url = _DEFAULT_PARAMETERS['web.base.url']()
+    assert base_url.startswith('http://localhost:')
 
 
 class _Editor:

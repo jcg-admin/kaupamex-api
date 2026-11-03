@@ -1,4 +1,5 @@
-"""``LangData``, ``LangDataDict`` y la caché de idiomas activos de ``res.lang``.
+"""``LangData``, ``LangDataDict`` y la caché de idiomas activos de
+``res.lang``.
 
 ≙ ``odoo19c: odoo/addons/base/models/res_lang.py:18-46, 270-330``.
 """
@@ -60,7 +61,8 @@ def test_lang_get_and_get_code_resolve_only_active_languages():
 def test_get_installed_is_built_from_the_active_cache_sorted_by_name():
     installed = ResLang.get_installed()
     assert ('en_US', 'English (US)') in installed
-    assert [name for _, name in installed] == sorted(name for _, name in installed)
+    names = [name for _, name in installed]
+    assert names == sorted(names)
 
 
 def test_activating_a_language_reaches_the_cache():

@@ -29,7 +29,8 @@ def probe_settings(monkeypatch):
     return sd
 
 
-def test_exec_pg_environ_maps_the_connection_to_libpq_variables(probe_settings):
+def test_exec_pg_environ_maps_the_connection_to_libpq_variables(
+        probe_settings):
     env = misc.exec_pg_environ()
     assert env['PGHOST'] == 'probe-host'
     assert env['PGPORT'] == '5433'

@@ -256,9 +256,11 @@ def test_check_vies_iap_posts_a_signed_webhook_token(monkeypatch):
     assert sent['url'].endswith('/api/vies/1/check_validity')
     assert sent['timeout'] == 20
     assert sent['data']['vat'] == 'BE0477472701'
-    assert sent['data']['webhook_url'] == 'https://kaupamex.test/base_vat/1/webhook_update_vies'
-    assert verify_hash_signed(env(), 'vies_check', sent['data']['webhook_token']) == 'BE0477472701'
-    assert verify_hash_signed(env(), 'otro', sent['data']['webhook_token']) is None
+    expected_url = 'https://kaupamex.test/base_vat/1/webhook_update_vies'
+    assert sent['data']['webhook_url'] == expected_url
+    token = sent['data']['webhook_token']
+    assert verify_hash_signed(env(), 'vies_check', token) == 'BE0477472701'
+    assert verify_hash_signed(env(), 'otro', token) is None
 
 
 def test_check_vies_iap_reports_fault_when_the_proxy_fails(monkeypatch):
@@ -270,5 +272,6 @@ def test_check_vies_iap_reports_fault_when_the_proxy_fails(monkeypatch):
 
 
 def test_check_vies_iap_reports_fault_without_status(monkeypatch):
-    monkeypatch.setattr(requests, 'post', lambda url, data, timeout: _Reply({}))
+    monkeypatch.setattr(requests, 'post',
+                        lambda url, data, timeout: _Reply({}))
     assert vat._check_vies_iap(_partner_with_vat('BE0477472701')) == 'fault'

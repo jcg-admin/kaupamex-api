@@ -22,7 +22,8 @@ def test_table_exists():
 def test_table_exists_counts_views_and_materialized_views():
     """≙ ``table_exists`` (``odoo19c: odoo/tools/sql.py:216-218``), que es
     ``existing_tables`` con ``relkind IN ('r', 'v', 'm')``: un modelo servido
-    por una vista materializada TIENE su relación. ``information_schema.tables``
+    por una vista materializada TIENE su relación.
+    ``information_schema.tables``
     no lista las materializadas, y con él esta pregunta daba ``False``."""
     with connection.cursor() as c:
         c.execute('CREATE VIEW probe_exists_view AS SELECT 1 AS x')

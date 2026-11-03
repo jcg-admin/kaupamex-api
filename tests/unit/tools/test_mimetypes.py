@@ -11,61 +11,99 @@ except ImportError:
 
 from unittest import TestCase
 
-from tools.mimetypes import fix_filename_extension, get_extension, guess_mimetype
+from tools.mimetypes import (
+    fix_filename_extension,
+    get_extension,
+    guess_mimetype,
+)
 
-PNG = b'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4//8/AAX+Av7czFnnAAAAAElFTkSuQmCC'
+PNG = (
+    b'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4//8/AAX+Av7c'
+    b'zFnnAAAAAElFTkSuQmCC'
+)
 GIF = b"R0lGODdhAQABAIAAAP///////ywAAAAAAQABAAACAkQBADs="
-BMP = b"""Qk1+AAAAAAAAAHoAAABsAAAAAQAAAAEAAAABABgAAAAAAAQAAAATCwAAEwsAAAAAAAAAAAAAQkdScwAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAD///8A"""
-JPG = """/9j/4AAQSkZJRgABAQEASABIAAD//gATQ3JlYXRlZCB3aXRoIEdJTVD/2wBDAP
-//////////////////////////////////////////////////////////////////////////////////////2wBDAf///////
-///////////////////////////////////////////////////////////////////////////////wgARCAABAAEDAREAAhEB
-AxEB/8QAFAABAAAAAAAAAAAAAAAAAAAAAv/EABQBAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhADEAAAAUf/xAAUEAEAAAAAAAA
-AAAAAAAAAAAAA/9oACAEBAAEFAn//xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAEDAQE/AX//xAAUEQEAAAAAAAAAAAAAAAAAAA
-AA/9oACAECAQE/AX//xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAY/An//xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBA
-AE/IX//2gAMAwEAAgADAAAAEB//xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAEDAQE/EH//xAAUEQEAAAAAAAAAAAAAAAAAAAAA
-/9oACAECAQE/EH//xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAE/EH//2Q=="""
-SVG = b"""PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/PjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMjAwMDExMDIvL0VOIlxuICJodHRwOi8vd3d3LnczLm9yZy9UUi8yMDAwL0NSLVNWRy0yMDAwMTEwMi9EVEQvc3ZnLTIwMDAxMTAyLmR0ZCI+PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg1MCw1MCkiPjxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSIxNTAiIGhlaWdodD0iNTAiIHN0eWxlPSJmaWxsOnJlZDsiIC8+PC9nPjwvc3ZnPg=="""
-NAMESPACED_SVG = b"""<svg:svg xmlns:svg="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <svg:rect x="10" y="10" width="80" height="80" fill="green" />
-</svg:svg>"""
+BMP = (
+    b'Qk1+AAAAAAAAAHoAAABsAAAAAQAAAAEAAAABABgAAAAAAAQAAAATCwAAEwsAAAAAAAAAAAAA'
+    b'QkdScwAAAAAAAAAAAA\n'
+    b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAA'
+    b'D///8A'
+)
+JPG = (
+    '/9j/4AAQSkZJRgABAQEASABIAAD//gATQ3JlYXRlZCB3aXRoIEdJTVD/2wBDAP\n'
+    '/////////////////////////////////////////////////////////////////////////'
+    '/////////////2wBDAf///////\n'
+    '/////////////////////////////////////////////////////////////////////////'
+    '//////wgARCAABAAEDAREAAhEB\n'
+    'AxEB/8QAFAABAAAAAAAAAAAAAAAAAAAAAv/EABQBAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAA'
+    'hADEAAAAUf/xAAUEAEAAAAAAAA\n'
+    'AAAAAAAAAAAAA/9oACAEBAAEFAn//xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAEDAQE/AX//'
+    'xAAUEQEAAAAAAAAAAAAAAAAAAA\n'
+    'AA/9oACAECAQE/AX//xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAY/An//xAAUEAEAAAA'
+    'AAAAAAAAAAAAAAAAA/9oACAEBA\n'
+    'AE/IX//2gAMAwEAAgADAAAAEB//xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAEDAQE/EH//xA'
+    'AUEQEAAAAAAAAAAAAAAAAAAAAA\n'
+    '/9oACAECAQE/EH//xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAE/EH//2Q=='
+)
+SVG = (
+    b'PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/PjwhRE9DVFlQRSBz'
+    b'dmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMjAwMDExMDIvL0VOIlxuICJodHRwOi8vd3d3'
+    b'LnczLm9yZy9UUi8yMDAwL0NSLVNWRy0yMDAwMTEwMi9EVEQvc3ZnLTIwMDAxMTAyLmR0ZCI+'
+    b'PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj48ZyB0cmFuc2Zvcm09InRyYW5zbGF0'
+    b'ZSg1MCw1MCkiPjxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSIxNTAiIGhlaWdodD0iNTAiIHN0'
+    b'eWxlPSJmaWxsOnJlZDsiIC8+PC9nPjwvc3ZnPg=='
+)
+NAMESPACED_SVG = (
+    b'<svg:svg xmlns:svg="http://www.w3.org/2000/svg" viewBox="0 0 100 100">\n'
+    b'  <svg:rect x="10" y="10" width="80" height="80" fill="green" />\n'
+    b'</svg:svg>'
+)
 
 # single pixel webp image
-WEBP = b"""UklGRjoAAABXRUJQVlA4IC4AAAAwAQCdASoBAAEAAUAmJaAAA3AA/u/uY//8s//2W/7LeM///5Bj
-/dl/pJxGAAAA"""
+WEBP = (
+    b'UklGRjoAAABXRUJQVlA4IC4AAAAwAQCdASoBAAEAAUAmJaAAA3AA/u/uY//8s//2W/7LeM//'
+    b'/5Bj\n'
+    b'/dl/pJxGAAAA'
+)
 
 # minimal zip file with an empty `t.txt` file
-ZIP = b"""UEsDBBQACAAIAGFva1AAAAAAAAAAAAAAAAAFACAAdC50eHRVVA0AB5bgaF6W4GheluBoXnV4CwABBOgDAAAE6AMAAA
-MAUEsHCAAAAAACAAAAAAAAAFBLAQIUAxQACAAIAGFva1AAAAAAAgAAAAAAAAAFACAAAAAAAAAAAACkgQAAAAB0LnR4dFVUDQAHlu
-BoXpbgaF6W4GhedXgLAAEE6AMAAAToAwAAUEsFBgAAAAABAAEAUwAAAFUAAAAAAA=="""
+ZIP = (
+    b'UEsDBBQACAAIAGFva1AAAAAAAAAAAAAAAAAFACAAdC50eHRVVA0AB5bgaF6W4GheluBoXnV4'
+    b'CwABBOgDAAAE6AMAAA\n'
+    b'MAUEsHCAAAAAACAAAAAAAAAFBLAQIUAxQACAAIAGFva1AAAAAAAgAAAAAAAAAFACAAAAAAAA'
+    b'AAAACkgQAAAAB0LnR4dFVUDQAHlu\n'
+    b'BoXpbgaF6W4GhedXgLAAEE6AMAAAToAwAAUEsFBgAAAAABAAEAUwAAAFUAAAAAAA=='
+)
 
-XML = b"""<?xml version='1.0' encoding='utf-8'?>
-<Document xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03">
-  <CstmrCdtTrfInitn>
-    <GrpHdr>
-      <MsgId>123456Odoo S.A.893873733</MsgId>
-      <CreDtTm>2018-11-21T09:47:32</CreDtTm>
-      <NbOfTxs>0</NbOfTxs>
-      <CtrlSum>0.0</CtrlSum>
-      <InitgPty>
-        <Nm>Odoo S.A.</Nm>
-        <Id>
-          <OrgId>
-            <Othr>
-              <Id>BE0477472701</Id>
-              <Issr>KBO-BCE</Issr>
-            </Othr>
-          </OrgId>
-        </Id>
-      </InitgPty>
-    </GrpHdr>
-  </CstmrCdtTrfInitn>
-</Document>
-"""
+XML = (
+    b"<?xml version='1.0' encoding='utf-8'?>\n"
+    b'<Document xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="u'
+    b'rn:iso:std:iso:20022:tech:xsd:pain.001.001.03">\n'
+    b'  <CstmrCdtTrfInitn>\n'
+    b'    <GrpHdr>\n'
+    b'      <MsgId>123456Odoo S.A.893873733</MsgId>\n'
+    b'      <CreDtTm>2018-11-21T09:47:32</CreDtTm>\n'
+    b'      <NbOfTxs>0</NbOfTxs>\n'
+    b'      <CtrlSum>0.0</CtrlSum>\n'
+    b'      <InitgPty>\n'
+    b'        <Nm>Odoo S.A.</Nm>\n'
+    b'        <Id>\n'
+    b'          <OrgId>\n'
+    b'            <Othr>\n'
+    b'              <Id>BE0477472701</Id>\n'
+    b'              <Issr>KBO-BCE</Issr>\n'
+    b'            </Othr>\n'
+    b'          </OrgId>\n'
+    b'        </Id>\n'
+    b'      </InitgPty>\n'
+    b'    </GrpHdr>\n'
+    b'  </CstmrCdtTrfInitn>\n'
+    b'</Document>\n'
+)
 
 TXT = b"""\
 Hello world!
 """
+
 
 class TestGuessMimetype(TestCase):
 
@@ -73,7 +111,8 @@ class TestGuessMimetype(TestCase):
         mimetype = guess_mimetype(b'')
         # odoo implementation returns application/octet-stream by default
         # if available, python-magic returns application/x-empty
-        self.assertIn(mimetype, ('application/octet-stream', 'application/x-empty'))
+        self.assertIn(mimetype,
+                      ('application/octet-stream', 'application/x-empty'))
 
     def test_default_mimetype(self):
         mimetype = guess_mimetype(b'', default='test')
@@ -112,11 +151,11 @@ class TestGuessMimetype(TestCase):
 
         mimetype = guess_mimetype(NAMESPACED_SVG, default='test')
         self.assertTrue(mimetype.startswith('image/svg'))
-        # Tests that whitespace padded SVG are not detected as SVG in odoo implementation
+        # Tests that whitespace padded SVG are not detected as SVG in odoo
+        # implementation
         if not magic:
             mimetype = guess_mimetype(b"   " + content, default='test')
             self.assertNotIn("svg", mimetype)
-
 
     def test_mimetype_webp(self):
         content = base64.b64decode(WEBP)
@@ -142,7 +181,8 @@ class TestGuessMimetype(TestCase):
         self.assertEqual(get_extension('filename.torrent'), '.torrent')
         self.assertEqual(get_extension('filename.ab_c'), '.ab_c')
         self.assertEqual(get_extension('.htaccess'), '')
-        # enough to suppose that extension is present and don't suffix the filename
+        # enough to suppose that extension is present and don't suffix the
+        # filename
         self.assertEqual(get_extension('filename.tar.gz'), '.gz')
         self.assertEqual(get_extension('filename'), '')
         self.assertEqual(get_extension('filename.'), '')
@@ -155,9 +195,11 @@ class TestGuessMimetype(TestCase):
         self.assertEqual(fix('words.txt', 'text/plain'), 'words.txt')
         self.assertEqual(fix('image.jpg', 'image/jpeg'), 'image.jpg')
         self.assertEqual(fix('image.jpeg', 'image/jpeg'), 'image.jpeg')
-        self.assertEqual(fix('sheet.xls', 'application/vnd.ms-excel'), 'sheet.xls')
+        self.assertEqual(fix('sheet.xls', 'application/vnd.ms-excel'),
+                         'sheet.xls')
         self.assertEqual(fix('sheet.xls', 'application/CDFV2'), 'sheet.xls')
-        xlsx_mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        xlsx_mime = ('application/vnd.openxmlformats-officedocument.'
+                     'spreadsheetml.sheet')
         self.assertEqual(fix('sheet.xlsx', xlsx_mime), 'sheet.xlsx')
         self.assertEqual(fix('sheet.xlsx', 'application/zip'), 'sheet.xlsx')
         with self.assertLogs('tools.mimetypes', 'WARNING') as capture:
@@ -165,7 +207,7 @@ class TestGuessMimetype(TestCase):
             self.assertEqual(fix('words.jpg', 'text/plain'), 'words.jpg.txt')
         self.assertEqual(capture.output, [
             "WARNING:tools.mimetypes:File 'image.txt' has an invalid "
-                "extension for mimetype 'image/jpeg', adding '.jpg'",
+            "extension for mimetype 'image/jpeg', adding '.jpg'",
             "WARNING:tools.mimetypes:File 'words.jpg' has an invalid "
-                "extension for mimetype 'text/plain', adding '.txt'",
+            "extension for mimetype 'text/plain', adding '.txt'",
         ])

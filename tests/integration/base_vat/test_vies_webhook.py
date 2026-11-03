@@ -27,7 +27,8 @@ def _partner():
 def test_a_signed_token_updates_every_partner_with_that_vat():
     first, second = _partner(), _partner()
     token = hash_sign(env(), 'vies_check', VAT, expiration_hours=1)
-    response = APIClient().get(URL, {'webhook_token': token, 'status': 'valid'})
+    params = {'webhook_token': token, 'status': 'valid'}
+    response = APIClient().get(URL, params)
     assert response.status_code == 200
     first.refresh_from_db()
     second.refresh_from_db()
@@ -37,7 +38,8 @@ def test_a_signed_token_updates_every_partner_with_that_vat():
 def test_a_token_from_another_scope_changes_nothing():
     partner = _partner()
     token = hash_sign(env(), 'otro', VAT, expiration_hours=1)
-    response = APIClient().post(URL, {'webhook_token': token, 'status': 'valid'})
+    params = {'webhook_token': token, 'status': 'valid'}
+    response = APIClient().post(URL, params)
     assert response.status_code == 200
     partner.refresh_from_db()
     assert partner.vies_valid is False

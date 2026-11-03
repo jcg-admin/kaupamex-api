@@ -7,7 +7,9 @@ import zipfile
 
 from tools import mimetypes as mt
 
-DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+DOCX = (
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+)
 
 
 def _zip(entries):
@@ -44,13 +46,16 @@ def test_open_document_declares_its_type_in_the_mimetype_entry():
 
 
 def test_open_document_with_a_malformed_type_is_rejected():
-    assert mt._check_open_container_format(_zip({'mimetype': 'no es tipo'})) is False
+    archive = _zip({'mimetype': 'no es tipo'})
+    assert mt._check_open_container_format(archive) is False
 
 
 def test_olecf_subheader_at_0x200_tells_a_word_document():
-    data = b'\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1' + b'\0' * 0x1F8 + b'\xEC\xA5\xC1\x00'
+    data = (b'\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1' + b'\0' * 0x1F8
+            + b'\xEC\xA5\xC1\x00')
     assert mt._check_olecf(data) == 'application/msword'
-    assert mt._check_olecf(data[:0x200] + b'Microsoft Excel') == 'application/vnd.ms-excel'
+    sample = data[:0x200] + b'Microsoft Excel'
+    assert mt._check_olecf(sample) == 'application/vnd.ms-excel'
 
 
 def test_an_unknown_zip_stays_zip():

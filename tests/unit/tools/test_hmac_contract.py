@@ -41,7 +41,8 @@ def test_the_scope_changes_the_signature():
 
 
 def test_an_empty_scope_is_refused():
-    with _env() as env, pytest.raises(ValueError, match='Non-empty scope required'):
+    refused = pytest.raises(ValueError, match='Non-empty scope required')
+    with _env() as env, refused:
         hmac(env, '', 'm')
 
 
@@ -55,9 +56,10 @@ def test_the_website_form_signature_signs_the_recipient():
         '<input name="email_cc" value=""/></form></div>')
     with _env() as env:
         add_form_signature(fragment, env)
-        signature = fragment.xpath('//input[@name="website_form_signature"]')[0]
-        assert signature.attrib['value'] == (
-            hmac(env, 'website_form_signature', 'a@b.mx:email_cc') + ':email_cc')
+        xpath = '//input[@name="website_form_signature"]'
+        signature = fragment.xpath(xpath)[0]
+        expected = hmac(env, 'website_form_signature', 'a@b.mx:email_cc')
+        assert signature.attrib['value'] == expected + ':email_cc'
 
 
 class TestHashSign:
@@ -76,7 +78,8 @@ class TestHashSign:
 
     def test_an_expired_token_does_not_verify(self):
         with _env() as env:
-            token = hash_sign(env, 'scope', [1], expiration=datetime.timedelta(seconds=-1))
+            past = datetime.timedelta(seconds=-1)
+            token = hash_sign(env, 'scope', [1], expiration=past)
             assert verify_hash_signed(env, 'scope', token) is None
 
     def test_an_unknown_version_is_refused(self):
@@ -89,11 +92,13 @@ class TestHashSign:
 def test_limited_field_access_token_round_trip(env_orm_record):
     record = env_orm_record
     token = limited_field_access_token(record, 'name', scope='download')
-    assert verify_limited_field_access_token(record, 'name', token, scope='download')
-    assert not verify_limited_field_access_token(record, 'name', token, scope='other')
-    assert not verify_limited_field_access_token(record, 'text', token, scope='download')
-    expired = limited_field_access_token(record, 'name', hex(1), scope='download')
-    assert not verify_limited_field_access_token(record, 'name', expired, scope='download')
+    verify = verify_limited_field_access_token
+    assert verify(record, 'name', token, scope='download')
+    assert not verify(record, 'name', token, scope='other')
+    assert not verify(record, 'text', token, scope='download')
+    expired = limited_field_access_token(record, 'name', hex(1),
+                                         scope='download')
+    assert not verify(record, 'name', expired, scope='download')
 
 
 @pytest.fixture
