@@ -293,7 +293,10 @@ class TestDjangoDoesHaveAttributeLevelLaziness:
         Es el reparto que se atribuye a los proxies de otros ORM: obtener la
         referencia no consulta; tocar un atributo del referenciado, sí.
         """
-        self._automation('base.ResCountry', 'Proxy')
+        # Un modelo que la ACL de ``base`` no siembra: con su fila de
+        # ``ir.model`` ya leída por la siembra, el campo diferido salía de la
+        # caché y la consulta que este caso mide no ocurría.
+        self._automation('base.ResDeviceLog', 'Proxy')
         fresh = (
             BaseAutomation.objects.select_related('model_id')
             .only('name', 'model_id__id')

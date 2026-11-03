@@ -16,17 +16,25 @@ que es la de la migración.
 Qué se siembra, y por qué esas y no más
 ========================================
 
-**23 de las 146 filas del CSV.** La diferencia no es un recorte: son las filas
-cuyo modelo **existe en este árbol**. Las otras 123 nombran modelos que aún no
-están portados (``base.language.import``, ``ir.profile``, los asistentes de
-módulo…); sembrarlas crearía una fila de ``ir_model`` para un modelo
-inexistente, que es dato falso, no dato adelantado.
+**Las filas del CSV cuyo modelo existe en este árbol, y ninguna más.** Las
+demás nombran modelos que aún no están portados (``base.language.import``,
+los asistentes de módulo…); sembrarlas crearía una fila de ``ir_model`` para
+un modelo inexistente, que es dato falso, no dato adelantado.
 
-*Métrica:* filas del CSV cuyo ``model_id:id`` resuelve a un modelo cargado, con
-``orm.registry.model_by_name``.
+**La lista de abajo se DERIVA, no se escribe.** La genera
+``derive_base_acl.py`` (``probes/`` del banco
+``orm-continuation-plan-20261103T095630``) desde el CSV: una fila entra si su
+``model_id:id`` es el identificador externo de un modelo cargado (``model_``
+más su ``_name`` con los puntos como guion bajo). Su cuenta la publica el
+script al ejecutarse, no esta prosa: el docstring anterior decía *«23 de las
+146»* y siguió diciéndolo mientras se portaban modelos, hasta que un recordset
+nuevo denegó todo por una fila que faltaba (:ref:`h-api-1143`).
+
+*Métrica:* filas del CSV cuyo ``model_id:id`` coincide con el de un modelo
+cargado.
 *Ciega a:* un modelo portado que declare su ``_name`` de otra forma que la
-fuente — resolvería a ``None`` y su fila se leería como "sin destino". Y ciega
-a la ACL de los otros addons: cada uno siembra la suya, igual que sus reglas.
+fuente — su fila se leería como "sin destino". Y ciega a la ACL de los otros
+addons: cada uno siembra la suya, igual que sus reglas.
 
 Los permisos van **verbatim del CSV**, con sus ceros
 =====================================================
@@ -47,9 +55,11 @@ Lo que NO se porta, con su razón
 
 - **El identificador externo de cada ACL.** La fuente lo guarda en
   ``ir.model.data`` para poder actualizar o borrar la fila al recargar el
-  módulo. Aquí la clave natural es el ``name`` del CSV, que es único entre las
-  23, y **nada resuelve una ACL por identificador externo** — medido: 0
-  consumidores. Los grupos SÍ lo llevan porque ``has_group`` los resuelve así
+  módulo. Aquí la clave es la terna ``(name, modelo, grupo)``: el CSV repite
+  ``name`` con grupos distintos (``res_company group_user`` sale tres veces),
+  así que el nombre solo no identifica una fila. **Nada resuelve una ACL por
+  identificador externo** — medido: 0 consumidores. Los grupos SÍ lo llevan
+  porque ``has_group`` los resuelve así
   (``res_groups_data.py``); replicar la plomería donde no hay quien la consulte
   sería carga sin lector.
 """
@@ -68,6 +78,12 @@ from addons.base.models.res_groups import ResGroups as _ResGroups
 #: Los permisos son ``(read, write, create, unlink)``, copiados del CSV de la
 #: referencia sin reinterpretar. ``None`` en el grupo = fila global.
 _ACCESS = (
+    (
+        'decimal.precision configuration',
+        'base.DecimalPrecision',
+        'group_system',
+        (1, 1, 0, 0),
+    ),
     (
         'ir_attachment group_user',
         'base.IrAttachment',
@@ -94,16 +110,85 @@ _ACCESS = (
         (1, 1, 1, 1),
     ),
     (
-        'ir_module_category',
+        'ir_model group_erp_manager',
+        'base.IrModel',
+        'group_erp_manager',
+        (1, 1, 1, 1),
+    ),
+    (
+        'ir_model_constraint group_erp_manager',
+        'base.IrModelConstraint',
+        'group_erp_manager',
+        (1, 1, 0, 1),
+    ),
+    (
+        'ir_model_relation group_erp_manager',
+        'base.IrModelRelation',
+        'group_erp_manager',
+        (1, 1, 1, 1),
+    ),
+    ('ir_model_inherit nobody', 'base.IrModelInherit', None, (0, 0, 0, 0)),
+    (
+        'ir_model_access_group_erp_manager',
+        'base.IrModelAccess',
+        'group_erp_manager',
+        (1, 1, 1, 1),
+    ),
+    (
+        'ir_model_data group_erp_manager',
+        'base.IrModelData',
+        'group_erp_manager',
+        (1, 1, 1, 1),
+    ),
+    (
+        'ir_model_fields group_erp_manager',
+        'base.IrModelFields',
+        'group_erp_manager',
+        (1, 1, 1, 1),
+    ),
+    (
+        'ir_model_fields_selection group_erp_manager',
+        'base.IrModelFieldsSelection',
+        'group_erp_manager',
+        (1, 1, 1, 1),
+    ),
+    ('ir_model_all', 'base.IrModel', 'group_user', (0, 0, 0, 0)),
+    ('ir_model_data user', 'base.IrModelData', 'group_user', (0, 0, 0, 0)),
+    ('ir_model_fields all', 'base.IrModelFields', 'group_user', (0, 0, 0, 0)),
+    (
+        'ir_model_fields_selection all',
+        'base.IrModelFieldsSelection',
+        'group_user',
+        (0, 0, 0, 0),
+    ),
+    (
+        'ir_module_category group_user',
         'base.IrModuleCategory',
         'group_erp_manager',
         (1, 0, 0, 0),
     ),
-    ('ir_module_module', 'base.IrModule', 'group_system', (1, 1, 1, 1)),
     (
-        'ir_module_module_dependency',
+        'ir_module_module group_user',
+        'base.IrModule',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
+    (
+        'ir_module_module_dependency group_system',
         'base.IrModuleDependency',
         'group_system',
+        (1, 1, 1, 1),
+    ),
+    (
+        'ir_module_module_exclusion group_system',
+        'base.IrModuleExclusion',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
+    (
+        'ir_rule group_erp_manager',
+        'base.IrRule',
+        'group_erp_manager',
         (1, 1, 1, 1),
     ),
     ('ir_sequence group_user', 'base.IrSequence', 'group_user', (1, 0, 0, 0)),
@@ -113,6 +198,20 @@ _ACCESS = (
         'group_system',
         (1, 1, 1, 1),
     ),
+    (
+        'ir_sequence_date_range group_user',
+        'base.IrSequenceDateRange',
+        'group_user',
+        (1, 0, 0, 0),
+    ),
+    (
+        'ir_sequence_date_range group_system',
+        'base.IrSequenceDateRange',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
+    ('ir_ui_menu group_user', 'base.IrUiMenu', 'group_user', (1, 0, 0, 0)),
+    ('ir_ui_menu group_system', 'base.IrUiMenu', 'group_system', (1, 1, 1, 1)),
     ('ir_ui_view group_user', 'base.IrUiView', None, (0, 0, 0, 0)),
     ('ir_ui_view group_system', 'base.IrUiView', 'group_system', (1, 1, 1, 1)),
     (
@@ -121,13 +220,141 @@ _ACCESS = (
         'group_system',
         (1, 1, 1, 1),
     ),
-    ('res_partner group_user', 'base.ResPartner', 'group_user', (1, 0, 0, 0)),
+    ('ir_default all', 'base.IrDefault', None, (0, 0, 0, 0)),
+    ('ir_default group_user', 'base.IrDefault', 'group_user', (1, 1, 1, 1)),
     (
-        'res_partner group_portal',
-        'base.ResPartner',
+        'ir_default group_system',
+        'base.IrDefault',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
+    (
+        'res_company group_erp_manager',
+        'base.ResCompany',
+        'group_erp_manager',
+        (1, 1, 1, 1),
+    ),
+    (
+        'res_company group_user',
+        'base.ResCompany',
+        'group_public',
+        (1, 0, 0, 0),
+    ),
+    (
+        'res_company group_user',
+        'base.ResCompany',
         'group_portal',
         (1, 0, 0, 0),
     ),
+    ('res_company group_user', 'base.ResCompany', 'group_user', (1, 0, 0, 0)),
+    (
+        'res_country group_user_all',
+        'base.ResCountry',
+        'group_public',
+        (1, 0, 0, 0),
+    ),
+    (
+        'res_country group_user_all',
+        'base.ResCountry',
+        'group_portal',
+        (1, 0, 0, 0),
+    ),
+    (
+        'res_country group_user_all',
+        'base.ResCountry',
+        'group_user',
+        (1, 0, 0, 0),
+    ),
+    (
+        'res_country_state group_user_all',
+        'base.ResCountryState',
+        'group_public',
+        (1, 0, 0, 0),
+    ),
+    (
+        'res_country_state group_user_all',
+        'base.ResCountryState',
+        'group_portal',
+        (1, 0, 0, 0),
+    ),
+    (
+        'res_country_state group_user_all',
+        'base.ResCountryState',
+        'group_user',
+        (1, 0, 0, 0),
+    ),
+    (
+        'res_country group_user',
+        'base.ResCountry',
+        'group_partner_manager',
+        (1, 0, 0, 0),
+    ),
+    (
+        'res_country_group_system',
+        'base.ResCountry',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
+    (
+        'res_country_state group_user',
+        'base.ResCountryState',
+        'group_partner_manager',
+        (1, 1, 1, 1),
+    ),
+    (
+        'res_currency group_all',
+        'base.ResCurrency',
+        'group_public',
+        (1, 0, 0, 0),
+    ),
+    (
+        'res_currency group_all',
+        'base.ResCurrency',
+        'group_portal',
+        (1, 0, 0, 0),
+    ),
+    ('res_currency group_all', 'base.ResCurrency', 'group_user', (1, 0, 0, 0)),
+    (
+        'res_currency_rate group_all',
+        'base.ResCurrencyRate',
+        'group_public',
+        (1, 0, 0, 0),
+    ),
+    (
+        'res_currency_rate group_all',
+        'base.ResCurrencyRate',
+        'group_portal',
+        (1, 0, 0, 0),
+    ),
+    (
+        'res_currency_rate group_all',
+        'base.ResCurrencyRate',
+        'group_user',
+        (1, 0, 0, 0),
+    ),
+    (
+        'res_currency group_system',
+        'base.ResCurrency',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
+    (
+        'res_currency_rate group_system',
+        'base.ResCurrencyRate',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
+    (
+        'res_groups group_erp_manager',
+        'base.ResGroups',
+        'group_erp_manager',
+        (1, 1, 1, 1),
+    ),
+    ('res_groups group_user', 'base.ResGroups', 'group_user', (1, 0, 0, 0)),
+    ('res_lang group_all', 'base.ResLang', 'group_public', (1, 0, 0, 0)),
+    ('res_lang group_all', 'base.ResLang', 'group_portal', (1, 0, 0, 0)),
+    ('res_lang group_all', 'base.ResLang', 'group_user', (1, 0, 0, 0)),
+    ('res_lang group_user', 'base.ResLang', 'group_system', (1, 1, 1, 1)),
     (
         'res_partner group_public',
         'base.ResPartner',
@@ -135,8 +362,27 @@ _ACCESS = (
         (1, 0, 0, 0),
     ),
     (
+        'res_partner group_portal',
+        'base.ResPartner',
+        'group_portal',
+        (1, 0, 0, 0),
+    ),
+    (
         'res_partner group_partner_manager',
         'base.ResPartner',
+        'group_partner_manager',
+        (1, 1, 1, 1),
+    ),
+    ('res_partner group_user', 'base.ResPartner', 'group_user', (1, 0, 0, 0)),
+    (
+        'res_partner_bank group_user',
+        'base.ResPartnerBank',
+        'group_user',
+        (1, 0, 0, 0),
+    ),
+    (
+        'res_partner_bank group_partner_manager',
+        'base.ResPartnerBank',
         'group_partner_manager',
         (1, 1, 1, 1),
     ),
@@ -152,9 +398,9 @@ _ACCESS = (
         'group_partner_manager',
         (1, 1, 1, 1),
     ),
-    ('res_users group_user', 'base.ResUsers', 'group_user', (1, 0, 0, 0)),
-    ('res_users group_portal', 'base.ResUsers', 'group_portal', (1, 0, 0, 0)),
-    ('res_users group_public', 'base.ResUsers', 'group_public', (1, 0, 0, 0)),
+    ('res_users all', 'base.ResUsers', 'group_public', (1, 0, 0, 0)),
+    ('res_users all', 'base.ResUsers', 'group_portal', (1, 0, 0, 0)),
+    ('res_users all', 'base.ResUsers', 'group_user', (1, 0, 0, 0)),
     (
         'res_users group_erp_manager',
         'base.ResUsers',
@@ -162,16 +408,74 @@ _ACCESS = (
         (1, 1, 1, 1),
     ),
     (
-        'res_users_apikeys group_user',
+        'API keys access employees',
         'base.ResUsersApikeys',
         'group_user',
         (1, 0, 0, 0),
     ),
     (
-        'res_users_apikeys group_portal',
+        'API keys access portal',
         'base.ResUsersApikeys',
         'group_portal',
         (1, 0, 0, 0),
+    ),
+    ('ir_asset_group_system', 'base.IrAsset', 'group_system', (1, 1, 1, 1)),
+    (
+        'ir_actions_report_group_system',
+        'base.IrActionsReport',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
+    (
+        'ir_actions_server_group_system',
+        'base.IrActionsServer',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
+    (
+        'ir_actions_server_history_group_system',
+        'base.IrActionsServerHistory',
+        'group_system',
+        (1, 1, 1, 0),
+    ),
+    ('res_bank_group_system', 'base.ResBank', 'group_system', (1, 1, 1, 1)),
+    (
+        'res_bank_group_partner_manager',
+        'base.ResBank',
+        'group_partner_manager',
+        (1, 1, 1, 1),
+    ),
+    ('res_bank user', 'base.ResBank', 'group_user', (1, 0, 0, 0)),
+    (
+        'ir_config_parameter_system',
+        'base.SystemParameter',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
+    (
+        'ir_actions_report_paperformat group_portal',
+        'base.ReportPaperformat',
+        'group_user',
+        (1, 0, 0, 0),
+    ),
+    (
+        'ir_actions_report_paperformat group_system',
+        'base.ReportPaperformat',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
+    (
+        'access.server.action.history.wizard',
+        'base.ServerActionHistoryWizard',
+        'group_system',
+        (1, 1, 1, 0),
+    ),
+    ('ir_profile', 'base.IrProfile', 'group_system', (1, 1, 1, 1)),
+    (
+        'access.base.enable.profiling.wizard',
+        'base.BaseEnableProfilingWizard',
+        'group_system',
+        (1, 1, 1, 0),
     ),
 )
 
@@ -194,7 +498,8 @@ def _group_by_xmlid(xmlid, using, IrModelData, ResGroups):
 
 
 def _seed(registry, IrModel, IrModelAccess, IrModelData, ResGroups, using):
-    """El cuerpo, sobre los modelos que le den — idempotente por ``name``.
+    """El cuerpo, sobre los modelos que le den — idempotente por la terna
+    ``(name, modelo, grupo)``.
 
     ``registry`` es de dónde sale la clase del modelo al que la fila da
     permiso: el registro **vivo** para :func:`seed` y el **histórico** de la
@@ -219,9 +524,9 @@ def _seed(registry, IrModel, IrModelAccess, IrModelData, ResGroups, using):
         read, write, create, unlink = perms
         IrModelAccess.objects.using(using).get_or_create(
             name=name,
+            model_id=model_row,
+            group_id=group,
             defaults={
-                'model_id': model_row,
-                'group_id': group,
                 'perm_read': bool(read),
                 'perm_write': bool(write),
                 'perm_create': bool(create),

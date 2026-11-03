@@ -9,7 +9,7 @@ como cualquier otro, y sin filas deniega todo.
 
 ``0059`` siembra lo que ``_ACCESS`` declara al aplicarse, así que una base
 creada después ya las trae. Esta migración las lleva a las que ya pasaron por
-``0059``: ``seed_base_acl`` es idempotente por ``name``.
+``0059``: ``seed_base_acl`` es idempotente.
 """
 
 from django.db import migrations

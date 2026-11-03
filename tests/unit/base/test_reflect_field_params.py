@@ -21,7 +21,10 @@ def test_the_hook_exists_and_is_a_classmethod():
 
 
 def test_it_returns_the_columns_of_the_row():
-    row = IrModel.objects.create(model='base.IrModel', name='Modelo')
+    # La fila de ``ir.model`` de un modelo existe siempre en la fuente, y la
+    # siembra de la ACL de ``base`` (``0096``) ya la crea: se toma, no se crea.
+    row, _ = IrModel.objects.get_or_create(model='base.IrModel',
+                                           defaults={'name': 'Modelo'})
     field = IrModel._meta.get_field('model')
     values = IrModelFields._reflect_field_params(field, row)
     assert values['model'] == 'base.IrModel'
@@ -49,7 +52,8 @@ def test_reflect_fields_consumes_the_hook():
     no que ``_reflect_fields`` pase por él, que es lo único que lo hace un
     punto de extensión.
     """
-    row = IrModel.objects.create(model='base.IrModelInherit', name='Herencia')
+    row, _ = IrModel.objects.get_or_create(model='base.IrModelInherit',
+                                           defaults={'name': 'Herencia'})
     original = IrModelFields._reflect_field_params.__func__
 
     def marked(cls, field, model_row):
