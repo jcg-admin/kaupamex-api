@@ -2620,14 +2620,16 @@ class _ResUsersApikeysBase(TimeStampedModel):
         cls._check_expiration_date(expiration_date)
         k = binascii.hexlify(os.urandom(API_KEY_SIZE)).decode()
         actor = get_current_user()
-        cls.objects.create(
+        # La fuente inserta por SQL (``:1604-1609``), sin el ``create`` del
+        # ORM: ``bulk_create`` es aquí el ``INSERT`` sin ``save()`` ni señales.
+        cls.objects.bulk_create([cls(
             name=name,
             user_id=getattr(actor, 'pk', None),
             scope=scope,
             expiration_date=expiration_date or None,
             key=_hash_api_key(k),
             index=k[:INDEX_SIZE],
-        )
+        )])
         _logger.info(
             "%s generated: scope: <%s> for '%s' (#%s)",
             cls._description, scope, getattr(actor, 'login', 'n/a'),

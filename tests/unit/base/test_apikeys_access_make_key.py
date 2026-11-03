@@ -19,6 +19,7 @@ from datetime import timedelta
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.db.models.signals import post_save
 from django.utils import timezone
 
 from addons.base.models.res_groups import ResGroups
@@ -99,3 +100,23 @@ def test_generate_stays_open_for_a_portal_user(portal):
     with user_scope(portal.pk):
         key = ResUsersApikeys._generate('browser', 'este navegador', caduca)
     assert key
+
+
+def test_generate_inserts_below_the_orm(portal):
+    """≙ ``INSERT INTO {table} ...`` (``odoo19c: res_users.py:1604-1609``):
+    la fuente no pasa por el ``create`` del ORM, así que tampoco aquí corre
+    ``save()`` ni su señal."""
+    saved = []
+
+    def receiver(sender, instance, **kwargs):
+        saved.append(instance.pk)
+
+    post_save.connect(receiver, sender=ResUsersApikeys)
+    try:
+        with user_scope(portal.pk):
+            key = ResUsersApikeys._generate(
+                'browser', 'sin save', timezone.now() + timedelta(hours=12))
+    finally:
+        post_save.disconnect(receiver, sender=ResUsersApikeys)
+    assert key and saved == []
+    assert ResUsersApikeys.objects.filter(name='sin save', index=key[:8]).count() == 1
