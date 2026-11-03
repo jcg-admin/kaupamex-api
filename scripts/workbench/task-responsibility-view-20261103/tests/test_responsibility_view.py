@@ -8,7 +8,9 @@ import responsibility_view as view  # noqa: E402
 
 PROSE = ('TASK-API-0001 conserva owner x; responsabilidad funcional devops, '
          'verificación qa. TASK-API-0002 sigue abierta. TASK-THYROX-0003 es '
-         'del proveedor. TASK-GEN-0004 se mudó.\n')
+         'del proveedor. TASK-GEN-0004 se mudó.\n\n'
+         '.. list-table::\n\n   * - backend\n     - 1 (TASK-API-0002)\n'
+         '   * - devops\n     - 1 (TASK-API-0001, verificación qa)\n')
 
 
 def _fixture(tmp_path):
@@ -46,3 +48,9 @@ def test_provider_tasks_are_excluded(tmp_path):
     rows, excluded = _fixture(tmp_path)
     assert sorted(excluded) == ['TASK-GEN-0004', 'TASK-THYROX-0003']
     assert {r['citation'] for r in rows} == {'TASK-API-0001', 'TASK-API-0002'}
+
+
+def test_a_table_row_does_not_lend_its_verifier_to_the_neighbour_row(tmp_path):
+    rows, _ = _fixture(tmp_path)
+    second = next(r for r in rows if r['citation'] == 'TASK-API-0002')
+    assert second['verifier'] == 'not_verified'

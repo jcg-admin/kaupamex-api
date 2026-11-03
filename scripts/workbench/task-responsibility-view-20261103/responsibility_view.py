@@ -46,6 +46,7 @@ sys.path.insert(0, str(THYROX / 'src' / 'session'))
 from claim_fold import active_claims  # noqa: E402
 
 CITATION = re.compile(r'TASK-[A-Z]+-\d{4}')
+BLOCK = re.compile(r'\n\s*\n|\n\s*(?:\* )?- ')
 ROLE = re.compile(r'responsabilidad(?: funcional)? (backend|devops|qa|ui|docs)')
 VERIFIER = re.compile(r'verificaci[oó]n (backend|devops|qa|ui|docs)')
 ROLES = ('backend', 'devops', 'qa', 'ui', 'docs')
@@ -55,10 +56,14 @@ def sentences(root):
     """``{cita: [oraciones]}`` de los ``.rst`` de la iniciativa."""
     found = collections.defaultdict(list)
     for path in sorted(root.rglob('*.rst')):
-        text = ' '.join(path.read_text(encoding='utf-8').split())
-        for sentence in re.split(r'(?<=[.])\s+', text):
-            for citation in set(CITATION.findall(sentence)):
-                found[citation].append(sentence)
+        # Un parrafo, una fila de tabla o una vineta no comparten oracion: una
+        # ``list-table`` no tiene puntos, y unida en una sola linea atribuia a
+        # cada cita la responsabilidad de la fila vecina.
+        for block in BLOCK.split(path.read_text(encoding='utf-8')):
+            text = ' '.join(block.split())
+            for sentence in re.split(r'(?<=[.])\s+', text):
+                for citation in set(CITATION.findall(sentence)):
+                    found[citation].append(sentence)
     return found
 
 
