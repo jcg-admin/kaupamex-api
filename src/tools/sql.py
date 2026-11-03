@@ -26,19 +26,20 @@ y 5 variables de módulo.
                                     ``SQL.identifier``)
   ================================  =====================================
 
-**Pendientes — 14 funciones de módulo y 1 clase** que la referencia declara
-y aquí no existen: ``table_kind`` (+ ``TableKind``), ``create_model_table``,
+**Las 14 funciones de módulo y la clase que faltaban se portaron el
+2026-11-03**: ``table_kind`` (+ ``TableKind``), ``create_model_table``,
 ``convert_column_translatable``, ``constraint_definition``,
 ``add_constraint``, ``fix_foreign_key``, ``check_index_exist``,
 ``index_definition``, ``add_index``, ``create_unique_index``,
 ``drop_view_if_exists``, ``reverse_order``, ``increment_fields_skiplock``,
 ``value_to_translated_trigram_pattern`` y
-``pattern_to_translated_trigram_pattern``.
-Todas sirven al DDL del registro de modelos de la
-referencia; aquí ese DDL lo emiten las migraciones de Django. Se portan
-cuando un consumidor las exija — el alcance de #549 es la clase ``SQL``;
-esta declaración medida es el registro de esa cobertura (regla
-``porte-completo-no-parcial``).
+``pattern_to_translated_trigram_pattern``. Con ellas ``create_index`` toma la
+firma de la fuente (``comment``/``unique`` de palabra clave, delega en
+``add_index``) e ``index_exists`` la suya (sólo el nombre). La declaración
+anterior las difería «cuando un consumidor las exija», que es el desenlace
+que ``porte-completo-no-parcial.md`` no admite. Pruebas:
+``tests/integration/tools/test_sql_ddl_port.py`` y
+``tests/integration/test_orm/test_increment_fields_skiplock.py``.
 
 **El eje de esquema de columna salió de esa lista el 2026-09-03 (#211/#346).**
 ``Field.update_db`` y su familia son el consumidor que la política anunciaba,
@@ -91,6 +92,8 @@ saberlo. Ver H-API-306.
 ``pg_indexes`` (``odoo19c: odoo/tools/sql.py:542``), y aquí se conserva además
 el filtro por tabla que nuestra firma ya exponía.
 """
+import enum
+import json
 import logging
 import re
 import warnings
@@ -447,6 +450,81 @@ def table_exists(cursor, table_name, schema=None):
     return cursor.fetchone() is not None
 
 
+class TableKind(enum.Enum):
+    """≙ ``TableKind`` (``odoo19c: odoo/tools/sql.py:221-227``), verbatim: la
+    letra de ``pg_class.relkind`` por clase de relación."""
+    Regular = 'r'
+    Temporary = 't'
+    View = 'v'
+    Materialized = 'm'
+    Foreign = 'f'
+    Other = None
+
+
+def table_kind(cr, tablename):
+    """La clase de una relación, o ``None`` si no existe — ≙ ``table_kind``
+    (``odoo19c: odoo/tools/sql.py:230-258``).
+
+    Docstring de la fuente, verbatim: *"Return the kind of a table, if
+    ``tablename`` is a regular or foreign table, or a view (ignores indexes,
+    sequences, toast tables, and partitioned tables; unlogged tables are
+    considered regular)"*. Una tabla permanente, temporal o sin registro
+    comparte ``relkind = 'r'`` y se distinguen por ``relpersistence``.
+    """
+    cr.execute("""
+        SELECT c.relkind, c.relpersistence
+          FROM pg_class c
+         WHERE c.relname = %s
+           AND c.relnamespace = current_schema::regnamespace
+    """, [tablename])
+    row = cr.fetchone()
+    if row is None:
+        # Una tabla temporal vive en ``pg_temp``, no en ``current_schema``:
+        # la fuente la encuentra porque su ``current_schema`` es el de la
+        # sesión; aquí se pregunta también a ``pg_my_temp_schema()``.
+        cr.execute("""
+            SELECT c.relkind, c.relpersistence
+              FROM pg_class c
+             WHERE c.relname = %s
+               AND c.relnamespace = pg_my_temp_schema()
+        """, [tablename])
+        row = cr.fetchone()
+        if row is None:
+            return None
+    kind, persistence = row
+    if kind == 'r':
+        return TableKind.Temporary if persistence == 't' else TableKind.Regular
+    try:
+        return TableKind(kind)
+    except ValueError:
+        return TableKind.Other
+
+
+def create_model_table(cr, tablename, comment=None, columns=()):
+    """Crea la tabla de un modelo — ≙ ``create_model_table`` (``odoo19c:
+    odoo/tools/sql.py:274-296``). Docstring de la fuente, verbatim: *"Create
+    the table for a model."*
+
+    ``columns`` son ternas ``(nombre, tipo, comentario)``. La fuente une las
+    sentencias con ``;`` en un solo :class:`SQL`; aquí van en ``execute``
+    separados, porque el cursor de Django rechaza el multi-statement con
+    parámetros. Corren en la misma transacción.
+    """
+    colspecs = ['id SERIAL NOT NULL']
+    colspecs += ['{} {}'.format(SQL.identifier(colname).code, coltype)
+                 for colname, coltype, _ in columns]
+    colspecs.append('PRIMARY KEY(id)')
+    cr.execute('CREATE TABLE {} ({})'.format(
+        SQL.identifier(tablename).code, ', '.join(colspecs)))
+    if comment:
+        cr.execute('COMMENT ON TABLE {} IS %s'.format(
+            SQL.identifier(tablename).code), [comment])
+    for colname, _, colcomment in columns:
+        cr.execute('COMMENT ON COLUMN {} IS %s'.format(
+            SQL.identifier(tablename, colname).code), [colcomment])
+    _schema.debug("Table %r: created", tablename)
+
+
 def column_exists(cursor, table_name, column_name, schema=None):
     """== ``odoo.tools.sql.column_exists``: ¿existe la columna?"""
     if schema is None:
@@ -497,19 +575,41 @@ def table_columns(cursor, table_name, schema=None):
     }
 
 
-def index_exists(cursor, table_name, index_name, schema=None):
-    """== ``odoo.tools.sql.index_exists``: ¿existe el índice? (``pg_indexes``)."""
-    if schema is None:
-        cursor.execute(
-            'SELECT 1 FROM pg_indexes '
-            'WHERE schemaname = current_schema AND tablename = %s AND indexname = %s '
-            'LIMIT 1', [table_name, index_name])
-    else:
-        cursor.execute(
-            'SELECT 1 FROM pg_indexes '
-            'WHERE schemaname = %s AND tablename = %s AND indexname = %s '
-            'LIMIT 1', [schema, table_name, index_name])
-    return cursor.fetchone() is not None
+def index_exists(cr, indexname):
+    """¿Existe el índice dado? — ≙ ``index_exists`` (``odoo19c:
+    odoo/tools/sql.py:540-544``). Docstring de la fuente, verbatim: *"Return
+    whether the given index exists."*
+
+    Firma de la fuente: sólo el nombre, porque en PostgreSQL el nombre de un
+    índice es único dentro de su schema. La firma anterior de este árbol pedía
+    además la tabla y un schema explícito, herencia de MariaDB, donde el
+    nombre de un índice es único sólo por tabla.
+    """
+    cr.execute('SELECT 1 FROM pg_indexes WHERE indexname = %s'
+               ' AND schemaname = current_schema', [indexname])
+    return cr.fetchone() is not None
+
+
+def check_index_exist(cr, indexname):
+    """≙ ``check_index_exist`` (``odoo19c: odoo/tools/sql.py:547-548``)."""
+    assert index_exists(cr, indexname), f"{indexname} does not exist"
+
+
+def index_definition(cr, indexname):
+    """La definición de un índice y su comentario — ≙ ``index_definition``
+    (``odoo19c: odoo/tools/sql.py:551-561``). Docstring de la fuente,
+    verbatim: *"Read the index definition from the database"*.
+    """
+    cr.execute("""
+        SELECT idx.indexdef, d.description
+        FROM pg_class c
+        JOIN pg_indexes idx ON c.relname = idx.indexname
+        LEFT JOIN pg_description d ON c.oid = d.objoid
+        WHERE c.relname = %s AND c.relkind = 'i'
+          AND c.relnamespace = current_schema::regnamespace
+    """, [indexname])
+    row = cr.fetchone()
+    return tuple(row) if row else (None, None)
 
 
 def existing_tables(cr, tablenames):
@@ -595,6 +695,25 @@ def convert_column(cr, tablename, columnname, columntype):
     con ``SQL("%s::%s", ...)``.
     """
     using = '{}::{}'.format(SQL.identifier(columnname).code, columntype)
+    _convert_column(cr, tablename, columnname, columntype, using)
+
+
+def convert_column_translatable(cr, tablename, columnname, columntype):
+    """Convierte la columna desde o hacia ``jsonb`` traducible — ≙
+    ``convert_column_translatable`` (``odoo19c: odoo/tools/sql.py:361-371``).
+
+    Docstring de la fuente, verbatim: *"Convert the column from/to a 'jsonb'
+    translated field column."* Hacia ``jsonb`` el texto pasa a ser el valor
+    de ``en_US``; de vuelta, ``en_US`` es el texto. El índice de la columna se
+    retira antes porque su expresión deja de valer con el tipo nuevo.
+    """
+    drop_index(cr, make_index_name(tablename, columnname), tablename)
+    column = SQL.identifier(columnname).code
+    if columntype == 'jsonb':
+        using = ("CASE WHEN {0} IS NOT NULL THEN "
+                 "jsonb_build_object('en_US', {0}::varchar) END").format(column)
+    else:
+        using = "{}->>'en_US'".format(column)
     _convert_column(cr, tablename, columnname, columntype, using)
 
 
@@ -709,6 +828,45 @@ def drop_not_null(cr, tablename, columnname):
     _schema.debug("Table %r: column %r: dropped constraint NOT NULL", tablename, columnname)
 
 
+def constraint_definition(cr, tablename, constraintname):
+    """La definición de una restricción — ≙ ``constraint_definition``
+    (``odoo19c: odoo/tools/sql.py:438-448``). Docstring de la fuente,
+    verbatim: *"Return the given constraint's definition."*
+
+    Prefiere el comentario: :func:`add_constraint` guarda ahí la definición
+    tal como se declaró, que es la que el registro compara; la que reconstruye
+    ``pg_get_constraintdef`` puede venir normalizada.
+    """
+    cr.execute("""
+        SELECT COALESCE(d.description, pg_get_constraintdef(c.oid))
+        FROM pg_constraint c
+        JOIN pg_class t ON t.oid = c.conrelid
+        LEFT JOIN pg_description d ON c.oid = d.objoid
+        WHERE t.relname = %s AND conname = %s
+        AND t.relnamespace = current_schema::regnamespace
+    """, [tablename, constraintname])
+    row = cr.fetchone()
+    return row[0] if row else None
+
+
+def add_constraint(cr, tablename, constraintname, definition):
+    """Añade una restricción y guarda su definición — ≙ ``add_constraint``
+    (``odoo19c: odoo/tools/sql.py:451-463``). Docstring de la fuente,
+    verbatim: *"Add a constraint on the given table."*
+
+    La sentencia va sin parámetros, así que un ``%`` de la definición no se
+    interpreta y no hace falta el ``replace('%', '%%')`` de la fuente, que
+    existía porque su :class:`SQL` sí formatea.
+    """
+    cr.execute('ALTER TABLE {} ADD CONSTRAINT {} {}'.format(
+        SQL.identifier(tablename).code, SQL.identifier(constraintname).code,
+        definition))
+    cr.execute('COMMENT ON CONSTRAINT {} ON {} IS %s'.format(
+        SQL.identifier(constraintname).code, SQL.identifier(tablename).code),
+        [definition])
+    _schema.debug("Table %r: added constraint %r as %s", tablename, constraintname, definition)
+
+
 def drop_constraint(cr, tablename, constraintname):
     """Retira la restriccion dada.
 
@@ -773,20 +931,79 @@ def get_foreign_keys(cr, tablename1, columnname1, tablename2, columnname2, ondel
     return [row[0] for row in cr.fetchall()]
 
 
-def create_index(cr, indexname, tablename, expressions, method='btree', where=''):
-    """Crea el indice dado si no existe.
+def fix_foreign_key(cr, tablename1, columnname1, tablename2, columnname2, ondelete):
+    """Alinea las claves foráneas con la dada — ≙ ``fix_foreign_key``
+    (``odoo19c: odoo/tools/sql.py:510-537``).
 
-    ≙ ``create_index`` (``odoo19c: odoo/tools/sql.py:564-583``). La fuente
-    comprueba antes con ``index_exists`` y sale sin hacer nada si ya estaba;
-    aqui la comprobacion la hace ``IF NOT EXISTS``, que es atomica y no deja la
-    ventana entre la pregunta y la creacion.
+    Docstring de la fuente, verbatim: *"Update the foreign keys between tables
+    to match the given one, and return ``True`` if the given foreign key has
+    been recreated."* Conserva la primera que coincide en destino y política,
+    retira las demás de esa columna, y crea la declarada si no estaba.
     """
-    args = ', '.join(expressions)
-    condition = f' WHERE {where}' if where else ''
-    cr.execute('CREATE INDEX IF NOT EXISTS {} ON {} USING {} ({}){}'.format(
-        SQL.identifier(indexname).code, SQL.identifier(tablename).code,
-        SQL.identifier(method).code, args, condition))
-    _schema.debug("Table %r: created index %r (%s)", tablename, indexname, args)
+    deltype = _CONFDELTYPES.get(ondelete.upper(), 'a')
+    cr.execute("""
+        SELECT con.conname, c2.relname, a2.attname, con.confdeltype as deltype
+          FROM pg_constraint as con, pg_class as c1, pg_class as c2,
+               pg_attribute as a1, pg_attribute as a2
+         WHERE con.contype='f' AND con.conrelid=c1.oid AND con.confrelid=c2.oid
+           AND array_lower(con.conkey, 1)=1 AND con.conkey[1]=a1.attnum
+           AND array_lower(con.confkey, 1)=1 AND con.confkey[1]=a2.attnum
+           AND a1.attrelid=c1.oid AND a2.attrelid=c2.oid
+           AND c1.relname=%s AND a1.attname=%s
+           AND c1.relnamespace = current_schema::regnamespace
+    """, [tablename1, columnname1])
+    found = False
+    for fk in cr.fetchall():
+        if not found and tuple(fk[1:]) == (tablename2, columnname2, deltype):
+            found = True
+        else:
+            drop_constraint(cr, tablename1, fk[0])
+    if found:
+        return False
+    add_foreign_key(cr, tablename1, columnname1, tablename2, columnname2, ondelete)
+    return True
+
+
+def create_index(cr, indexname, tablename, expressions, method='btree',
+                 where='', *, comment=None, unique=False):
+    """Crea el índice dado si no existe — ≙ ``create_index`` (``odoo19c:
+    odoo/tools/sql.py:564-594``).
+
+    Con la firma de la fuente: ``comment`` y ``unique`` son de palabra clave y
+    el cuerpo lo emite :func:`add_index`. Una lista de expresiones vacía es un
+    error del llamador, no un índice sin columnas.
+    """
+    assert expressions, "Missing expressions"
+    if index_exists(cr, indexname):
+        return
+    condition = ' WHERE {}'.format(where) if where else ''
+    definition = 'USING {} ({}){}'.format(method, ', '.join(expressions), condition)
+    add_index(cr, indexname, tablename, definition, unique=unique, comment=comment)
+
+
+def add_index(cr, indexname, tablename, definition, *, unique, comment=''):
+    """Crea un índice — ≙ ``add_index`` (``odoo19c: odoo/tools/sql.py:597-617``).
+
+    Docstring de la fuente, verbatim: *"Create an index."* El comentario va
+    por ``COMMENT ON INDEX``, que es lo que :func:`index_definition` lee de
+    vuelta. ``definition`` es texto (``USING btree (col)``) o un :class:`SQL`.
+    """
+    if isinstance(definition, SQL):
+        definition = definition.code
+    cr.execute('CREATE {}INDEX {} ON {} {}'.format(
+        'UNIQUE ' if unique else '', SQL.identifier(indexname).code,
+        SQL.identifier(tablename).code, definition))
+    if comment:
+        cr.execute('COMMENT ON INDEX {} IS %s'.format(
+            SQL.identifier(indexname).code), [comment])
+    _schema.debug("Table %r: created index %r (%s)", tablename, indexname, definition)
+
+
+def create_unique_index(cr, indexname, tablename, expressions):
+    """≙ ``create_unique_index`` (``odoo19c: odoo/tools/sql.py:620-623``),
+    obsoleta desde 19.0 como en la fuente."""
+    warnings.warn("Since 19.0, use create_index(unique=True)", DeprecationWarning)
+    return create_index(cr, indexname, tablename, expressions, unique=True)
 
 
 def drop_index(cr, indexname, tablename):
@@ -797,6 +1014,83 @@ def drop_index(cr, indexname, tablename):
     """
     cr.execute('DROP INDEX IF EXISTS {}'.format(SQL.identifier(indexname).code))
     _schema.debug("Table %r: dropped index %r", tablename, indexname)
+
+
+def drop_view_if_exists(cr, viewname):
+    """≙ ``drop_view_if_exists`` (``odoo19c: odoo/tools/sql.py:632-637``):
+    retira la vista o la vista materializada, y nada si es otra cosa."""
+    kind = table_kind(cr, viewname)
+    if kind == TableKind.View:
+        cr.execute('DROP VIEW {} CASCADE'.format(SQL.identifier(viewname).code))
+    elif kind == TableKind.Materialized:
+        cr.execute('DROP MATERIALIZED VIEW {} CASCADE'.format(
+            SQL.identifier(viewname).code))
+
+
+def reverse_order(order):
+    """Invierte una cláusula ``ORDER BY`` — ≙ ``reverse_order`` (``odoo19c:
+    odoo/tools/sql.py:662-669``), verbatim."""
+    items = []
+    for item in order.split(','):
+        item = item.lower().split()
+        direction = 'asc' if item[1:] == ['desc'] else 'desc'
+        items.append('%s %s' % (item[0], direction))
+    return ', '.join(items)
+
+
+def increment_fields_skiplock(records, *fields):
+    """Incrementa los campos enteros dados saltando las filas bloqueadas — ≙
+    ``increment_fields_skiplock`` (``odoo19c: odoo/tools/sql.py:672-705``).
+
+    Docstring de la fuente: no invalida la caché porque la actualización no es
+    crítica, y devuelve si incrementó alguna fila. ``records`` es un recordset
+    de ``BaseModel``; su tabla y su conexión salen del modelo y del entorno.
+    """
+    # ``env['x']`` es aquí la clase, que hace de recordset vacío.
+    if isinstance(records, type) or not records:
+        return False
+    model = type(records)
+    for field in fields:
+        assert model._fields[field].type == 'integer'
+    tablename = SQL.identifier(model._table).code
+    assignments = ', '.join(
+        '{0} = COALESCE({0}, 0) + 1'.format(SQL.identifier(field).code)
+        for field in fields)
+    with records.env.cr.cursor() as cr:
+        cr.execute(
+            'UPDATE {0} SET {1} WHERE id IN (SELECT id FROM {0} '
+            'WHERE id = ANY(%s) FOR UPDATE SKIP LOCKED)'.format(tablename, assignments),
+            [list(records.ids)])
+        return bool(cr.rowcount)
+
+
+def value_to_translated_trigram_pattern(value):
+    """≙ ``value_to_translated_trigram_pattern`` (``odoo19c:
+    odoo/tools/sql.py:708-731``), verbatim: escapa un valor para casar el
+    texto que indexa ``jsonb_path_query_array(col, '$.*')::text``."""
+    if len(value) < 3:
+        # menos de tres caracteres no aprovecha el índice de trigramas
+        return '%'
+    json_escaped = json.dumps(value, ensure_ascii=False)[1:-1]
+    wildcard_escaped = re.sub(r'(_|%|\\)', r'\\\1', json_escaped)
+    return f"%{wildcard_escaped}%"
+
+
+def pattern_to_translated_trigram_pattern(pattern):
+    """≙ ``pattern_to_translated_trigram_pattern`` (``odoo19c:
+    odoo/tools/sql.py:734-764``), verbatim: el mismo escape aplicado a cada
+    tramo entre comodines no escapados de un patrón ``LIKE``."""
+    sub_patterns = re.findall(r'''
+        (
+            (?:.)*?           # 0 o más caracteres, salto de línea incluido
+            (?<!\\)(?:\\\\)*  # 0 o un número par de barras: el comodín no está escapado
+        )
+        (?:_|%|$)             # un comodín no escapado o el final
+        ''', pattern, flags=re.VERBOSE | re.DOTALL)
+    sub_texts = [re.sub(r'\\(.|$)', r'\1', t, flags=re.DOTALL) for t in sub_patterns]
+    json_escaped = [json.dumps(t, ensure_ascii=False)[1:-1] for t in sub_texts if len(t) >= 3]
+    wildcard_escaped = [re.sub(r'(_|%|\\)', r'\\\1', t) for t in json_escaped]
+    return f"%{'%'.join(wildcard_escaped)}%" if wildcard_escaped else "%"
 
 
 def execute_sql(sql, using=None):

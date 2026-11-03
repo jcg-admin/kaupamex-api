@@ -48,11 +48,7 @@ def test_index_exists():
         # La PK de django_migrations se llama 'PRIMARY' en MariaDB.
         # PostgreSQL nombra el índice de la PK ``<tabla>_pkey``; ``PRIMARY``
         # era el nombre fijo que MariaDB le daba a todas.
-        assert (
-            sql.index_exists(c, 'django_migrations', 'django_migrations_pkey')
-            is True
-        )
-        assert (
-            sql.index_exists(c, 'django_migrations', 'idx_inexistente')
-            is False
-        )
+        # Firma de la fuente (``odoo19c: odoo/tools/sql.py:540``): el nombre
+        # del índice basta, es único dentro del schema.
+        assert sql.index_exists(c, 'django_migrations_pkey') is True
+        assert sql.index_exists(c, 'idx_inexistente') is False
