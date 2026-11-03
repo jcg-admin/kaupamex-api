@@ -27,6 +27,7 @@ from lxml import etree
 
 from tools.xml_utils import remove_control_characters
 
+
 def dict_to_xml(
     node,
     *,

@@ -161,14 +161,14 @@ def split_etree_on_tag(tree, tag):
 
 def extract_pdf_embedded_files(filename, content):
     """≙ ``extract_pdf_embedded_files`` (``odoo19c: :110-125``) —
-    **bloqueado**: ninguna librería de PDF instalada (ver el docstring del
+    **bloqueado**: ninguna biblioteca de PDF instalada (ver el docstring del
     módulo). Devuelve lista vacía —mismo neutro que un PDF sin adjuntos
     embebidos en la referencia— en vez de levantar, porque el llamador
     (``_unwrap_attachment``) trata "sin embebidos" como caso normal, no
     como error.
     """
     _logger.info(
-        'extract_pdf_embedded_files("%s"): bloqueado, ninguna librería de '
+        'extract_pdf_embedded_files("%s"): bloqueado, ninguna biblioteca de '
         'PDF instalada (pypdf/PyPDF2/fitz). Ver docstring del módulo.',
         filename,
     )
@@ -530,21 +530,26 @@ class AccountDocumentImportMixin:
         """≙ ``_unwrap_attachment`` (``odoo19c: :505-524``). La rama PDF
         delega en ``extract_pdf_embedded_files`` — bloqueada (ver el
         docstring del módulo); esta función funciona igual, simplemente no
-        encuentra embebidos hasta que la librería de PDF aterrice.
+        encuentra embebidos hasta que la biblioteca de PDF aterrice.
         """
         embedded = []
         if file_data['import_file_type'] == 'pdf' and file_data['raw']:
-            for filename, content in extract_pdf_embedded_files(file_data['name'], file_data['raw']):
+            embedded_files = extract_pdf_embedded_files(
+                file_data['name'], file_data['raw'])
+            for filename, content in embedded_files:
                 embedded_file_data = {
                     'name': filename,
                     'raw': content,
                     'mimetype': guess_mimetype(content),
                     'attachment': None,
                     'origin_attachment': file_data['origin_attachment'],
-                    'origin_import_file_type': file_data['origin_import_file_type'],
+                    'origin_import_file_type':
+                        file_data['origin_import_file_type'],
                 }
-                embedded_file_data['xml_tree'] = cls._get_xml_tree(embedded_file_data)
-                embedded_file_data['import_file_type'] = cls._get_import_file_type(embedded_file_data)
+                embedded_file_data['xml_tree'] = cls._get_xml_tree(
+                    embedded_file_data)
+                embedded_file_data['import_file_type'] = (
+                    cls._get_import_file_type(embedded_file_data))
                 embedded.append(embedded_file_data)
 
         if embedded and recurse:

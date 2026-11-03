@@ -1,6 +1,8 @@
-r"""``account.edi.common`` — la base compartida por todos los constructores UBL/CII.
+r"""``account.edi.common`` — la base compartida por todos los constructores
+UBL/CII.
 
-Adaptación de ``odoo19c: addons/account_edi_ubl_cii/models/account_edi_common.py``
+Adaptación de
+``odoo19c: addons/account_edi_ubl_cii/models/account_edi_common.py``
 (``odoo-tools@622ddc2a``, LGPL-3, 1148 líneas) — atribución y aviso de licencia
 preservados (DEC-KX-03).
 
@@ -12,12 +14,12 @@ cuales **20 portados** y **21 bloqueados por pieza nombrada** (cada uno lo dice
 en su propio docstring y llama a :func:`_blocked`, que levanta ``UserError``
 nombrando la pieza — nunca falla en silencio).
 
-Los 20 portados: ``_vals_to_etree`` ``_etree_to_string`` ``_define_document_type``
-``_get_document_type`` ``_is_document`` ``format_float``
-``_get_currency_decimal_places`` ``_find_value`` ``_can_export_selfbilling``
-``_get_tax_category_code`` ``_get_tax_exemption_reason``
-``_check_required_fields`` ``_import_currency`` ``_import_description``
-``_import_prepaid_amount`` ``_retrieve_rebate_val``
+Los 20 portados: ``_vals_to_etree`` ``_etree_to_string``
+``_define_document_type`` ``_get_document_type`` ``_is_document``
+``format_float`` ``_get_currency_decimal_places`` ``_find_value``
+``_can_export_selfbilling`` ``_get_tax_category_code``
+``_get_tax_exemption_reason`` ``_check_required_fields`` ``_import_currency``
+``_import_description`` ``_import_prepaid_amount`` ``_retrieve_rebate_val``
 ``_retrieve_charge_allowance_vals`` ``_get_document_allowance_charge_xpaths``
 ``_get_invoice_line_xpaths`` ``_correct_invoice_tax_amount``.
 
@@ -73,7 +75,8 @@ portan verbatim. Lo que sí toca registros son las **puertas de entrada** —
 ``_import_invoice_ubl_cii``/``_ubl_import_invoice`` del lado de importación—,
 y ésas están bloqueadas por piezas medidas ausentes:
 
-.. list-table:: Piezas ausentes, medidas antes de escribir (``grep -rn … addons/ src/``)
+.. list-table:: Piezas ausentes, medidas antes de escribir
+   (``grep -rn … addons/ src/``)
    :header-rows: 1
    :widths: 45 12 43
 
@@ -164,7 +167,8 @@ Sustituciones del árbol (medidas con ``grep -ic … uv.lock``)
      - —
      - la fuente los importa y **no los usa** (medido: 1 hit cada uno, la
        propia línea de import). No se importan aquí.
-   * - ``datetime`` · ``float_compare`` · ``float_is_zero`` · ``html2plaintext``
+   * - ``datetime`` · ``float_compare`` · ``float_is_zero`` ·
+       ``html2plaintext``
      - —
      - sí existen en el árbol, pero sus únicos consumidores
        (``_retrieve_invoice_line_vals``, ``_retrieve_line_vals``,
@@ -359,7 +363,8 @@ UOM_TO_UNECE_CODE = {
 }
 
 # -------------------------------------------------------------------------
-# ELECTRONIC ADDRESS SCHEME (EAS), see https://docs.peppol.eu/poacc/billing/3.0/codelist/eas/
+# ELECTRONIC ADDRESS SCHEME (EAS), see
+# https://docs.peppol.eu/poacc/billing/3.0/codelist/eas/
 # -------------------------------------------------------------------------
 EAS_MAPPING = {
     'AD': {'9922': 'vat'},
@@ -658,8 +663,10 @@ class AccountEdiCommon(object):
         if not isinstance(xpaths, (tuple, list)):
             xpaths = [xpaths]
         for xpath in xpaths:
-            # functions from ElementTree like "findtext" do not fully implement xpath, use "xpath" (from lxml) instead
-            # (e.g. "//node[string-length(text()) > 5]" raises an invalidPredicate exception with "findtext")
+            # functions from ElementTree like "findtext" do not fully
+            # implement xpath, use "xpath" (from lxml) instead
+            # (e.g. "//node[string-length(text()) > 5]" raises an
+            # invalidPredicate exception with "findtext")
             val = find_xml_value(xpath, tree, nsmap)
             if val:
                 return val

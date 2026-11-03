@@ -183,6 +183,11 @@ import re
 import requests
 from lxml import etree
 
+try:  # pragma: no cover - la biblioteca no está declarada en uv.lock
+    import phonenumbers
+except ImportError:  # ≙ ``odoo19c: :15-18`` — la fuente contempla su ausencia
+    phonenumbers = None
+
 import fields
 import models
 from addons.account_edi_proxy_client.models.account_edi_proxy_user import (
@@ -198,7 +203,8 @@ from tools.translate import _
 _logger = logging.getLogger(__name__)
 
 TIMEOUT = 10
-#: Parámetro de sistema con el modo del proxy Peppol (``prod``/``test``/``demo``).
+#: Parámetro de sistema con el modo del proxy Peppol
+#: (``prod``/``test``/``demo``).
 PARAM_EDI_MODE = 'account_peppol.edi.mode'
 
 
@@ -246,16 +252,20 @@ PEPPOL_PROXY_STATES = [
 #: Los identificadores son el contrato con la red: verbatim, sin traducir.
 PEPPOL_DEFAULT_DOCUMENT_TYPES = {
     'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2::Invoice'
-    '##urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0::2.1':
+    '##urn:cen.eu:en16931:2017#compliant#'
+    'urn:fdc:peppol.eu:2017:poacc:billing:3.0::2.1':
         'Peppol BIS Billing UBL Invoice V3',
     'urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2::CreditNote'
-    '##urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0::2.1':
+    '##urn:cen.eu:en16931:2017#compliant#'
+    'urn:fdc:peppol.eu:2017:poacc:billing:3.0::2.1':
         'Peppol BIS Billing UBL CreditNote V3',
     'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2::Invoice'
-    '##urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:selfbilling:3.0::2.1':
+    '##urn:cen.eu:en16931:2017#compliant#'
+    'urn:fdc:peppol.eu:2017:poacc:selfbilling:3.0::2.1':
         'Peppol BIS Self-Billing UBL Invoice V3',
     'urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2::CreditNote'
-    '##urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:selfbilling:3.0::2.1':
+    '##urn:cen.eu:en16931:2017#compliant#'
+    'urn:fdc:peppol.eu:2017:poacc:selfbilling:3.0::2.1':
         'Peppol BIS Self-Billing UBL CreditNote V3',
     'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2::Invoice'
     '##urn:cen.eu:en16931:2017#compliant#urn:fdc:nen.nl:nlcius:v1.0::2.1':
@@ -264,11 +274,6 @@ PEPPOL_DEFAULT_DOCUMENT_TYPES = {
     '##urn:cen.eu:en16931:2017#compliant#urn:fdc:nen.nl:nlcius:v1.0::2.1':
         'SI-UBL 2.0 CreditNote',
 }
-
-try:  # pragma: no cover - la biblioteca no está declarada en uv.lock
-    import phonenumbers
-except ImportError:  # ≙ ``odoo19c: :15-18`` — la fuente contempla su ausencia
-    phonenumbers = None
 
 
 # -------------------------------------------------------------------------
@@ -285,17 +290,17 @@ def _campos():
         'account_peppol_contact_email': fields.Char(
             max_length=254, blank=True, default='',
             verbose_name='Correo de contacto principal',
-            help_text='Correo principal para las comunicaciones y avisos de la '
-                      'conexión Peppol. Odoo lo usa para reconectar la cuenta '
-                      'Peppol si la base de datos cambia (Odoo '
+            help_text='Correo principal para las comunicaciones y avisos '
+                      'de la conexión Peppol. Odoo lo usa para reconectar '
+                      'la cuenta Peppol si la base de datos cambia (Odoo '
                       'account_peppol_contact_email).',
         ),
         'account_peppol_migration_key': fields.Char(
             max_length=255, blank=True, default='',
             verbose_name='Clave de migración',
-            help_text='Odoo account_peppol_migration_key (groups=base.group_system '
-                      'en la referencia; aquí la restricción es de capacidad, no '
-                      'de campo).',
+            help_text='Odoo account_peppol_migration_key '
+                      '(groups=base.group_system en la referencia; aquí la '
+                      'restricción es de capacidad, no de campo).',
         ),
         'account_peppol_phone_number': fields.Char(
             max_length=32, blank=True, default='',
@@ -304,21 +309,23 @@ def _campos():
                       'account_peppol_phone_number).',
         ),
         'account_peppol_proxy_state': fields.Selection(
-            max_length=20, choices=PEPPOL_PROXY_STATES, default='not_registered',
+            max_length=20, choices=PEPPOL_PROXY_STATES,
+            default='not_registered',
             verbose_name='Estado Peppol',
             help_text='Estado de la empresa en la red Peppol (Odoo '
                       'account_peppol_proxy_state, required).',
         ),
         'peppol_external_provider': fields.Char(
             max_length=255, blank=True, default='',
-            help_text='Proveedor Peppol distinto de Odoo con el que la empresa ya '
-                      'está dada de alta (Odoo peppol_external_provider).',
+            help_text='Proveedor Peppol distinto de Odoo con el que la '
+                      'empresa ya está dada de alta (Odoo '
+                      'peppol_external_provider).',
         ),
         'peppol_metadata': fields.Json(
             null=True, blank=True,
             verbose_name='Metadatos Peppol',
-            help_text='Metadatos que aporta el proxy, de claves aditivas (Odoo '
-                      'peppol_metadata).',
+            help_text='Metadatos que aporta el proxy, de claves aditivas '
+                      '(Odoo peppol_metadata).',
         ),
         'peppol_metadata_updated_at': fields.Datetime(
             null=True, blank=True,
@@ -326,26 +333,30 @@ def _campos():
         ),
         'peppol_purchase_journal': fields.Many2one(
             'account.AccountJournal', null=True, blank=True,
-            on_delete=models.SET_NULL, related_name='peppol_purchase_companies',
+            on_delete=models.SET_NULL,
+            related_name='peppol_purchase_companies',
             verbose_name='Diario de compras Peppol',
-            help_text='Diario donde aterrizan las facturas recibidas por Peppol '
-                      '(Odoo peppol_purchase_journal_id; domain type=purchase, '
-                      'reforzado en clean()).',
+            help_text='Diario donde aterrizan las facturas recibidas por '
+                      'Peppol (Odoo peppol_purchase_journal_id; domain '
+                      'type=purchase, reforzado en clean()).',
         ),
         # Los dos siguientes están marcados *Deprecated* en la referencia; se
         # portan igual porque el porte es completo o declara su cobertura.
         'peppol_activate_self_billing_sending': fields.Boolean(
             default=False,
             verbose_name='Activar el envío de autofacturación',
-            help_text='Si se activa, se podrán enviar facturas de proveedor como '
-                      'autofacturas por Peppol (Odoo, Deprecated).',
+            help_text='Si se activa, se podrán enviar facturas de '
+                      'proveedor como autofacturas por Peppol (Odoo, '
+                      'Deprecated).',
         ),
         'peppol_self_billing_reception_journal': fields.Many2one(
             'account.AccountJournal', null=True, blank=True,
-            on_delete=models.SET_NULL, related_name='peppol_self_billing_companies',
+            on_delete=models.SET_NULL,
+            related_name='peppol_self_billing_companies',
             verbose_name='Diario de recepción de autofacturación',
-            help_text='Las autofacturas recibidas por Peppol se crean en borrador '
-                      'en este diario (Odoo peppol_self_billing_reception_journal_id, '
+            help_text='Las autofacturas recibidas por Peppol se crean en '
+                      'borrador en este diario (Odoo '
+                      'peppol_self_billing_reception_journal_id, '
                       'Deprecated).',
         ),
     }
@@ -369,7 +380,8 @@ def account_peppol_edi_user(self):
 
 def peppol_can_send(self):
     """≙ ``_compute_peppol_can_send`` (``odoo19c: :319-323``)."""
-    return self.account_peppol_proxy_state in AccountEdiProxyUser._get_can_send_domain()
+    can_send = AccountEdiProxyUser._get_can_send_domain()
+    return self.account_peppol_proxy_state in can_send
 
 
 # -------------------------------------------------------------------------
@@ -470,7 +482,8 @@ def _check_peppol_endpoint_number(self, warning=False):
     y ``self.peppol_endpoint``. Se conserva la forma y se lee con ``getattr``
     para que el método exista y funcione en cuanto esos campos aterricen.
     """
-    peppol_dict = PEPPOL_ENDPOINT_WARNINGS if warning else PEPPOL_ENDPOINT_RULES
+    peppol_dict = (PEPPOL_ENDPOINT_WARNINGS if warning
+                   else PEPPOL_ENDPOINT_RULES)
     eas = getattr(self, 'peppol_eas', None)
     endpoint = getattr(self, 'peppol_endpoint', None)
     endpoint_rule = peppol_dict.get(eas)
@@ -536,7 +549,8 @@ def _inverse_peppol_purchase_journal_id(self):
 def _compute_peppol_self_billing_reception_journal_id(self):
     """≙ ``_compute_peppol_self_billing_reception_journal_id``
     (``odoo19c: :280-288``). *Deprecated* en la fuente."""
-    if self.peppol_self_billing_reception_journal_id is None and self.peppol_can_send:
+    if (self.peppol_self_billing_reception_journal_id is None
+            and self.peppol_can_send):
         journal = _peppol_journal_model().objects.filter(
             company=self, type='sale',
         ).first()
@@ -575,14 +589,16 @@ def _peppol_clean(self, *args, **kwargs):
     if getattr(self, 'peppol_endpoint', None):
         if not self._check_peppol_endpoint_number():
             raise ValidationError(
-                {'peppol_endpoint': _('El identificador del endpoint Peppol no es correcto.')},
+                {'peppol_endpoint': _(
+                    'El identificador del endpoint Peppol no es correcto.')},
             )
 
     if (self.peppol_purchase_journal_id is not None
             and self.peppol_purchase_journal.type != 'purchase'):
         raise ValidationError(
             {'peppol_purchase_journal': _(
-                'Debe usarse un diario de compras para recibir documentos Peppol.',
+                'Debe usarse un diario de compras para recibir documentos '
+                'Peppol.',
             )},
         )
     return None
@@ -604,8 +620,8 @@ def _sanitize_peppol_endpoint_in_values(self, values):
 
 
 def _sanitize_peppol_endpoint_on_save(self, *args, **kwargs):
-    """≙ la parte propia de ``create``/``write`` (``odoo19c: :340-358``): sanear
-    el endpoint antes de escribir.
+    """≙ la parte propia de ``create``/``write`` (``odoo19c: :340-358``):
+    sanear el endpoint antes de escribir.
 
     El resto de ``create`` —sembrar el ``ir.default`` de
     ``peppol_verification_state`` por empresa— está BLOQUEADO (ver la cabecera
@@ -629,7 +645,8 @@ def _peppol_modules_document_types(self):
     Se sobreescribe para añadir tipos de documento soportados conforme se
     instalan módulos.
 
-    :returns: dict ``{nombre_de_modulo: {identificador: nombre_de_documento}}``.
+    :returns: dict
+        ``{nombre_de_modulo: {identificador: nombre_de_documento}}``.
     """
     return {'default': dict(PEPPOL_DEFAULT_DOCUMENT_TYPES)}
 
@@ -650,10 +667,10 @@ def _get_peppol_edi_mode(self, temporary_eas=False):
     Precedencia verbatim: identificador de demo ≻ modo del usuario de proxy ≻
     parámetro de sistema ≻ ``'prod'``.
 
-    **Recortado**: el atajo de demo evalúa ``(temporary_eas or self.peppol_eas)``
-    en la fuente; ``peppol_eas`` está BLOQUEADO por ``account_edi_ubl_cii``, así
-    que aquí sólo pesa el argumento — que es por donde el llamador lo pasa
-    durante el alta.
+    **Recortado**: el atajo de demo evalúa
+    ``(temporary_eas or self.peppol_eas)`` en la fuente; ``peppol_eas`` está
+    BLOQUEADO por ``account_edi_ubl_cii``, así que aquí sólo pesa el
+    argumento — que es por donde el llamador lo pasa durante el alta.
     """
     config_param = SystemParameter.get_param(PARAM_EDI_MODE, '')
     peppol_user = self.account_peppol_edi_user
@@ -682,11 +699,13 @@ def _get_peppol_provider(participant_info):
 
     service_href = services[0].get('href')
     provider_name = None
-    with contextlib.suppress(requests.exceptions.RequestException, etree.XMLSyntaxError):
+    with contextlib.suppress(requests.exceptions.RequestException,
+                             etree.XMLSyntaxError):
         response = requests.get(service_href, timeout=TIMEOUT)
         if response.status_code == 200:
             access_point_info = etree.fromstring(response.content)
-            provider_name = access_point_info.findtext('.//{*}ServiceDescription')
+            provider_name = access_point_info.findtext(
+                './/{*}ServiceDescription')
     return provider_name
 
 
@@ -702,7 +721,8 @@ def _get_company_info_on_peppol(self, edi_identification):
     external_provider = None
     error_msg = ''
 
-    participant_info = partner_model._peppol_lookup_participant(edi_identification, self)
+    participant_info = partner_model._peppol_lookup_participant(
+        edi_identification, self)
     if participant_info is not None:
         is_company_on_peppol = partner_model._check_peppol_participant_exists(
             participant_info, edi_identification,
@@ -714,7 +734,8 @@ def _get_company_info_on_peppol(self, edi_identification):
         )
         external_provider = _get_peppol_provider(participant_info)
         if external_provider and 'Odoo' not in external_provider:
-            error_msg += _('El servicio Peppol que se usa es %s.', external_provider)
+            error_msg += _('El servicio Peppol que se usa es %s.',
+                           external_provider)
 
     return {
         'is_on_peppol': is_company_on_peppol,
@@ -726,7 +747,8 @@ def _get_company_info_on_peppol(self, edi_identification):
 def _get_peppol_proxy_type(self):
     """≙ ``_get_peppol_proxy_type`` (``odoo19c: :454-459``)."""
     peppol_user = self.account_peppol_edi_user
-    return (peppol_user.proxy_type if peppol_user is not None else None) or 'peppol'
+    proxy_type = peppol_user.proxy_type if peppol_user is not None else None
+    return proxy_type or 'peppol'
 
 
 def apply_account_peppol_res_company_extensions():
@@ -746,22 +768,28 @@ def apply_account_peppol_res_company_extensions():
     chain_method(ResCompany, 'save', _sanitize_peppol_endpoint_on_save)
 
     for name, function in (
-        ('_get_active_peppol_parent_company', _get_active_peppol_parent_company),
+        ('_get_active_peppol_parent_company',
+         _get_active_peppol_parent_company),
         ('_have_unauthorized_peppol_parent_company',
          _have_unauthorized_peppol_parent_company),
         ('_reset_peppol_configuration', _reset_peppol_configuration),
         ('_check_phonenumbers_import', _check_phonenumbers_import),
         ('_sanitize_peppol_phone_number', _sanitize_peppol_phone_number),
         ('_check_peppol_endpoint_number', _check_peppol_endpoint_number),
-        ('_compute_account_peppol_contact_email', _compute_account_peppol_contact_email),
-        ('_compute_account_peppol_phone_number', _compute_account_peppol_phone_number),
-        ('_compute_peppol_purchase_journal_id', _compute_peppol_purchase_journal_id),
-        ('_inverse_peppol_purchase_journal_id', _inverse_peppol_purchase_journal_id),
+        ('_compute_account_peppol_contact_email',
+         _compute_account_peppol_contact_email),
+        ('_compute_account_peppol_phone_number',
+         _compute_account_peppol_phone_number),
+        ('_compute_peppol_purchase_journal_id',
+         _compute_peppol_purchase_journal_id),
+        ('_inverse_peppol_purchase_journal_id',
+         _inverse_peppol_purchase_journal_id),
         ('_compute_peppol_self_billing_reception_journal_id',
          _compute_peppol_self_billing_reception_journal_id),
         ('_inverse_peppol_self_billing_reception_journal_id',
          _inverse_peppol_self_billing_reception_journal_id),
-        ('_sanitize_peppol_endpoint_in_values', _sanitize_peppol_endpoint_in_values),
+        ('_sanitize_peppol_endpoint_in_values',
+         _sanitize_peppol_endpoint_in_values),
         ('_peppol_modules_document_types', _peppol_modules_document_types),
         ('_peppol_supported_document_types', _peppol_supported_document_types),
         ('_get_peppol_edi_mode', _get_peppol_edi_mode),

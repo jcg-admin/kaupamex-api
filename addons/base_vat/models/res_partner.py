@@ -17,7 +17,8 @@ todos apuntan a **un** destino medido:
   ``odoo19c: addons/account/models/partner.py:847-959`` — **no** en ``base``,
   así que portarlos aquí sería el defecto de sitio que :ref:`h-api-568`
   registra. Medido:
-  ``grep -rn "def _check_vat\b" --include=*.py src/ addons/ | grep -vc base_vat/models/res_partner.py``
+  ``grep -rn "def _check_vat\b" --include=*.py src/ addons/ | grep -vc
+  base_vat/models/res_partner.py``
   da **0**. El ``grep -v`` excluye **este** archivo: la forma sin él
   empareja esta misma cita y devolvía 1 — un reclamo que se contaba a sí
   mismo, que es lo que ``check_stale_zero_claims`` destapó.
@@ -206,7 +207,8 @@ Divergencias declaradas — de mecanismo, no de alcance
    ``check_vat_mx``, que es el símbolo de la fuente y aplica el mismo criterio
    (formato + fecha), es la tarea **#462**.
 3. **El agrupado de ``_cron_check_vies_iap`` va por el ORM de Django.** La
-   fuente usa ``self._read_group(groupby=['vat'], aggregates=['id:recordset'])``;
+   fuente usa ``self._read_group(groupby=['vat'],
+   aggregates=['id:recordset'])``;
    medido, este árbol no declara ese agregador
    (``grep -rc "def _read_group" --include=*.py src/orm/`` da **0**). El
    equivalente es un ``filter(vat__in=…)`` por VAT, que produce la misma
@@ -282,7 +284,9 @@ _ref_vat = {
     'bg': 'BG1234567892',
     'br': _lt('either 11 digits for CPF or 14 characters for CNPJ'),
     'cr': '3101012009',
-    'ch': _lt('CHE-123.456.788 TVA or CHE-123.456.788 MWST or CHE-123.456.788 IVA'),  # Swiss by Yannick Vaucher @ Camptocamp
+    # Swiss by Yannick Vaucher @ Camptocamp
+    'ch': _lt('CHE-123.456.788 TVA or CHE-123.456.788 MWST or '
+              'CHE-123.456.788 IVA'),
     'cl': '76086428-5',
     'co': '213123432-1',
     'cy': 'CY10259033P',
@@ -301,7 +305,8 @@ _ref_vat = {
     'hr': 'HR01234567896',  # Croatia, contributed by Milan Tribuson
     'id': '1234567890123456',
     'ie': 'IE1234567FA',
-    'il': _lt('XXXXXXXXX [9 digits] and it should respect the Luhn algorithm checksum'),
+    'il': _lt('XXXXXXXXX [9 digits] and it should respect the Luhn '
+              'algorithm checksum'),
     'in': "12AAAAA1234AAZA",
     'is': 'IS062199',
     'it': 'IT12345670017',
@@ -317,7 +322,8 @@ _ref_vat = {
     'nl': 'NL123456782B90',
     'no': 'NO123456785',
     'nz': _lt('49-098-576 or 49098576'),
-    'pe': _lt('10XXXXXXXXY or 20XXXXXXXXY or 15XXXXXXXXY or 16XXXXXXXXY or 17XXXXXXXXY'),
+    'pe': _lt('10XXXXXXXXY or 20XXXXXXXXY or 15XXXXXXXXY or 16XXXXXXXXY '
+              'or 17XXXXXXXXY'),
     'ph': '123-456-789-123',
     'pl': 'PL1234567883',
     'pt': 'PT123456789',
@@ -330,12 +336,15 @@ _ref_vat = {
     'sm': 'SM24165',
     'th': '1234545678781',
     'tr': _lt('11111111111 (NIN) or 2222222222 (VKN)'),
-    'ua': _lt('12345678 or UA12345678 (EDRPOU), 1234567890 (RNOPP) or 123456789012 (IPN)'),
-    'uy': _lt("Example: '219999830019' (format: 12 digits, all numbers, valid check digit)"),
+    'ua': _lt('12345678 or UA12345678 (EDRPOU), 1234567890 (RNOPP) or '
+              '123456789012 (IPN)'),
+    'uy': _lt("Example: '219999830019' (format: 12 digits, all numbers, "
+              "valid check digit)"),
     'uz': _lt('XXXXXXXXX [9 digits]'),
     've': 'V-12345678-1, V123456781, V-12.345.678-1',
     'xi': 'XI123456782',
-    'sa': _lt('310175397400003 [Fifteen digits, first and last digits should be "3"]'),
+    'sa': _lt('310175397400003 [Fifteen digits, first and last digits '
+              'should be "3"]'),
 }
 
 # === Las quince expresiones regulares precompiladas =======================
@@ -344,33 +353,40 @@ _ref_vat = {
 # que ``self._check_vat_ch_re`` siga resolviendo como allá.
 
 _check_vat_al_re = re.compile(r'^[JKLM][0-9]{8}[A-Z]$')
-_check_tin1_ro_natural_persons = re.compile(r'[1-9]\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{6}')
+_check_tin1_ro_natural_persons = re.compile(
+    r'[1-9]\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{6}')
 _check_tin2_ro_natural_persons = re.compile(r'9000\d{9}')
-# Our EDI provider Infile has designated this range of testing VATs for our customers.
+# Our EDI provider Infile has designated this range of testing VATs for our
+# customers.
 _check_vat_gt_testing_infile = re.compile(r'98[0-9]{10}K')
 _check_tin_hu_individual_re = re.compile(r'^8\d{9}$')
 _check_tin_hu_companies_re = re.compile(r'^\d{8}-?[1-5]-?\d{2}$')
 _check_tin_hu_european_re = re.compile(r'^\d{8}$')
-_check_vat_ch_re = re.compile(r'E([0-9]{9}|-[0-9]{3}\.[0-9]{3}\.[0-9]{3})( )?(MWST|TVA|IVA)$')
+_check_vat_ch_re = re.compile(
+    r'E([0-9]{9}|-[0-9]{3}\.[0-9]{3}\.[0-9]{3})( )?(MWST|TVA|IVA)$')
 # Mexican VAT verification, contributed by Vauxoo
 # and Panos Christeas <p_christ@hol.gr>
 _check_vat_mx_re = re.compile(r"(?P<primeras>[A-Za-z\xd1\xf1&]{3,4})"
                               r"[ \-_]?"
-                              r"(?P<ano>[0-9]{2})(?P<mes>[01][0-9])(?P<dia>[0-3][0-9])"
+                              r"(?P<ano>[0-9]{2})(?P<mes>[01][0-9])"
+                              r"(?P<dia>[0-3][0-9])"
                               r"[ \-_]?"
                               r"(?P<code>[A-Za-z0-9&\xd1\xf1]{3})")
 # Philippines TIN (+ branch code) validation
 _check_vat_ph_re = re.compile(r"\d{3}-\d{3}-\d{3}(-\d{3,5})?$")
 _check_vat_sa_re = re.compile(r"^3[0-9]{13}3$")
 # Minimal regex matching similar to stdnum
-# Derived from https://github.com/arthurdejong/python-stdnum/commit/d3ec3bd7fefe0d0a708b6594a66de28777eb9b8d
+# Derived from
+# https://github.com/arthurdejong/python-stdnum/commit/d3ec3bd7fefe0d0a708b6594a66de28777eb9b8d
 _check_vat_br_re = re.compile(r'^[\dA-Z]+$')
 _check_vat_cr_re = re.compile(r'^(?:[1-9]\d{8}|\d{10}|[1-9]\d{10,11})$')
 _check_vat_vn_re = re.compile(r'^\d{10}(?:-?\d{3})?$|^\d{12}$')
 _check_vat_vn_companies_re = re.compile(r'^\d{10}(?:-?\d{3})?$')
 
-#: El endpoint de producción y el de pruebas del proxy VIES — ``odoo19c: :260``.
-IAP_VIES_ENDPOINTS = ('https://vies.api.odoo.com', 'https://vies.test.odoo.com')
+# : El endpoint de producción y el de pruebas del proxy VIES — ``odoo19c:
+# :260``.
+IAP_VIES_ENDPOINTS = ('https://vies.api.odoo.com',
+                      'https://vies.test.odoo.com')
 
 #: Las dos claves con que el proxy identifica a esta base — ``odoo19c: :232``.
 IAP_CLIENT_IDENTIFIER_PARAM = 'iap_vies.client_identifier'
@@ -527,7 +543,8 @@ def _check_vies_iap(self):
     endpoint = self._get_iap_vies_endpoint()
     client_identifier, client_token = self._get_iap_vies_credentials()
     with sudo():
-        webhook_token = hash_sign(env(), 'vies_check', self.vat, expiration_hours=24 * 7)
+        webhook_token = hash_sign(env(), 'vies_check', self.vat,
+                                  expiration_hours=24 * 7)
     try:
         req = requests.post(
             endpoint + '/api/vies/1/check_validity',
@@ -536,7 +553,8 @@ def _check_vies_iap(self):
                 "db_uuid": SystemParameter.get_param('database.uuid'),
                 "client_identifier": client_identifier,
                 "client_token": client_token,
-                "webhook_url": self.get_base_url() + '/base_vat/1/webhook_update_vies',
+                "webhook_url": (self.get_base_url()
+                                + '/base_vat/1/webhook_update_vies'),
                 "webhook_token": webhook_token,
             },
             timeout=20,
@@ -595,7 +613,8 @@ def _update_vies_status(self, status):
 
     BLOQUEADO por ``mail.thread._message_log_batch`` — razón: la nota que la
     fuente deja en el hilo del partner necesita ese método y no existe en este
-    árbol (medido: ``grep -rn "def _message_log_batch" --include=*.py src/ addons/ | grep -vc base_vat/models/res_partner.py``
+    árbol (medido: ``grep -rn "def _message_log_batch" --include=*.py src/
+    addons/ | grep -vc base_vat/models/res_partner.py``
     da **0** — el ``grep -v`` excluye este archivo para que la cita no se
     cuente a sí misma; ``addons/crm/models/crm_team.py:140`` ya lo declaraba
     ausente). La escritura del estado —el trabajo del método— sí se hace.
@@ -648,7 +667,8 @@ def _build_vat_error_message(self, country_code, wrong_vat, record_label):
     company = _current_company()
 
     vat_label = _("VAT")
-    country = getattr(company, 'country', None) if company is not None else None
+    country = (getattr(company, 'country', None)
+               if company is not None else None)
     if (country_code and country is not None
             and country_code == country.code and country.vat_label):
         vat_label = country.vat_label
@@ -660,7 +680,8 @@ def _build_vat_error_message(self, country_code, wrong_vat, record_label):
             'Note: the expected format is %(expected_format)s',
             expected_format=expected_format)
 
-    # Catch use case where the record label is about the public user (name: False)
+    # Catch use case where the record label is about the public user (name:
+    # False)
     if 'False' not in record_label:
         return '\n' + _(
             'The %(vat_label)s number [%(wrong_vat)s] for %(record_label)s '
@@ -843,7 +864,8 @@ def check_vat_ro(self, vat):
       number 8 and 9 are Country or district code (For those twos digits, we
       decided to let some flexibility to avoid complexifying the regex and
       also for maintainability)
-    - 9000xxxxxxxx, start with 9000 and then is filled by number In the range 0...9
+    - 9000xxxxxxxx, start with 9000 and then is filled by number In the range
+    0...9
 
     Also stdum also checks the CUI or CIF (Romanian company identifier). So a
     number like '123456897' will pass.
@@ -857,7 +879,8 @@ def check_vat_ro(self, vat):
 
 
 def check_vat_gr(self, vat):
-    """Allows some custom test VAT number to be valid to allow testing Greece EDI."""
+    """Allows some custom test VAT number to be valid to allow testing
+    Greece EDI."""
     greece_test_vats = ('047747270', '047747210', '047747220', '117747270',
                         '127747270')
     if vat in greece_test_vats:
@@ -908,7 +931,8 @@ def check_vat_ch(self, vat):
     if match:
         # For new TVA numbers, the last digit is a MOD11 checksum digit build
         # with weighting pattern: 5,4,3,2,7,6,5,4
-        num = [s for s in match.group(1) if s.isdigit()]   # get the digits only
+        # get the digits only
+        num = [s for s in match.group(1) if s.isdigit()]
         factor = (5, 4, 3, 2, 7, 6, 5, 4)
         csum = sum(int(num[i]) * factor[i] for i in range(8))
         check = (11 - (csum % 11)) % 11
@@ -978,13 +1002,15 @@ def check_vat_mx(self, vat):
 
 
 def check_vat_no(self, vat):
-    """Check Norway VAT number. See http://www.brreg.no/english/coordination/number.html
+    """Check Norway VAT number. See
+    http://www.brreg.no/english/coordination/number.html
 
     Norway VAT validation, contributed by Rolv Råen (adEgo) <rora@adego.no>.
     Support for MVA suffix contributed by Bringsvor Consulting AS.
     """
     if len(vat) == 12 and vat.upper().endswith('MVA'):
-        vat = vat[:-3]  # Strictly speaking we should enforce the suffix MVA but...
+        # Strictly speaking we should enforce the suffix MVA but...
+        vat = vat[:-3]
 
     if len(vat) != 9:
         return False
@@ -1094,7 +1120,8 @@ def check_vat_ua(self, vat):
 def check_vat_uy(self, vat):
     """Taken from python-stdnum's master branch, as the release doesn't handle
     RUT numbers starting with 22.
-    origin https://github.com/arthurdejong/python-stdnum/blob/master/stdnum/uy/rut.py
+    origin
+    https://github.com/arthurdejong/python-stdnum/blob/master/stdnum/uy/rut.py
     FIXME Can be removed when python-stdnum does a new release.
     """
     def compact(number):
@@ -1139,7 +1166,8 @@ def check_vat_ve(self, vat):
         (
             (?P<optional_1>-)?                      # optional '-' (1)
             [0-9]{2}
-            (?(optional_1)(?P<optional_2>[.])?)     # optional '.' (2) only if (1)
+            # optional '.' (2) only if (1)
+            (?(optional_1)(?P<optional_2>[.])?)
             [0-9]{3}
             (?(optional_2)[.])                      # mandatory '.' if (2)
             [0-9]{3}
@@ -1161,7 +1189,8 @@ def check_vat_ve(self, vat):
         kind_digit = 1
     elif kind == 'e':                 # Foreigner
         kind_digit = 2
-    elif kind == 'c' or kind == 'j':  # Township/Communal Council or Legal entity
+    # Township/Communal Council or Legal entity
+    elif kind == 'c' or kind == 'j':
         kind_digit = 3
     elif kind == 'p':                 # Passport
         kind_digit = 4
@@ -1181,22 +1210,31 @@ def check_vat_ve(self, vat):
 
 
 def check_vat_in(self, vat):
-    """reference from https://www.gstzen.in/a/format-of-a-gst-number-gstin.html"""
+    """reference from
+    https://www.gstzen.in/a/format-of-a-gst-number-gstin.html"""
     if vat and len(vat) == 15:
         all_gstin_re = [
-            r'[0-9]{2}[a-zA-Z]{5}[0-9]{4}[a-zA-Z]{1}[1-9A-Za-z]{1}[Zz1-9A-Ja-j]{1}[0-9a-zA-Z]{1}',  # Normal, Composite, Casual GSTIN
-            r'[0-9]{4}[A-Z]{3}[0-9]{5}[UO]{1}[N][A-Z0-9]{1}',  # UN/ON Body GSTIN
+            # Normal, Composite, Casual GSTIN
+            r'[0-9]{2}[a-zA-Z]{5}[0-9]{4}[a-zA-Z]{1}[1-9A-Za-z]{1}'
+            r'[Zz1-9A-Ja-j]{1}[0-9a-zA-Z]{1}',
+            # UN/ON Body GSTIN
+            r'[0-9]{4}[A-Z]{3}[0-9]{5}[UO]{1}[N][A-Z0-9]{1}',
             r'[0-9]{4}[A-Z]{3}[0-9]{5}[A-Z]{3}',  # Revised NRI GSTIN
             r'[0-9]{4}[a-zA-Z]{3}[0-9]{5}[N][R][0-9a-zA-Z]{1}',  # NRI GSTIN
-            r'[0-9]{2}[a-zA-Z]{4}[a-zA-Z0-9]{1}[0-9]{4}[a-zA-Z]{1}[1-9A-Za-z]{1}[DK]{1}[0-9a-zA-Z]{1}',  # TDS GSTIN
-            r'[0-9]{2}[a-zA-Z]{5}[0-9]{4}[a-zA-Z]{1}[1-9A-Za-z]{1}[C]{1}[0-9a-zA-Z]{1}',  # TCS GSTIN
+            # TDS GSTIN
+            r'[0-9]{2}[a-zA-Z]{4}[a-zA-Z0-9]{1}[0-9]{4}[a-zA-Z]{1}'
+            r'[1-9A-Za-z]{1}[DK]{1}[0-9a-zA-Z]{1}',
+            # TCS GSTIN
+            r'[0-9]{2}[a-zA-Z]{5}[0-9]{4}[a-zA-Z]{1}[1-9A-Za-z]{1}[C]{1}'
+            r'[0-9a-zA-Z]{1}',
         ]
         return any(re.compile(rx).match(vat) for rx in all_gstin_re)
     return False
 
 
 def check_vat_br(self, vat):
-    """≙ ``check_vat_br`` (``odoo19c: :761-777``) — CPF por ``stdnum``, CNPJ propio."""
+    """≙ ``check_vat_br`` (``odoo19c: :761-777``) — CPF por ``stdnum``,
+    CNPJ propio."""
     def is_cnpj_valid(number):
         number = clean(number, ' -./').strip().upper()
         if number.startswith('000000000000') or len(number) != 14:
@@ -1234,10 +1272,12 @@ def check_vat_vn(self, vat):
       (used as tax ID for individuals from July 1st, 2025)
 
     Note:
-    - stdnum.vn.mst.validate() currently only supports 10- and 13-digit VAT numbers
+    - stdnum.vn.mst.validate() currently only supports 10- and 13-digit VAT
+    numbers
     - and does not accept the 12-digit personal tax ID (CCCD) format introduced
       from 01/07/2025.
-    - This helper provides a lightweight format-level validator for use in the meantime.
+    - This helper provides a lightweight format-level validator for use in the
+    meantime.
     - Can be removed once stdnum.vn.mst adds CCCD support.
     """
     vat = vat.strip()
@@ -1256,7 +1296,8 @@ def check_vat_id(self, vat):
     # the 10th digit is a luhn checksum. In some cases, the 15 digits can be
     # transformed in a 16-digit by adding a 0 in front. In such case, we can
     # verify the luhn checksum like for the 15 digits by removing the 0.
-    # However, for newly created VAT 16-digits VAT number, there is no checksum.
+    # However, for newly created VAT 16-digits VAT number, there is no
+    # checksum.
     if len(vat) == 16 and vat[0] != '0':
         return True
 
@@ -1423,7 +1464,8 @@ def save(self, previous, *args, **kwargs):
       importación (``self.env.context.get('import_file')``).
 
     Por qué no se enganchan ``create``/``write`` como allá, medido:
-    ``grep -cE "^    def (create|write)\\(" src/addons/base/models/res_partner.py``
+    ``grep -cE "^    def (create|write)\\("
+    src/addons/base/models/res_partner.py``
     da **0** — ``ResPartner`` no declara ninguno de los dos, y ``wrap_method``
     exige implementación previa (``src/orm/method_chain.py:246-250``).
     Declararlos aquí, sobre un modelo de ``base``, sería el defecto de sitio de
@@ -1456,7 +1498,8 @@ def _forget_vies_recompute(model, record_ids):
 # === El enganche ==========================================================
 
 def apply_base_vat_extensions():
-    """Cuelga sobre ``res.partner`` lo que ``base_vat`` le declara — ≙ ``_inherit``."""
+    """Cuelga sobre ``res.partner`` lo que ``base_vat`` le declara — ≙
+    ``_inherit``."""
     extend_model('base', 'ResPartner', campos={
         'vies_valid': fields.Boolean(
             default=False, verbose_name='Intra-Community Valid',
@@ -1468,7 +1511,8 @@ def apply_base_vat_extensions():
         '_run_vat_checks': _run_vat_checks,
         '_inverse_vat': _inverse_vat,
         '_onchange_vat': _onchange_vat,
-        '_get_country_specific_vat_variants': _get_country_specific_vat_variants,
+        '_get_country_specific_vat_variants':
+            _get_country_specific_vat_variants,
         '_compute_perform_vies_validation': _compute_perform_vies_validation,
         '_compute_vies_valid': _compute_vies_valid,
         '_split_vat': _split_vat,

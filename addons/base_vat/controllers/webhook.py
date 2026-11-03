@@ -3,8 +3,8 @@
 Adaptación de ``odoo19c: addons/base_vat/controllers/webhook.py``
 (``odoo-tools@abe4040ec1``, LGPL-3, DEC-KX-03). La fuente declara
 ``@http.route('/base_vat/1/webhook_update_vies', type='http', csrf=False,
-save_session=False, auth='public')``; aquí es una ``APIView`` con ``AllowAny`` y
-``csrf_exempt``, el precedente de ``base_automation``: la autenticación es el
+save_session=False, auth='public')``; aquí es una ``APIView`` con ``AllowAny``
+y ``csrf_exempt``, el precedente de ``base_automation``: la autenticación es el
 ``webhook_token`` que :func:`_check_vies_iap` firmó con ``hash_sign`` en el
 ámbito ``vies_check``, no una sesión.
 
@@ -57,9 +57,9 @@ class BaseVatWebhookController(APIView):
         """El cuerpo, con el nombre de la fuente.
 
         Docstring de la fuente, verbatim: *"Webhook called by IAP when it
-        updates a status from the pending state. The webhook_token is computed
-        by the Odoo db (in _compute_vies_valid) and stored on IAP such that only
-        IAP can call this webhook."*
+        updates a status from the pending state. The webhook_token is
+        computed by the Odoo db (in _compute_vies_valid) and stored on IAP
+        such that only IAP can call this webhook."*
         """
         params = request.query_params.copy()
         params.update(request.data)
@@ -71,7 +71,8 @@ class BaseVatWebhookController(APIView):
             except ValueError:
                 vat = None
             if not vat:
-                _logger.warning("VIES update failed: webhook_token does not match.")
+                _logger.warning(
+                    "VIES update failed: webhook_token does not match.")
                 return Response(status=200)
             for partner in ResPartner.objects.filter(vat=vat):
                 partner._update_vies_status(status)

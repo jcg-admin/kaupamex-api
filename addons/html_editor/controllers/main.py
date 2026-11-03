@@ -182,15 +182,15 @@ STATIC_CACHE_LONG = 60 * 60 * 24 * 365
 # son ligeramente distintos de los de JavaScript.
 
 CSS_ANIMATION_RULE_REGEX = (
-        r"(?P<declaration>animation(-duration)?:\s*.*?)"
-        r"(?P<value>(\d+(\.\d+)?)|(\.\d+))"
-        r"(?P<unit>ms|s)"
-        r"(?P<separator>\s|;|\"|$)"
+    r"(?P<declaration>animation(-duration)?:\s*.*?)"
+    r"(?P<value>(\d+(\.\d+)?)|(\.\d+))"
+    r"(?P<unit>ms|s)"
+    r"(?P<separator>\s|;|\"|$)"
 )
 SVG_DUR_TIMECOUNT_VAL_REGEX = (
-        r"(?P<attribute_name>\sdur=\"\s*)"
-        + r"(?P<value>(\d+(\.\d+)?)|(\.\d+))"
-        + r"(?P<unit>h|min|ms|s)?\s*\""
+    r"(?P<attribute_name>\sdur=\"\s*)"
+    + r"(?P<value>(\d+(\.\d+)?)|(\.\d+))"
+    + r"(?P<unit>h|min|ms|s)?\s*\""
 )
 CSS_ANIMATION_RATIO_REGEX = (
     r"(--animation_ratio: (?P<ratio>\d*(\.\d+)?));"
@@ -526,7 +526,9 @@ class HTML_Editor:
 
         # Aunque el usuario no tenga derecho a crear un adjunto, sí puede
         # crear un adjunto de imagen por algunos flujos
-        if IrAttachment()._can_bypass_rights_on_media_dialog(**attachment_data):
+        can_bypass = IrAttachment()._can_bypass_rights_on_media_dialog(
+            **attachment_data)
+        if can_bypass:
             attachment = _create_attachment(IrAttachment, attachment_data)
             # Cuando un usuario del portal sube un adjunto con el widget
             # wysiwyg, hace falta el token de acceso para usar la imagen en el
@@ -872,9 +874,9 @@ class HTML_Editor:
         las dos se resuelven aquí:
 
         - ``módulo.nombre`` → identificador externo, por ``ir.model.data.ref``;
-        - ``modelo/id`` o ``modelo(id)`` → el par, por ``ir.binary.find_record``
-          (que es el ``_find_record`` de la fuente con el guion bajo quitado
-          por ``base``).
+        - ``modelo/id`` o ``modelo(id)`` → el par, por
+          ``ir.binary.find_record`` (que es el ``_find_record`` de la fuente
+          con el guion bajo quitado por ``base``).
 
         El par admite las dos formas de nombrar un modelo que este árbol usa a
         la vez: la de Django (``base.IrAttachment``) y la punteada de la fuente
@@ -936,7 +938,8 @@ class HTML_Editor:
         # ≙ ``if stream.type == 'url': return stream.get_response()`` — un
         # adjunto de tipo ``url`` no tiene bytes que incrustar; se redirige a
         # su origen, que es lo que el *stream* de la fuente hace.
-        if getattr(record, 'type', None) == 'url' and getattr(record, 'url', ''):
+        if (getattr(record, 'type', None) == 'url'
+                and getattr(record, 'url', '')):
             return HttpResponseRedirect(record.url)
 
         image = _attachment_raw(record)
@@ -1115,7 +1118,7 @@ class HTML_Editor:
                 "your url is correct" % str(e))}
         # se atrapa el resto de excepciones y se devuelve el mensaje para
         # mostrarlo en la consola, sin bloquear el flujo
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             return {'other_error_msg': str(e)}
 
     def media_library_search(self, request, **params):
@@ -1208,7 +1211,8 @@ def remove_endpoint(request):
 
 
 @extend_schema(tags=['html_editor'], summary='Información de una imagen',
-               responses={200: OpenApiResponse(description='attachment + original')})
+               responses={200: OpenApiResponse(
+                   description='attachment + original')})
 @api_view(['POST'])
 @require_capability('html_editor.attachment.view')
 def get_image_info_endpoint(request):
@@ -1218,7 +1222,8 @@ def get_image_info_endpoint(request):
 
 
 @extend_schema(tags=['html_editor'], summary='Datos de una URL de vídeo',
-               responses={200: OpenApiResponse(description='platform + embed_url')})
+               responses={200: OpenApiResponse(
+                   description='platform + embed_url')})
 @api_view(['POST'])
 @require_capability('html_editor.attachment.view')
 def video_url_data_endpoint(request):
@@ -1282,7 +1287,8 @@ def modify_image_endpoint(request, attachment_id):
 
 
 @extend_schema(tags=['html_editor'], summary='Guarda medios de la biblioteca',
-               responses={200: OpenApiResponse(description='lista de media info')})
+               responses={200: OpenApiResponse(
+                   description='lista de media info')})
 @api_view(['POST'])
 @require_capability('html_editor.attachment.create')
 def save_library_media_endpoint(request):
@@ -1388,7 +1394,8 @@ def link_preview_metadata_endpoint(request):
 
 
 @extend_schema(tags=['html_editor'], summary='Metadatos de un enlace interno',
-               responses={200: OpenApiResponse(description='description + nombre')})
+               responses={200: OpenApiResponse(
+                   description='description + nombre')})
 @api_view(['POST'])
 @require_capability('html_editor.attachment.view')
 def link_preview_metadata_internal_endpoint(request):
@@ -1397,8 +1404,10 @@ def link_preview_metadata_internal_endpoint(request):
         request, request.data.get('preview_url')))
 
 
-@extend_schema(tags=['html_editor'], summary='Busca en la biblioteca de medios',
-               responses={200: OpenApiResponse(description='resultado del proveedor')})
+@extend_schema(tags=['html_editor'],
+               summary='Busca en la biblioteca de medios',
+               responses={200: OpenApiResponse(
+                   description='resultado del proveedor')})
 @api_view(['POST'])
 @require_capability('html_editor.attachment.view')
 def media_library_search_endpoint(request):

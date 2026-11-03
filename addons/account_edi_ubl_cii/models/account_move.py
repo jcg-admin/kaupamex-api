@@ -128,8 +128,8 @@ def _compute_filename(self):
 def action_invoice_download_ubl(self):
     """≙ ``action_invoice_download_ubl`` (``odoo19c: :47-52``).
 
-    DIVERGENCIA: ``self.ids`` (recordset) → ``[self.pk]`` — ver "``ensure_one``"
-    en el docstring del módulo. La URL se conserva verbatim.
+    DIVERGENCIA: ``self.ids`` (recordset) → ``[self.pk]`` — ver
+    "``ensure_one``" en el docstring del módulo. La URL se conserva verbatim.
     """
     return {
         'type': 'ir.actions.act_url',
@@ -167,7 +167,8 @@ def _get_import_file_type(self, file_data):
                                     'international:sg:3.0'):
                 return 'account.edi.xml.ubl_sg'
             if customization_id == ('urn:cen.eu:en16931:2017#compliant#'
-                                    'urn:fdc:peppol.eu:2017:poacc:billing:3.0'):
+                                    'urn:fdc:peppol.eu:2017:poacc:'
+                                    'billing:3.0'):
                 return 'account.edi.xml.ubl_bis3'
         if ubl_version := tree.findtext('{*}UBLVersionID'):
             if ubl_version == '2.0':
@@ -224,7 +225,8 @@ def _unwrap_attachment(self, file_data, recurse=True):
     El tipo del adjunto embebido sale de su contenido, con ``guess_mimetype``
     (``tools.mimetypes``), como en la fuente.
     """
-    if file_data['import_file_type'] != 'account.edi.xml.ubl.attached_document':
+    attached = 'account.edi.xml.ubl.attached_document'
+    if file_data['import_file_type'] != attached:
         return None
 
     content, tree = type(self)._ubl_parse_attached_document(
@@ -393,7 +395,8 @@ def _get_specific_tax(self, name, amount_type, amount, tax_type):
 
 def apply_account_edi_ubl_cii_account_move_extensions():
     """Cuelga sobre ``account.AccountMove`` lo que este addon aporta — ≙
-    ``_inherit = 'account.move'``. La llama ``AccountEdiUblCiiConfig.ready()``."""
+    ``_inherit = 'account.move'``. La llama
+    ``AccountEdiUblCiiConfig.ready()``."""
     for name, field in _extra_fields().items():
         add_field_if_absent(AccountMove, name, field)
 
@@ -404,12 +407,14 @@ def apply_account_edi_ubl_cii_account_move_extensions():
         ('action_invoice_download_ubl', action_invoice_download_ubl),
         ('_get_import_file_type', _get_import_file_type),
         ('_unwrap_attachment', _unwrap_attachment),
-        ('_ubl_parse_attached_document', classmethod(_ubl_parse_attached_document)),
+        ('_ubl_parse_attached_document',
+         classmethod(_ubl_parse_attached_document)),
         ('_get_line_vals_list', classmethod(_get_line_vals_list)),
         ('_get_fields_to_detach', _get_fields_to_detach),
         ('_get_invoice_legal_documents', _get_invoice_legal_documents),
         ('get_extra_print_items', get_extra_print_items),
-        ('action_group_ungroup_lines_by_tax', action_group_ungroup_lines_by_tax),
+        ('action_group_ungroup_lines_by_tax',
+         action_group_ungroup_lines_by_tax),
         ('_ungroup_lines', _ungroup_lines),
         ('_group_lines_by_tax', _group_lines_by_tax),
         ('_get_line_vals_group_by_tax', _get_line_vals_group_by_tax),
