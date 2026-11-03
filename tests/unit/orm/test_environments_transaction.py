@@ -27,6 +27,7 @@ from django.db import connection, connections, transaction
 
 from orm import registry
 from orm.environments import (
+    Environment,
     Transaction,
     _connection_transaction,
     context_scope,
@@ -360,3 +361,48 @@ class TestTheEnvironmentSugar:
     def test_it_is_hashable(self):
         """El contexto es un dict; si no se congelara, esto levantaría."""
         assert len({env(), env()}) == 1
+
+
+class TestTheCommitCutLeavesNoOpenTransaction:
+    """El corte de ``commit`` vuelca antes de confirmar — H-API-1134.
+
+    Medido en la suite en paralelo: el ``flush`` de un test transaccional
+    confirma con la transacción del ORM sin ``default_env`` (los entornos de
+    prueba no llevan ``uid``), el respaldo de la fuente resuelve
+    ``base.public_user`` justo después del ``TRUNCATE`` y lanza ``ValueError``.
+    ``Atomic.__exit__`` sólo revierte ante ``DatabaseError``: la conexión
+    quedaba en ``INTRANS`` y todo el worker se colgaba detrás.
+    """
+
+    def test_a_flush_with_nothing_pending_needs_no_user(self, monkeypatch):
+        """Sin escrituras ni cómputos pendientes ``flush_all`` no hace nada, y
+        resolver un usuario para eso es un efecto que la fuente nunca ejerce
+        (allí ``base.public_user`` siempre existe)."""
+        current = get_transaction()
+        current.default_env = None
+        current.field_dirty.clear()
+        current.tocompute.clear()
+        keep = Environment(connection.alias, None, {})
+
+        def refuse(*args, **kwargs):
+            raise AssertionError('no user is needed to flush nothing')
+
+        monkeypatch.setattr(Environment, 'ref', refuse)
+        current.flush()
+        assert keep is not None
+
+    @pytest.mark.django_db(transaction=True)
+    def test_a_failed_pre_commit_flush_does_not_leave_the_connection_open(
+            self, monkeypatch):
+        def broken_flush(self):
+            raise ValueError('pre-commit flush failed')
+
+        monkeypatch.setattr(Transaction, 'flush', broken_flush)
+        with pytest.raises(ValueError, match='pre-commit flush failed'):
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    cursor.execute('SELECT 1')
+                _connection_transaction()
+        monkeypatch.undo()
+        assert connection.connection.info.transaction_status.name == 'IDLE'
+        assert connection.get_autocommit() is True

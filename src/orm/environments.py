@@ -521,11 +521,23 @@ class Transaction:
         if self.default_env is not None:
             self.default_env.flush_all()
             return
+        if not self._has_pending():
+            # Sin escrituras ni computos pendientes ``flush_all`` no hace nada:
+            # resolver un usuario para eso es un efecto que la fuente nunca
+            # ejerce, porque alli ``base.public_user`` siempre existe. Aqui un
+            # ``commit`` puede llegar justo despues del ``TRUNCATE`` del
+            # vaciado de una prueba, y el ``ref`` lanzaba (H-API-1134).
+            return
         for environment in _live_envs(self):
             _logger.warning("Missing default_env, flushing as public user")
             public_user = environment.ref('base.public_user')
             Environment(environment._using, public_user.pk, {}).flush_all()
             break
+
+    def _has_pending(self):
+        """¿Queda algo que volcar? Escrituras sucias o computos pendientes."""
+        return (any(self.field_dirty.values())
+                or any(self.tocompute.values()))
 
     def reset(self):
         """Reinicia la transacción tras recargar el registro.
@@ -709,7 +721,16 @@ def _wrap_cursor_cut(name, flush_first, discard):
         if flush_first:
             current = getattr(self, _TRANSACTION_ATTRIBUTE, None)
             if current is not None:
-                current.flush()
+                try:
+                    current.flush()
+                except Exception:
+                    # El volcado previo al ``COMMIT`` fallo: en la fuente el
+                    # llamador revierte el cursor. ``Atomic.__exit__`` de Django
+                    # solo revierte ante ``DatabaseError``; con otra excepcion la
+                    # conexion quedaba en ``INTRANS`` y el siguiente
+                    # ``set_autocommit`` fallaba (H-API-1134).
+                    self.rollback()
+                    raise
         try:
             return original(self, *args, **kwargs)
         finally:
