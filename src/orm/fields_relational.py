@@ -97,6 +97,7 @@ from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 from django.db.models.fields.related import RelatedField
 
+from orm.commands import apply_one2many_commands, is_command_list
 from orm.environments import env as get_environment
 from orm.fields_company_dependent import CompanyDependent
 from orm.fields_nonstored import (
@@ -107,7 +108,8 @@ from orm.fields_nonstored import (
 from django.db.models.fields.related import lazy_related_operation
 from orm.identifiers import NewId
 from orm.model_classes import is_transient
-from orm.registry import IR_MODELS, model_by_name, name_of, sentinel_label
+from orm.registry import (IR_MODELS, model_by_key, model_by_name, name_of,
+                          sentinel_label)
 from orm.utils import display_name_of, model_of, record_ids
 from tools.misc import SENTINEL, unique
 from tools.sql import SQL
@@ -362,7 +364,10 @@ class One2many:
         Un ``FieldDoesNotExist`` pelado de Django no dice cual de los dos
         nombres esta mal: si el del comodelo o el del inverso.
         """
-        comodel = apps.get_model(self.comodel_name)
+        # El comodelo viene escrito como en la fuente (``'test_orm.message'``)
+        # o como label de Django; ``model_by_key`` resuelve los dos.
+        comodel = model_by_key(self.comodel_name) or apps.get_model(
+            self.comodel_name)
         try:
             return comodel, comodel._meta.get_field(self.inverse_name)
         except FieldDoesNotExist:
@@ -409,14 +414,16 @@ class One2many:
         lineas dadas, y las que sobran pasan por ``unlink``. ``CLEAR`` es el
         mismo camino con la lista vacia.
 
-        Los otros cinco comandos —``CREATE``, ``UPDATE``, ``DELETE``,
-        ``UNLINK``, ``LINK``— no pasan por aqui. ``Command`` ya devuelve el
-        triple diferido de la fuente, pero sólo
-        :func:`~orm.commands.apply_many2many_commands` lo interpreta, y es
-        para ``Many2many``; la forma de triple sobre un ``One2many`` sigue
-        pendiente en TASK-API-0190 (:ref:`h-api-589`).
+        Una lista de triples de ``Command`` la interpreta
+        :func:`~orm.commands.apply_one2many_commands` sobre el ``Many2one``
+        inverso (:ref:`h-api-1132`).
         """
         comodel, inverse = self._inverse_field()
+        if is_command_list(value):
+            # Los siete comandos de la fuente — ≙ ``One2many.write_real``
+            # (``odoo19c: odoo/orm/fields_relational.py:969``).
+            apply_one2many_commands(instance, inverse.remote_field, value)
+            return
         nuevos = list(value or ())
         vivos = [obj.pk for obj in nuevos if obj.pk is not None]
         sobrantes = (comodel._default_manager

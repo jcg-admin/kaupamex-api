@@ -87,3 +87,22 @@ def test_parent_id(env):
     team1.write({'parent_id': team1.id})
     Team.search([('id', 'parent_of', team1.id)])
     Team.search([('id', 'child_of', team1.id)])
+
+
+def test_commands_on_a_declared_one2many(env):
+    """Un ``fields.One2many(comodel, inverse)`` declarado —no el reverso de
+    Django— interpreta los mismos comandos al crear y al escribir."""
+    Discussion = env['test_orm.discussion']
+    discussion = Discussion.create({
+        'name': 'd',
+        'messages': [Command.create({'name': 'm1'}),
+                     Command.create({'name': 'm2'})],
+    })
+    m1, m2 = sorted(Discussion.browse(discussion.ids).messages,
+                    key=lambda message: message.name)
+    assert (m1.name, m2.name) == ('m1', 'm2')
+    discussion.write({'messages': [Command.update(m1.id, {'name': 'x'}),
+                                   Command.delete(m2.id)]})
+    messages = Discussion.browse(discussion.ids).messages
+    assert [message.name for message in messages] == ['x']
+    assert not env['test_orm.message'].browse(m2.ids).exists()

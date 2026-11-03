@@ -90,6 +90,7 @@ from orm.commands import (_DJANGO_X2MANY_GET, ManyToManyLink, ManyToManySet,
 from orm import registry
 from orm.domains import Domain, to_q
 from orm.model_classes import parent_name_of
+from orm.fields_relational import One2many as DeclaredOne2many
 from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES, FieldDescriptor,
                         StoredMany2oneIdDescriptor,
                         _field_cache_record_id,
@@ -780,6 +781,21 @@ class DefaultGetMixin:
 
         AccessQuerySet(model=cls).none().check_access('create')
 
+        # Un ``fields.One2many`` declarado no es un campo de Django ni entra en
+        # el registro: se aparta aquí y se aplica con la fila ya creada, como
+        # ``One2many.write_real(..., create=True)``.
+        declared_one2many = [
+            {name: vals[name] for name in vals
+             if isinstance(getattr(cls, name, None), DeclaredOne2many)}
+            for vals in vals_list
+        ]
+        if any(declared_one2many):
+            vals_list = [
+                {name: value for name, value in vals.items()
+                 if name not in apart}
+                for vals, apart in zip(vals_list, declared_one2many)
+            ]
+
         # check access to all user-provided fields
         context = get_context()
         field_names = OrderedSet(fname for vals in vals_list for fname in vals)
@@ -855,6 +871,15 @@ class DefaultGetMixin:
 
         # create records with stored fields
         records = cls._create(data_list)
+        for record, apart in zip(records, declared_one2many):
+            for name, value in apart.items():
+                field = getattr(cls, name)
+                if is_command_list(value):
+                    _, inverse = field._inverse_field()
+                    apply_one2many_commands(record, inverse.remote_field,
+                                            value, create=True)
+                else:
+                    field.__set__(record, value)
 
         # protect fields being written against recomputation
         with contextlib.ExitStack() as stack:
