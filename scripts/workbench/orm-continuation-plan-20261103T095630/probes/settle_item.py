@@ -42,7 +42,11 @@ def plan_row(workbench, item):
 def main(argv):
     workbench, item = pathlib.Path(argv[0]).resolve(), argv[1]
     row = plan_row(workbench, item)
-    if subprocess.run(['git', '-C', str(REPO), 'status', '--porcelain'],
+    # El registro del propio banco cambia con cada asiento: no ensucia el
+    # veredicto, que es del codigo.
+    own_log = str((workbench / 'outputs').relative_to(REPO))
+    if subprocess.run(['git', '-C', str(REPO), 'status', '--porcelain', '--',
+                       '.', f':!{own_log}'],
                       capture_output=True, text=True).stdout.strip():
         print('settle_item: arbol sucio; el veredicto no tendria commit', file=sys.stderr)
         return 2
@@ -50,7 +54,9 @@ def main(argv):
                             capture_output=True, text=True).stdout.strip()
     result = subprocess.run(row['verify'], shell=True, cwd=REPO,
                             capture_output=True, text=True)
-    tail = (result.stdout + result.stderr).strip().splitlines()[-3:]
+    lines = [line for line in (result.stdout + result.stderr).splitlines()
+             if line.strip() and not line.startswith('warning:')]
+    tail = lines[-3:]
     append_log(workbench, {'kind': 'attempt', 'item': item, 'attempt': 0,
                            'model': 'conversational-session', 'outcome':
                            'success' if result.returncode == 0 else 'verify-failed',
