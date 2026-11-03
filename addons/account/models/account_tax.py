@@ -86,6 +86,14 @@ Qué no se porta, con su medición
   reparto, etiquetas CABA, agrupación por ``account.tax.group``). El motor es
   el mismo a ambos lados, medido: ``_add_tax_details_in_base_line`` llama a
   ``base_line['tax_ids']._get_tax_details(...)`` (``odoo19c: :1766``).
+
+  Lo que **sí** está es la agregación que
+  consume la salida de esa envoltura —``_aggregate_base_line_tax_details``,
+  ``_aggregate_base_lines_tax_details`` y
+  ``_aggregate_base_lines_aggregated_values`` (``:2512-2712``)—, verbatim.
+  Leen la estructura que deja ``_round_base_lines_tax_details``; mientras la
+  envoltura no exista, ningún productor del árbol la construye y sólo sus
+  pruebas la arman, con las claves que la fuente declara.
 - **``special_mode`` completo.** Se portan los tres valores
   (``False``/``'total_included'``/``'total_excluded'``) porque la propagación
   de base los necesita; lo que no se porta es su entrada por
@@ -138,10 +146,12 @@ altera el resultado de ``map_tax``. Grep de consumidores dentro de
 ``odoo19c: account_tax.py`` de ambos: 0 usos fuera de esas dos secciones UI.
 """
 
+from collections import defaultdict
 from decimal import Decimal
 
 import fields
 import models
+from tools.misc import frozendict
 
 #: Precisión por defecto del redondeo por línea, igual que la referencia
 #: (``float_round(..., precision_rounding=0.01)``).
@@ -766,3 +776,176 @@ class AccountTax(models.Model):
                 [self], base, contexto
             )
         return monto if monto is not None else Decimal('0')
+
+    # -- agregación de detalles por clave (odoo19c: :2512-2712) ------------
+    #
+    # Las tres leen la estructura que ``_round_base_lines_tax_details`` deja
+    # en cada ``base_line``. Son ``@api.model`` en la fuente: aquí métodos de
+    # clase, porque ninguna lee el registro.
+
+    @classmethod
+    def _aggregate_base_line_tax_details(cls, base_line, grouping_function):
+        """ Aggregate the tax details for a single line according a custom
+        grouping function passed as parameter.
+
+        ≙ ``_aggregate_base_line_tax_details`` (``odoo19c: :2512-2645``).
+        Docstring de la fuente, verbatim en lo que gobierna: *"This method is
+        mainly use for EDI to report some data per line. [...] In case the
+        base_line has no tax, the grouping_function is called with an empty
+        tax_data to get the grouping key for the line."* El mapeo devuelto
+        lleva, por clave, ``base_amount``, ``tax_amount`` y
+        ``total_excluded`` en sus formas redondeada, ``raw_`` y ``target_``,
+        cada una con su variante ``_currency``, más ``grouping_key`` y
+        ``taxes_data``.
+        """
+        values_per_grouping_key = {}
+        tax_details = base_line['tax_details']
+        taxes_data = tax_details['taxes_data']
+        manual_tax_amounts = base_line['manual_tax_amounts']
+
+        # If there are no taxes, we pass None to the grouping function.
+        for tax_data in (taxes_data or [None]):
+            current_manual_tax_amounts = (
+                manual_tax_amounts and tax_data
+                and manual_tax_amounts.get(str(tax_data['tax'].id)) or {}
+            )
+
+            grouping_key = grouping_function(base_line, tax_data)
+            if isinstance(grouping_key, dict):
+                grouping_key = frozendict(grouping_key)
+
+            # Base amount.
+            if grouping_key not in values_per_grouping_key:
+                values = values_per_grouping_key[grouping_key] = {
+                    'grouping_key': grouping_key,
+                    'taxes_data': [],
+                }
+                for suffix in ('_currency', ''):
+                    excluded_rounded_field = f'total_excluded{suffix}'
+                    excluded_delta_field = f'delta_{excluded_rounded_field}'
+                    excluded_raw_field = f'raw_{excluded_rounded_field}'
+                    excluded_target_field = f'target_{excluded_rounded_field}'
+                    excluded_manual_field = f'manual_{excluded_rounded_field}'
+                    excluded_rounded_amount = (
+                        tax_details[excluded_rounded_field]
+                        + tax_details[excluded_delta_field]
+                    )
+                    excluded_raw_amount = tax_details[excluded_raw_field]
+                    values[excluded_rounded_field] = excluded_rounded_amount
+                    values[excluded_raw_field] = excluded_raw_amount
+                    if base_line[excluded_manual_field] is not None:
+                        excluded_target_amount = (
+                            base_line[excluded_manual_field])
+                    elif (not suffix and base_line[
+                            'manual_total_excluded_currency'] is not None):
+                        excluded_target_amount = excluded_rounded_amount
+                    else:
+                        excluded_target_amount = excluded_raw_amount
+                    values[excluded_target_field] = excluded_target_amount
+
+                    tax_base_rounded_field = f'base_amount{suffix}'
+                    tax_base_raw_field = f'raw_{tax_base_rounded_field}'
+                    tax_base_target_field = f'target_{tax_base_rounded_field}'
+                    if tax_data:
+                        values[tax_base_rounded_field] = (
+                            tax_data[tax_base_rounded_field])
+                        values[tax_base_raw_field] = (
+                            tax_data[tax_base_raw_field])
+                        if (tax_base_rounded_field
+                                in current_manual_tax_amounts):
+                            values[tax_base_target_field] = (
+                                current_manual_tax_amounts[
+                                    tax_base_rounded_field])
+                        elif (not suffix and 'base_amount_currency'
+                                in current_manual_tax_amounts):
+                            values[tax_base_target_field] = (
+                                tax_data[tax_base_rounded_field])
+                        else:
+                            values[tax_base_target_field] = (
+                                tax_data[tax_base_raw_field])
+                    else:
+                        values[tax_base_rounded_field] = (
+                            excluded_rounded_amount)
+                        values[tax_base_raw_field] = excluded_raw_amount
+                        values[tax_base_target_field] = excluded_target_amount
+
+                    tax_rounded_field = f'tax_amount{suffix}'
+                    tax_raw_field = f'raw_{tax_rounded_field}'
+                    tax_target_field = f'target_{tax_rounded_field}'
+                    values[tax_rounded_field] = 0.0
+                    values[tax_raw_field] = 0.0
+                    values[tax_target_field] = 0.0
+
+            # Tax amount.
+            if tax_data:
+                reverse_charge_sign = (
+                    -1 if tax_data['is_reverse_charge'] else 1)
+                values = values_per_grouping_key[grouping_key]
+                for suffix in ('_currency', ''):
+                    tax_rounded_field = f'tax_amount{suffix}'
+                    tax_raw_field = f'raw_{tax_rounded_field}'
+                    tax_target_field = f'target_{tax_rounded_field}'
+                    values[tax_rounded_field] += tax_data[tax_rounded_field]
+                    values[tax_raw_field] += tax_data[tax_raw_field]
+                    if tax_rounded_field in current_manual_tax_amounts:
+                        values[tax_target_field] += (
+                            reverse_charge_sign
+                            * current_manual_tax_amounts[tax_rounded_field])
+                    elif (not suffix and 'tax_amount_currency'
+                            in current_manual_tax_amounts):
+                        values[tax_target_field] = tax_data[tax_rounded_field]
+                    else:
+                        values[tax_target_field] += tax_data[tax_raw_field]
+                values['taxes_data'].append(tax_data)
+
+        return values_per_grouping_key
+
+    @classmethod
+    def _aggregate_base_lines_tax_details(cls, base_lines, grouping_function):
+        """ Shortcut to call '_aggregate_base_line_tax_details' on multiple
+        base lines at once.
+
+        ≙ ``_aggregate_base_lines_tax_details`` (``odoo19c: :2647-2662``):
+        *"A list of tuple <base_line, results> that associates the result of
+        '_aggregate_base_line_tax_details' for each base line
+        independently."*
+        """
+        return [
+            (base_line, cls._aggregate_base_line_tax_details(
+                base_line, grouping_function))
+            for base_line in base_lines
+        ]
+
+    @classmethod
+    def _aggregate_base_lines_aggregated_values(
+            cls, base_lines_aggregated_values):
+        """ Aggregate the values returned by
+        '_aggregate_base_lines_tax_details' for the whole document.
+
+        ≙ ``_aggregate_base_lines_aggregated_values`` (``odoo19c:
+        :2664-2712``): *"Most of the time, in EDI, you have to report
+        unrounded amounts for each base line first and then, you need to
+        report all rounded amounts for the whole business document."* Cada
+        clave suma los dieciocho importes de sus líneas y lleva
+        ``base_line_x_taxes_data``, la lista de pares
+        ``<base_line, taxes_data>`` que la componen.
+        """
+        default_float_fields = set()
+        for prefix in ('', 'raw_', 'target_'):
+            for suffix in ('_currency', ''):
+                for field in ('base_amount', 'tax_amount', 'total_excluded'):
+                    default_float_fields.add(f'{prefix}{field}{suffix}')
+
+        values_per_grouping_key = defaultdict(lambda: {
+            **dict.fromkeys(default_float_fields, 0.0),
+            'base_line_x_taxes_data': [],
+        })
+        for base_line, aggregated_values in base_lines_aggregated_values:
+            for grouping_key, values in aggregated_values.items():
+                agg_values = values_per_grouping_key[grouping_key]
+                for field in default_float_fields:
+                    agg_values[field] += values[field]
+                agg_values['grouping_key'] = grouping_key
+                agg_values['base_line_x_taxes_data'].append(
+                    (base_line, values['taxes_data']))
+        return values_per_grouping_key
