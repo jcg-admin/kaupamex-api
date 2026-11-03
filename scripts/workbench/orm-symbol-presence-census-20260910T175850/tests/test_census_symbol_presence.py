@@ -49,12 +49,16 @@ def test_a_conditional_not_implemented_is_substantive():
 
 
 def test_a_super_only_body_is_substantive():
-    # src/orm/registry.py:844 — `super().__init__('_constrains')`. Delegar NO
-    # es no hacer nada: el argumento es la decision que el cuerpo toma.
-    registry = declared_symbols(REPO / 'src/orm/registry.py')
-    delegating = [s for s in registry
-                  if s['name'] == '__init__' and s['lineno'] == 844]
-    assert delegating, 'el __init__ delegante de registry.py:844 movio de linea'
+    # src/orm/registry.py — `super().__init__('_constrains')`. Delegar NO es
+    # no hacer nada: el argumento es la decision que el cuerpo toma. El sujeto
+    # se localiza por su texto, no por su linea: anclado a la 844 dejo de
+    # existir en cuanto el archivo crecio.
+    path = REPO / 'src/orm/registry.py'
+    line = next(n for n, text in enumerate(path.read_text().splitlines(), 1)
+                if "super().__init__('_constrains')" in text)
+    delegating = [s for s in declared_symbols(path)
+                  if s['name'] == '__init__' and s['lineno'] == line - 1]
+    assert delegating, 'el __init__ delegante de registry.py ya no existe'
     assert delegating[0]['body'] == 'substantive'
 
 
