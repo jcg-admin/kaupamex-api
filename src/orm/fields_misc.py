@@ -59,6 +59,12 @@ def Json(*args, store=_UNSET, related=None, **kwargs):
     default = kwargs.get('default')
     if default is not None and not callable(default):
         kwargs['default'] = partial(deepcopy, default)
+    #: La columna ``jsonb`` de la fuente admite ``NULL`` (``Json`` no declara
+    #: ``required``), y ``convert_to_cache`` guarda ahí todo valor falso.
+    #: Sin ``null=`` Django la crearía ``NOT NULL``.
+    if 'null' not in kwargs:
+        kwargs['null'] = True
+        kwargs.setdefault('blank', True)
     related_attrs = apply_source_defaults(related, kwargs)
     #: El tipo se construye SIEMPRE, con columna o sin ella: ``store`` es un
     #: atributo del campo, no una clase distinta
@@ -114,11 +120,11 @@ def _json_convert_to_cache(self, value, record, validate=True):
     convierte una tupla en lista y separa el valor de cualquier referencia que
     conserve quien lo asignó.
 
-    **Divergencia declarada:** la fuente lleva todo valor falso a ``None``.
-    Aquí el falso se conserva tal cual, porque las columnas ``JSONField`` de
-    Django son ``NOT NULL`` por omisión y un ``{}`` convertido en ``NULL``
-    fallaría al volcar. La condición de cierre es medir la nulabilidad de las
-    columnas JSON portadas contra sus declaraciones de la referencia.
+    Todo valor falso se guarda como ``None``, como en la fuente, en una
+    columna que admite ``NULL`` —la de todo ``fields.Json``, que lo es por
+    defecto—. **Divergencia declarada, acotada:** en una columna ``NOT NULL``
+    (un ``models.JSONField`` con el vocabulario de Django, o un ``Json`` con
+    ``null=False``) el falso se conserva, porque ``NULL`` fallaría al volcar.
 
     **Segunda divergencia, de mecanismo:** la fuente serializa con
     ``tools.json.json_default``; aquí con el ``encoder``/``decoder`` del propio
@@ -128,7 +134,7 @@ def _json_convert_to_cache(self, value, record, validate=True):
     cierra un ciclo con ``orm.domains``.
     """
     if not value:
-        return value
+        return None if self.null else value
     return json.loads(
         json.dumps(value, cls=self.encoder, ensure_ascii=False),
         cls=self.decoder)
@@ -146,6 +152,26 @@ def _json_convert_to_record(self, value, record):
 
 models.JSONField.convert_to_cache = _json_convert_to_cache
 models.JSONField.convert_to_record = _json_convert_to_record
+
+
+_DJANGO_JSON_PRE_SAVE = models.JSONField.pre_save
+
+
+def _json_pre_save(self, model_instance, add):
+    """Lo que se vuelca es el valor del almacén de la fila, no el del registro.
+
+    ``Field.pre_save`` de Django lee el atributo, y para un ``Json`` el
+    atributo es ``convert_to_record``: un ``NULL`` llega al registro como
+    ``False`` (``odoo19c: odoo/orm/fields_misc.py:66-68``). Volcar esa lectura
+    escribiría el JSON ``false`` donde la fuente deja ``NULL``. Sin valor en
+    el almacén se vuelve al camino de Django.
+    """
+    if self.attname in model_instance.__dict__:
+        return model_instance.__dict__[self.attname]
+    return _DJANGO_JSON_PRE_SAVE(self, model_instance, add)
+
+
+models.JSONField.pre_save = _json_pre_save
 
 
 def _id_convert_to_column(self, value, record, values=None, validate=True):

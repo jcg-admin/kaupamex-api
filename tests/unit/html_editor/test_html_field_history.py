@@ -121,7 +121,11 @@ class TestCreateDropsTheIncomingHistory:
             ]
         )
         record.refresh_from_db()
-        assert record.html_field_history is None
+        # ``Json.convert_to_record`` entrega ``False`` por la ausencia
+        # (``odoo19c: odoo/orm/fields_misc.py:66-68``; la prueba de la fuente
+        # lo afirma con ``assertFalse``, ``test_html_field_history/tests/
+        # test_model.py:37``).
+        assert record.html_field_history is False
 
     def test_the_django_path_discards_it_too(self, tables):
         # ``objects.create`` no pasa por :meth:`create`; pasa por ``save``,
@@ -131,7 +135,11 @@ class TestCreateDropsTheIncomingHistory:
             body='<p>a</p>', html_field_history={'body': [{'patch': 'FALSO'}]}
         )
         record.refresh_from_db()
-        assert record.html_field_history is None
+        # ``Json.convert_to_record`` entrega ``False`` por la ausencia
+        # (``odoo19c: odoo/orm/fields_misc.py:66-68``; la prueba de la fuente
+        # lo afirma con ``assertFalse``, ``test_html_field_history/tests/
+        # test_model.py:37``).
+        assert record.html_field_history is False
 
 
 class TestWriteGeneratesTheRevision:

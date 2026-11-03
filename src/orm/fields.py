@@ -1511,10 +1511,10 @@ class FieldDescriptor(DeferredAttribute):
                     value = instance.__dict__[field.attname]
                     # ``Json.convert_to_record`` entrega una copia también
                     # aquí: esta rama es el acierto de caché del almacén
-                    # Django. ``None`` se conserva como ausencia Django,
-                    # igual que en las demás columnas de esta rama. Tipo
-                    # exacto: las subclases de propiedades tienen su contrato.
-                    if value is not None and type(field) is models.JSONField:
+                    # Django, y un ``None`` sale como ``False``, como en la
+                    # fuente (``fields_misc.py:66-68``). Tipo exacto: las
+                    # subclases de propiedades tienen su contrato.
+                    if type(field) is models.JSONField:
                         return field.convert_to_record(value, instance)
                     return value
 

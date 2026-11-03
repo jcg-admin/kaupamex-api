@@ -19,6 +19,8 @@ El fixture crea la discusión sólo con ``name``, como la fuente: su
 
 import pytest
 
+import fields
+
 from addons.test_orm.models.test_orm import TestOrmDiscussion
 from orm.environments import env as get_environment
 
@@ -83,3 +85,26 @@ def test_write_read_cycle_persists(discussion):
     assert discussion.history == [RANDOM_STR, RANDOM_STR_2]
     discussion.save()
     assert _reloaded(discussion).history == [RANDOM_STR, RANDOM_STR_2]
+
+
+# ``Json.convert_to_cache`` (``odoo19c: odoo/orm/fields_misc.py:70-73``):
+# todo valor falso se guarda como ``None``, y ``convert_to_record`` lo
+# entrega como ``False``. La columna ``jsonb`` de la fuente admite ``NULL``.
+
+
+def test_a_json_field_is_nullable_by_default():
+    assert fields.Json().null is True
+    assert fields.Json(null=False).null is False
+
+
+def test_an_empty_value_is_stored_as_null(discussion):
+    discussion.write({'history': {}})
+    assert _reloaded(discussion).__dict__['history'] is None
+    assert discussion.history is False
+
+
+def test_the_cache_of_a_falsy_value_is_none():
+    field = TestOrmDiscussion._meta.get_field('history')
+    assert field.null is True
+    for falsy in ({}, [], '', 0, False, None):
+        assert field.convert_to_cache(falsy, None) is None
