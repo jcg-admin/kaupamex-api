@@ -1,6 +1,7 @@
 r"""``account.edi.ubl_pint`` — la capa PINT (Peppol INTernational) sobre UBL.
 
-Adaptación de ``odoo19c: addons/account_edi_ubl_cii/models/account_edi_ubl_pint.py``
+Adaptación de
+``odoo19c: addons/account_edi_ubl_cii/models/account_edi_ubl_pint.py``
 (``odoo-tools@622ddc2a``, LGPL-3, 421 líneas, 29 métodos) — atribución y aviso
 de licencia preservados (DEC-KX-03).
 
@@ -8,8 +9,9 @@ Cobertura: 29 de 29 presentes — **27 portados, 2 bloqueados**
 =============================================================
 
 * ``_ubl_add_notes_nodes_all_invoices`` — bloqueado: agrega importes con
-  ``env['account.tax']`` (envoltura de base-lines, 0 hits) y formatea con
-  ``formatLang``.
+  ``AccountTax._aggregate_base_lines_tax_details`` y
+  ``_aggregate_base_lines_aggregated_values`` (0 definiciones, medido
+  2026-11-03). ``formatLang``, que también usa, ya existe en ``tools.misc``.
 * ``_init_invoice_export_values`` — bloqueado por la misma envoltura.
 
 ``NON_BREAKING_SPACE`` (``odoo19c: odoo/tools/misc.py:125``) no existe en
@@ -59,8 +61,14 @@ class AccountEdiUBLPint(AccountEdiUBL):
 
     @classmethod
     def _ubl_add_notes_nodes_all_invoices(cls, vals):
-        """≙ ``_ubl_add_notes_nodes_all_invoices`` (odoo19c: :32-71) — **bloqueado**: la envoltura de base-lines de account.tax no se porta (0 hits) y formatLang no existe."""
-        _blocked("_ubl_add_notes_nodes_all_invoices", "la envoltura de base-lines de account.tax no se porta (0 hits) y formatLang no existe")
+        """≙ ``_ubl_add_notes_nodes_all_invoices`` (odoo19c: :32-71).
+
+        **Bloqueado**: la envoltura de base-lines de account.tax no se porta
+        (0 hits).
+        """
+        _blocked("_ubl_add_notes_nodes_all_invoices",
+                 "la envoltura de base-lines de account.tax no se porta "
+                 "(0 hits)")
 
     @classmethod
     def _ubl_add_notes_nodes(cls, vals):
