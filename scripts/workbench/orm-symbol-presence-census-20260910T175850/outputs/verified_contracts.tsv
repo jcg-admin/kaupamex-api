@@ -224,3 +224,7 @@ src/tools/misc.py	Reverse.__slots__	attribute	tests/unit/tools/test_misc_pure_po
 src/tools/misc.py	ReversedIterable.__slots__	attribute	tests/unit/tools/test_misc_pure_port.py::test_reversed_iterable
 src/tools/misc.py	Callbacks.__slots__	attribute	tests/unit/tools/test_misc_pure_port.py::test_callbacks_run_in_order_and_clear
 src/tools/misc.py	hmac	function	tests/unit/tools/test_hmac_contract.py::test_signs_the_scope_and_message_with_the_database_secret
+src/tools/misc.py	hash_sign	function	tests/unit/tools/test_hmac_contract.py::TestHashSign::test_round_trip
+src/tools/misc.py	verify_hash_signed	function	tests/unit/tools/test_hmac_contract.py::TestHashSign::test_an_expired_token_does_not_verify
+src/tools/misc.py	limited_field_access_token	function	tests/unit/tools/test_hmac_contract.py::test_limited_field_access_token_round_trip
+src/tools/misc.py	verify_limited_field_access_token	function	tests/unit/tools/test_hmac_contract.py::test_limited_field_access_token_round_trip

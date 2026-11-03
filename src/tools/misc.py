@@ -14,18 +14,22 @@ el stack ya lo trae se sigue tomando; la de esperar a un consumidor, no.
 Adaptado de Odoo Community ``odoo/tools/misc.py`` (LGPL-3) — atribución y
 aviso de licencia preservados (DEC-KX-03).
 """
+import base64
 import collections
 import enum
 import hashlib
 import hmac as hmac_lib
+import json
 import logging
 import os
 import re
 import sys
 import tempfile
+import time
 import typing
 import unicodedata
 import warnings
+import zlib
 from collections import defaultdict
 from collections.abc import (Callable, Iterable, Iterator, Mapping,
                              MutableMapping, MutableSet, Reversible)
@@ -1622,3 +1626,79 @@ def get_flag(country_code):
     """≙ ``get_flag`` (``:1946-1951``): el emoji de bandera del código de país,
     compuesto por sus dos indicadores regionales."""
     return "".join(chr(int(f"1f1{ord(c)+165:02x}", base=16)) for c in country_code)
+
+
+def hash_sign(env, scope, message_values, expiration=None, expiration_hours=None):
+    """Un token firmado y apto para URL — ≙ ``hash_sign`` (``odoo19c:
+    odoo/tools/misc.py:1802-1826``).
+
+    Parecido a un JWT y en la línea de :func:`hmac`: versión ``\\x01``, la
+    caducidad en 8 bytes, el HMAC SHA-256 y el mensaje en JSON, todo en
+    ``base64`` sin relleno. ``expiration`` es un ``datetime`` o un
+    ``timedelta``; ``expiration_hours``, horas desde ahora. No los dos.
+    """
+    assert not (expiration and expiration_hours)
+    assert message_values is not None
+    if expiration_hours:
+        expiration = datetime.datetime.now() + datetime.timedelta(hours=expiration_hours)
+    elif isinstance(expiration, datetime.timedelta):
+        expiration = datetime.datetime.now() + expiration
+    expiration_timestamp = 0 if not expiration else int(expiration.timestamp())
+    message_strings = json.dumps(message_values)
+    hash_value = hmac(env, scope, f'1:{message_strings}:{expiration_timestamp}',
+                      hash_function=hashlib.sha256)
+    token = (b"\x01" + expiration_timestamp.to_bytes(8, 'little')
+             + bytes.fromhex(hash_value) + message_strings.encode())
+    return base64.urlsafe_b64encode(token).decode().rstrip('=')
+
+
+def verify_hash_signed(env, scope, payload):
+    """Los valores de un token de :func:`hash_sign`, o ``None`` si no vale —
+    ≙ ``verify_hash_signed`` (``odoo19c: odoo/tools/misc.py:1829-1851``).
+
+    La comparación del HMAC es en tiempo constante; un token caducado o de
+    otro ámbito da ``None``, y una versión desconocida es ``ValueError``.
+    """
+    token = base64.urlsafe_b64decode(payload.encode() + b'===')
+    version = token[:1]
+    if version != b'\x01':
+        raise ValueError('Unknown token version')
+    expiration_value, hash_value, message = token[1:9], token[9:41].hex(), token[41:].decode()
+    expiration_value = int.from_bytes(expiration_value, byteorder='little')
+    hash_value_expected = hmac(env, scope, f'1:{message}:{expiration_value}',
+                               hash_function=hashlib.sha256)
+    if consteq(hash_value, hash_value_expected) and (
+            expiration_value == 0 or datetime.datetime.now().timestamp() < expiration_value):
+        return json.loads(message)
+    return None
+
+
+def limited_field_access_token(record, field_name, timestamp=None, *, scope):
+    """Un token que da acceso a un campo de un registro, con caducidad — ≙
+    ``limited_field_access_token`` (``odoo19c: odoo/tools/misc.py:1854-1887``).
+
+    Sin ``timestamp`` se deriva uno determinista dentro de un periodo de 14
+    días —para que el navegador pueda cachear— que caduca a lo sumo a los 42,
+    con una dispersión por registro y campo para que no venzan todos a la vez.
+    """
+    record.ensure_one()
+    if not timestamp:
+        unique_str = repr((record._name, record.id, field_name))
+        two_weeks = 1209600  # 2 * 7 * 24 * 60 * 60
+        start_of_period = int(time.time()) // two_weeks * two_weeks
+        adler32_max = 4294967295
+        jitter = two_weeks * zlib.adler32(unique_str.encode()) // adler32_max
+        timestamp = hex(start_of_period + 2 * two_weeks + jitter)
+    token = hmac(record.env(su=True), scope, (record._name, record.id, field_name, timestamp))
+    return f"{token}o{timestamp}"
+
+
+def verify_limited_field_access_token(record, field_name, access_token, *, scope):
+    """¿Da ``access_token`` acceso al campo del registro? — ≙
+    ``verify_limited_field_access_token`` (``odoo19c:
+    odoo/tools/misc.py:1890-1912``): el formato, el registro, el campo, el
+    ámbito y la caducidad tienen que casar."""
+    *_, timestamp = access_token.rsplit("o", 1)
+    return consteq(
+        access_token, limited_field_access_token(record, field_name, timestamp, scope=scope)
+    ) and datetime.datetime.now() < datetime.datetime.fromtimestamp(int(timestamp, 16))
