@@ -228,3 +228,7 @@ src/tools/misc.py	hash_sign	function	tests/unit/tools/test_hmac_contract.py::Tes
 src/tools/misc.py	verify_hash_signed	function	tests/unit/tools/test_hmac_contract.py::TestHashSign::test_an_expired_token_does_not_verify
 src/tools/misc.py	limited_field_access_token	function	tests/unit/tools/test_hmac_contract.py::test_limited_field_access_token_round_trip
 src/tools/misc.py	verify_limited_field_access_token	function	tests/unit/tools/test_hmac_contract.py::test_limited_field_access_token_round_trip
+src/tools/misc.py	exec_pg_environ	function	tests/unit/tools/test_misc_process_helpers.py::test_exec_pg_environ_maps_the_connection_to_libpq_variables
+src/tools/misc.py	scan_languages	function	tests/unit/tools/test_misc_process_helpers.py::test_scan_languages_lists_the_reference_catalogue_sorted_by_name
+src/tools/misc.py	format_frame	function	tests/unit/tools/test_misc_process_helpers.py::test_format_frame_names_function_file_and_line
+src/tools/misc.py	dumpstacks	function	tests/unit/tools/test_misc_process_helpers.py::test_dumpstacks_logs_the_current_thread
