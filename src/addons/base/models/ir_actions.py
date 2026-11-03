@@ -614,7 +614,7 @@ class IrActionsActWindowView(TimeStampedModel):
     )
     act_window = fields.Many2one(
         IrActionsActWindow,
-        on_delete=models.CASCADE,
+        on_delete=models.CASCADE, null=True, blank=True,
         db_index=True,
         related_name='view_ids',
         verbose_name='Acción',

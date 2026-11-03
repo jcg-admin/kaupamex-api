@@ -129,7 +129,7 @@ class AccountBankStatement(models.Model):
     )
     company = fields.Many2one(
         'base.ResCompany',
-        on_delete=models.CASCADE,
+        on_delete=models.CASCADE, null=True, blank=True,
         related_name='bank_statements',
         help_text=(
             'Empresa (Odoo company_id, related de journal_id.company_id).'
@@ -145,7 +145,7 @@ class AccountBankStatement(models.Model):
     )
     journal = fields.Many2one(
         'account.AccountJournal',
-        on_delete=models.CASCADE,
+        on_delete=models.CASCADE, null=True, blank=True,
         related_name='bank_statements',
         help_text=(
             'Diario bancario (Odoo journal_id, computado de las líneas).'

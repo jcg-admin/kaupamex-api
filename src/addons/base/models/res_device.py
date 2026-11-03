@@ -269,7 +269,7 @@ class ResDeviceLog(_ResDeviceFields):
 
     user = fields.Many2one(
         'base.ResUsers',
-        on_delete=models.CASCADE,
+        on_delete=models.CASCADE, null=True, blank=True,
         db_index=True,
         related_name='device_logs',
         help_text='Usuario de la sesión (Odoo user_id).',

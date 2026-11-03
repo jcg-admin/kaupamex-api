@@ -155,6 +155,19 @@ def bucket(reference_values, null):
     return 'aligned_optional' if null else 'required_by_omission'
 
 
+def column_bucket(model, field, declared, tables):
+    """``(nombre de la fuente, valores de required, cubo)`` de una columna."""
+    name = model.__dict__.get('_name') or tables.get(model._meta.db_table)
+    values = set()
+    if name:
+        # El ``attname`` conserva el sufijo de la fuente (``company`` →
+        # ``company_id``); un campo que ya lo lleva en el nombre
+        # (``group_id`` → ``group_id_id``) se empareja por el nombre.
+        values = (declared.get((name, field.attname))
+                  or declared.get((name, field.name)) or set())
+    return name, values, bucket(values, field.null)
+
+
 def consumer_columns():
     django.setup()
     for model in apps.get_models():
@@ -174,15 +187,7 @@ def main(argv=None):
     counts = collections.Counter()
     rows = []
     for model, field in consumer_columns():
-        name = model.__dict__.get('_name') or tables.get(model._meta.db_table)
-        values = set()
-        if name:
-            # El ``attname`` conserva el sufijo de la fuente (``company`` →
-            # ``company_id``); un campo que ya lo lleva en el nombre
-            # (``group_id`` → ``group_id_id``) se empareja por el nombre.
-            values = (declared.get((name, field.attname))
-                      or declared.get((name, field.name)) or set())
-        result = bucket(values, field.null)
+        name, values, result = column_bucket(model, field, declared, tables)
         counts[result] += 1
         rows.append((result, model._meta.label, name or '-', field.attname,
                      'NULL' if field.null else 'NOT NULL',

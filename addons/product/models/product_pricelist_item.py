@@ -122,7 +122,7 @@ class ProductPricelistItem(TimeStampedModel):
 
     pricelist = fields.Many2one(
         ProductPricelist,
-        on_delete=models.CASCADE,
+        on_delete=models.CASCADE, null=True, blank=True,
         db_index=True,
         related_name='item_ids',
         verbose_name='Tarifa',

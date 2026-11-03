@@ -729,7 +729,7 @@ class AccountReportColumn(models.Model):
     )
     report = fields.Many2one(
         'account.AccountReport',
-        on_delete=models.CASCADE,
+        on_delete=models.CASCADE, null=True, blank=True,
         related_name='columns',
         help_text='Reporte al que pertenece la columna (Odoo report_id).',
     )

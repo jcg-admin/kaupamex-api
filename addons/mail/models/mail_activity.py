@@ -88,7 +88,7 @@ class MailActivity(TimeStampedModel):
     )
     user = fields.Many2one(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.CASCADE, null=True, blank=True,
         related_name='assigned_activities',
         help_text=(
             'Usuario asignado (Odoo user_id → res.users; party ='

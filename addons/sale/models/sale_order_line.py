@@ -134,7 +134,7 @@ class SaleOrderLine(AnalyticMixin, TimeStampedModel):
     )
     product = fields.Many2one(
         'product.ProductProduct',
-        on_delete=models.PROTECT,
+        on_delete=models.PROTECT, null=True, blank=True,
         related_name='sale_order_lines',
         help_text='Odoo product_id.',
     )

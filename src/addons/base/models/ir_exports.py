@@ -63,7 +63,7 @@ class IrExportsLine(models.Model):
     )
     export = models.ForeignKey(
         IrExports,
-        on_delete=models.CASCADE,
+        on_delete=models.CASCADE, null=True, blank=True,
         db_index=True,
         related_name='export_fields',
         verbose_name='Exportación',

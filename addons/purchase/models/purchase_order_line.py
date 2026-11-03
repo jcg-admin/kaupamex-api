@@ -51,7 +51,7 @@ class PurchaseOrderLine(TimeStampedModel):
         db_column='order_id',
     )
     product_id  = fields.Many2one(
-        'product.ProductProduct', on_delete=models.PROTECT,
+        'product.ProductProduct', on_delete=models.PROTECT, null=True, blank=True,
         related_name='purchase_order_lines', help_text='Odoo product_id.',
         db_column='product_id',
     )

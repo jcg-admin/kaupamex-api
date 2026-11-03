@@ -288,7 +288,7 @@ class StockMoveLine(TimeStampedModel):
                   'en save() desde el movimiento o el albarán).',
     )
     product          = fields.Many2one(
-        'product.ProductProduct', on_delete=models.CASCADE, db_index=True,
+        'product.ProductProduct', on_delete=models.CASCADE, null=True, blank=True, db_index=True,
         related_name='stock_move_lines',
         help_text='Producto (Odoo product_id; el dominio excluye servicios).',
     )

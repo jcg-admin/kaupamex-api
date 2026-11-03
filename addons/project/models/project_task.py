@@ -30,7 +30,7 @@ class ProjectTask(TimeStampedModel):
 
     project = fields.Many2one(
         'project.Project',
-        on_delete=models.CASCADE,
+        on_delete=models.CASCADE, null=True, blank=True,
         related_name='tasks',
         help_text='Proyecto (Odoo project_id).',
     )

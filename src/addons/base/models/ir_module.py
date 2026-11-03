@@ -566,7 +566,7 @@ class IrModuleDependency(TimeStampedModel):
     _allow_sudo_commands = False
 
     module = fields.Many2one(
-        IrModule, on_delete=models.CASCADE, related_name='dependencies',
+        IrModule, on_delete=models.CASCADE, null=True, blank=True, related_name='dependencies',
         help_text='El addon que declara la dependencia.',
     )
     name   = fields.Char(
@@ -714,7 +714,7 @@ class IrModuleExclusion(TimeStampedModel):
     _allow_sudo_commands = False
 
     module    = fields.Many2one(
-        IrModule, on_delete=models.CASCADE, related_name='exclusions',
+        IrModule, on_delete=models.CASCADE, null=True, blank=True, related_name='exclusions',
         help_text='El addon que declara la exclusión.',
     )
     name      = fields.Char(

@@ -258,7 +258,7 @@ class AccountReconcileModelLine(models.Model):
 
     model = fields.Many2one(
         'account.AccountReconcileModel',
-        on_delete=models.CASCADE,
+        on_delete=models.CASCADE, null=True, blank=True,
         related_name='line_ids',
         help_text='Regla a la que pertenece (Odoo model_id).',
     )
