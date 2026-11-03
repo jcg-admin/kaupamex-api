@@ -2637,6 +2637,12 @@ ForeignObjectRel.relational = property(lambda self: self.is_relation)
 #: optimizadores por tipo de campo (``_optimize_..._field_types``) lo leen.
 ForeignObjectRel.type = property(
     lambda self: 'many2many' if self.many_to_many else 'one2many')
+#: Y es buscable: el One2many de la fuente se guarda (``store=True``), y
+#: ``_description_searchable`` es ``bool(self.store or self.search)``
+#: (``odoo19c: odoo/orm/fields.py:906``). Lo lee ``_field_setup_related``
+#: para decidir si un ``related`` que lo atraviesa (``'foo_ids.name'``)
+#: recibe su ``search``.
+ForeignObjectRel._description_searchable = True
 
 #: ``comodel_name`` — el modelo de los valores de un campo de relacion.
 #:
@@ -4372,7 +4378,11 @@ def get_depends(self, model):
                         f'{self.related!r} pide {field_name!r} sobre '
                         f'{field_model.__name__}, que no lo declara')
                 field = registry_of_model[field_name]
-                depends_context.extend(field.get_depends(field_model)[1])
+                # Un One2many de la fuente es aquí un reverso de Django
+                # (``ManyToOneRel``), sin ``get_depends``: no declara
+                # dependencias de contexto, como su ``One2many`` de origen.
+                if hasattr(field, 'get_depends'):
+                    depends_context.extend(field.get_depends(field_model)[1])
                 field_model = _comodel_of(field, orm_registry)
             depends_context = tuple(unique(depends_context))
         return [self.related], depends_context

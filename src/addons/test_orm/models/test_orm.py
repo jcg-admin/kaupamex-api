@@ -531,6 +531,15 @@ class TestOrmRelatedFoo(TestOrmModel):
                              related_name='+')
     bar_ids = fields.Many2many('test_orm.related_bar', related_name='+')
 
+    foo_names = fields.Char(related='foo_ids.name', related_sudo=False,
+                            string="Foo Names")
+    foo_names_sudo = fields.Char(related='foo_ids.name', related_sudo=True,
+                                 string="Foo Names Sudo")
+    bar_names = fields.Char(related='bar_ids.name', related_sudo=False,
+                            string="Bar Names")
+    bar_names_sudo = fields.Char(related='bar_ids.name', related_sudo=True,
+                                 string="Bar Names Sudo")
+
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_related_foo'
 
@@ -562,6 +571,16 @@ class TestOrmRelated(TestOrmModel):
     foo_bar_sudo_id = fields.Many2one('test_orm.related_bar',
                                       related='foo_id.bar_id',
                                       related_sudo=True, string='Bar Sudo')
+
+    foo_bar_ids = fields.Many2many('test_orm.related_bar', related='foo_id.bar_ids',
+                                   related_sudo=False)
+    foo_bar_sudo_ids = fields.Many2many('test_orm.related_bar', related='foo_id.bar_ids',
+                                        related_sudo=True, string='Bars Sudo')
+    foo_foo_ids = fields.One2many(related='foo_id.foo_ids',
+                                  related_sudo=False, string='Foo Foos')
+    foo_foo_sudo_ids = fields.One2many(related='foo_id.foo_ids',
+                                       related_sudo=True,
+                                       string='Foo Foos Sudo')
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_related'

@@ -179,3 +179,71 @@ def test_related_inherited(env, records, ruled_user, fname, reaches_hidden):
         found = set(environment['test_orm.related_inherits'].search(
             [(fname, '=', value)]).ids)
     assert found == ({child.id} if reaches_hidden else set())
+
+
+# ``TestSearchRelated.test_related_many2many`` y ``test_related_one2many``
+# (``tests/test_search.py:548``, ``:637``): un x2many ``related`` decide la
+# regla del ``related_foo`` intermedio igual que un campo llano.
+
+
+@pytest.mark.parametrize(('fname', 'reaches_hidden'), [
+    ('foo_bar_ids', False),
+    ('foo_bar_sudo_ids', True),
+])
+def test_related_many2many_by_id_and_by_path(env, records, ruled_user, fname,
+                                             reaches_hidden):
+    via_hidden = records['via_hidden']
+    hidden_bar = via_hidden.foo_id.bar_id
+    via_hidden.foo_id.write({'bar_ids': [hidden_bar.id]})
+    expected = {via_hidden.id} if reaches_hidden else set()
+    assert _found_as(ruled_user, [(fname, '=', hidden_bar.id)]) == expected
+    assert _found_as(ruled_user, [(f'{fname}.name', '=', 'a')]) == expected
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    'H-API-1133: la fachada One2many(related=...) no entra en el registro de '
+    'campos del modelo, así que el dominio no la resuelve.'))
+@pytest.mark.parametrize(('fname', 'reaches_hidden'), [
+    ('foo_foo_ids', False),
+    ('foo_foo_sudo_ids', True),
+])
+def test_related_one2many(records, ruled_user, fname, reaches_hidden):
+    via_hidden = records['via_hidden']
+    expected = {via_hidden.id} if reaches_hidden else set()
+    assert _found_as(ruled_user, [(fname, '=', via_hidden.id)]) == expected
+    assert _found_as(ruled_user, [(f'{fname}.name', '=', 'r1')]) == expected
+
+
+# ``TestSearchRelated.test_related_through_one2many`` y ``through_many2many``
+# (``tests/test_search.py:965``, ``:1004``): un ``related`` que atraviesa un
+# x2many busca con la regla del comodelo del x2many, o la salta con ``sudo``.
+
+
+def _rule(label, domain):
+    IrRule.objects.create(name=f'{label} {domain}', model_name=label,
+                          domain_force=domain)
+
+
+@pytest.mark.parametrize(('fname', 'reaches_hidden'), [
+    ('foo_names', False),
+    ('foo_names_sudo', True),
+])
+def test_related_through_one2many(records, ruled_user, fname, reaches_hidden):
+    _rule('test_orm.TestOrmRelated', "[('name', '!=', 'r2')]")
+    shown = records['via_shown'].foo_id
+    expected = {shown.id} if reaches_hidden else set()
+    assert _foos_as(ruled_user, [(fname, '=', 'r2')]) == expected
+
+
+@pytest.mark.parametrize(('fname', 'reaches_hidden'), [
+    ('bar_names', False),
+    ('bar_names_sudo', True),
+])
+def test_related_through_many2many(env, records, ruled_user, fname,
+                                   reaches_hidden):
+    _rule('test_orm.TestOrmRelatedBar', "[('name', '!=', 'z')]")
+    shown = records['via_shown'].foo_id
+    bar = env['test_orm.related_bar'].create({'name': 'z'})
+    shown.write({'bar_ids': [bar.id]})
+    expected = {shown.id} if reaches_hidden else set()
+    assert _foos_as(ruled_user, [(fname, '=', 'z')]) == expected
