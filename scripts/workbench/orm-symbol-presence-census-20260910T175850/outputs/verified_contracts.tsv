@@ -265,3 +265,7 @@ src/tools/misc.py	_format_time_ago	function	tests/unit/tools/test_misc_format_fa
 src/tools/misc.py	format_decimalized_number	function	tests/unit/tools/test_misc_format_family.py
 src/tools/misc.py	format_decimalized_amount	function	tests/unit/tools/test_misc_format_family.py
 src/tools/misc.py	format_duration	function	tests/unit/tools/test_misc_format_family.py
+src/tools/float_utils.py	float_repr	function	tests/unit/tools/test_float_presentation.py
+src/tools/float_utils.py	float_split_str	function	tests/unit/tools/test_float_presentation.py
+src/tools/float_utils.py	float_split	function	tests/unit/tools/test_float_presentation.py
+src/tools/float_utils.py	json_float_round	function	tests/unit/tools/test_float_presentation.py

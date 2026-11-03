@@ -5,17 +5,28 @@ Aritmética de punto flotante con precisión declarada. Es la base sobre la que
 docena a unidades da ``12.00000000000047`` y el redondeo lo sube a 13 — la
 regresión que la propia referencia documenta en ``uom/tests/test_uom.py``.
 
-Se porta el subconjunto que ``uom`` consume (DEC-AF-03: lo que no se consume,
-no se porta): ``float_round``, ``float_compare``, ``float_is_zero`` y el
-auxiliar ``float_invert``. Quedan fuera ``float_repr``, ``float_split`` y
-``float_split_str``, que son de presentación y hoy no tienen consumidor.
+Se porta entero: ``float_round``, ``float_compare``, ``float_is_zero``, el
+auxiliar ``float_invert`` y los cuatro de presentación —``float_repr``,
+``float_split_str``, ``float_split`` y ``json_float_round``—, que antes
+quedaban fuera por no tener consumidor. Lo tenían: ``account_edi_ubl_cii``
+vendorizaba ``float_repr`` sin su paso a cero, y un ``-0.001`` a dos
+decimales salía ``-0.00`` en el XML.
 """
 
 import builtins
 import math
 from typing import Literal
 
-__all__ = ['float_compare', 'float_is_zero', 'float_round', 'float_invert']
+__all__ = [
+    'float_compare',
+    'float_invert',
+    'float_is_zero',
+    'float_repr',
+    'float_round',
+    'float_split',
+    'float_split_str',
+    'json_float_round',
+]
 
 RoundingMethod = Literal['UP', 'DOWN', 'HALF-UP', 'HALF-DOWN', 'HALF-EVEN']
 
@@ -241,3 +252,102 @@ def float_compare(
     if float_is_zero(delta, precision_rounding=rounding_factor):
         return 0
     return -1 if delta < 0.0 else 1
+
+
+def float_repr(value: float, precision_digits: int) -> str:
+    """Returns a string representation of a float with the
+       given number of fractional digits. This should not be
+       used to perform a rounding operation (this is done via
+       :func:`~.float_round`), but only to produce a suitable
+       string representation for a float.
+
+       ≙ ``odoo19c: odoo/tools/float_utils.py:262-278``.
+
+       :param value: the value to represent
+       :param precision_digits: number of fractional digits to include in the
+           output
+       :return: the string representation of the value
+    """
+    # Can't use str() here because it seems to have an intrinsic
+    # rounding to 12 significant digits, which causes a loss of
+    # precision. e.g. str(123456789.1234) == str(123456789.123)!!
+    if float_is_zero(value, precision_digits=precision_digits):
+        value = 0.0
+    return "%.*f" % (precision_digits, value)
+
+
+def float_split_str(value: float, precision_digits: int) -> tuple[str, str]:
+    """Splits the given float 'value' in its unitary and decimal parts,
+       returning each of them as a string, rounding the value using
+       the provided ``precision_digits`` argument.
+
+       The length of the string returned for decimal places will always
+       be equal to ``precision_digits``, adding zeros at the end if needed.
+
+       In case ``precision_digits`` is zero, an empty string is returned for
+       the decimal places. — ≙ ``odoo19c: odoo/tools/float_utils.py:281-304``.
+
+       Examples:
+           1.432 with precision 2 => ('1', '43')
+           1.49  with precision 1 => ('1', '5')
+           1.1   with precision 3 => ('1', '100')
+           1.12  with precision 0 => ('1', '')
+
+       :param value: value to split.
+       :param precision_digits: number of fractional digits to round to.
+       :return: returns the tuple(<unitary part>, <decimal part>) of the given
+           value
+    """
+    value = float_round(value, precision_digits=precision_digits)
+    value_repr = float_repr(value, precision_digits)
+    return (tuple(value_repr.split('.')) if precision_digits
+            else (value_repr, ''))
+
+
+def float_split(value: float, precision_digits: int) -> tuple[int, int]:
+    """ same as float_split_str() except that it returns the unitary and
+        decimal parts as integers instead of strings. In case
+        ``precision_digits`` is zero, 0 is always returned as decimal part.
+        — ≙ ``odoo19c: odoo/tools/float_utils.py:307-315``.
+    """
+    units, cents = float_split_str(value, precision_digits)
+    if not cents:
+        return int(units), 0
+    return int(units), int(cents)
+
+
+def json_float_round(
+    value: float,
+    precision_digits: int,
+    rounding_method: RoundingMethod = 'HALF-UP',
+) -> float:
+    """Not suitable for float calculations! Similar to float_repr except that
+    it returns a float suitable for json dump — ≙ ``odoo19c:
+    odoo/tools/float_utils.py:318-347``.
+
+    This may be necessary to produce "exact" representations of rounded float
+    values during serialization, such as what is done by `json.dumps()`.
+    Unfortunately `json.dumps` does not allow any form of custom float
+    representation, nor any custom types, everything is serialized from the
+    basic JSON types.
+
+    :param precision_digits: number of fractional digits to round to.
+    :param rounding_method: the rounding method used: 'HALF-UP', 'UP' or
+           'DOWN', the first one rounding up to the closest number with the
+           rule that number>=0.5 is rounded up to 1, the second always rounding
+           up and the latest one always rounding down.
+    :return: a rounded float value that must not be used for calculations, but
+             is ready to be serialized in JSON with minimal chances of
+             representation errors.
+    """
+    rounded_value = float_round(value, precision_digits=precision_digits,
+                                rounding_method=rounding_method)
+    rounded_repr = float_repr(rounded_value, precision_digits=precision_digits)
+    # As of Python 3.1, rounded_repr should be the shortest representation for
+    # our rounded float, so we create a new float whose repr is expected
+    # to be the same value, or a value that is semantically identical
+    # and will be used in the json serialization.
+    # e.g. if rounded_repr is '3.1750', the new float repr could be 3.175
+    # but not 3.174999999999322452.
+    # Cfr. bpo-1580: https://bugs.python.org/issue1580
+    return float(rounded_repr)
