@@ -1,0 +1,22 @@
+{
+  "question": "qué unidad de completar-raiz-orm sigue, leída del estado durable y no de la memoria de la sesión, y qué se aceptó de cada una con qué verificación",
+  "instrument": [
+    "plan.jsonl",
+    "probes/settle_item.py",
+    "thyrox: bin/task_continuation next"
+  ],
+  "metric": "filas attempt y accepted de outputs/continuation.jsonl por unidad del plan, con el código de salida de su verify y el commit sobre el que corrió",
+  "blind_to": [
+    "la calidad de la unidad más allá de lo que mide su verify: un verify estrecho acepta un porte incompleto",
+    "una unidad con verify false, que la frontera no ofrece hasta que alguien le dé uno",
+    "el trabajo hecho fuera del plan"
+  ],
+  "destination": "docs: source/gestion/pm/api/iniciativas/completar-raiz-orm/progreso/bitacora-continuidad-de-la-iniciativa-y-frontera-durable.rst",
+  "outputs": [
+    "outputs/continuation.jsonl",
+    "outputs/style-admission-cycle-9d18694d.txt"
+  ],
+  "tasks": [
+    "TASK-API-0397"
+  ]
+}

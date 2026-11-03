@@ -1,0 +1,20 @@
+{
+  "question": "quién responde por cada TASK de completar-raiz-orm en cada uno de sus seis ejes —rol funcional, verificador, dueño operativo, sesión, ejecución, reclamos— sin derivar un eje de otro",
+  "instrument": [
+    "responsibility_view.py",
+    "tests/test_responsibility_view.py"
+  ],
+  "metric": "filas del store por cita TASK-<CAPA>-NNNN, oraciones de la iniciativa que contienen la cita, mensajes de commit de api y docs que la nombran, y filas del ledger de reclamos con esa tarea",
+  "blind_to": [
+    "una responsabilidad declarada en otra iniciativa o fuera de los .rst de completar-raiz-orm",
+    "una asignación hecha de palabra que no dejó fila en el store ni prosa con la cita",
+    "quién ejecutó una tarea cuando la prosa no lo declara: el store no lo registra"
+  ],
+  "destination": "docs: source/gestion/pm/api/iniciativas/completar-raiz-orm/",
+  "outputs": [
+    "outputs/responsibility_view.tsv"
+  ],
+  "tasks": [
+    "TASK-API-0397"
+  ]
+}
