@@ -50,6 +50,10 @@ urlpatterns = _admin_urls + [
     # Webhook de base.automation (≙ `/web/hook/<uuid>` de la referencia; el
     # prefijo v1 sigue el precedente del webhook de logistics).
     path('api/v1/automation/', include('addons.base_automation.controllers.urls')),
+    # Webhook de vuelta del VIES. La ruta es contrato con el proxy IAP:
+    # ``_check_vies_iap`` le dice que llame a ``/base_vat/1/webhook_update_vies``
+    # (≙ ``odoo19c: addons/base_vat/controllers/webhook.py``).
+    path('base_vat/1/', include('addons.base_vat.controllers.urls')),
 
     # Despacho genérico por modelo/método (≙ `addons/rpc` de la referencia).
     # Va FUERA de `api/v2/`: la referencia lo monta en `/json/2`, y ese prefijo
