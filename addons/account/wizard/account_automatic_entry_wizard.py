@@ -72,12 +72,10 @@ Defs de la referencia                 Qué pasa aquí
 ``_format_transfer_source_log``       NO — ídem.
 ``_format_move_link``                 NO — ``move._get_html_link``
                                        (chatter).
-``_format_strings``                   PORTADO (parcial declarado:
-                                       ``formatLang``/``format_date`` por
-                                       locale → f-string/isoformat; sin las
-                                       claves ``link``/``account_*`` que
-                                       sólo consumen los logs de chatter
-                                       de arriba)
+``_format_strings``                   PORTADO (sin las claves
+                                       ``link``/``account_*``, que sólo
+                                       consumen los logs de chatter de
+                                       arriba)
 ===================================  ======================================
 
 Divergencias transversales declaradas (mismas que el resto del directorio):
@@ -115,8 +113,10 @@ from addons.account.models.res_company import (
     get_violated_lock_dates,
 )
 from exceptions import UserError, ValidationError
+from orm.environments import env
 from orm.models_transient import TransientModel
-from tools.misc import groupby
+from tools.float_utils import float_repr
+from tools.misc import format_date, formatLang, groupby
 from tools.translate import _
 
 #: ≙ el selection del campo ``action`` — las dos operaciones del wizard.
@@ -426,7 +426,7 @@ class AccountAutomaticEntryWizard(TransientModel):
                 'move_type': 'entry',
                 'line_ids': [],
                 'ref': cls._format_strings(
-                    ref_format, lines[0].move, percentage
+                    ref_format, lines[0].move, percentage, new_date=date
                 ),
                 'date': date.isoformat(),
                 'journal_id': journal.pk,
@@ -439,7 +439,8 @@ class AccountAutomaticEntryWizard(TransientModel):
                 'move_type': 'entry',
                 'line_ids': [],
                 'ref': cls._format_strings(
-                    ref_format, grouped_lines[0].move, percentage, amount
+                    ref_format, grouped_lines[0].move, percentage, amount,
+                    new_date=date,
                 ),
                 'date': date_key.isoformat(),
                 'journal_id': journal.pk,
@@ -625,16 +626,30 @@ class AccountAutomaticEntryWizard(TransientModel):
     # -- formato ----------------------------------------------------------
 
     @classmethod
-    def _format_strings(cls, string, move, percentage, amount=None):
-        """≙ ``_format_strings`` (parcial declarado — sin
-        ``formatLang``/``format_date`` por locale ni las claves de chatter
-        ``link``/``account_source_name``/``account_target_name``; ver la
-        tabla del módulo)."""
+    def _format_strings(cls, string, move, percentage, amount=None,
+                        new_date=None):
+        """≙ ``_format_strings`` (``odoo19c: :543-556``).
+
+        El monto con ``formatLang`` y la moneda de la compañía, las fechas con
+        ``format_date``, ``percent`` con ``float_repr``, como la fuente. Dos
+        diferencias de forma: el método es de clase, así que el
+        ``self.percentage`` y el ``self.date`` del asistente llegan como
+        ``percentage`` y ``new_date``, y la compañía es la del asiento, que en
+        la fuente coincide con la del asistente. Las claves de chatter
+        ``link``, ``account_source_name`` y ``account_target_name`` no se
+        portan; ver la tabla del módulo.
+        """
+        environment = env()
+        currency = move.company.currency
         return string.format(
             label=move.name or _('Adjusting Entry'),
-            percent=f'{percentage:.2f}',
+            percent=float_repr(percentage, 2),
             name=move.name,
             id=move.id,
-            amount=f'{abs(amount):.2f}' if amount else '',
-            date=move.date.isoformat() if move.date else '',
+            amount=formatLang(environment, abs(float(amount)),
+                              currency_obj=currency) if amount else '',
+            debit_credit=amount < 0 and _('C') or _('D') if amount else None,
+            date=format_date(environment, move.date),
+            new_date=new_date and format_date(environment, new_date)
+            or _('[Not set]'),
         )
