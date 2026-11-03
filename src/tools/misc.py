@@ -1,4 +1,5 @@
-"""``tools.misc`` — espejo de ``odoo/tools/misc.py`` (sólo símbolos con consumidor).
+"""``tools.misc`` — espejo de ``odoo/tools/misc.py``
+(sólo símbolos con consumidor).
 
 Regla de este archivo: cada símbolo llega aquí cuando un addon portado lo
 importa (``from tools.misc import X``, espejo de ``from odoo.tools.misc
