@@ -257,3 +257,11 @@ src/tools/mail.py	email_escape_char	function	tests/unit/tools/test_mail_email_he
 src/tools/mail.py	decode_message_header	function	tests/unit/tools/test_mail_email_helpers.py::test_decode_message_header_joins_every_value
 src/tools/mail.py	encapsulate_email	function	tests/unit/tools/test_mail_email_helpers.py::test_encapsulate_email_keeps_the_old_name_on_the_new_address
 src/tools/mail.py	unfold_references	function	tests/unit/tools/test_mail_email_helpers.py::test_unfold_references_removes_folding_whitespace
+src/tools/misc.py	formatLang	function	tests/unit/tools/test_misc_format_family.py
+src/tools/misc.py	format_date	function	tests/unit/tools/test_misc_format_family.py
+src/tools/misc.py	format_datetime	function	tests/unit/tools/test_misc_format_family.py
+src/tools/misc.py	format_time	function	tests/unit/tools/test_misc_format_family.py
+src/tools/misc.py	_format_time_ago	function	tests/unit/tools/test_misc_format_family.py
+src/tools/misc.py	format_decimalized_number	function	tests/unit/tools/test_misc_format_family.py
+src/tools/misc.py	format_decimalized_amount	function	tests/unit/tools/test_misc_format_family.py
+src/tools/misc.py	format_duration	function	tests/unit/tools/test_misc_format_family.py

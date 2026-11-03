@@ -120,3 +120,18 @@ def test_format_lang_rounds_groups_and_places_the_symbol(brussels_user):
     assert misc.formatLang(brussels_user, 2500000,
                            rounding_unit='millions') == '2'
     assert misc.formatLang(brussels_user, '') == ''
+
+
+def test_format_decimalized_amount_places_the_symbol():
+    """≙ el ejemplo del docstring de la fuente: ``$123.5k``."""
+    class Before:
+        position = 'before'
+        symbol = '$'
+
+    class After:
+        position = 'after'
+        symbol = '€'
+
+    assert misc.format_decimalized_amount(123_456.789, Before()) == '$123.5k'
+    assert misc.format_decimalized_amount(123_456.789, After()) == '123.5k €'
+    assert misc.format_decimalized_amount(123_456.789) == '123.5k'
