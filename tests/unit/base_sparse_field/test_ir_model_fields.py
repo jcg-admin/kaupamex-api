@@ -223,9 +223,15 @@ def test_reflection_is_idempotent():
 
 @pytest.mark.django_db
 def test_a_model_without_sparse_fields_is_skipped():
-    """Sin descriptores no se toca la base — la pasada corre en cada modelo."""
-    modelo = IrModel.objects.create(
-        model='base.IrModelFields', name='Campo', state=STATE_BASE
+    """Sin descriptores no se toca la base — la pasada corre en cada modelo.
+
+    La fila de ``ir_model`` puede existir ya: la siembra de ACL de ``base``
+    (migración 0096) refleja el modelo. Lo que la prueba mide es que la pasada
+    no escribe ninguna fila de campo.
+    """
+    modelo, _ = IrModel.objects.get_or_create(
+        model='base.IrModelFields',
+        defaults={'name': 'Campo', 'state': STATE_BASE},
     )
     assert reflect_sparse_fields(IrModelFields, modelo) == (0, 0)
     assert not IrModelFields.objects.filter(
