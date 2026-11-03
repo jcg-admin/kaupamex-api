@@ -140,7 +140,7 @@ from django.db.models import F
 import fields
 import api
 import models
-from orm.environments import get_context, get_current_company
+from orm.environments import env, get_context, get_current_company
 from orm.utils import COLLECTION_TYPES
 from orm.domains import Domain
 from tools.misc import format_amount, get_lang
@@ -715,7 +715,7 @@ class ResCurrency(
         ``-0.0``; con ``Decimal`` eso lo resuelve ya ``round()``, que devuelve
         ``Decimal('0')`` sin signo.
         """
-        return format_amount(amount, self)
+        return format_amount(env(), amount, self)
 
     def amount_to_text(self, amount):
         """≙ ``amount_to_text`` (``odoo19c: res_currency.py:175-210``).
@@ -736,8 +736,8 @@ class ResCurrency(
             )
             return ''
 
-        lang = get_lang()
-        iso_code = getattr(lang, 'iso_code', None) or 'en'
+        lang = get_lang(env())
+        iso_code = lang.iso_code or 'en'
 
         def _num2words(number):
             try:

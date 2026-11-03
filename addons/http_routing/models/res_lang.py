@@ -11,21 +11,9 @@ Divergencias declaradas:
   para un addon que no añade ni un campo. Colgar el método sobre la clase es
   el idioma del árbol para extender un concreto
   (``addons/web/models/res_partner.py::apply_web_extensions``).
-- El cuerpo de la fuente es ``return self._get_active_by('code')``, y
-  ``_get_active_by`` es de ``base`` — medido:
-  ``grep -c "def _get_active_by" src/addons/base/models/res_lang.py`` da **0**.
-  El comando pedía antes la **mención** y no la definición, así que el
-  docstring de ``ResLang.get_installed`` —que nombra al helper para decir que
-  no está— bastaba para caducarlo. Es la lección que
-  ``addons/web/models/models.py:64-67`` ya deja escrita: *"un ``grep`` de
-  menciones no mide un mecanismo"*.
-  ``base`` es archivo de otro pase (sucesor #270 sobre ese mismo archivo), así
-  que aquí se escribe **lo que ``_get_active_by('code')`` hace**: los idiomas
-  activos indexados por su código. El día que ``base`` declare el helper, este
-  cuerpo se reduce a la llamada.
-- La fuente devuelve ``LangDataDict`` (su caché de datos de idioma); aquí un
-  ``dict`` de filas ``ResLang``. Lo que los consumidores de este addon leen de
-  cada valor —``.code`` y ``.url_code``— existe igual en la fila.
+- El cuerpo es el de la fuente, ``return self._get_active_by('code')``: un
+  ``LangDataDict`` de los idiomas activos indexado por código, con un
+  ``LangData`` vacío —falso— para el código que no está.
 """
 
 from addons.base.models.res_lang import ResLang
@@ -40,7 +28,7 @@ def _get_frontend(cls):
     :return: los idiomas disponibles para la petición en curso, indexados por
         código.
     """
-    return {lang.code: lang for lang in cls.objects.filter(active=True)}
+    return cls._get_active_by('code')
 
 
 def apply_res_lang_extensions():

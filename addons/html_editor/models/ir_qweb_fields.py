@@ -167,7 +167,7 @@ from addons.base.models.ir_field_converters import (
 from django.utils import timezone
 from lxml import etree, html
 from markupsafe import Markup, escape_silent
-from orm.environments import get_current_user
+from orm.environments import env, get_current_user
 from orm.method_chain import (chain_method, extend_list, merge_dict,
                               wrap_method)
 from orm.registry import model_by_name
@@ -298,7 +298,8 @@ def _user_lang():
     exactamente lo que la fuente hace con el idioma del usuario en el entorno.
     """
     user = get_current_user()
-    return get_lang(getattr(user, 'lang', None) if user is not None else None)
+    user_lang = getattr(user, 'lang', None) if user is not None else None
+    return get_lang(env(), user_lang)
 
 
 def _base_lang_of(record):

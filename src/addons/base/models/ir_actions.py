@@ -180,7 +180,8 @@ from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import UserError
 from fields import Command, Domain
 from addons.base.models.ir_model import IrModelData
-from orm.environments import context_scope, get_context, get_current_user, sudo
+from orm.environments import (context_scope, env, get_context,
+                              get_current_user, sudo)
 from orm.models_transient import TransientModel
 from orm.registry import model_by_key
 from tools.misc import get_diff, get_lang, unquote
@@ -870,7 +871,7 @@ class IrActionsServerHistory(TimeStampedModel):
         """
         if not self.created_at:
             return False
-        lang = get_lang()
+        lang = get_lang(env())
         user = get_current_user()
         zone = getattr(user, 'tz', None) if user is not None else None
         moment = self.created_at.replace(microsecond=0)
@@ -889,7 +890,7 @@ class IrActionsServerHistory(TimeStampedModel):
         return babel_dates.format_datetime(
             moment,
             tzinfo=tzinfo,
-            locale=(lang.code if lang is not None else 'en_US'),
+            locale=lang.code,
         )
 
     @api.autovacuum

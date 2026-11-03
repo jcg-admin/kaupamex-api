@@ -17,6 +17,7 @@ from typing import Literal
 
 from babel import lists
 
+from orm.environments import env
 from tools.misc import babel_locale_parse, get_lang
 
 if typing.TYPE_CHECKING:
@@ -95,13 +96,8 @@ def format_list(
     """
     if not lang_code:
         # Corto igual que la fuente (``lang_code or get_lang(env).code``): con
-        # un código explícito no se consulta ``res.lang``. La guarda del
-        # ``None`` es la única diferencia — allá ``get_lang`` siempre devuelve
-        # un registro porque ``en_US`` está instalado por construcción; aquí
-        # puede no haber ninguno todavía, y entonces se deja que
-        # ``babel_locale_parse`` aplique su propia cadena de respaldo.
-        lang = get_lang()
-        lang_code = lang.code if lang else None
+        # un código explícito no se consulta ``res.lang``.
+        lang_code = get_lang(env()).code
     locale = babel_locale_parse(lang_code)
     # Un idioma puede no declarar el estilo pedido.
     if style not in locale.list_patterns:

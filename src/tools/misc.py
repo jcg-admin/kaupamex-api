@@ -1108,38 +1108,29 @@ def parse_date(value, lang_code=None):
     return value
 
 
-def get_lang(lang_code=None):
+def get_lang(env, lang_code=None):
     """≙ ``get_lang`` (``odoo19c: odoo/tools/misc.py:1308-1326``).
 
-    El ``res.lang`` que rige el formateo, resolviendo en el orden de la fuente:
-    el código pedido, luego el del contexto, luego el de la empresa, y si
-    ninguno está instalado, ``en_US`` o el primero que haya.
+    El primer idioma instalado entre el código pedido, el del contexto y el del
+    partner de la empresa; si ninguno lo está, ``en_US`` o el primero
+    instalado. Devuelve su ``LangData`` (``res.lang._get_data``).
 
-    Aquí «el del contexto» es ``django.utils.translation.get_language()``, que
-    es el mismo dato por la vía del stack: lo fija el middleware de idioma en
-    cada petición. El de la empresa queda para cuando ``ResCompany`` declare su
-    idioma — hoy no lo tiene, y **eso es lo que el orden de la fuente cubre**:
-    cae al siguiente escalón sin romperse.
-
-    :param lang_code: código de idioma pedido (``es_MX``), o ``None``.
-    :return: el registro ``ResLang``, o ``None`` si no hay ninguno instalado.
+    ``env.user.company_id.partner_id.lang`` de la fuente es ``env.company`` y
+    su partner: aquí la empresa activa la fija el contexto de la petición.
     """
     res_lang = apps.get_model('base', 'ResLang')
-    installed = res_lang.objects.filter(active=True)
-    if lang_code:
-        chosen = installed.filter(code=lang_code).first()
-        if chosen is not None:
-            return chosen
-    context_lang = django_translation.get_language()
-    if context_lang:
-        # Django usa ``es-mx``; ``res.lang`` guarda ``es_MX``. Es la misma
-        # información con otra convención, no dos datos distintos.
-        chosen = installed.filter(
-            code__iexact=context_lang.replace('-', '_')).first()
-        if chosen is not None:
-            return chosen
-    return (installed.filter(code='en_US').first()
-            or installed.order_by('pk').first())
+    langs = [code for code, _ in res_lang.get_installed()]
+    lang = 'en_US' if 'en_US' in langs else langs[0]
+    company = env.company
+    has_partner = company is not None and company.partner_id
+    partner = company.partner if has_partner else None
+    if lang_code and lang_code in langs:
+        lang = lang_code
+    elif (context_lang := env.context.get('lang')) in langs:
+        lang = context_lang
+    elif (company_lang := getattr(partner, 'lang', None)) in langs:
+        lang = company_lang
+    return res_lang._get_data(code=lang)
 
 
 #: Los cuatro colores que ``get_diff`` pinta sobre la tabla de ``HtmlDiff``:
@@ -1229,7 +1220,7 @@ NO_BREAK_SPACE = '\u00a0'
 ZERO_WIDTH_NO_BREAK_SPACE = '\ufeff'
 
 
-def format_amount(amount, currency, lang_code=None, trailing_zeroes=True):
+def format_amount(env, amount, currency, lang_code=None, trailing_zeroes=True):
     """≙ ``format_amount`` (``odoo19c: odoo/tools/misc.py:1635-1651``).
 
     El importe con su símbolo, redondeado a los decimales de la moneda,
@@ -1241,6 +1232,7 @@ def format_amount(amount, currency, lang_code=None, trailing_zeroes=True):
     ``ZERO WIDTH NO-BREAK SPACE`` tras el signo menos impide que un guion al
     final de línea se lea como partición de palabra. Se portan verbatim.
 
+    :param env: el entorno del que se resuelve el idioma.
     :param amount: el importe.
     :param currency: el ``ResCurrency`` que fija redondeo, símbolo y posición.
     :param lang_code: idioma a usar; ``None`` resuelve con ``get_lang``.
@@ -1248,19 +1240,10 @@ def format_amount(amount, currency, lang_code=None, trailing_zeroes=True):
     :return: la cadena formateada.
     """
     fmt = f'%.{currency.decimal_places}f'
-    lang = get_lang(lang_code)
-    rounded = currency.round(amount)
-
-    if lang is None:
-        # Sin ``res.lang`` sembrado, la localización activa de Django tiene la
-        # misma información. Es el escalón que la fuente no necesita porque
-        # allá ``res.lang`` siempre tiene al menos ``en_US``.
-        formatted = django_formats.number_format(
-            rounded, decimal_pos=currency.decimal_places, force_grouping=True)
-        decimal_point = django_formats.get_format('DECIMAL_SEPARATOR')
-    else:
-        formatted = lang.format(fmt, rounded, grouping=True)
-        decimal_point = lang.decimal_point or '.'
+    res_lang = apps.get_model('base', 'ResLang')
+    lang = res_lang.objects.get(pk=get_lang(env, lang_code).id)
+    formatted = lang.format(fmt, currency.round(amount), grouping=True)
+    decimal_point = lang.decimal_point
 
     formatted = (formatted.replace(' ', NO_BREAK_SPACE)
                  .replace('-', '-' + ZERO_WIDTH_NO_BREAK_SPACE))
