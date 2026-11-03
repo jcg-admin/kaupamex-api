@@ -4,25 +4,33 @@ Regla de este archivo: cada símbolo llega aquí cuando un addon portado lo
 importa (``from tools.misc import X``, espejo de ``from odoo.tools.misc
 import X``), y **antes de portarlo se decide** si Django/DRF/stdlib ya lo
 resuelven (directiva ejecutor 2026-08-02). La decisión queda en el docstring
-del símbolo — no se porta por completitud.
+del símbolo.
+
+**Corregida 2026-11-03.** La cláusula «no se porta por completitud» la
+supera la directiva vigente de ``completar-raiz-orm``: un contrato aplicable
+no se excluye porque todavía no tenga consumidor portado. La decisión de si
+el stack ya lo trae se sigue tomando; la de esperar a un consumidor, no.
 
 Adaptado de Odoo Community ``odoo/tools/misc.py`` (LGPL-3) — atribución y
 aviso de licencia preservados (DEC-KX-03).
 """
+import collections
 import enum
 import hmac as hmac_lib
+import logging
 import os
 import re
 import sys
 import tempfile
 import typing
 import unicodedata
+import warnings
 from collections import defaultdict
 from collections.abc import (Callable, Iterable, Iterator, Mapping,
-                             MutableMapping, MutableSet)
-from contextlib import contextmanager
+                             MutableMapping, MutableSet, Reversible)
+from contextlib import ContextDecorator, contextmanager
 from difflib import HtmlDiff
-from functools import reduce
+from functools import reduce, wraps
 from itertools import islice, repeat, starmap
 
 import datetime
@@ -1240,3 +1248,373 @@ class DotDict(dict):
     def __getattr__(self, attrib):
         val = self.get(attrib)
         return DotDict(val) if isinstance(val, dict) else val
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Símbolos puros portados el 2026-11-03 — ``odoo19c: odoo/tools/misc.py``.
+#
+# La regla de la cabecera («sólo símbolos con consumidor») cede ante la
+# directiva vigente del ejecutor: un contrato aplicable no se excluye porque
+# aún no tenga consumidor portado. Ninguno de estos lo resuelve la biblioteca
+# estándar con la misma forma; cada uno cita su tramo de la fuente.
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def flatten(list):
+    """≙ ``flatten`` (``:319-349``), obsoleto desde 18.0 como en la fuente:
+    aplana una estructura anidada; cadenas y bytes cuentan como hojas."""
+    warnings.warn("deprecated since 18.0", category=DeprecationWarning, stacklevel=2)
+    result = []
+    for element in list:
+        if isinstance(element, (bytes, str)) or not isinstance(element, Iterable):
+            result.append(element)
+        else:
+            result.extend(flatten(element))
+    return result
+
+
+def reverse_enumerate(lst):
+    """≙ ``reverse_enumerate`` (``:352-370``): ``enumerate`` hacia atrás."""
+    return zip(range(len(lst) - 1, -1, -1), reversed(lst))
+
+
+def topological_sort(elems):
+    """≙ ``topological_sort`` (``:383-413``): las claves de ``elems`` con sus
+    dependencias antes que ellas. Una dependencia que no es clave no aparece
+    en el resultado."""
+    result = []
+    visited = set()
+
+    def visit(node):
+        if node not in visited:
+            visited.add(node)
+            if node in elems:
+                for dependency in elems[node]:
+                    visit(dependency)
+                result.append(node)
+
+    for element in elems:
+        visit(element)
+    return result
+
+
+def merge_sequences(*iterables):
+    """≙ ``merge_sequences`` (``:416-442``): la unión de las secuencias, en el
+    orden parcial que fijan, con sesgo hacia el final de la última."""
+    dependencies = defaultdict(list)
+    for iterable in iterables:
+        previous = _NO_PREVIOUS
+        for item in iterable:
+            if previous is _NO_PREVIOUS:
+                dependencies[item]
+            else:
+                dependencies[item].append(previous)
+            previous = item
+    return topological_sort(dependencies)
+
+
+#: El centinela de :func:`merge_sequences` (``SENTINEL`` en la fuente).
+_NO_PREVIOUS = object()
+
+
+def get_iso_codes(lang):
+    """≙ ``get_iso_codes`` (``:445-450``): ``fr_FR`` → ``fr``; ``es_MX`` queda."""
+    if lang.find('_') != -1:
+        lang_items = lang.split('_')
+        if lang_items[0] == lang_items[1].lower():
+            lang = lang_items[0]
+    return lang
+
+
+def mod10r(number):
+    """≙ ``mod10r`` (``:477-490``): el número con su dígito de control por
+    módulo 10 recursivo (referencias bancarias suizas)."""
+    codec = [0, 9, 4, 6, 8, 2, 7, 1, 3, 5]
+    report = 0
+    result = ""
+    for digit in number:
+        result += digit
+        if digit.isdigit():
+            report = codec[(int(digit) + report) % 10]
+    return result + str((10 - report) % 10)
+
+
+def human_size(sz):
+    """≙ ``human_size`` (``:519-532``): el tamaño legible; ``False`` si no hay.
+    Una cadena se mide por su longitud."""
+    if not sz:
+        return False
+    units = ('bytes', 'Kb', 'Mb', 'Gb', 'Tb')
+    if isinstance(sz, str):
+        sz = len(sz)
+    size, index = float(sz), 0
+    while size >= 1024 and index < len(units) - 1:
+        size /= 1024
+        index += 1
+    return "%0.2f %s" % (size, units[index])
+
+
+#: ≙ ``POSIX_TO_LDML`` (``:588-614``), verbatim: la letra de ``strftime`` por
+#: su patrón LDML. ``%c``, ``%z`` y ``%Z`` quedan fuera como en la fuente.
+POSIX_TO_LDML = {
+    'a': 'E',
+    'A': 'EEEE',
+    'b': 'MMM',
+    'B': 'MMMM',
+    'd': 'dd',
+    '-d': 'd',
+    'H': 'HH',
+    'I': 'hh',
+    'j': 'DDD',
+    'm': 'MM',
+    '-m': 'M',
+    'M': 'mm',
+    'p': 'a',
+    'S': 'ss',
+    'U': 'w',
+    'w': 'e',
+    'W': 'w',
+    'y': 'yy',
+    'Y': 'yyyy',
+}
+
+
+def posix_to_ldml(fmt, locale):
+    """≙ ``posix_to_ldml`` (``:616-666``): un patrón ``strftime`` como patrón
+    de fecha LDML. Las letras sueltas van entre comillas porque LDML usa
+    letras; ``%x``/``%X`` toman los formatos corto y medio del ``locale``."""
+    buf = []
+    pc = False
+    minus = False
+    quoted = []
+    for char in fmt:
+        if not pc and char.isalpha():
+            quoted.append(char if char != "'" else "''")
+            continue
+        if quoted:
+            buf.append("'")
+            buf.append(''.join(quoted))
+            buf.append("'")
+            quoted = []
+        if pc:
+            if char == '%':
+                buf.append('%')
+            elif char == 'x':
+                buf.append(locale.date_formats['short'].pattern)
+            elif char == 'X':
+                buf.append(locale.time_formats['medium'].pattern)
+            elif char == '-':
+                minus = True
+                continue
+            else:
+                if minus:
+                    char = '-' + char
+                    minus = False
+                buf.append(POSIX_TO_LDML[char])
+            pc = False
+        elif char == '%':
+            pc = True
+        else:
+            buf.append(char)
+    if quoted:
+        buf.append("'")
+        buf.append(''.join(quoted))
+        buf.append("'")
+    return ''.join(buf)
+
+
+class mute_logger(logging.Handler):
+    """≙ ``mute_logger`` (``:746-783``): silencia los loggers dados mientras
+    dura el bloque, como gestor de contexto o como decorador."""
+
+    def __init__(self, *loggers):
+        super().__init__()
+        self.loggers = loggers
+        self.old_params = {}
+
+    def __enter__(self):
+        for logger_name in self.loggers:
+            logger = logging.getLogger(logger_name)
+            self.old_params[logger_name] = (logger.handlers, logger.propagate)
+            logger.propagate = False
+            logger.handlers = [self]
+
+    def __exit__(self, exc_type=None, exc_val=None, exc_tb=None):
+        for logger_name in self.loggers:
+            logger = logging.getLogger(logger_name)
+            logger.handlers, logger.propagate = self.old_params[logger_name]
+
+    def __call__(self, func):
+        @wraps(func)
+        def deco(*args, **kwargs):
+            with self:
+                return func(*args, **kwargs)
+        return deco
+
+    def emit(self, record):
+        pass
+
+
+class MungedTracebackLogRecord(logging.LogRecord):
+    """≙ ``MungedTracebackLogRecord`` (``:826-831``): un registro cuyo
+    ``Traceback`` deja de parecer un error real a quien lea el log."""
+
+    def getMessage(self):
+        return super().getMessage().replace(
+            'Traceback (most recent call last):',
+            '_Traceback_ (most recent call last):',
+        )
+
+
+class lower_logging(logging.Handler):
+    """≙ ``lower_logging`` (``:786-823``): baja temporalmente el nivel máximo
+    del log raíz; lo que lo supera se reetiqueta y se anota en
+    ``had_error_log``."""
+
+    def __init__(self, max_level, to_level=None):
+        super().__init__()
+        self.old_handlers = None
+        self.old_propagate = None
+        self.had_error_log = False
+        self.max_level = max_level
+        self.to_level = to_level or max_level
+
+    def __enter__(self):
+        logger = logging.getLogger()
+        self.old_handlers = logger.handlers[:]
+        self.old_propagate = logger.propagate
+        logger.propagate = False
+        logger.handlers = [self]
+        self.had_error_log = False
+        return self
+
+    def __exit__(self, exc_type=None, exc_val=None, exc_tb=None):
+        logger = logging.getLogger()
+        logger.handlers = self.old_handlers
+        logger.propagate = self.old_propagate
+
+    def emit(self, record):
+        if record.levelno > self.max_level:
+            record.levelname = f'_{record.levelname}'
+            record.levelno = self.to_level
+            self.had_error_log = True
+            if MungedTracebackLogRecord.__base__ is logging.LogRecord:
+                MungedTracebackLogRecord.__bases__ = (record.__class__,)
+            record.__class__ = MungedTracebackLogRecord
+        if logging.getLogger(record.name).isEnabledFor(record.levelno):
+            for handler in self.old_handlers:
+                if handler.level <= record.levelno:
+                    handler.emit(record)
+
+
+class ConstantMapping(Mapping):
+    """≙ ``ConstantMapping`` (``:853-879``): un mapeo inmutable que devuelve
+    el mismo valor para toda clave, vacío al medirlo o recorrerlo."""
+    __slots__ = ['_value']
+
+    def __init__(self, val):
+        self._value = val
+
+    def __len__(self):
+        return 0
+
+    def __iter__(self):
+        return iter([])
+
+    def __getitem__(self, item):
+        return self._value
+
+
+class Callbacks:
+    """≙ ``Callbacks`` (``:1110-1184``): una cola de funciones que ``run``
+    llama en orden de alta, y después vacía junto con ``data``."""
+    __slots__ = ['_funcs', 'data']
+
+    def __init__(self):
+        self._funcs = collections.deque()
+        self.data = {}
+
+    def add(self, func):
+        """Añade la función dada."""
+        self._funcs.append(func)
+
+    def run(self):
+        """Llama a todas las funciones en orden y limpia los datos."""
+        while self._funcs:
+            func = self._funcs.popleft()
+            func()
+        self.clear()
+
+    def clear(self):
+        """Retira las funciones y los datos."""
+        self._funcs.clear()
+        self.data.clear()
+
+    def __len__(self):
+        return len(self._funcs)
+
+
+class ReversedIterable(Reversible):
+    """≙ ``ReversedIterable`` (``:1187-1198``): recorre otro iterable al revés."""
+    __slots__ = ['iterable']
+
+    def __init__(self, iterable):
+        self.iterable = iterable
+
+    def __iter__(self):
+        return reversed(self.iterable)
+
+    def __reversed__(self):
+        return iter(self.iterable)
+
+
+def submap(mapping, keys):
+    """≙ ``submap`` (``:1229-1238``): copia de ``mapping`` con sólo ``keys``."""
+    keys = frozenset(keys)
+    return {key: mapping[key] for key in mapping if key in keys}
+
+
+class Reverse(object):
+    """≙ ``Reverse`` (``:1241-1257``): envuelve un valor e invierte su orden,
+    para mezclar en una clave de orden tramos ascendentes y descendentes."""
+    __slots__ = ['val']
+
+    def __init__(self, val):
+        self.val = val
+
+    def __eq__(self, other): return self.val == other.val
+    def __ne__(self, other): return self.val != other.val
+    def __ge__(self, other): return self.val <= other.val
+    def __gt__(self, other): return self.val < other.val
+    def __le__(self, other): return self.val >= other.val
+    def __lt__(self, other): return self.val > other.val
+
+
+class replace_exceptions(ContextDecorator):
+    """≙ ``replace_exceptions`` (``:1259-1302``): esconde ciertas excepciones
+    tras otra, como decorador o gestor de contexto. Si ``by`` es una clase y
+    la original trae mensaje, el mensaje viaja."""
+
+    def __init__(self, *exceptions, by):
+        if not exceptions:
+            raise ValueError("Missing exceptions")
+        wrong_exc = next((exc for exc in exceptions if not issubclass(exc, Exception)), None)
+        if wrong_exc:
+            raise TypeError(f"{wrong_exc} is not an exception class.")
+        self.exceptions = exceptions
+        self.by = by
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is not None and issubclass(exc_type, self.exceptions):
+            if isinstance(self.by, type) and exc_value.args:
+                raise self.by(exc_value.args[0]) from exc_value
+            raise self.by from exc_value
+
+
+def get_flag(country_code):
+    """≙ ``get_flag`` (``:1946-1951``): el emoji de bandera del código de país,
+    compuesto por sus dos indicadores regionales."""
+    return "".join(chr(int(f"1f1{ord(c)+165:02x}", base=16)) for c in country_code)
