@@ -118,3 +118,14 @@ def pg_path():
     con ``server version mismatch``.
     """
     return getattr(settings, 'PG_PATH', '') or ''
+
+
+def http_port():
+    """≙ ``config['http_port']`` — el puerto HTTP en que sirve la instancia.
+
+    La fuente lo lee de su parser (por defecto 8069) y con él siembra
+    ``web.base.url``. Aquí la instancia la sirve gunicorn, cuyo ``bind`` por
+    defecto es ``127.0.0.1:8000`` (``setup/gunicorn.conf.py``); la setting
+    ``HTTP_PORT`` lo fija si el despliegue escucha en otro.
+    """
+    return getattr(settings, 'HTTP_PORT', 8000)

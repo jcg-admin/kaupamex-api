@@ -52,10 +52,11 @@ class TestGetSetParam:
         assert SystemParameter.get_param('no.existe', 'fallback') == 'fallback'
 
     def test_set_creates_and_get_returns(self):
-        prev = SystemParameter.set_param('web.base.url', 'http://x')
+        # Una clave que no siembra ``_DEFAULT_PARAMETERS``: ``web.base.url`` sí.
+        prev = SystemParameter.set_param('probe.new_key', 'http://x')
         assert prev is None  # no existía (Odoo devuelve False)
-        assert SystemParameter.get_param('web.base.url') == 'http://x'
-        assert SystemParameter.objects.filter(key='web.base.url').count() == 1
+        assert SystemParameter.get_param('probe.new_key') == 'http://x'
+        assert SystemParameter.objects.filter(key='probe.new_key').count() == 1
 
     def test_set_existing_returns_old_and_updates(self):
         SystemParameter.set_param('k', 'v1')

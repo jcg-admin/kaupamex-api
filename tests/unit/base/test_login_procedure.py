@@ -61,7 +61,7 @@ import datetime
 import pytest
 from django.test import RequestFactory
 
-from addons.base.models import ResPartner, ResUsers
+from addons.base.models import ResPartner, ResUsers, SystemParameter
 from addons.base.models import res_users as mod
 from addons.base.models.ir_http import set_current_request
 from addons.base.models.res_users import ResUsersLog
@@ -292,21 +292,23 @@ def test_repeated_failures_put_the_source_on_cooldown(
 ):
     """Cierra la tarea #26: ``_assert_can_auth`` envuelve el acceso.
 
-    Al quinto fallo —el umbral por defecto de ``base.login_cooldown_after``—
-    el sexto intento se rechaza **sin llegar a la credencial**, y el mensaje
-    lo dice.
+    Al fallo número ``base.login_cooldown_after`` —10, sembrado por
+    ``_DEFAULT_PARAMETERS`` como en la fuente— el intento siguiente se rechaza
+    **sin llegar a la credencial**, y el mensaje lo dice.
     """
+    threshold = int(SystemParameter.get_param('base.login_cooldown_after'))
+    assert threshold == 10
     request_in_context()
     credencial = {
         'type': 'password',
         'login': 'acceso-uno',
         'password': 'mala',
     }
-    for __ in range(5):
+    for __ in range(threshold):
         with pytest.raises(AccessDenied):
             ResUsers._login(credencial, {'interactive': True})
 
-    assert counter[PUBLIC_IP][0] == 5
+    assert counter[PUBLIC_IP][0] == threshold
     with pytest.raises(AccessDenied, match='Demasiados intentos'):
         ResUsers._login(
             {'type': 'password', 'login': 'acceso-uno', 'password': PASSWORD},

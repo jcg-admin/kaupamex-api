@@ -353,7 +353,7 @@ def _crons_seed():
 
 
 _SEEDERS = (
-    SystemParameter.seed,       # base/0002 + base/0003 (_DEFAULT_PARAMETERS)
+    SystemParameter.seed,       # base/0094 (_DEFAULT_PARAMETERS)
     countries_seed,             # base/0017 (251 países + 8 agrupaciones)
     langs_seed,                 # base/0026 (93 idiomas, en_US activo)
     base_groups_seed,           # base/0027 (12 grupos + 2 privilegios)

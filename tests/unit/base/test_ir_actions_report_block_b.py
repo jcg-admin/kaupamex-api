@@ -136,16 +136,14 @@ class TestTheLayoutAndTheUrl:
         assert _report()._get_report_url() == 'https://reports.example'
 
     def test_without_the_parameter_it_falls_back_to_the_base_url(self):
-        SystemParameter.objects.create(
-            key='web.base.url', value='https://base.example'
-        )
+        SystemParameter.set_param('web.base.url', 'https://base.example')
         registry.clear_cache('stable')
         assert _report()._get_report_url() == 'https://base.example'
 
     def test_get_base_url_reaches_every_model_not_just_this_one(self):
         # `get_base_url` cuelga de BaseModel en la fuente: si aquí sólo lo
         # tuviera el reporte, el porte seria del metodo y no del mecanismo.
-        SystemParameter.objects.create(key='web.base.url', value='https://x')
+        SystemParameter.set_param('web.base.url', 'https://x')
         registry.clear_cache('stable')
         assert IrAttachment(name='a').get_base_url() == 'https://x'
 

@@ -48,12 +48,14 @@ dos bases compartirían entrada, que es un defecto que la fuente no tiene.
 """
 
 import api
+import datetime
 import uuid
 
 from django.core.exceptions import ValidationError
 from django.db import DEFAULT_DB_ALIAS, models
 
 from orm import registry
+from tools import config
 from tools.cache import ormcache
 
 # Parámetros sembrados al inicializar la instancia (Odoo
@@ -71,8 +73,13 @@ from tools.cache import ormcache
 # preserva el valor operativo previo (900 s) y se corrige el dominio del
 # email a ``kaupamex.com``.
 _DEFAULT_PARAMETERS = {
-    'database.uuid': lambda: str(uuid.uuid1()),
     'database.secret': lambda: str(uuid.uuid4()),
+    'database.uuid': lambda: str(uuid.uuid1()),
+    # ≙ ``fields.Datetime.now``: la hora local sin microsegundos.
+    'database.create_date': lambda: datetime.datetime.now().replace(microsecond=0),
+    'web.base.url': lambda: 'http://localhost:%s' % config.http_port(),
+    'base.login_cooldown_after': lambda: 10,
+    'base.login_cooldown_duration': lambda: 60,
     'authz.reauth_ttl': lambda: '900',
     'backup.alert_email': lambda: 'admin@kaupamex.com',
 }
