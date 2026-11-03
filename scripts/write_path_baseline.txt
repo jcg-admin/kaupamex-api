@@ -8,6 +8,10 @@
 # comparten entrada, y congelar una autorizaba a la otra. Las 17 entradas son
 # LAS MISMAS que antes — medido: 0 desaparecidas, 0 aparecidas sobre `src` —,
 # reescritas a la clave nueva; no hay deuda nueva congelada aqui.
+#
+# 2026-11-03: 17 -> 12. Cinco entradas eran `set`/`dict.update` posicional
+# leidos como `QuerySet.update`, que solo admite **kwargs; el eje los
+# separa por la forma de la llamada (`keyword_only`).
 src/addons/base/models/ir_actions.py::IrActionsServer._get_eval_context
 src/addons/base/models/ir_attachment.py::IrAttachment.generate_access_token
 src/addons/base/models/ir_cron.py::IrCron._reschedule_asap
@@ -15,13 +19,8 @@ src/addons/base/models/ir_cron.py::IrCron._trigger_list
 src/addons/base/models/res_device.py::ResDeviceLog.__update_revoked
 src/addons/base/models/res_device.py::ResDeviceLog._update_device
 src/addons/base/models/res_device.py::ResDeviceQuerySet._revoke
-src/addons/base/models/res_groups.py::ResGroups._ensure_xml_id
 src/addons/base/models/res_partner.py::ResPartner._commercial_sync_from_company
 src/addons/base/models/res_partner.py::ResPartner._commercial_sync_to_descendants
 src/addons/base/models/res_partner.py::ResPartner._company_dependent_commercial_sync
-src/addons/base/models/res_partner.py::ResPartner._create_contact_parent_company
 src/addons/base/models/res_partner.py::ResPartner._fields_sync
 src/addons/base/models/res_users.py::_ResUsersApikeysBase._generate
-src/orm/models.py::DefaultGetMixin._add_missing_default_values
-src/tools/convert.py::XmlImport._tag_delete
-src/tools/lru.py::LRU.snapshot

@@ -54,6 +54,7 @@ OURS = Vocabulary(
     frozenset({'save', 'create', 'update_or_create', 'get_or_create'}),
     frozenset({'bulk_create', 'bulk_update', 'update', 'raw',
                'execute', 'executemany'}),
+    keyword_only=frozenset({'update'}),
 )
 
 #: El de la fuente. ``upsert_en`` y ``query_insert`` son sus escritores por

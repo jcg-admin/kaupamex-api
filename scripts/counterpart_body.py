@@ -60,6 +60,11 @@ class Vocabulary:
     side: str
     first: frozenset
     second: frozenset
+    #: Nombres que cuentan solo en una llamada sin argumentos posicionales.
+    #: Es la firma la que separa el homonimo: ``QuerySet.update(self,
+    #: **kwargs)`` no admite posicionales, asi que ``x.update(y)`` es un
+    #: ``set``/``dict.update`` y no escribe en ninguna tabla.
+    keyword_only: frozenset = frozenset()
 
 
 @dataclasses.dataclass(frozen=True)
@@ -91,10 +96,26 @@ def called_names(node):
             yield sub.func.id
 
 
+def _vocabulary_calls(node, vocabulary):
+    """Los nombres invocados que el vocabulario admite con esa forma de llamada."""
+    for sub in ast.walk(node):
+        if not isinstance(sub, ast.Call):
+            continue
+        if isinstance(sub.func, ast.Attribute):
+            name = sub.func.attr
+        elif isinstance(sub.func, ast.Name):
+            name = sub.func.id
+        else:
+            continue
+        if name in vocabulary.keyword_only and sub.args:
+            continue
+        yield name
+
+
 def classify(node, vocabulary, axis):
     """La categoria del cuerpo segun el vocabulario de su lado."""
     first = second = False
-    for name in called_names(node):
+    for name in _vocabulary_calls(node, vocabulary):
         if name in vocabulary.first:
             first = True
         elif name in vocabulary.second:

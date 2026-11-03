@@ -80,6 +80,19 @@ class TestTheClassifierSeparatesTheTwoPaths:
     def test_reference_vocabulary(self, code, expected):
         assert classify(_body(code), REFERENCE) == expected
 
+    @pytest.mark.parametrize(
+        'code',
+        [
+            'def f(self):\n    pks = set()\n    pks.update(rows)',
+            'def f(self):\n    result.update(values)',
+        ],
+    )
+    def test_a_positional_update_is_a_container_not_a_queryset(self, code):
+        # ``QuerySet.update(self, **kwargs)`` (``django/db/models/query.py``)
+        # no admite posicionales: ``x.update(y)`` es ``set``/``dict.update``,
+        # un homonimo que no escribe en ninguna tabla.
+        assert classify(_body(code), OURS) == NO_WRITE
+
     def test_a_method_using_both_is_not_silently_one_of_them(self):
         both = _body(
             'def f(self):\n    row.save()\n    Q.objects.bulk_create([])'
