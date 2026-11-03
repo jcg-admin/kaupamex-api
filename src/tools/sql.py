@@ -55,7 +55,8 @@ de pendientes que enumera lo ya portado es prosa que el porte dejó falsa.
 el 2026-08-28: ``tools/query.py`` lo exige para acotar el alias de un JOIN
 al límite de identificador de PostgreSQL, que es el consumidor que la
 política anunciaba. ``SQL_ORDER_BY_TYPE`` salió el 2026-08-30 por la misma
-regla: ``Field.column_order`` (``orm/fields.py``) es su consumidor. ``pg_varchar`` salió el
+regla: ``Field.column_order`` (``orm/fields.py``) es su consumidor.
+``pg_varchar`` salió el
 2026-08-31 por la misma regla: ``Char._column_type`` lo exige para que un
 ``CharField`` responda su tipo de columna (tarea #245).
 
@@ -78,7 +79,8 @@ El cambio no es cosmético — ``schema`` significa otra cosa en cada motor:
   ============  =====================================  ========================
   MariaDB       ``DATABASE()`` — la base conectada     una **base**
   PostgreSQL    ``current_schema`` — normalmente       un **namespace** dentro
-                ``public``                             de la base (no otra base)
+                ``public``                             de la base (no otra
+                base)
   ============  =====================================  ========================
 
 Un consumidor que pasaba el nombre de la base como ``schema`` funcionaba en
@@ -165,7 +167,6 @@ def sql_order_by_type(udt_name):
     return SQL_ORDER_BY_TYPE.get(udt_name, SQL_ORDER_BY_TYPE_UNKNOWN)
 
 
-
 class SQL:
     """≙ ``SQL`` (``odoo19c: odoo/tools/sql.py:46``) — fragmento SQL con sus
     parámetros, componible::
@@ -216,12 +217,14 @@ class SQL:
     __slots__ = ('__code', '__params', '__to_flush', '__output_field')
 
     # pylint: disable=keyword-arg-before-vararg
-    def __init__(self, code="", /, *args, to_flush=None, output_field=None, **kwargs):
+    def __init__(self, code="", /, *args, to_flush=None, output_field=None,
+                 **kwargs):
         # ≙ ``__init__`` (``odoo19c: odoo/tools/sql.py:89-135``); la rama de
         # ``output_field`` es la adaptación declarada arriba.
         if isinstance(code, SQL):
             if args or kwargs or to_flush or output_field:
-                raise TypeError("SQL() unexpected arguments when code has type SQL")
+                raise TypeError(
+                    "SQL() unexpected arguments when code has type SQL")
             self.__code = code.__code
             self.__params = code.__params
             self.__to_flush = code.__to_flush
@@ -230,7 +233,8 @@ class SQL:
 
         # valida la forma del código y de los parámetros
         if args and kwargs:
-            raise TypeError("SQL() takes either positional arguments, or named arguments")
+            raise TypeError("SQL() takes either positional arguments, or "
+                            "named arguments")
 
         if kwargs:
             code, args = named_to_positional_printf(code, kwargs)
@@ -298,7 +302,8 @@ class SQL:
 
     def __eq__(self, other):
         # ≙ ``__eq__`` (``odoo19c: odoo/tools/sql.py:160-161``)
-        return isinstance(other, SQL) and self.__code == other.__code and self.__params == other.__params
+        return (isinstance(other, SQL) and self.__code == other.__code
+                and self.__params == other.__params)
 
     def __hash__(self):
         # ≙ ``__hash__`` (``odoo19c: odoo/tools/sql.py:163-164``)
@@ -311,7 +316,8 @@ class SQL:
 
             code, params = sql
         """
-        warnings.warn("Deprecated since 19.0, use code and params properties directly", DeprecationWarning)
+        warnings.warn("Deprecated since 19.0, use code and params properties "
+                      "directly", DeprecationWarning)
         yield self.code
         yield self.params
 
@@ -338,10 +344,12 @@ class SQL:
         """≙ ``identifier`` (``odoo19c: odoo/tools/sql.py:194-201``): un
         objeto ``SQL`` que representa un identificador (entrecomillado).
         """
-        assert name.isidentifier() or IDENT_RE.match(name), f"{name!r} invalid for SQL.identifier()"
+        assert name.isidentifier() or IDENT_RE.match(name), \
+            f"{name!r} invalid for SQL.identifier()"
         if subname is None:
             return cls(f'"{name}"', to_flush=to_flush)
-        assert subname.isidentifier() or IDENT_RE.match(subname), f"{subname!r} invalid for SQL.identifier()"
+        assert subname.isidentifier() or IDENT_RE.match(subname), \
+            f"{subname!r} invalid for SQL.identifier()"
         return cls(f'"{name}"."{subname}"', to_flush=to_flush)
 
     def resolve_expression(self, *args, **kwargs):
@@ -353,7 +361,8 @@ class SQL:
         alias retirado (``SQL = RawSQL``) daba gratis y que
         ``stock_quant._read_group_select`` consume.
         """
-        raw = RawSQL(self.__code, self.__params, output_field=self.__output_field)
+        raw = RawSQL(self.__code, self.__params,
+                     output_field=self.__output_field)
         return raw.resolve_expression(*args, **kwargs)
 
 
@@ -429,7 +438,8 @@ def escape_psql(to_escape):
     :param to_escape: el texto a escapar.
     :returns: el texto con ``\\``, ``%`` y ``_`` escapados.
     """
-    return to_escape.replace('\\', r'\\').replace('%', r'\%').replace('_', r'\_')
+    escaped = to_escape.replace('\\', r'\\')
+    return escaped.replace('%', r'\%').replace('_', r'\_')
 
 
 def table_exists(cr, tablename):
@@ -517,7 +527,8 @@ def column_exists(cr, tablename, columnname):
     """
     cr.execute(
         'SELECT 1 FROM information_schema.columns '
-        'WHERE table_name = %s AND column_name = %s AND table_schema = current_schema',
+        'WHERE table_name = %s AND column_name = %s '
+        'AND table_schema = current_schema',
         [tablename, columnname])
     return cr.fetchone() is not None
 
@@ -643,7 +654,8 @@ def create_column(cr, tablename, columnname, columntype, comment=None):
     if comment:
         cr.execute('COMMENT ON COLUMN {} IS %s'.format(
             SQL.identifier(tablename, columnname).code), [comment])
-    _schema.debug("Table %r: added column %r of type %s", tablename, columnname, columntype)
+    _schema.debug("Table %r: added column %r of type %s", tablename,
+                  columnname, columntype)
 
 
 def rename_column(cr, tablename, columnname1, columnname2):
@@ -655,7 +667,8 @@ def rename_column(cr, tablename, columnname1, columnname2):
     cr.execute('ALTER TABLE {} RENAME COLUMN {} TO {}'.format(
         SQL.identifier(tablename).code, SQL.identifier(columnname1).code,
         SQL.identifier(columnname2).code))
-    _schema.debug("Table %r: renamed column %r to %r", tablename, columnname1, columnname2)
+    _schema.debug("Table %r: renamed column %r to %r", tablename,
+                  columnname1, columnname2)
 
 
 def convert_column(cr, tablename, columnname, columntype):
@@ -684,7 +697,8 @@ def convert_column_translatable(cr, tablename, columnname, columntype):
     column = SQL.identifier(columnname).code
     if columntype == 'jsonb':
         using = ("CASE WHEN {0} IS NOT NULL THEN "
-                 "jsonb_build_object('en_US', {0}::varchar) END").format(column)
+                 "jsonb_build_object('en_US', {0}::varchar) END"
+                 ).format(column)
     else:
         using = "{}->>'en_US'".format(column)
     _convert_column(cr, tablename, columnname, columntype, using)
@@ -713,7 +727,8 @@ def _convert_column(cr, tablename, columnname, columntype, using):
     query = (
         'ALTER TABLE {t} ALTER COLUMN {c} DROP DEFAULT, '
         'ALTER COLUMN {c} TYPE {tipo} USING {using}'
-    ).format(t=SQL.identifier(tablename).code, c=SQL.identifier(columnname).code,
+    ).format(t=SQL.identifier(tablename).code,
+             c=SQL.identifier(columnname).code,
              tipo=columntype, using=using)
     try:
         with transaction.atomic(using=cr.db.alias):
@@ -721,7 +736,8 @@ def _convert_column(cr, tablename, columnname, columntype, using):
     except NotSupportedError:
         drop_depending_views(cr, tablename, columnname)
         cr.execute(query)
-    _schema.debug("Table %r: column %r changed to type %s", tablename, columnname, columntype)
+    _schema.debug("Table %r: column %r changed to type %s", tablename,
+                  columnname, columntype)
 
 
 def drop_depending_views(cr, table, column):
@@ -787,7 +803,8 @@ def set_not_null(cr, tablename, columnname):
     """
     cr.execute('ALTER TABLE {} ALTER COLUMN {} SET NOT NULL'.format(
         SQL.identifier(tablename).code, SQL.identifier(columnname).code))
-    _schema.debug("Table %r: column %r: added constraint NOT NULL", tablename, columnname)
+    _schema.debug("Table %r: column %r: added constraint NOT NULL",
+                  tablename, columnname)
 
 
 def drop_not_null(cr, tablename, columnname):
@@ -798,7 +815,8 @@ def drop_not_null(cr, tablename, columnname):
     """
     cr.execute('ALTER TABLE {} ALTER COLUMN {} DROP NOT NULL'.format(
         SQL.identifier(tablename).code, SQL.identifier(columnname).code))
-    _schema.debug("Table %r: column %r: dropped constraint NOT NULL", tablename, columnname)
+    _schema.debug("Table %r: column %r: dropped constraint NOT NULL",
+                  tablename, columnname)
 
 
 def constraint_definition(cr, tablename, constraintname):
@@ -837,7 +855,8 @@ def add_constraint(cr, tablename, constraintname, definition):
     cr.execute('COMMENT ON CONSTRAINT {} ON {} IS %s'.format(
         SQL.identifier(constraintname).code, SQL.identifier(tablename).code),
         [definition])
-    _schema.debug("Table %r: added constraint %r as %s", tablename, constraintname, definition)
+    _schema.debug("Table %r: added constraint %r as %s", tablename,
+                  constraintname, definition)
 
 
 def drop_constraint(cr, tablename, constraintname):
@@ -851,7 +870,8 @@ def drop_constraint(cr, tablename, constraintname):
     _schema.debug("Table %r: dropped constraint %r", tablename, constraintname)
 
 
-def add_foreign_key(cr, tablename1, columnname1, tablename2, columnname2, ondelete):
+def add_foreign_key(cr, tablename1, columnname1, tablename2, columnname2,
+                    ondelete):
     """Crea la clave foranea dada.
 
     ≙ ``add_foreign_key`` (``odoo19c: odoo/tools/sql.py:475-484``). Docstring
@@ -867,15 +887,19 @@ def add_foreign_key(cr, tablename1, columnname1, tablename2, columnname2, ondele
     """
     if ondelete.upper() not in _CONFDELTYPES:
         raise ValueError(f'Unknown ON DELETE policy: {ondelete!r}')
-    cr.execute('ALTER TABLE {} ADD FOREIGN KEY ({}) REFERENCES {}({}) ON DELETE {}'.format(
-        SQL.identifier(tablename1).code, SQL.identifier(columnname1).code,
-        SQL.identifier(tablename2).code, SQL.identifier(columnname2).code,
-        ondelete.upper()))
-    _schema.debug("Table %r: added foreign key %r references %r(%r) ON DELETE %s",
-                  tablename1, columnname1, tablename2, columnname2, ondelete)
+    cr.execute(
+        'ALTER TABLE {} ADD FOREIGN KEY ({}) REFERENCES {}({}) '
+        'ON DELETE {}'.format(
+            SQL.identifier(tablename1).code, SQL.identifier(columnname1).code,
+            SQL.identifier(tablename2).code, SQL.identifier(columnname2).code,
+            ondelete.upper()))
+    _schema.debug("Table %r: added foreign key %r references %r(%r) "
+                  "ON DELETE %s", tablename1, columnname1, tablename2,
+                  columnname2, ondelete)
 
 
-def get_foreign_keys(cr, tablename1, columnname1, tablename2, columnname2, ondelete):
+def get_foreign_keys(cr, tablename1, columnname1, tablename2, columnname2,
+                     ondelete):
     """Los nombres de las claves foraneas que coinciden con lo dado.
 
     ≙ ``get_foreign_keys`` (``odoo19c: odoo/tools/sql.py:487-511``). La fuente
@@ -891,8 +915,10 @@ def get_foreign_keys(cr, tablename1, columnname1, tablename2, columnname2, ondel
         FROM pg_constraint AS fk
         JOIN pg_class AS c1 ON fk.conrelid = c1.oid
         JOIN pg_class AS c2 ON fk.confrelid = c2.oid
-        JOIN pg_attribute AS a1 ON a1.attrelid = c1.oid AND fk.conkey[1] = a1.attnum
-        JOIN pg_attribute AS a2 ON a2.attrelid = c2.oid AND fk.confkey[1] = a2.attnum
+        JOIN pg_attribute AS a1
+            ON a1.attrelid = c1.oid AND fk.conkey[1] = a1.attnum
+        JOIN pg_attribute AS a2
+            ON a2.attrelid = c2.oid AND fk.confkey[1] = a2.attnum
         WHERE fk.contype = 'f'
         AND c1.relname = %s
         AND a1.attname = %s
@@ -904,7 +930,8 @@ def get_foreign_keys(cr, tablename1, columnname1, tablename2, columnname2, ondel
     return [row[0] for row in cr.fetchall()]
 
 
-def fix_foreign_key(cr, tablename1, columnname1, tablename2, columnname2, ondelete):
+def fix_foreign_key(cr, tablename1, columnname1, tablename2, columnname2,
+                    ondelete):
     """Alinea las claves foráneas con la dada — ≙ ``fix_foreign_key``
     (``odoo19c: odoo/tools/sql.py:510-537``).
 
@@ -933,7 +960,8 @@ def fix_foreign_key(cr, tablename1, columnname1, tablename2, columnname2, ondele
             drop_constraint(cr, tablename1, fk[0])
     if found:
         return False
-    add_foreign_key(cr, tablename1, columnname1, tablename2, columnname2, ondelete)
+    add_foreign_key(cr, tablename1, columnname1, tablename2, columnname2,
+                    ondelete)
     return True
 
 
@@ -950,12 +978,15 @@ def create_index(cr, indexname, tablename, expressions, method='btree',
     if index_exists(cr, indexname):
         return
     condition = ' WHERE {}'.format(where) if where else ''
-    definition = 'USING {} ({}){}'.format(method, ', '.join(expressions), condition)
-    add_index(cr, indexname, tablename, definition, unique=unique, comment=comment)
+    definition = 'USING {} ({}){}'.format(method, ', '.join(expressions),
+                                          condition)
+    add_index(cr, indexname, tablename, definition, unique=unique,
+              comment=comment)
 
 
 def add_index(cr, indexname, tablename, definition, *, unique, comment=''):
-    """Crea un índice — ≙ ``add_index`` (``odoo19c: odoo/tools/sql.py:597-617``).
+    """Crea un índice — ≙ ``add_index`` (``odoo19c:
+    odoo/tools/sql.py:597-617``).
 
     Docstring de la fuente, verbatim: *"Create an index."* El comentario va
     por ``COMMENT ON INDEX``, que es lo que :func:`index_definition` lee de
@@ -969,13 +1000,15 @@ def add_index(cr, indexname, tablename, definition, *, unique, comment=''):
     if comment:
         cr.execute('COMMENT ON INDEX {} IS %s'.format(
             SQL.identifier(indexname).code), [comment])
-    _schema.debug("Table %r: created index %r (%s)", tablename, indexname, definition)
+    _schema.debug("Table %r: created index %r (%s)", tablename, indexname,
+                  definition)
 
 
 def create_unique_index(cr, indexname, tablename, expressions):
     """≙ ``create_unique_index`` (``odoo19c: odoo/tools/sql.py:620-623``),
     obsoleta desde 19.0 como en la fuente."""
-    warnings.warn("Since 19.0, use create_index(unique=True)", DeprecationWarning)
+    warnings.warn("Since 19.0, use create_index(unique=True)",
+                  DeprecationWarning)
     return create_index(cr, indexname, tablename, expressions, unique=True)
 
 
@@ -985,7 +1018,8 @@ def drop_index(cr, indexname, tablename):
     ≙ ``drop_index`` (``odoo19c: odoo/tools/sql.py:626-629``). Docstring de la
     fuente, verbatim: *"Drop the given index if it exists"*.
     """
-    cr.execute('DROP INDEX IF EXISTS {}'.format(SQL.identifier(indexname).code))
+    cr.execute('DROP INDEX IF EXISTS {}'.format(
+        SQL.identifier(indexname).code))
     _schema.debug("Table %r: dropped index %r", tablename, indexname)
 
 
@@ -994,7 +1028,8 @@ def drop_view_if_exists(cr, viewname):
     retira la vista o la vista materializada, y nada si es otra cosa."""
     kind = table_kind(cr, viewname)
     if kind == TableKind.View:
-        cr.execute('DROP VIEW {} CASCADE'.format(SQL.identifier(viewname).code))
+        cr.execute('DROP VIEW {} CASCADE'.format(
+            SQL.identifier(viewname).code))
     elif kind == TableKind.Materialized:
         cr.execute('DROP MATERIALIZED VIEW {} CASCADE'.format(
             SQL.identifier(viewname).code))
@@ -1032,7 +1067,8 @@ def increment_fields_skiplock(records, *fields):
     with records.env.cr.cursor() as cr:
         cr.execute(
             'UPDATE {0} SET {1} WHERE id IN (SELECT id FROM {0} '
-            'WHERE id = ANY(%s) FOR UPDATE SKIP LOCKED)'.format(tablename, assignments),
+            'WHERE id = ANY(%s) FOR UPDATE SKIP LOCKED)'.format(tablename,
+                                                                assignments),
             [list(records.ids)])
         return bool(cr.rowcount)
 
@@ -1056,12 +1092,15 @@ def pattern_to_translated_trigram_pattern(pattern):
     sub_patterns = re.findall(r'''
         (
             (?:.)*?           # 0 o más caracteres, salto de línea incluido
-            (?<!\\)(?:\\\\)*  # 0 o un número par de barras: el comodín no está escapado
+            # 0 o un número par de barras: el comodín no está escapado
+            (?<!\\)(?:\\\\)*
         )
         (?:_|%|$)             # un comodín no escapado o el final
         ''', pattern, flags=re.VERBOSE | re.DOTALL)
-    sub_texts = [re.sub(r'\\(.|$)', r'\1', t, flags=re.DOTALL) for t in sub_patterns]
-    json_escaped = [json.dumps(t, ensure_ascii=False)[1:-1] for t in sub_texts if len(t) >= 3]
+    sub_texts = [re.sub(r'\\(.|$)', r'\1', t, flags=re.DOTALL)
+                 for t in sub_patterns]
+    json_escaped = [json.dumps(t, ensure_ascii=False)[1:-1]
+                    for t in sub_texts if len(t) >= 3]
     wildcard_escaped = [re.sub(r'(_|%|\\)', r'\\\1', t) for t in json_escaped]
     return f"%{'%'.join(wildcard_escaped)}%" if wildcard_escaped else "%"
 

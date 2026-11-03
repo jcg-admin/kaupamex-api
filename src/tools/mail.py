@@ -436,6 +436,7 @@ def formataddr(pair, charset='utf-8'):
             return f'"{name}" <{local}@{domain}>'
     return f"{local}@{domain}"
 
+
 # ---------------------------------------------------------------------------
 # Ayudantes de direcciones y cabeceras — copia con atribución de
 # ``odoo19c: odoo/tools/mail.py:724-1068`` (``odoo-tools@abe4040ec1``, LGPL-3).
@@ -447,26 +448,29 @@ mail_header_msgid_re = re.compile('<[^<>]+>')
 def generate_tracking_message_id(res_id):
     """Returns a string that can be used in the Message-ID RFC822 header field
 
-       Used to track the replies related to a given object thanks to the "In-Reply-To"
-       or "References" fields that Mail User Agents will set.
+       Used to track the replies related to a given object thanks to the
+       "In-Reply-To" or "References" fields that Mail User Agents will set.
     """
     try:
         rnd = random.SystemRandom().random()
     except NotImplementedError:
         rnd = random.random()
     rndstr = ("%.15f" % rnd)[2:]
-    return "<%s.%.15f-openerp-%s@%s>" % (rndstr, time.time(), res_id, socket.gethostname())
+    return "<%s.%.15f-openerp-%s@%s>" % (
+        rndstr, time.time(), res_id, socket.gethostname())
 
 
 def email_split_and_format(text):
     """ Return a list of email addresses found in ``text``, formatted using
     formataddr. """
-    return [formataddr((name, email)) for (name, email) in email_split_tuples(text)]
+    return [formataddr((name, email))
+            for (name, email) in email_split_tuples(text)]
 
 
 def email_split_and_normalize(text):
     """ Same as 'email_split' but normalized email """
-    return [(name, _normalize_email(email)) for (name, email) in email_split_tuples(text)]
+    return [(name, _normalize_email(email))
+            for (name, email) in email_split_tuples(text)]
 
 
 def email_split_and_format_normalize(text):
@@ -526,7 +530,8 @@ def url_domain_extract(url):
 
 def email_escape_char(email_address):
     """ Escape problematic characters in the given email address string"""
-    return email_address.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+    escaped = email_address.replace('\\', '\\\\')
+    return escaped.replace('%', '\\%').replace('_', '\\_')
 
 
 def decode_message_header(message, header, separator=' '):

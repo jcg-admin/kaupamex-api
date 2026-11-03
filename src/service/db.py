@@ -96,7 +96,8 @@ class RestoreFailed(Exception):
     """
 
 
-# Forma canónica del nombre de base de empresa (== ``routers.company_db_alias``).
+# Forma canónica del nombre de base de empresa
+# (== ``routers.company_db_alias``).
 _COMPANY_DB_RE = re.compile(r'^company_\d+_db$')
 # Identificador seguro para DDL (más estricto que ``quote_ident`` de Odoo).
 _IDENTIFIER_RE = re.compile(r'^[A-Za-z0-9_]+$')

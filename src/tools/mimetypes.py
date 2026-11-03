@@ -9,9 +9,10 @@ casos que libmagic no separa, como allá.
 Dos adaptaciones de forma. El detector propio se llama ``_guess_mimetype``:
 ningún identificador de este árbol lleva el nombre de la referencia
 (``scripts/check_identifier_reference_name.py``). Y la fuente importa
-``magic`` dentro de un ``try`` a mitad del módulo. Aquí el import opcional va al bloque inicial —la
-forma que ``check_no_lazy_imports`` admite para una dependencia opcional— y
-la elección de implementación se hace con ``if``. El comportamiento no cambia.
+``magic`` dentro de un ``try`` a mitad del módulo. Aquí el import opcional
+va al bloque inicial —la forma que ``check_no_lazy_imports`` admite para una
+dependencia opcional— y la elección de implementación se hace con ``if``.
+El comportamiento no cambia.
 """
 import collections
 import io
@@ -36,10 +37,14 @@ MIMETYPE_HEAD_SIZE = 2048
 
 # discriminants for zip-based file formats
 _ooxml_dirs = {
-    'word/': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'pt/': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'word/': ('application/vnd.openxmlformats-officedocument.'
+              'wordprocessingml.document'),
+    'pt/': ('application/vnd.openxmlformats-officedocument.'
+            'presentationml.presentation'),
     'xl/': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 }
+
+
 def _check_ooxml(data):
     with io.BytesIO(data) as f, zipfile.ZipFile(f) as z:
         filenames = z.namelist()
@@ -65,6 +70,8 @@ _mime_validator = re.compile(r"""
     (?:\.[\w-]+)* # optional faceted name
     (?:\+[\w-]+)? # optional structured syntax specifier
 """, re.VERBOSE)
+
+
 def _check_open_container_format(data):
     # Open Document Format for Office Applications (OpenDocument) Version 1.2
     #
@@ -106,6 +113,8 @@ _ppt_pattern = re.compile(b"""
   | \xA0\x46\x1D\xF0
   | \xFD\xFF\xFF\xFF(\x0E|\x1C|\x43)\x00\x00\x00
 """, re.VERBOSE)
+
+
 def _check_olecf(data):
     """ Pre-OOXML Office formats are OLE Compound Files which all use the same
     file signature ("magic bytes") and should have a subheader at offset 512
@@ -132,21 +141,26 @@ def _check_svg(data):
     if b'<svg' in data and b'/svg' in data:
         return 'image/svg+xml'
 
+
 def _check_webp(data):
     """This checks the presence of the WEBP and VP8 in the RIFF"""
     if data[8:15] == b'WEBPVP8':
         return 'image/webp'
 
+
 # for "master" formats with many subformats, discriminants is a list of
 # functions, tried in order and the first non-falsy value returned is the
 # selected mime type. If all functions return falsy values, the master
 # mimetype is returned.
-_Entry = collections.namedtuple('_Entry', ['mimetype', 'signatures', 'discriminants'])
+_Entry = collections.namedtuple('_Entry',
+                                ['mimetype', 'signatures', 'discriminants'])
 _mime_mappings = (
     # pdf
     _Entry('application/pdf', [b'%PDF'], []),
     # jpg, jpeg, png, gif, bmp, jfif
-    _Entry('image/jpeg', [b'\xFF\xD8\xFF\xE0', b'\xFF\xD8\xFF\xE2', b'\xFF\xD8\xFF\xE3', b'\xFF\xD8\xFF\xE1', b'\xFF\xD8\xFF\xDB'], []),
+    _Entry('image/jpeg', [b'\xFF\xD8\xFF\xE0', b'\xFF\xD8\xFF\xE2',
+                          b'\xFF\xD8\xFF\xE3', b'\xFF\xD8\xFF\xE1',
+                          b'\xFF\xD8\xFF\xDB'], []),
     _Entry('image/png', [b'\x89PNG\r\n\x1A\n'], []),
     _Entry('image/gif', [b'GIF87a', b'GIF89a'], []),
     _Entry('image/bmp', [b'BM'], []),
@@ -157,12 +171,14 @@ _mime_mappings = (
     _Entry('image/webp', [b'RIFF'], [
         _check_webp,
     ]),
-    # OLECF files in general (Word, Excel, PPT, default to word because why not?)
-    _Entry('application/msword', [b'\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1', b'\x0D\x44\x4F\x43'], [
-        _check_olecf
-    ]),
+    # OLECF files in general (Word, Excel, PPT, default to word because why
+    # not?)
+    _Entry('application/msword',
+           [b'\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1', b'\x0D\x44\x4F\x43'],
+           [_check_olecf]),
     # zip, but will include jar, odt, ods, odp, docx, xlsx, pptx, apk
-    _Entry('application/zip', [b'PK\x03\x04'], [_check_ooxml, _check_open_container_format]),
+    _Entry('application/zip', [b'PK\x03\x04'],
+           [_check_ooxml, _check_open_container_format]),
 )
 
 
@@ -173,7 +189,8 @@ def _guess_mimetype(bin_data: bytes, default='application/octet-stream'):
     :param bin_data: binary data to try and guess a mime type for
     :returns: matched mimetype or ``application/octet-stream`` if none matched
     """
-    # by default, guess the type using the magic number of file hex signature (like magic, but more limited)
+    # by default, guess the type using the magic number of file hex signature
+    # (like magic, but more limited)
     # see http://www.filesignatures.net/ for file signatures
     for entry in _mime_mappings:
         for signature in entry.signatures:
@@ -181,7 +198,8 @@ def _guess_mimetype(bin_data: bytes, default='application/octet-stream'):
                 for discriminant in entry.discriminants:
                     try:
                         guess = discriminant(bin_data)
-                        if guess: return guess
+                        if guess:
+                            return guess
                     except Exception:
                         # log-and-next
                         _logger_guess_mimetype.warning(
@@ -193,10 +211,11 @@ def _guess_mimetype(bin_data: bytes, default='application/octet-stream'):
                 # primary mime type
                 return entry.mimetype
     try:
-        if bin_data and all(c >= ' ' or c in '\t\n\r' for c in bin_data[:1024].decode()):
+        if bin_data and all(c >= ' ' or c in '\t\n\r'
+                            for c in bin_data[:1024].decode()):
             return 'text/plain'
     except ValueError:
-        pass  # silent OK because no decodificar como texto significa que no es text/plain
+        pass  # silent OK because si no se decodifica no es text/plain
     return default
 
 
@@ -216,7 +235,7 @@ if magic is not None:
             try:
                 if msoffice_mimetype := _check_olecf(bin_data):
                     return msoffice_mimetype
-            except Exception:  # noqa: BLE001
+            except Exception:
                 _logger_guess_mimetype.warning(
                     "Sub-checker '_check_olecf' of type '%s' failed",
                     mimetype,
@@ -231,8 +250,8 @@ if magic is not None:
                 if msoffice_mimetype := _check_ooxml(bin_data):
                     return msoffice_mimetype
             except zipfile.BadZipFile:
-                pass  # silent OK because con sólo la cabecera del zip vale el tipo de libmagic
-            except Exception:  # noqa: BLE001
+                pass  # silent OK because vale el tipo que dio libmagic
+            except Exception:
                 _logger_guess_mimetype.warning(
                     "Sub-checker '_check_ooxml' of type '%s' failed",
                     mimetype,
@@ -252,6 +271,8 @@ def neuter_mimetype(mimetype, user):
 
 
 _extension_pattern = re.compile(r'\w+')
+
+
 def get_extension(filename):
     # A file has no extension if it has no dot (ignoring the leading one
     # of hidden files) or that what follow the last dot is not a single
@@ -295,12 +316,15 @@ def fix_filename_extension(filename, mimetype):
     if mimetype in _olecf_mimetypes and extension in _old_ms_office_mimetypes:
         return filename
 
-    if mimetype == 'application/zip' and extension in {'.docx', '.xlsx', '.pptx'}:
+    if (mimetype == 'application/zip'
+            and extension in {'.docx', '.xlsx', '.pptx'}):
         return filename
 
     if extension := mimetypes.guess_extension(mimetype):
-        _logger.warning("File %r has an invalid extension for mimetype %r, adding %r", filename, mimetype, extension)
+        _logger.warning("File %r has an invalid extension for mimetype %r, "
+                        "adding %r", filename, mimetype, extension)
         return filename + extension
 
-    _logger.warning("File %r has an unknown extension for mimetype %r", filename, mimetype)
+    _logger.warning("File %r has an unknown extension for mimetype %r",
+                    filename, mimetype)
     return filename
