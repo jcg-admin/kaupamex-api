@@ -8,12 +8,47 @@ de dominio (no framework-UI): da el control de localización que tiene Odoo
 
 import ast
 import re
+from typing import Any
 
 from django.core.exceptions import ValidationError
 
 import fields
 import models
-from tools.misc import DATETIME_FORMATS_MAP
+from exceptions import UserError
+from orm import registry
+from tools.cache import ormcache
+from tools.misc import DATETIME_FORMATS_MAP, ReadonlyDict
+
+
+class LangData(ReadonlyDict):
+    """≙ ``LangData`` (``odoo19c: res_lang.py:18-32``): un ``dict`` que se lee
+    como un registro de ``res.lang``. No puede guardar campos que se llamen
+    como un método de ``dict``, como ``keys``."""
+
+    __slots__ = ()
+
+    def __bool__(self) -> bool:
+        return bool(self.id)
+
+    def __getattr__(self, name: str) -> Any:
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(name) from None
+
+
+class LangDataDict(ReadonlyDict):
+    """≙ ``LangDataDict`` (``:35-46``): :class:`LangData` por clave, con un
+    ``LangData`` vacío —todo ``False``— para la clave que no está."""
+
+    __slots__ = ()
+
+    def __getitem__(self, key: Any) -> LangData:
+        try:
+            return self._data__[key]
+        except KeyError:
+            some_lang = next(iter(self.values()))
+            return LangData(dict.fromkeys(some_lang, False))
 
 
 class ResLang(models.Model):
@@ -141,22 +176,66 @@ class ResLang(models.Model):
     def __str__(self) -> str:
         return f'{self.name} ({self.code})'
 
+    #: ≙ ``CACHED_FIELDS`` (``odoo19c: res_lang.py:274-283``): los campos que
+    #: la caché de idiomas activos guarda. Divergencia declarada: falta
+    #: ``flag_image_url``, un campo calculado que este modelo no declara.
+    CACHED_FIELDS = ('id', 'name', 'code', 'iso_code', 'url_code', 'active',
+                     'direction', 'date_format', 'time_format', 'week_start',
+                     'grouping', 'decimal_point', 'thousands_sep')
+
+    def save(self, *args, **kwargs):
+        """Enganche de Django: vacía la familia ``stable`` al guardar, como
+        el ``create``/``write`` de la fuente (``:346``, ``:388``)."""
+        super().save(*args, **kwargs)
+        registry.clear_cache('stable')
+
+    def delete(self, *args, **kwargs):
+        """Enganche de Django: vacía la familia ``stable``, como el
+        ``unlink`` de la fuente (``:403``)."""
+        result = super().delete(*args, **kwargs)
+        registry.clear_cache('stable')
+        return result
+
+    @classmethod
+    def _get_data(cls, **kwargs) -> LangData:
+        """≙ ``_get_data`` (``:285-299``): el :class:`LangData` del idioma
+        **activo** cuyo campo vale lo pedido (``_get_data(code='en_US')``), o
+        el vacío."""
+        [[field_name, field_value]] = kwargs.items()
+        return cls._get_active_by(field_name)[field_value]
+
+    @classmethod
+    def _lang_get(cls, code: str):
+        """≙ ``_lang_get`` (``:301-303``): el registro del idioma si está
+        activo. La fuente devuelve un recordset vacío si no; aquí ``None``."""
+        lang_id = cls._get_data(code=code).id
+        return cls.objects.filter(pk=lang_id).first() if lang_id else None
+
+    @classmethod
+    def _get_code(cls, code: str):
+        """≙ ``_get_code`` (``:305-307``): el código si el idioma está
+        activo, si no ``False``."""
+        return cls._get_data(code=code).code
+
     @classmethod
     def get_installed(cls):
-        """
-        ≙ ``get_installed`` (``odoo19c:
-        odoo/addons/base/models/res_lang.py:311-313``).
+        """≙ ``get_installed`` (``:311-313``): los pares ``(code, name)`` de los
+        idiomas **activos**, ordenados por nombre, leídos de la caché
+        :meth:`_get_active_by`."""
+        return [(code, data.name) for code, data in cls._get_active_by('code').items()]
 
-        Los pares ``(code, name)`` de los idiomas **activos**, ordenados por
-        nombre. La fuente los saca de ``_get_active_by('code')``, una caché de
-        ``LangData`` indexada por el campo que se le pida; aquí la consulta va
-        directa al gestor porque esa caché es del ORM de la referencia y su
-        porte no es de este archivo.
-        """
-        return [
-            (row.code, row.name)
-            for row in cls.objects.filter(active=True).order_by('name')
-        ]
+    @classmethod
+    @ormcache('field', cache='stable')
+    def _get_active_by(cls, field: str) -> LangDataDict:
+        """≙ ``_get_active_by`` (``:315-330``): los idiomas activos como
+        :class:`LangDataDict` indexado por un campo de :attr:`CACHED_FIELDS`,
+        en orden de nombre."""
+        if field not in cls.CACHED_FIELDS:
+            raise UserError('Field "%s" is not cached' % field)
+        if field == 'code':
+            rows = cls.objects.filter(active=True).order_by('name').values(*cls.CACHED_FIELDS)
+            return LangDataDict({row['code']: LangData(row) for row in rows})
+        return LangDataDict({data[field]: data for data in cls._get_active_by('code').values()})
 
     def format(self, percent, value, grouping=False):
         """≙ ``format`` (``odoo19c: res_lang.py:418-446``).
