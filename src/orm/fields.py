@@ -5081,8 +5081,11 @@ def _cache_computed_values(fields, records):
         if not _is_persisted(field):
             continue
         many_to_many = getattr(field, 'many_to_many', False)
-        if native_recordset and not many_to_many:
-            # Native scalar assignments already populated the field cache.
+        if (native_recordset and not many_to_many
+                and not isinstance(field, models.ForeignKey)):
+            # La asignación escalar sobre un recordset nativo ya llenó la caché
+            # del campo. Un ``ForeignKey`` no: su descriptor es el de Django
+            # y escribe sólo el ``attname`` de la fila, así que se lee de ahí.
             continue
         for row in rows:
             if many_to_many:

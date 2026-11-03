@@ -128,3 +128,22 @@ def test_recomputation_ends(env):
     parent.unlink()
     env.flush_all()
     assert not env['test_orm.model_child_m2o'].browse(child.ids).exists()
+
+
+def test_compute_stored_many2one_one2many(env):
+    """≙ :317 — un Many2one calculado y almacenado entra en el One2many
+    inverso, y el contador que depende de ese One2many le sigue.
+
+    Adaptación declarada: ``member.name = 'Bar'`` de la fuente es aquí
+    ``write``, que es lo que esa asignación hace allá."""
+    Container = env['test_orm.compute.container']
+    container = Container.create({'name': 'Foo'})
+    assert not container.member_ids
+    member = env['test_orm.compute.member'].create({'name': 'Foo'})
+    assert Container.browse(container.ids).member_ids == member
+    assert Container.browse(container.ids).member_count == 1
+
+    member.write({'name': 'Bar'})
+    assert Container.browse(container.ids).member_count == 0
+    member.write({'name': 'Foo'})
+    assert Container.browse(container.ids).member_count == 1

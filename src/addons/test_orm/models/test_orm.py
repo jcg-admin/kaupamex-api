@@ -951,3 +951,59 @@ class TestOrmTeamMember(TestOrmModel):
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_team_member'
+
+
+# ---------------------------------------------------------------------------
+# ``test_orm.compute.container`` y ``compute.member`` — ≙ ``odoo19c:
+# odoo/addons/test_orm/models/test_orm.py`` (``TestOrmComputeContainer``,
+# ``TestOrmComputeMember``). Sujeto de ``test_compute_stored_many2one_one2many``
+# (``tests/test_one2many.py:317``): un Many2one calculado y almacenado cuyo
+# One2many inverso alimenta un contador también almacenado.
+#
+# pendiente: ``name_translated`` de ``container`` y ``container_super_id``,
+# ``container_context_id`` y sus dos ``related`` de ``member``; los usan
+# ``test_fields.py`` y ``test_search.py``, aún no portados en esa parte.
+# ---------------------------------------------------------------------------
+
+
+class TestOrmComputeContainer(TestOrmModel):
+    """≙ ``test_orm.compute.container``. ``member_ids`` es el reverso del
+    ``container_id`` de ``compute.member``."""
+
+    _name = 'test_orm.compute.container'
+    _description = 'test_orm.compute.container'
+
+    name = fields.Char(null=True)
+    member_count = fields.Integer(compute='_compute_member_count', store=True,
+                                  null=True)
+
+    @depends('member_ids')
+    def _compute_member_count(self):
+        for record in self:
+            record.member_count = len(record.member_ids)
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_compute_container'
+
+
+class TestOrmComputeMember(TestOrmModel):
+    """≙ ``test_orm.compute.member``: su contenedor es el que lleva su
+    nombre."""
+
+    _name = 'test_orm.compute.member'
+    _description = 'test_orm.compute.member'
+
+    name = fields.Char(null=True)
+    container_id = fields.Many2one('test_orm.compute.container',
+                                   compute='_compute_container', store=True,
+                                   related_name='member_ids')
+
+    @depends('name')
+    def _compute_container(self):
+        container = self.env['test_orm.compute.container']
+        for member in self:
+            member.container_id = container.search(
+                [('name', '=', member.name)], limit=1)
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_compute_member'

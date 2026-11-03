@@ -4784,6 +4784,13 @@ def _x2many_descriptor_get(self, instance, cls=None):
         return _DJANGO_X2MANY_GET(self, instance, cls)
     if instance.pk is None:
         return comodel._from_ids(env(), (), ())
+    if not isinstance(self, _related_descriptors.ManyToManyDescriptor):
+        # El inverso puede estar pendiente de cálculo (un Many2one
+        # ``compute=..., store=True``): la fuente lo vuelca antes de leer,
+        # porque el One2many se resuelve con ``comodel._search`` y éste hace
+        # ``flush_model`` de los campos del dominio
+        # (``odoo19c: odoo/orm/fields_relational.py``, ``One2many.read``).
+        flush_model(comodel, [self.rel.field.name])
     manager = _DJANGO_X2MANY_GET(self, instance, cls)
     rows = manager.all()
     order = getattr(comodel, '_order', None)
