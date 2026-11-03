@@ -165,8 +165,9 @@ from django.apps import apps
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import DEFAULT_DB_ALIAS, connections, router, transaction
 from django.db.models import Count
+from django.db.models.sql import InsertQuery
 
 from addons.base.models.ir_model import (
     IrModel,
@@ -2424,10 +2425,22 @@ class IrActionsServer(IrActionsBase):
                 records = model.objects.filter(pk__in=context['active_ids'])
 
         def log(message, level='info'):
-            """≙ el ``log`` de la fuente: una fila en ``ir_logging``."""
+            """≙ el ``log`` de la fuente: una fila en ``ir_logging``.
+
+            La fuente inserta con ``self.pool.cursor()``, un cursor propio: la
+            traza tiene que quedar aunque la acción se revierta, que es justo
+            cuando más falta hace. Aquí el cursor propio es una conexión
+            aparte (``connections.create_connection``), el mismo patrón que
+            ``tools/profiler.py`` usa para ``ir_profile``; el ``INSERT`` lo
+            compila Django para esa conexión, así que las columnas de
+            ``TimeStampedModel`` salen de sus propios ``pre_save``.
+            """
             IrLogging = apps.get_model('base', 'IrLogging')
-            IrLogging.objects.create(
+            alias = router.db_for_write(IrLogging) or DEFAULT_DB_ALIAS
+            separate = connections.create_connection(alias)
+            row = IrLogging(
                 type='server',
+                dbname=separate.settings_dict['NAME'],
                 name=__name__,
                 level=level,
                 message=message,
@@ -2435,6 +2448,18 @@ class IrActionsServer(IrActionsBase):
                 line=str(action.pk),
                 func=action.name or '',
             )
+            query = InsertQuery(IrLogging)
+            query.insert_values(
+                [f for f in IrLogging._meta.concrete_fields
+                 if not f.primary_key], [row])
+            try:
+                with separate.cursor() as cursor:
+                    for sql, params in query.get_compiler(
+                            connection=separate).as_sql():
+                        cursor.execute(sql, params)
+                separate.commit()
+            finally:
+                separate.close()
 
         return {
             'model': model,

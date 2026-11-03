@@ -24,6 +24,7 @@ una acción mal configurada se ejecutaría igual, y ningún otro caso lo notarí
 """
 
 import pytest
+from django.db import DEFAULT_DB_ALIAS, connections, transaction
 
 from addons.base.models.ir_actions import (
     IrActionsServer,
@@ -306,6 +307,34 @@ class TestTheEvalContext:
         action = _action(model_name=PARTNER)
 
         assert action._get_eval_context(action)['record'] is None
+
+    def test_log_survives_the_rollback_of_the_action(self):
+        """≙ ``log`` (``odoo19c: ir_actions.py``, ``_get_eval_context``): la
+        fuente inserta con ``self.pool.cursor()``, un cursor propio, así que la
+        traza queda aunque la acción se revierta."""
+        action = _action(model_name=PARTNER)
+        log = action._get_eval_context(action)['log']
+        marker = 'traza-que-sobrevive-%s' % action.pk
+
+        with pytest.raises(RuntimeError):
+            with transaction.atomic():
+                log(marker)
+                raise RuntimeError('la acción falla')
+
+        separate = connections.create_connection(DEFAULT_DB_ALIAS)
+        try:
+            with separate.cursor() as cursor:
+                cursor.execute(
+                    'SELECT level, path, line FROM ir_logging WHERE message = %s',
+                    (marker,))
+                rows = cursor.fetchall()
+                # La escribió OTRA conexión: el rollback del caso no la
+                # retira. Se limpia por el mismo camino.
+                cursor.execute('DELETE FROM ir_logging WHERE message = %s', (marker,))
+            separate.commit()
+        finally:
+            separate.close()
+        assert rows == [('info', 'action', str(action.pk))]
 
 
 @pytest.mark.django_db
