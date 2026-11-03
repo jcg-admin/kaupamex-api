@@ -8,7 +8,8 @@ Núcleo portado: campos persistidos (``name``, ``active``, ``note``,
 ``company``, ``sequence``, ``display_on_invoice``, ``discount_percentage``,
 ``discount_days``, ``early_pay_discount_computation``, ``early_discount``),
 ``_check_lines``, ``_get_amount_due_after_discount``, ``_compute_terms``,
-``_get_amount_by_date``, ``_get_last_discount_date`` en ``AccountPaymentTerm``;
+``_get_amount_by_date``, ``_get_last_discount_date`` y
+``_get_last_discount_date_formatted`` en ``AccountPaymentTerm``;
 y ``value``/``value_amount``/``delay_type``/``days_next_month``/``nb_days`` +
 ``_get_due_date``/``_check_valid_char_value``/``_check_percent``/
 ``_compute_display_days_next_month`` en ``AccountPaymentTermLine``.
@@ -46,8 +47,10 @@ No portado (declarado, no improvisado):
   ver ``account_cash_rounding.py``), pero cablear el ajuste de redondeo de
   efectivo al cómputo de cuotas no es parte de este cluster de pagos; queda
   para quien integre facturación con redondeo de efectivo.
-- ``format_date``/``formatLang`` (i18n de fechas/montos para el preview del
-  UI): sin consumidor de presentación en este core.
+- ``formatLang`` y el ``format_date`` de ``_compute_example_preview`` (la
+  vista previa del UI): ese cómputo no se porta, sin consumidor de
+  presentación en este core. ``_get_amount_by_date`` y
+  ``_get_last_discount_date_formatted`` sí formatean la fecha como la fuente.
 - ``dateutil.relativedelta``: **no es dependencia de este proyecto**
   (precedente: ``base/models/ir_cron.py::_add_months`` y
   ``fleet/models/fleet_vehicle_log_contract.py::next_year_date``, ambos
@@ -84,6 +87,8 @@ import api
 import fields
 import models
 from exceptions import ValidationError
+from orm.environments import env
+from tools.misc import format_date, frozendict
 from tools.translate import _
 
 VALUE_TYPES = [
@@ -276,6 +281,13 @@ class AccountPaymentTerm(models.Model):
             return False
         return date_ref + timedelta(days=self.discount_days or 0)
 
+    def _get_last_discount_date_formatted(self, date_ref):
+        """≙ ``_get_last_discount_date_formatted`` (``odoo19c: :269-273``):
+        la fecha de pronto pago con ``format_date`` y el entorno activo."""
+        if not date_ref:
+            return None
+        return format_date(env(), self._get_last_discount_date(date_ref))
+
     # -- Odoo _compute_terms --------
     def _compute_terms(
         self,
@@ -391,15 +403,28 @@ class AccountPaymentTerm(models.Model):
     # -- Odoo _get_amount_by_date --------
     @api.model
     def _get_amount_by_date(self, terms):
-        """Agrupa las cuotas de ``_compute_terms`` por fecha (Odoo
-        ``_get_amount_by_date``)."""
+        """Agrupa las cuotas de ``_compute_terms`` por fecha — ≙
+        ``_get_amount_by_date`` (``odoo19c: :137-155``).
+
+        Docstring de la fuente: *"Returns a dictionary with the amount for
+        each date of the payment term (grouped by date, discounted percentage
+        and discount last date, sorted by date and ignoring null amounts)."*
+        La clave es un ``frozendict`` con la fecha y el valor lleva la fecha
+        con ``format_date``, como la fuente. El monto acumula ``Decimal``
+        porque ``foreign_amount`` lo es en este stack; la fuente parte de
+        ``0.0``.
+        """
         terms_lines = sorted(terms['line_ids'], key=lambda t: t.get('date'))
         amount_by_date = {}
+        environment = env()
         for term in terms_lines:
-            key = term['date']
-            results = amount_by_date.setdefault(
-                key, {'date': key, 'amount': Decimal('0')}
-            )
+            key = frozendict({
+                'date': term['date'],
+            })
+            results = amount_by_date.setdefault(key, {
+                'date': format_date(environment, term['date']),
+                'amount': Decimal('0'),
+            })
             results['amount'] += term['foreign_amount']
         return amount_by_date
 

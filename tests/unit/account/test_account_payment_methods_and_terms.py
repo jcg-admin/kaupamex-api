@@ -25,6 +25,7 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
+from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 
 from exceptions import ValidationError
@@ -37,8 +38,20 @@ from addons.account.models import (
     AccountPaymentTermLine,
 )
 from addons.base.models import ResCompany
+from orm.environments import Environment, user_scope
+from orm.utils import SUPERUSER_ID
+from tools.misc import frozendict
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture
+def environment(db):
+    """El entorno activo con un usuario: ``format_date`` lee su idioma."""
+    user = get_user_model().objects.create_user(
+        login='plazo.formato@kaupamex.mx', password='Plazo123!')
+    with Environment(None, SUPERUSER_ID, {}), user_scope(user.pk):
+        yield
 
 
 @pytest.fixture
@@ -207,6 +220,19 @@ class TestAccountPaymentTermDiscount:
             2026, 1, 11
         )
 
+    def test_get_last_discount_date_formatted(self, company, environment):
+        """≙ ``_get_last_discount_date_formatted`` (``odoo19c:
+        account/models/account_payment_term.py:269-273``)."""
+        term = AccountPaymentTerm.objects.create(
+            name='2/10 Net 30',
+            company=company,
+            early_discount=True,
+            discount_days=10,
+        )
+        formatted = term._get_last_discount_date_formatted
+        assert formatted(date(2026, 1, 1)) == '01/11/2026'
+        assert formatted(None) is None
+
     def test_get_last_discount_date_disabled(self, company):
         term = AccountPaymentTerm.objects.create(
             name='Net 30', company=company
@@ -289,7 +315,10 @@ class TestAccountPaymentTermComputeTerms:
         assert first['company_amount'] == Decimal('250.00')
         assert second['company_amount'] == Decimal('750.00')
 
-    def test_get_amount_by_date_groups(self, company):
+    def test_get_amount_by_date_groups(self, company, environment):
+        """≙ ``_get_amount_by_date`` (``odoo19c: :137-155``): la clave es un
+        ``frozendict`` con la fecha y el valor lleva la fecha con el formato
+        del idioma, que es lo que consume la vista previa del plazo."""
         term = AccountPaymentTerm.objects.create(name='30/70', company=company)
         AccountPaymentTermLine.objects.create(
             payment=term,
@@ -315,8 +344,10 @@ class TestAccountPaymentTermComputeTerms:
         )
         by_date = term._get_amount_by_date(terms)
         assert len(by_date) == 2
-        assert by_date[date(2026, 1, 1)]['amount'] == Decimal('300.00')
-        assert by_date[date(2026, 1, 31)]['amount'] == Decimal('700.00')
+        first = by_date[frozendict({'date': date(2026, 1, 1)})]
+        second = by_date[frozendict({'date': date(2026, 1, 31)})]
+        assert first == {'date': '01/01/2026', 'amount': Decimal('300.00')}
+        assert second == {'date': '01/31/2026', 'amount': Decimal('700.00')}
 
 
 class TestAccountPaymentTermLineDueDate:
