@@ -40,3 +40,5 @@
 {"utc": "2026-11-03T18:47:37Z", "epoch": 1793731657.146, "kind": "accepted", "item": "config-default-parameters", "commitExit": 0, "commit": "82d28b79"}
 {"utc": "2026-11-03T21:11:00Z", "epoch": 1793740260.319, "kind": "attempt", "item": "style-admission-debt", "attempt": 0, "model": "conversational-session", "outcome": "success", "source": "preexisting", "verifyExit": 0, "commit": "b7695e3d", "verifyTail": ["style cycle: 43 PASS de 43 medidas; 0 sin cambio frente a la base"]}
 {"utc": "2026-11-03T21:11:00Z", "epoch": 1793740260.319, "kind": "accepted", "item": "style-admission-debt", "commitExit": 0, "commit": "b7695e3d"}
+{"utc": "2026-11-03T21:25:10Z", "epoch": 1793741110.752, "kind": "attempt", "item": "ir-attachment-recordset", "attempt": 0, "model": "conversational-session", "outcome": "success", "source": "preexisting", "verifyExit": 0, "commit": "1da88953", "verifyTail": ["    warnings.warn(", "-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html", "9 passed, 2 warnings in 8.25s"]}
+{"utc": "2026-11-03T21:25:10Z", "epoch": 1793741110.752, "kind": "accepted", "item": "ir-attachment-recordset", "commitExit": 0, "commit": "1da88953"}
