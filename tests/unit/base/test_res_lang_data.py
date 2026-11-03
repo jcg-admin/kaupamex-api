@@ -28,7 +28,7 @@ def test_lang_data_reads_like_a_record_and_is_falsy_without_id():
 
 
 def test_lang_data_dict_answers_a_dummy_for_a_missing_key():
-    langs = LangDataDict({'en_US': LangData({'id': 1, 'code': 'en_US'})})
+    langs = LangDataDict([('en_US', LangData({'id': 1, 'code': 'en_US'}))])
     dummy = langs['xx_XX']
     assert not dummy and dummy.code is False
 
