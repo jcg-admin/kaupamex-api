@@ -194,14 +194,10 @@ from exceptions import ValidationError
 from orm.method_chain import chain_method
 from orm.model_classes import add_field_if_absent
 from tools.translate import _
-from tools.urls import urljoin
 
 _logger = logging.getLogger(__name__)
 
 TIMEOUT = 10
-#: Parámetro de sistema con la URL pública de la instalación — el análogo del
-#: ``get_base_url()`` de la referencia (precedente: ``authz_passkey``).
-PARAM_BASE_URL = 'web.base.url'
 #: Parámetro de sistema con el modo del proxy Peppol (``prod``/``test``/``demo``).
 PARAM_EDI_MODE = 'account_peppol.edi.mode'
 
@@ -669,13 +665,9 @@ def _get_peppol_edi_mode(self, temporary_eas=False):
 
 
 def _get_peppol_webhook_endpoint(self):
-    """≙ ``_get_peppol_webhook_endpoint`` (``odoo19c: :400-402``).
-
-    ``get_base_url()`` no existe en este árbol (medido, 0 hits); la URL pública
-    sale del parámetro de sistema ``web.base.url``, el precedente ya usado por
-    ``authz_passkey``.
-    """
-    return urljoin(str(SystemParameter.get_param(PARAM_BASE_URL, '') or ''), '/peppol/webhook')
+    """≙ ``_get_peppol_webhook_endpoint`` (``odoo19c: :400-402``): la URL
+    pública del registro, ``get_base_url()``, más ``/peppol/webhook``."""
+    return self.get_base_url() + '/peppol/webhook'
 
 
 def _get_peppol_provider(participant_info):

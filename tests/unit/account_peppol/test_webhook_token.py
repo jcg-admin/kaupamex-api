@@ -41,3 +41,11 @@ def test_a_url_outside_the_signed_endpoint_is_refused(company):
 def test_a_malformed_token_is_refused():
     assert AccountEdiProxyUser._get_user_from_token(
         'AAAA', 'https://kaupamex.test/peppol/webhook') is None
+
+
+def test_the_endpoint_keeps_the_path_of_the_base_url():
+    """La fuente concatena ``get_base_url() + '/peppol/webhook'``: una
+    instalación servida bajo una ruta la conserva. ``urljoin`` la perdía."""
+    SystemParameter.set_param('web.base.url', 'https://kaupamex.test/erp')
+    company = ResCompany.objects.create(name='Kaupamex QA Peppol ruta')
+    assert company._get_peppol_webhook_endpoint() == 'https://kaupamex.test/erp/peppol/webhook'
