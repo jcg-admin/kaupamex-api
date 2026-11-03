@@ -13,7 +13,6 @@
 # leidos como `QuerySet.update`, que solo admite **kwargs; el eje los
 # separa por la forma de la llamada (`keyword_only`).
 src/addons/base/models/ir_actions.py::IrActionsServer._get_eval_context
-src/addons/base/models/ir_attachment.py::IrAttachment.generate_access_token
 src/addons/base/models/ir_cron.py::IrCron._reschedule_asap
 src/addons/base/models/ir_cron.py::IrCron._trigger_list
 src/addons/base/models/res_device.py::ResDeviceLog.__update_revoked

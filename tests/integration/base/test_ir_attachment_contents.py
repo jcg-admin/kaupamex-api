@@ -44,6 +44,7 @@ import base64
 import pytest
 from django.apps import apps
 from django.contrib.auth import get_user_model
+from django.db.models.signals import post_save
 
 from addons.base.models.ir_attachment import IrAttachment
 from addons.base.models.res_groups import ResGroups
@@ -149,6 +150,51 @@ class TestToken:
         dos = IrAttachment(name='b.pdf', res_model='res.partner', res_id=2)
         dos.save()
         assert uno.generate_access_token() != dos.generate_access_token()
+
+    def test_the_token_goes_through_save_without_revalidating(self, db):
+        # ≙ ``attachment.write({'access_token': ...})``: la fuente sólo
+        # revalida el contenido si ``vals`` trae ``mimetype``/``datas``/``raw``
+        # (``odoo19c: odoo/addons/base/models/ir_attachment.py:725-726``).
+        page = IrAttachment(name='p.html', mimetype='text/html',
+                            res_model='res.partner', res_id=1)
+        page.save(trusted=True)
+        saved = []
+
+        def receiver(sender, instance, **kwargs):
+            saved.append(kwargs.get('update_fields'))
+
+        post_save.connect(receiver, sender=IrAttachment)
+        try:
+            token = page.generate_access_token()
+        finally:
+            post_save.disconnect(receiver, sender=IrAttachment)
+        assert saved == [frozenset({'access_token'})]
+        assert page.mimetype == 'text/html'
+        page.refresh_from_db()
+        assert (page.access_token, page.mimetype) == (token, 'text/html')
+
+
+class TestSaveRevalidatesOnlyContent:
+    """≙ ``write``: ``_check_contents`` sólo si cambia el contenido."""
+
+    def test_saving_another_field_keeps_a_trusted_mimetype(self, db):
+        page = IrAttachment(name='p.html', mimetype='text/html',
+                            res_model='res.partner', res_id=1)
+        page.save(trusted=True)
+        page.name = 'q.html'
+        page.save(update_fields=['name'])
+        assert page.mimetype == 'text/html'
+        page.refresh_from_db()
+        assert (page.name, page.mimetype) == ('q.html', 'text/html')
+
+    def test_saving_the_mimetype_still_revalidates(self, db):
+        page = IrAttachment(name='p.txt', mimetype='text/plain',
+                            res_model='res.partner', res_id=1)
+        page.save()
+        page.mimetype = 'text/html'
+        page.save(update_fields=['mimetype'])
+        page.refresh_from_db()
+        assert page.mimetype == 'text/plain'
 
 
 class TestCircular:

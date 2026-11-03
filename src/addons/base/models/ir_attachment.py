@@ -329,10 +329,10 @@ class IrAttachment(models.Model):
         lista; aqui ``self`` es una instancia y devuelve **su** token.
         """
         if not self.access_token:
+            # ≙ ``attachment.write({'access_token': ...})``: por ``save()``,
+            # con sus señales, y sin revalidar el contenido.
             self.access_token = self._generate_access_token()
-            type(self).objects.filter(pk=self.pk).update(
-                access_token=self.access_token
-            )
+            self.save(update_fields=['access_token'])
         return self.access_token
 
     def save(self, *args, user=None, trusted=False, **kwargs):
@@ -352,16 +352,22 @@ class IrAttachment(models.Model):
         falso: quien tenga permiso para subir HTML lo declara, y quien se
         olvide degrada de más.
         """
-        if self.datas:
-            content = self.datas.read()
-            self.datas.seek(0)
-            self.file_size = len(content)
-            self.checksum = hashlib.sha1(content).hexdigest()
-        self.mimetype = self._check_contents(
-            {'mimetype': self.mimetype, 'name': self.name, 'url': self.url},
-            user=user,
-            trusted=trusted,
-        )['mimetype']
+        update_fields = kwargs.get('update_fields')
+        # ≙ ``write`` (``odoo19c: ir_attachment.py:725-726``): el contenido se
+        # revalida sólo si cambia. Un guardado parcial que no toca
+        # ``mimetype`` ni ``datas`` —el token, el nombre— no degrada lo que
+        # quien subió el archivo ya tenía permitido.
+        if update_fields is None or {'mimetype', 'datas'} & set(update_fields):
+            if self.datas:
+                content = self.datas.read()
+                self.datas.seek(0)
+                self.file_size = len(content)
+                self.checksum = hashlib.sha1(content).hexdigest()
+            self.mimetype = self._check_contents(
+                {'mimetype': self.mimetype, 'name': self.name, 'url': self.url},
+                user=user,
+                trusted=trusted,
+            )['mimetype']
         super().save(*args, **kwargs)
         if (
             self.datas
