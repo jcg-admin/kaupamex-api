@@ -133,6 +133,14 @@ class TestTheDissolvedBaseKeepsItsPairs:
         assert matched, symbol
         assert matched[0].route == counterpart_body.BY_NAME
 
+    def test_the_pair_names_the_reference_owner(self):
+        # La duena de la referencia no es la nuestra: sin ella el veredicto no
+        # se puede atribuir al simbolo de la fuente.
+        create = next(p for p in _pairs(DISSOLVED_BASE).values() if p.name == 'create')
+        assert create.owner != 'BaseModel'
+        assert create.their_owner == 'BaseModel'
+        assert create.reference_key == 'BaseModel.create'
+
 
 class TestTheScopePublishesEachRoute:
     """Un denominador que no dice por que via emparejo no es auditable."""

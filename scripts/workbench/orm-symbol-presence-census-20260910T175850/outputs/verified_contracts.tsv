@@ -1,0 +1,5 @@
+module	symbol	kind	test
+src/orm/models.py	BaseModel.new	method	tests/integration/test_orm/test_new_record.py
+src/orm/models.py	BaseModel._update_cache	method	tests/integration/test_orm/test_new_record.py
+src/orm/models.py	BaseModel._convert_to_write	method	tests/integration/test_orm/test_one2many.py::test_new_real_interactions
+src/orm/models.py	BaseModel._origin	property	tests/integration/test_orm/test_new_record.py::test_origin_is_the_real_record_behind_the_new_one

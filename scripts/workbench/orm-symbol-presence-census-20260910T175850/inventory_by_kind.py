@@ -14,29 +14,35 @@ extrae.
 
 Identidad y categorias
 ----------------------
-Cada simbolo se identifica por ``(revision, modulo, simbolo calificado,
-tipo)``: un metodo se califica por su clase (``Clase.metodo``), nunca por su
-nombre suelto. Las categorias son excluyentes y cumplen
-``aplicables = satisfechos + ausentes + divergentes + no_verificados``:
+Cada simbolo se identifica por ``(revision, modulo, simbolo calificado por
+su clase de la referencia, tipo)``, nunca por su nombre suelto. La categoria
+PRINCIPAL sigue la regla de la adenda contractual (§26) y es excluyente:
+``aplicables = satisfechos + ausentes + divergentes + no_verificados``.
 
 ``satisfied``
-    Presente en el archivo espejo con el mismo duenio y, si tiene firma o
-    valor, con la misma firma o el mismo valor; cuerpo no vacio.
-``absent``
-    Ni el simbolo ni (para metodos y atributos) su clase duenia existen en el
-    archivo espejo, o el archivo espejo no existe.
+    Coincidencia estructural y de firma, ningun desacuerdo de cuerpo y
+    evidencia de COMPORTAMIENTO registrada en ``outputs/verified_contracts.tsv``
+    (un caso de prueba por simbolo). La coincidencia sola no basta.
 ``divergent``
-    Presente con el mismo duenio, pero la firma, el valor o el cuerpo (stub
-    donde la referencia implementa) difieren.
+    Diferencia de cuerpo DEMOSTRADA: un hallazgo del eje ``write_path`` del
+    motor ``counterpart_body`` o un cuerpo vacio donde la referencia
+    implementa.
+``absent``
+    El nombre no se declara en ningun lugar del arbol consumidor (``src`` y
+    ``addons``), no solo en el archivo espejo.
 ``not_verified``
-    Solo hay un homonimo: el nombre existe en el archivo espejo pero con otro
-    duenio o de otro tipo. Un homonimo no es un porte (no es TRAE).
+    Lo demas: firma distinta, disolucion en ``_field_*``, contraparte con otra
+    duena (``paired_by_name``), homonimo, o coincidencia sin evidencia. Son
+    diferencias o semejanzas cuyas consecuencias faltan por medir.
+
+Los ejes (estructural, ``write_path``, evidencia) quedan como evidencia
+secundaria en la columna ``reason``, no como categorias.
 
 *Metrica:* presencia y forma declarativa (firma, valor, cuerpo vacio o no)
 por AST, archivo contra archivo espejo.
-*Ciega a:* el COMPORTAMIENTO — «satisfecho» significa estructuralmente igual,
-no probado; a un simbolo portado a otro archivo (se cuenta ausente aqui); y a
-atributos de instancia asignados en ``__init__``.
+*Ciega a:* el comportamiento que ningun caso registrado ejercita; los ejes de
+cuerpo que el motor no tiene instalados (sólo ``write_path``); un simbolo
+portado bajo otro nombre; y los atributos de instancia de ``__init__``.
 
 Uso::
 
@@ -60,6 +66,22 @@ _spec = importlib.util.spec_from_file_location(
 _census = importlib.util.module_from_spec(_spec)
 sys.modules['_inventory_census'] = _census
 _spec.loader.exec_module(_census)
+
+_engine_spec = importlib.util.spec_from_file_location(
+    '_inventory_engine', REPO / 'scripts' / 'counterpart_body.py')
+_engine = importlib.util.module_from_spec(_engine_spec)
+sys.modules['_inventory_engine'] = _engine
+_engine_spec.loader.exec_module(_engine)
+_write_path_spec = importlib.util.spec_from_file_location(
+    '_inventory_write_path', REPO / 'scripts' / 'check_write_path.py')
+_write_path = importlib.util.module_from_spec(_write_path_spec)
+sys.modules['_inventory_write_path'] = _write_path
+_write_path_spec.loader.exec_module(_write_path)
+
+#: La evidencia de COMPORTAMIENTO: un caso de prueba por simbolo verificado.
+#: Es un puntero a la prueba que lo demuestra, no una autoridad nueva: el
+#: veredicto lo da el caso al ejecutarse.
+EVIDENCE = RUN_DIR / 'outputs' / 'verified_contracts.tsv'
 
 KINDS = ('file', 'class', 'function', 'method', 'attribute', 'property')
 CATEGORIES = ('satisfied', 'absent', 'divergent', 'not_verified')
@@ -111,31 +133,106 @@ def _qualified(record):
     return f"{record['owner']}.{record['name']}" if record['owner'] else record['name']
 
 
-def classify_symbol(reference, ours_by_key, ours_names):
-    """Categoria y motivo de un simbolo de la referencia frente al espejo."""
+def structural_axis(reference, ours_by_key, ours_names):
+    """El eje ESTRUCTURAL de un simbolo frente al archivo espejo.
+
+    Es evidencia secundaria: dice que se encontro, no si el contrato se
+    cumple. Sus valores: ``match``, ``signature``, ``stub``, ``dissolved``,
+    ``homonym``, ``owner_absent``, ``unresolved``.
+    """
     resolved = _census.resolve(reference['name'], set(ours_names))
     if resolved is None:
-        return 'absent', 'nombre no resuelto en el archivo espejo'
+        return 'unresolved', ''
     mine = ours_by_key.get((reference['owner'], resolved))
     if mine is None and resolved != reference['name']:
         # La resolucion reconocio un prefijo de disolucion (``_field_``,
         # ``_model_``): el simbolo existe con otro mecanismo declarado.
-        return 'divergent', f'disuelto en {resolved}'
+        return 'dissolved', resolved
     if mine is None or mine['kind'] != reference['kind']:
         if reference['owner'] and (reference['owner'], None) not in ours_by_key:
-            return 'absent', 'la clase duenia no existe en el archivo espejo'
-        return 'not_verified', 'solo homonimo (otro duenio u otro tipo)'
+            return 'owner_absent', ''
+        return 'homonym', ''
     if reference['kind'] == 'class':
-        return 'satisfied', ''
+        return 'match', ''
     if mine['body'] == 'stub' and reference['body'] != 'stub':
-        return 'divergent', 'cuerpo vacio donde la referencia implementa'
+        return 'stub', ''
     if mine['signature'] != reference['signature']:
-        return 'divergent', 'firma distinta'
-    return 'satisfied', ''
+        return 'signature', ''
+    return 'match', ''
 
 
-def inventory(roots=_census.CENSUS_ROOTS, revision='-'):
+def engine_pairs(our_file, reference_file):
+    """``{simbolo calificado de la referencia: (par, veredicto write_path)}``.
+
+    Reusa ``counterpart_body.pair_declarations`` —sus tres vias, incluida la de
+    nombre con duena divergente, que resuelve la contraparte efectiva de un
+    ``BaseModel`` disuelto en mixins— y el ``Axis`` de ``check_write_path``: ni
+    recorrido ni resolucion propios. El veredicto es ``agree``,
+    ``indeterminate``, el nombre del desacuerdo, o ``''`` si algun lado no
+    escribe.
+    """
+    axis = _write_path.WRITE_PATH
+    result = {}
+    for pair in _engine.pair_declarations(our_file, reference_file):
+        mine = _engine.classify(pair.ours, axis.ours, axis)
+        theirs = _engine.classify(pair.theirs, axis.reference, axis)
+        if _engine.ABSENT in (mine, theirs):
+            verdict = ''
+        else:
+            verdict = _engine.direction(mine, theirs, axis)
+            verdict = ('agree' if verdict is None else
+                       'indeterminate' if verdict == _engine.INDETERMINATE
+                       else verdict)
+        result[pair.reference_key] = (pair, verdict)
+    return result
+
+
+def consumer_names(roots=('src', 'addons')):
+    """Todo nombre de clase o funcion que el arbol consumidor declara."""
+    names = set()
+    for root in roots:
+        for path in pathlib.Path(REPO / root).rglob('*.py'):
+            if 'migrations' in path.parts or '__pycache__' in path.parts:
+                continue
+            names.update(r['name'] for r in _census.declared_symbols(path))
+    return names
+
+
+def load_evidence(path=EVIDENCE):
+    """``{(modulo, simbolo, tipo): caso}`` de la evidencia de comportamiento."""
+    evidence = {}
+    if path.is_file():
+        for line in path.read_text(encoding='utf-8').splitlines()[1:]:
+            module, symbol, kind, test = line.split('\t')
+            evidence[(module, symbol, kind)] = test
+    return evidence
+
+
+def principal(kind, structural, write_path, evidence, name_known):
+    """La categoria PRINCIPAL, con la regla de la adenda contractual (§26).
+
+    - ``divergent`` exige una diferencia DEMOSTRADA en el cuerpo: un hallazgo
+      del eje ``write_path`` o un cuerpo vacio donde la referencia implementa.
+    - ``satisfied`` exige coincidencia estructural y de firma, ningun
+      desacuerdo de cuerpo y evidencia de comportamiento registrada.
+    - ``absent`` exige que el nombre no se declare en ningun lugar del arbol
+      consumidor, no solo en el archivo espejo.
+    - lo demas es ``not_verified``: una firma distinta, una disolucion o un
+      homonimo son diferencias cuyas consecuencias faltan por medir.
+    """
+    if structural == 'stub' or write_path not in ('', 'agree', 'indeterminate'):
+        return 'divergent'
+    if structural == 'match' and evidence:
+        return 'satisfied'
+    if structural in ('unresolved', 'owner_absent') and not name_known:
+        return 'absent'
+    return 'not_verified'
+
+
+def inventory(roots=_census.CENSUS_ROOTS, revision='-', known=None, evidence=None):
     pairs = {label: (ours, ref) for label, ours, ref in _census.MIRRORED_ROOTS}
+    known = consumer_names() if known is None else known
+    evidence = load_evidence() if evidence is None else evidence
     rows = []
     for label in roots:
         our_root, reference_root = pairs[label]
@@ -154,34 +251,49 @@ def inventory(roots=_census.CENSUS_ROOTS, revision='-'):
                 if record['kind'] == 'class':
                     ours_by_key.setdefault((record['name'], None), record)
             ours_names = {r['name'] for r in ours}
+            paired = engine_pairs(our_file, reference_file) if exists else {}
             file_rows = []
             for record in typed_symbols(reference_file):
+                qualified = _qualified(record)
                 if exists:
-                    category, reason = classify_symbol(record, ours_by_key, ours_names)
+                    structural, detail = structural_axis(record, ours_by_key, ours_names)
                 else:
-                    category, reason = 'absent', 'archivo espejo inexistente'
-                file_rows.append((record['kind'], _qualified(record), category, reason))
+                    structural, detail = 'unresolved', 'archivo espejo inexistente'
+                pair, write_path = paired.get(qualified, (None, ''))
+                if (pair is not None and pair.route == _engine.BY_NAME
+                        and structural in ('homonym', 'owner_absent', 'unresolved')):
+                    # La contraparte efectiva vive en otra duena del espejo.
+                    structural, detail = 'paired_by_name', pair.key
+                test = evidence.get((module, qualified, record['kind']), '')
+                category = principal(record['kind'], structural, write_path,
+                                     test, record['name'] in known)
+                reason = f'structural={structural}{":" + detail if detail else ""};' \
+                         f'write_path={write_path or "-"};evidence={test or "-"}'
+                file_rows.append((record['kind'], qualified, category, reason))
             reference_attributes = class_attributes(reference_file)
             our_attributes = class_attributes(our_file) if exists else {}
-            our_classes = {owner for owner, _ in our_attributes} | {
-                r['name'] for r in ours if r['kind'] == 'class'}
             for (owner, name), value in sorted(reference_attributes.items()):
+                qualified = f'{owner}.{name}'
                 if (owner, name) in our_attributes:
-                    category, reason = (('satisfied', '')
-                                        if our_attributes[(owner, name)] == value
-                                        else ('divergent', 'valor distinto'))
-                elif owner in our_classes:
-                    category, reason = 'absent', 'la clase existe sin el atributo'
+                    structural = ('match' if our_attributes[(owner, name)] == value
+                                  else 'value')
                 else:
-                    category, reason = 'absent', 'la clase duenia no existe'
-                file_rows.append(('attribute', f'{owner}.{name}', category, reason))
-            if not exists:
-                file_category, file_reason = 'absent', 'archivo espejo inexistente'
-            elif all(row[2] == 'satisfied' for row in file_rows):
-                file_category, file_reason = 'satisfied', ''
+                    structural = 'unresolved'
+                test = evidence.get((module, qualified, 'attribute'), '')
+                category = principal('attribute', structural, '', test, owner in known)
+                file_rows.append(('attribute', qualified, category,
+                                  f'structural={structural};write_path=-;evidence={test or "-"}'))
+            categories = {row[2] for row in file_rows}
+            if not exists and categories <= {'absent'}:
+                file_category = 'absent'
+            elif 'divergent' in categories:
+                file_category = 'divergent'
+            elif categories == {'satisfied'}:
+                file_category = 'satisfied'
             else:
-                file_category, file_reason = 'divergent', 'algun simbolo no satisfecho'
-            rows.append((revision, module, '', 'file', file_category, file_reason))
+                file_category = 'not_verified'
+            rows.append((revision, module, '', 'file', file_category,
+                         f'mirror={"yes" if exists else "no"}'))
             rows.extend((revision, module, q, k, c, r) for k, q, c, r in file_rows)
     return rows
 

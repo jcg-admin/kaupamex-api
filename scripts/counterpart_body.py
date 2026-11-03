@@ -297,10 +297,20 @@ class Pair:
     ours: object
     theirs: object
     route: str
+    #: La duena del lado de la REFERENCIA. Por la via ``BY_NAME`` no es
+    #: ``owner``: nuestro ``create`` vive en ``DefaultGetMixin`` y el suyo en
+    #: ``BaseModel``. Sin ella, quien identifica el simbolo por la referencia
+    #: no puede atribuirle el veredicto del par.
+    their_owner: str = ''
 
     @property
     def key(self):
         return f'{self.owner}.{self.name}' if self.owner else self.name
+
+    @property
+    def reference_key(self):
+        """El simbolo calificado del lado de la referencia."""
+        return f'{self.their_owner}.{self.name}' if self.their_owner else self.name
 
 
 def _functions(declarations):
@@ -359,7 +369,7 @@ def pair_declarations(our_path, their_path):
         if yours is not None and id(yours) not in taken:
             taken.add(id(yours))
             pairs.append(Pair(mine.name, mine.owner, mine.node, yours.node,
-                              BY_OWNER))
+                              BY_OWNER, yours.owner))
         else:
             remaining_ours.append(mine)
 
@@ -381,7 +391,7 @@ def pair_declarations(our_path, their_path):
         if candidates:
             yours = candidates.pop(0)
             pairs.append(Pair(mine.name, mine.owner, mine.node, yours.node,
-                              BY_NAME))
+                              BY_NAME, yours.owner))
     return pairs
 
 
