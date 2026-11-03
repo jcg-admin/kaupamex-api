@@ -107,6 +107,7 @@ from django.db import models
 from django.db.models import Q
 
 from orm.fields_nonstored import NonStored
+from orm.fields_relational import One2many as DeclaredOne2many
 from orm.fields import (
     NEGATIVE_CONDITION_OPERATORS as _FIELDS_NEGATIVE_OPERATORS,
     condition_to_q,
@@ -269,6 +270,11 @@ def _non_stored_field(model, name):
     que sobre una instancia devolvería el **valor** que el descriptor calcula.
     """
     descriptor = inspect.getattr_static(model, name, None)
+    if isinstance(descriptor, DeclaredOne2many) and descriptor.related:
+        # Un ``One2many(related=...)`` es una proyección sin columna, como un
+        # ``related`` escalar; se resuelve aquí para que su ``search`` actúe
+        # (:ref:`h-api-1133`).
+        return descriptor
     return descriptor if isinstance(descriptor, NonStored) else None
 
 
@@ -1197,7 +1203,11 @@ class DomainCondition(Domain):
         try:
             field = model._meta.get_field(head)
         except FieldDoesNotExist:
-            return None
+            # El campo sin columna, por el mismo camino que ``__get_field``:
+            # un ``One2many(related=...)`` es una relación con ``search``.
+            field = _non_stored_field(model, head)
+            if field is None:
+                return None
         if (isinstance(field, Properties)
                 or not getattr(field, 'is_relation', False)
                 or getattr(field, 'related_model', None) is None
@@ -3169,3 +3179,25 @@ def _field_search_related(self, records, operator, value):
 
 
 models.Field._search_related = _field_search_related
+
+
+def _one2many_related_domain(self, model, operator, value):
+    """La búsqueda de un ``One2many(related=...)`` — ≙ ``Field._search_related``
+    (``odoo19c: odoo/orm/fields.py:735-772``) sobre la ruta declarada.
+
+    ``('foo_foo_ids', op, v)`` con ``related='foo_id.foo_ids'`` se reescribe
+    como ``('foo_id', 'any', [('foo_ids', op, v)])``, con ``any!`` si el
+    campo es ``related_sudo``. El último eslabón es un x2many: su vacío no
+    tiene fila que mirar, así que no lleva la rama de nulo del escalar.
+    """
+    parts = self.related.split('.')
+    domain = Domain(parts[-1], operator, value)
+    for part in reversed(parts[:-1]):
+        domain = Domain(part, 'any!' if self.related_sudo else 'any', domain)
+    return domain
+
+
+#: El protocolo que el optimizador lee de un campo sin columna buscable.
+DeclaredOne2many.type = 'one2many'
+DeclaredOne2many.search = True
+DeclaredOne2many.determine_domain = _one2many_related_domain

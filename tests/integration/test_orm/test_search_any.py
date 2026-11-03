@@ -200,9 +200,6 @@ def test_related_many2many_by_id_and_by_path(env, records, ruled_user, fname,
     assert _found_as(ruled_user, [(f'{fname}.name', '=', 'a')]) == expected
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    'H-API-1133: la fachada One2many(related=...) no entra en el registro de '
-    'campos del modelo, así que el dominio no la resuelve.'))
 @pytest.mark.parametrize(('fname', 'reaches_hidden'), [
     ('foo_foo_ids', False),
     ('foo_foo_sudo_ids', True),

@@ -110,7 +110,8 @@ from orm.identifiers import NewId
 from orm.model_classes import is_transient
 from orm.registry import (IR_MODELS, model_by_key, model_by_name, name_of,
                           sentinel_label)
-from orm.utils import display_name_of, model_of, record_ids
+from orm.utils import (display_name_of, model_field_registry, model_of,
+                       record_ids)
 from tools.misc import SENTINEL, unique
 from tools.sql import SQL
 
@@ -226,7 +227,8 @@ class One2many:
 
     def __init__(self, comodel_name=None, inverse_name=None, *, copy=False,
                  string=None, domain=None, context=None,
-                 bypass_search_access=False, related=None, **_ignored):
+                 bypass_search_access=False, related=None, related_sudo=True,
+                 **_ignored):
         #: Se acepta con nombre para que **no** caiga en ``**_ignored``, que es
         #: como se tragaba antes: la declaración se escribía igual que la de la
         #: fuente (``fields.One2many(related='employee_id.subordinate_ids')``),
@@ -241,6 +243,10 @@ class One2many:
         #: cadena es el manager del reverso, que no necesita comodelo ni
         #: inverso declarados — es lo que la referencia declara, sin ellos.
         self.related = related
+        #: ≙ ``related_sudo`` (``odoo19c: odoo/orm/fields.py``, defecto
+        #: ``True``): un ``related`` sin ``sudo`` busca con la regla de cada
+        #: comodelo intermedio (``any``), uno con ``sudo`` la salta (``any!``).
+        self.related_sudo = bool(related_sudo)
         self.comodel_name = comodel_name
         self.inverse_name = inverse_name
         #: Los tres que la fuente documenta en su docstring (``:852-860``) y
@@ -260,6 +266,26 @@ class One2many:
         self.copy = bool(copy)
         self.string = string
         self.name = None
+
+    #: Un One2many es relacional: una ruta ``campo.subcampo`` lo atraviesa.
+    is_relation = True
+    #: ≙ ``_Relational`` de la fuente: lo leen los optimizadores de ``any``.
+    relational = True
+    one_to_many = True
+    many_to_many = False
+
+    @property
+    def related_model(self):
+        """El comodelo — el declarado o, en un ``related``, el del último
+        eslabón de la ruta (≙ ``comodel_name`` que ``setup_related`` copia
+        del destino, ``odoo19c: odoo/orm/fields.py:643-647``)."""
+        if self.comodel_name:
+            return model_by_key(self.comodel_name) or apps.get_model(
+                self.comodel_name)
+        current = apps.get_model(self.model_name)
+        for part in (self.related or '').split('.'):
+            current = model_field_registry(current)[part].related_model
+        return current
 
     @property
     def _description_relation_field(self):
