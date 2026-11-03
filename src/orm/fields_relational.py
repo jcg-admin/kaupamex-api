@@ -469,6 +469,8 @@ class One2many:
             return self
         if self.compute:
             return self._get_computed(instance)
+        if self.related:
+            return self._get_related(instance)
         comodel, inverse = self._inverse_field()
         if getattr(inverse, 'store', True) is False:
             # ≙ ``Field.to_sql`` (``odoo19c: odoo/orm/fields.py:1215-1216``):
@@ -484,6 +486,29 @@ class One2many:
         # El inverso apunta a otro modelo, o su reverso esta suprimido con
         # ``related_name='+'``. Queda la definicion literal de la fuente.
         return comodel._default_manager.filter(**{self.inverse_name: instance})
+
+    def _get_related(self, instance):
+        """El valor de un ``related=`` — ≙ ``Field._compute_related``
+        (``odoo19c: odoo/orm/fields.py``): se recorre la ruta desde el
+        registro y el valor es el del último eslabón; un eslabón vacío da el
+        conjunto vacío del comodelo.
+
+        Divergencia de forma: un comodelo que no es ``BaseModel`` devuelve su
+        ``QuerySet`` (el gestor del reverso, materializado con ``all()``),
+        que es como este árbol representa un conjunto de esas filas.
+        """
+        *path, last = self.related.split('.')
+        model, value = type(instance), instance
+        for part in path:
+            model = model._meta.get_field(part).related_model
+            value = getattr(value, part) if value else None
+        comodel = model._meta.get_field(last).related_model
+        if not value:
+            if isinstance(comodel, type) and hasattr(comodel, '_from_ids'):
+                return comodel._from_ids(get_environment(), (), ())
+            return comodel._default_manager.none()
+        value = getattr(value, last)
+        return value.all() if hasattr(value, 'get_queryset') else value
 
     def _deletes_the_leftover(self, inverse):
         """Que hacer con el hijo que se queda fuera — ≙ ``write_real:975-979``.

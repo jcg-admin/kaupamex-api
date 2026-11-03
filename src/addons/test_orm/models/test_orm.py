@@ -467,7 +467,11 @@ class TestOrmMulti(TestOrmModel):
     _name = 'test_orm.multi'
     _description = 'Test ORM Multi'
 
+    name = fields.Char(related='partner.name', readonly=True)
     partner = fields.Many2one('res.partner', null=True, related_name='+')
+    # ``partner.child_ids`` en la fuente; aquí el inverso de ``res.partner``
+    # se llama ``children`` (``res_partner.py``, divergencia declarada).
+    partners = fields.One2many(related='partner.children')
     tags = fields.Many2many(
         'test_orm.multi.tag', domain=[('name', 'ilike', 'a')])
 

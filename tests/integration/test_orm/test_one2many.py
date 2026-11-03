@@ -200,7 +200,7 @@ def test_computed_inverse_one2many(env):
 
 @pytest.fixture
 def multi(env):
-    return env['test_orm.multi'].create({})
+    return env['test_orm.multi'].create({'name': 'What is up?'})
 
 
 def _operations(env, multi):
@@ -267,7 +267,7 @@ def test_rpcstyle_one_by_one_on_new(env):
 
     ``operations`` termina antes de invalidar: el registro no tiene ``id``.
     """
-    multi = env['test_orm.multi'].new({})
+    multi = env['test_orm.multi'].new({'name': 'What is up?'})
     for name in range(10):
         multi.lines = [Command.create({'name': str(name)})]
     _new_operations(multi)
@@ -275,7 +275,7 @@ def test_rpcstyle_one_by_one_on_new(env):
 
 def test_rpcstyle_single_on_new(env):
     """≙ :109 — los diez ``CREATE`` en una sola asignación."""
-    multi = env['test_orm.multi'].new({})
+    multi = env['test_orm.multi'].new({'name': 'What is up?'})
     multi.lines = [Command.create({'name': str(name)}) for name in range(10)]
     _new_operations(multi)
 
@@ -339,3 +339,19 @@ def test_new_real_interactions(env):
     assert len(parent.child_ids) == 3
     assert parent == parent.child_ids.parent_id
     assert parent.child_ids.mapped('name') == ['C3', 'PO', 'R2D2']
+
+
+def test_multi_reads_its_related_fields(env):
+    """``name`` y ``partners`` de ``test_orm.multi`` son ``related`` del
+    contacto (``odoo19c: odoo/addons/test_orm/models/test_orm.py:278-281``)."""
+    # ``res.partner`` no es ``BaseModel``: se crea por su gestor, como en
+    # ``test_search_subqueries.py``.
+    Partner = env['res.partner']
+    partner = Partner.objects.create(name='Padre')
+    Partner.objects.create(name='Hijo', parent=partner)
+    multi = env['test_orm.multi'].create({'partner': partner.id})
+    assert multi.name == 'Padre'
+    assert [p.name for p in multi.partners] == ['Hijo']
+    orphan = env['test_orm.multi'].create({})
+    assert not orphan.name
+    assert not orphan.partners
