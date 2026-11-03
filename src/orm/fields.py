@@ -4973,7 +4973,15 @@ def _invoke_compute_method(field, records):
     dentro con ``for record in self``; aquí la unidad es la instancia, así
     que el bucle vive de este lado y el método recibe una fila. Es la misma
     adaptación de :func:`~orm.utils.record_ids`, vista desde el otro lado.
+
+    Un recordset nativo (con ``_ids``) SÍ es la unidad de la fuente: se le
+    entrega entero, una sola invocación por lote, como
+    ``determine(field.compute, self)``. Iterarlo partía un lote de N ids en N
+    llamadas y el cómputo por lote dejaba de recibir su lote.
     """
+    if getattr(records, '_ids', None) is not None:
+        determine(field.compute, records)
+        return
     for record in as_record_list(records):
         determine(field.compute, record)
 
