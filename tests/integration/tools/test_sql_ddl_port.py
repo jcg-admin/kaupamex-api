@@ -177,3 +177,12 @@ class TestPureHelpers:
     def test_pattern_pattern(self):
         assert sql.pattern_to_translated_trigram_pattern('ab%') == '%'
         assert sql.pattern_to_translated_trigram_pattern(r'abc%de"f\%g') == r'%abc%de\\"f\%g%'
+
+    def test_pg_varchar(self):
+        """≙ ``pg_varchar`` (``:644-659``): sin tamaño, o con uno no positivo,
+        un ``VARCHAR`` sin límite; un tamaño que no es entero se rechaza."""
+        assert (sql.pg_varchar(), sql.pg_varchar(0), sql.pg_varchar(-1)) == (
+            'VARCHAR', 'VARCHAR', 'VARCHAR')
+        assert sql.pg_varchar(10) == 'VARCHAR(10)'
+        with pytest.raises(ValueError, match='should be an int'):
+            sql.pg_varchar('x')

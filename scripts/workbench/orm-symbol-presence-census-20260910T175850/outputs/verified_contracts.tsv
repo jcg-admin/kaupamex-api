@@ -81,3 +81,17 @@ src/tools/sql.py	get_foreign_keys	function	tests/unit/tools/test_sql_schema_help
 src/tools/sql.py	drop_index	function	tests/unit/tools/test_sql_schema_helpers.py::TestDropIndex::test_dropping_an_absent_index_is_a_no_op
 src/tools/sql.py	make_identifier	function	tests/unit/tools/test_query.py::TestAliasFitsPostgres::test_a_short_alias_is_left_alone
 src/tools/sql.py	make_index_name	function	tests/unit/tools/test_sql_schema_helpers.py::TestMakeIndexName::test_it_follows_the_convention
+src/tools/sql.py	SQL	class	tests/unit/tools/test_sql.py::test_nested_sql_objects_merge_code_and_params
+src/tools/sql.py	SQL.code	property	tests/unit/tools/test_sql.py::test_plain_code_without_parameters
+src/tools/sql.py	SQL.params	property	tests/unit/tools/test_sql.py::test_positional_parameters_stay_as_placeholders
+src/tools/sql.py	SQL.to_flush	property	tests/unit/tools/test_sql.py::test_to_flush_collects_the_metadata_of_all_parts
+src/tools/sql.py	SQL.__repr__	method	tests/unit/tools/test_sql.py::test_repr_shows_code_and_params
+src/tools/sql.py	SQL.__bool__	method	tests/unit/tools/test_sql.py::test_bool_reflects_the_code
+src/tools/sql.py	SQL.__eq__	method	tests/unit/tools/test_sql.py::test_equality_and_hash_cover_code_and_params
+src/tools/sql.py	SQL.__hash__	method	tests/unit/tools/test_sql.py::test_equality_and_hash_cover_code_and_params
+src/tools/sql.py	SQL.__iter__	method	tests/unit/tools/test_sql.py::test_iteration_is_deprecated_but_still_deconstructs
+src/tools/sql.py	SQL.join	method	tests/unit/tools/test_sql.py::test_join_with_a_parameterized_separator_alternates_items
+src/tools/sql.py	SQL.identifier	method	tests/unit/tools/test_sql.py::test_identifier_with_subname_quotes_both
+src/tools/sql.py	escape_psql	function	tests/unit/website/test_website_search.py::test_escape_psql_escapes_the_three_wildcards
+src/tools/sql.py	pg_varchar	function	tests/integration/tools/test_sql_ddl_port.py::TestPureHelpers::test_pg_varchar
+src/tools/sql.py	_convert_column	function	tests/unit/tools/test_sql_column_schema.py::TestConvertColumn::test_changes_the_column_type
