@@ -76,4 +76,7 @@ class TestSanitizeDistribution:
         model = AccountAnalyticDistributionModel()
         model.analytic_distribution = {}
         model._sanitize_distribution()  # no debe lanzar
-        assert model.analytic_distribution == {}
+        # Vacía se lee ``False``: ``Json.convert_to_cache`` guarda el falso
+        # como ``None`` y ``convert_to_record`` lo entrega como ``False``
+        # (``odoo19c: odoo/orm/fields_misc.py:66-73``).
+        assert model.analytic_distribution is False
